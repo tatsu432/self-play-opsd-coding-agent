@@ -3,6 +3,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from click.utils import strip_ansi
 from typer.testing import CliRunner
 
 from selfplay_opsd.cli import app
@@ -55,5 +56,6 @@ def test_documented_cli_options():
     }.items():
         result = runner.invoke(app, [name, "--help"])
         assert result.exit_code == 0
+        output = strip_ansi(result.output)
         for option in options:
-            assert option in result.output
+            assert option in output

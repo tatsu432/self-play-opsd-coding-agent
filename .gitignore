@@ -5,6 +5,12 @@ docs/
 
 .DS_Store
 
+# Documentation
+!docs/
+docs/*
+!docs/methods.md
+!docs/operations.md
+
 # Experiment artifacts (authoritative local records, never source-controlled).
 runs/
 data/
