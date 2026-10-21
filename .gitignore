@@ -3,6 +3,8 @@
 AGENTS.md
 docs/
 
+.DS_Store
+
 # Experiment artifacts (authoritative local records, never source-controlled).
 runs/
 data/
