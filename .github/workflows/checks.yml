@@ -1,0 +1,17 @@
+name: correctness
+on: [push, pull_request]
+jobs:
+  cpu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.8.15'
+          python-version: '3.12'
+      - run: uv sync --frozen
+      - run: uv run ruff check src tests scripts
+      - run: uv run ruff format --check src tests scripts
+      - run: uv run mypy src/selfplay_opsd
+      - run: docker build -f docker/worker.Dockerfile -t selfplay-worker:local .
+      - run: uv run pytest -q -m 'not gpu and not download and not wandb_online'

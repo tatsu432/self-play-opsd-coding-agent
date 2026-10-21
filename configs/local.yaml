@@ -1,0 +1,10 @@
+study_id: local-debug
+method: B
+iterations: 1
+hardware:
+  profile: cpu_debug
+logging:
+  mode: disabled
+sandbox:
+  backend: docker
+  image: selfplay-worker:local

@@ -1,0 +1,53 @@
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "selfplay-opsd"
+version = "0.1.0"
+description = "Reproducible gated on-policy self-distillation coding-agent experiments"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "torch==2.8.0", "transformers==4.57.1", "peft==0.17.1",
+  "pydantic==2.12.3", "PyYAML==6.0.3", "numpy==1.26.4",
+  "pyarrow==21.0.0", "wandb==0.22.2", "typer==0.19.2",
+  "httpx==0.28.1", "scipy==1.16.2", "matplotlib==3.10.7",
+  "evalplus==0.3.1",
+]
+
+[dependency-groups]
+dev = ["pytest==8.4.2", "ruff==0.14.1", "mypy==1.18.2", "types-PyYAML==6.0.12.20250915"]
+gpu = [
+  "verl @ git+https://github.com/verl-project/verl.git@bec9ef74768dd201881cd4e54cd0385e87caae27 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
+  "vllm==0.11.0 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
+  "opencv-python-headless==4.11.0.86 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
+]
+
+[project.scripts]
+selfplay = "selfplay_opsd.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/selfplay_opsd"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "sandbox: needs a running supported sandbox runtime",
+  "gpu: needs allocated CUDA devices",
+  "download: needs network/dataset downloads",
+  "wandb_online: needs explicit online W&B credentials",
+]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+check_untyped_defs = true
+files = ["src/selfplay_opsd"]

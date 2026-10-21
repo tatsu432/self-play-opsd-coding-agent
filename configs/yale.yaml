@@ -1,0 +1,16 @@
+study_id: repair-selfplay-2026
+method: B
+seed: 2026
+iterations: 200
+data_root: data/prepared
+output_root: runs
+model:
+  revision: cdbee75f17c01a7cc42f958dc650907174af0554
+  tokenizer_revision: cdbee75f17c01a7cc42f958dc650907174af0554
+hardware:
+  profile: dual_gpu_80gb
+sandbox:
+  backend: remote
+  remote_url: http://127.0.0.1:8765
+logging:
+  mode: offline

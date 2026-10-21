@@ -1,0 +1,13 @@
+.git
+.codex
+.venv
+.DS_Store
+docs/papers
+docs/project_proposal
+data
+runs
+*.egg-info
+__pycache__
+.pytest_cache
+.mypy_cache
+.ruff_cache
