@@ -126,33 +126,46 @@ The revised launcher (`cf1e64454dc9d5f7c72d9fa892b2ebd65e54264a`) passed
 72 focused tests and the local complete suite (139 passed, 12 local Docker skips,
 3 exclusions), lint/format and mypy. Hosted result: [passed: 151 tests, 3 exclusions, lint/format, mypy and Docker worker build](https://github.com/tatsu432/self-play-opsd-coding-agent/actions/runs/39817237872).
 
-A preparation attempt stopped during the read-only context call when the SSH
-master expired; it did not reach submission. Normal Duo login then succeeded.
-The synchronized checkout `bf95b59` submitted exactly one revised one-H100 check:
-run `5f7f3be6fb2c08861d2bd180`, job **30287970**, with a one-hour allocation cap.
-At the final scheduler snapshot it was PENDING, with no start estimate:
-“Nodes required for job are DOWN, DRAINED or reserved for jobs in higher priority
-partitions.” The local preparation watcher was stopped; the confirmed Slurm job
-was retained. It will execute the revised allocation checks when scheduled.
-No two-GPU job has been submitted.
+A preparation attempt stopped during the read-only context call when SSH
+expired, before submission. Normal Duo reauthentication succeeded. Revised
+one-H100 job 30287970 then ran and FAILED after 14 seconds: this driver's
+`nvidia-smi --query-gpu` rejects `minor_number`. The guard stopped before model
+loading. Corrected the inventory to read supported CSV fields and join full XML
+minor numbers by UUID, with no reliance on XML ordering. Source
+`eebd4c0903a0c42619fe8b73127368113e362e2a` passed 72 focused tests and
+[hosted CI: 151 passed, 3 exclusions, lint/format, mypy and Docker worker build](https://github.com/tatsu432/self-play-opsd-coding-agent/actions/runs/39826670302).
+The final log is `runs/task05-ci-xml-final.log`.
 
-The cumulative charged GPU cost is 0.021667 hours, with 1 hour reserved for the
-queued job. Budget committed is 1.021667 of 24 hours, leaving 22.978333 hours
-available for additional reservations. The latest doctor reports synchronized
-source/data and published images, all eight readiness gates false, and no valid
-H100 memory-fit failure. The existing job must be inspected before further
-preparation; do not submit a replacement merely because the watcher stopped.
+Exactly one corrected reference check was subsequently submitted:
+
+- Run: **`db32746277268abab0265c7e`**; Slurm job **30289141**.
+- One H100, one-hour cap, source `eebd4c0`; last scheduler snapshot PENDING.
+- Submission returned successfully; no local watcher or automatic follow-up is
+  running. The job will execute allocation/occupancy checks when scheduled.
+- No two-GPU backend job or main experiment has been submitted.
+
+At submission, cumulative charged GPU cost was 0.025556 hours (78 + 14 seconds),
+with 1 hour reserved for this job: 1.025556 hours committed of 24, leaving
+22.974444 hours for additional reservations. Current accounting may change when
+this job starts/ends. No valid H100 memory-fit failure has been established.
+The last doctor snapshot had all eight production readiness gates false.
+
+Inspect this existing job before further preparation; do not submit a
+replacement merely because no watcher is running:
 
 ```bash
-uv run selfplay hpc status 5f7f3be6fb2c08861d2bd180
-uv run selfplay hpc logs 5f7f3be6fb2c08861d2bd180
+uv run selfplay hpc status db32746277268abab0265c7e
+uv run selfplay hpc logs db32746277268abab0265c7e
+uv run selfplay hpc fetch-study repair-selfplay-2026
 ```
 
+Its allocation proof, once created, is
+`readiness/repair-selfplay-2026/gpu-allocation-30289141.json` in managed runs.
 After successful reference evidence, synchronize the clean committed checkout
 and continue `hpc prepare-study --stage backend --gpu-hours-limit 24 --watch`.
-If the reference fails, inspect its allocation proof/logs and repair the cause
-before another attempt. A pending job can be monitored with the same commands
-in a later session; no new session or new submission is required.
+If it fails, inspect its allocation proof/logs and repair the cause before
+another attempt. The same run can be monitored in a later session; no new
+submission is required to monitor it.
 
 **A–D are not ready to submit.** The remaining evidence is the one-/two-GPU
 backend checks, supported worker isolation and target data validation, base

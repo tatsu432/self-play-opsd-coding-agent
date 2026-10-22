@@ -137,14 +137,18 @@ The support request and proposed Yale managed-service design are in
   Slurm GPU UUIDs, verifies actual container UUIDs/initial occupancy and rejects
   ambiguous or occupied devices. Its hosted CI passed 151 tests. Live acceptance
   of this correction is pending.
-- Cumulative readiness cost is 0.021667 GPU-hours of the authorized 24. No main
+- The first reference attempt cost 0.021667 GPU-hours of the authorized 24. No main
   A–D runs have started. All production readiness gates remain false. Normal Duo
-  reauthentication succeeded. Revised one-H100 job 30287970 / run
-  `5f7f3be6fb2c08861d2bd180` is queued (no start estimate; nodes down/drained or
-  reserved). Its local watcher is stopped; the Slurm job is retained, reserving
-  one GPU-hour. Inspect that job before further preparation; do not duplicate it.
-  After it passes, synchronize the clean committed checkout and resume
-  backend-only preparation. If it fails, inspect/repair before another attempt.
+  reauthentication succeeded. Job 30287970 failed after 14 seconds because
+  NVIDIA's CSV query rejects `minor_number`; source `eebd4c0` now reads/join XML
+  minor numbers by UUID and passed hosted CI (151 tests). Total charged readiness
+  cost is now 0.025556 GPU-hours (92 seconds).
+- Corrected one-H100 reference job 30289141 / run `db32746277268abab0265c7e`
+  was submitted from `eebd4c0`, last seen PENDING. It has a one-hour cap and
+  reserves one GPU-hour. There is no watcher or automatic follow-up. Inspect this
+  existing job before further preparation; do not duplicate it. After it passes,
+  synchronize the clean committed checkout and resume backend-only preparation.
+  If it fails, inspect/repair before another attempt. No two-GPU job is submitted.
 - YCRC ticket 79403 / Gmail thread `1a1640b41863817b` contains the authorized
   request. Only an automated acknowledgement is available. No equivalent worker
   probe was repeated; require a documented supported setup change before another.
