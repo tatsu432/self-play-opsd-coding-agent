@@ -247,8 +247,8 @@ def source_image(env: dict):
                 if (
                     subprocess.check_output(
                         command + ["uv", "--version"], env=process_env, text=True, timeout=30
-                    ).strip()
-                    != "uv 0.8.15"
+                    ).split()[:2]
+                    != ["uv", "0.8.15"]
                 ):
                     raise ValueError("Trainer uv version mismatch")
                 subprocess.run(

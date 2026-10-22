@@ -218,3 +218,39 @@ def test_scratch_sampling_tolerates_disappearing_extraction_directories(tmp_path
     with job.sampled_scratch_usage(tmp_path) as usage:
         pass
     assert usage["sampled_peak_logical_bytes"] == 3
+
+
+@pytest.mark.parametrize("version", ["uv 0.8.15 (8473ecba1 2025-09-03)", "uv 0.8.16 (other build)"])
+def test_trainer_validation_accepts_uv_build_metadata_but_rejects_version_changes(
+    tmp_path, monkeypatch, version
+):
+    job = script("hpc_job")
+    data, env = inputs(tmp_path)
+    root = Path(env["SELFPLAY_PROJECT"])
+    (root / "docker").mkdir()
+    (root / "docker/trainer.Dockerfile").write_text(BUILD_CHECK_DOCKERFILE)
+    metadata = data["image_metadata"] | {"kind": "trainer"}
+    env["SELFPLAY_IMAGE_METADATA"] = base64.b64encode(json.dumps(metadata).encode()).decode()
+    env["SELFPLAY_BUILD_KEY"] = digest(metadata)
+    monkeypatch.setattr(job.platform, "machine", lambda: "x86_64")
+    monkeypatch.setattr(job.shutil, "disk_usage", lambda _: SimpleNamespace(free=300 * 1024**3))
+
+    def output(args, **kwargs):
+        if args[0] == "git":
+            return "a" * 40
+        return version if args[-2:] == ["uv", "--version"] else "1.5.3"
+
+    def run(args, **kwargs):
+        if args[:2] == ["apptainer", "build"]:
+            Path(args[3]).write_bytes(b"sif")
+        return subprocess.CompletedProcess(args, 0)
+
+    monkeypatch.setattr(job.subprocess, "check_output", output)
+    monkeypatch.setattr(job.subprocess, "run", run)
+    if "0.8.15" in version:
+        job.source_image(env)
+        assert json.loads(Path(env["SELFPLAY_IMAGE_MANIFEST"]).read_text())["ready"]
+    else:
+        with pytest.raises(ValueError, match="uv version"):
+            job.source_image(env)
+        assert not Path(env["SELFPLAY_IMAGE_MANIFEST"]).exists()
