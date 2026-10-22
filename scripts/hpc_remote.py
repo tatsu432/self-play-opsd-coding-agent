@@ -1089,7 +1089,17 @@ def study_state(payload: dict) -> dict:
             and "cuda" in error
             and job_state(ledger["attempts"][-1]["job_id"])["state"] == "FAILED"
         ):
-            memory_fit_failure = True
+            allocation = read(evidence / f"gpu-allocation-{ledger['attempts'][-1]['job_id']}.json")
+            # An occupied or incorrectly mapped GPU is not model memory-fit
+            # evidence. Older attempts without allocation proof are ineligible.
+            memory_fit_failure = bool(
+                memory_fit_failure
+                or (
+                    allocation.get("ready")
+                    and allocation.get("image_sha256") == spec.get("image_sha256")
+                    and len(allocation.get("allocated", [])) == spec.get("gpu_count")
+                )
+            )
     return {
         "study_id": study,
         "h100_memory_fit_failure": memory_fit_failure,

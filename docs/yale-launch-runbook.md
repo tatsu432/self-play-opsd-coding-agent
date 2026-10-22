@@ -73,7 +73,15 @@ Initial reservation ceilings are reference 1, target 2, base 4, D pilot 12 and
 combined A/B/C smoke 4 allocated GPU-hours. One additional GPU-hour remains;
 unused reservations are released only after actual Slurm accounting. All
 attempts share the cumulative 24-hour cap. H200 requires a recorded H100 CUDA OOM
-and fresh target proof, within that same cap. Preparation never launches main.
+on a correctly mapped, initially unoccupied allocation and fresh target proof,
+within that same cap. Preparation never launches main.
+
+GPU jobs resolve Slurm's physical allocation to UUIDs and verify the container's
+actual CUDA UUIDs before loading models. Allocation proofs are retained as
+`readiness/STUDY/gpu-allocation-JOB_ID.json`. Ambiguous NVIDIA/Slurm numbering,
+missing masks, wrong devices or substantial initial occupancy stop the job.
+Inspect this proof alongside an OOM; a device-binding failure is not evidence
+that the model needs a larger GPU.
 
 ## Four main previews and submissions
 

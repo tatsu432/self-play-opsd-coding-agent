@@ -382,6 +382,8 @@ def allocation_env(tmp_path):
         "SELFPLAY_HARDWARE": "single_gpu_80gb",
         "SELFPLAY_SETTINGS": "configs/yale.yaml",
         "SELFPLAY_OUTPUT": "/runs/probe",
+        "SLURM_JOB_GPUS": "1",
+        "CUDA_VISIBLE_DEVICES": "0",
     }
 
 
@@ -394,6 +396,24 @@ def test_backend_allocation_ignores_broken_worker_and_needs_no_data(tmp_path, mo
     }
     monkeypatch.setattr(job.subprocess, "Popen", lambda *a, **k: pytest.fail("No worker broker"))
     monkeypatch.setattr(job, "user_bus_environment", lambda _: pytest.fail("No D-Bus dependency"))
+    monkeypatch.setattr(
+        job.subprocess,
+        "check_output",
+        lambda args, **kw: (
+            "0, 0, GPU-00000000-0000-0000-0000-000000000000, 0000:01:00.0\n"
+            "1, 1, GPU-11111111-1111-1111-1111-111111111111, 0000:02:00.0\n"
+            if args[0] == "nvidia-smi"
+            else json.dumps(
+                [
+                    {
+                        "uuid": "11111111-1111-1111-1111-111111111111",
+                        "free_bytes": 79 * 2**30,
+                        "total_bytes": 80 * 2**30,
+                    }
+                ]
+            )
+        ),
+    )
     captured = []
     monkeypatch.setattr(
         job.subprocess,
@@ -406,6 +426,95 @@ def test_backend_allocation_ignores_broken_worker_and_needs_no_data(tmp_path, mo
     assert not any(":/data/prepared" in arg for arg in args)
     assert "SELFPLAY_WORKER_TOKEN" not in options["env"]
     assert "APPTAINERENV_SELFPLAY_WORKER_URL" not in options["env"]
+    assert options["env"]["APPTAINERENV_CUDA_VISIBLE_DEVICES"] == (
+        "GPU-11111111-1111-1111-1111-111111111111"
+    )
+    assert options["env"]["APPTAINERENV_CUDA_DEVICE_ORDER"] == "PCI_BUS_ID"
+    proof = json.loads((tmp_path / "runs/readiness/study/gpu-allocation-123.json").read_text())
+    assert proof["ready"] and proof["slurm_cuda_visible_devices"] == "0"
+
+
+@pytest.mark.parametrize("gpu_ids,mask", [("", "0"), ("0,1", "0"), ("1", ""), ("1,1", "0,1")])
+def test_gpu_selection_rejects_missing_or_inconsistent_slurm_mask(tmp_path, gpu_ids, mask):
+    job = allocation_module()
+    env = allocation_env(tmp_path) | {"SLURM_JOB_GPUS": gpu_ids, "CUDA_VISIBLE_DEVICES": mask}
+    with pytest.raises(ValueError, match="Slurm GPU allocation/mask"):
+        job.allocated_gpus(env)
+
+
+def test_gpu_selection_rejects_ambiguous_nvidia_numbering(tmp_path, monkeypatch):
+    job = allocation_module()
+    monkeypatch.setattr(
+        job.subprocess,
+        "check_output",
+        lambda *a, **kw: "1, 0, GPU-11111111-1111-1111-1111-111111111111, 0000:02:00.0\n",
+    )
+    with pytest.raises(ValueError, match="Ambiguous Slurm/NVIDIA"):
+        job.allocated_gpus(allocation_env(tmp_path))
+
+
+@pytest.mark.parametrize(
+    "uuid,used",
+    [
+        ("00000000-0000-0000-0000-000000000000", 0),
+        ("11111111-1111-1111-1111-111111111111", 70 * 2**30),
+    ],
+)
+def test_container_gpu_preflight_rejects_wrong_or_occupied_device(
+    tmp_path, monkeypatch, uuid, used
+):
+    job = allocation_module()
+    env = allocation_env(tmp_path)
+    monkeypatch.setattr(
+        job.subprocess,
+        "check_output",
+        lambda *a, **kw: json.dumps(
+            [{"uuid": uuid, "free_bytes": 80 * 2**30 - used, "total_bytes": 80 * 2**30}]
+        ),
+    )
+    report = tmp_path / "gpu-allocation.json"
+    with pytest.raises(ValueError):
+        job.verify_container_gpus(
+            ["apptainer", "exec", "trainer.sif"],
+            env,
+            [{"uuid": "GPU-11111111-1111-1111-1111-111111111111"}],
+            report,
+        )
+    assert not json.loads(report.read_text())["ready"]
+
+
+@pytest.mark.parametrize(
+    "proof,expected",
+    [
+        ({}, False),
+        ({"ready": False, "image_sha256": "image", "allocated": [{}]}, False),
+        ({"ready": True, "image_sha256": "old-image", "allocated": [{}]}, False),
+        ({"ready": True, "image_sha256": "image", "allocated": [{}]}, True),
+    ],
+)
+def test_h200_fallback_requires_clean_gpu_allocation_proof(tmp_path, monkeypatch, proof, expected):
+    remote = endpoint()
+    monkeypatch.setattr(remote, "workspace", lambda _: tmp_path)
+    monkeypatch.setattr(remote, "refreshed_budget", lambda _: {})
+    monkeypatch.setattr(remote, "job_state", lambda _: {"state": "FAILED"})
+    atomic_json(
+        tmp_path / "state/run.json",
+        {
+            "specification": {
+                "study_id": "study",
+                "gpu_type": "h100",
+                "gpu_count": 1,
+                "operation": "backend-check",
+                "run_id": "run",
+                "image_sha256": "image",
+            },
+            "attempts": [{"job_id": "123"}],
+            "run_dir": str(tmp_path / "run"),
+        },
+    )
+    (tmp_path / "state/run-123.out").write_text("torch.OutOfMemoryError: CUDA out of memory")
+    atomic_json(tmp_path / "runs/readiness/study/gpu-allocation-123.json", proof)
+    assert remote.study_state({"study_id": "study"})["h100_memory_fit_failure"] is expected
 
 
 def test_backend_precheck_does_not_consult_runtime_evidence(tmp_path, monkeypatch):

@@ -36,3 +36,13 @@ External stops: unsupported build capability, unsupported worker isolation or
 insufficient readiness budget. Record exact evidence and required next action;
 never declare A–D ready while a gate is missing. No additional host provisioning,
 main training, local cache deletion or storage purchase is authorized.
+
+## Live acceptance correction
+
+The first H100 reference job (30278347) failed loading a 4B model with only
+about 7 GiB attributed to this process on a full 79-GiB device. Before another
+GPU run, add fail-closed physical allocation mapping, explicit UUID selection,
+PCI bus ordering and a real container UUID/initial occupancy proof. Reject
+ambiguous mappings and prevent occupied/misbound devices from authorizing H200
+fallback. Run CPU/hosted acceptance before collecting new GPU evidence. This
+preserves the workload and the existing cumulative GPU allowance.

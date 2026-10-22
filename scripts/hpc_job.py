@@ -4,10 +4,12 @@
 from __future__ import annotations
 
 import base64
+import csv
 import hashlib
 import json
 import os
 import platform
+import re
 import secrets
 import shutil
 import signal
@@ -41,6 +43,94 @@ def write(path: Path, value: dict):
 def checked_image(path: str, expected: str):
     if sha256(Path(path)) != expected:
         raise ValueError("Pinned image SHA-256 mismatch")
+
+
+def allocated_gpus(env: dict) -> list[dict]:
+    """Resolve only Slurm's allocated physical GPUs, rejecting ambiguous numbering."""
+    count = int(env["SELFPLAY_GPU_COUNT"])
+    identifiers = env.get("SLURM_JOB_GPUS", "").split(",")
+    mask = env.get("CUDA_VISIBLE_DEVICES", "").split(",")
+    if (
+        len(identifiers) != count
+        or len(set(identifiers)) != count
+        or not all(identifiers)
+        or len(mask) != count
+        or len(set(mask)) != count
+        or not all(mask)
+    ):
+        raise ValueError("Missing or inconsistent Slurm GPU allocation/mask")
+    inventory = subprocess.check_output(
+        [
+            "nvidia-smi",
+            "--query-gpu=index,minor_number,uuid,pci.bus_id",
+            "--format=csv,noheader,nounits",
+        ],
+        text=True,
+        env=env,
+        timeout=30,
+    )
+    devices = []
+    for fields in csv.reader(inventory.splitlines(), skipinitialspace=True):
+        if len(fields) != 4:
+            raise ValueError("Invalid NVIDIA GPU inventory")
+        index, minor, uuid, bus = [field.strip() for field in fields]
+        if not re.fullmatch(r"GPU-[0-9a-fA-F-]{36}", uuid):
+            raise ValueError("Invalid NVIDIA GPU UUID")
+        devices.append({"index": index, "minor": minor, "uuid": uuid, "pci_bus_id": bus})
+    selected = []
+    for identifier in identifiers:
+        if identifier.isdigit():
+            # GRES/device-file and NVML indices can diverge after a reboot.
+            # Require agreement instead of guessing a site's device mapping.
+            matches = [d for d in devices if d["index"] == d["minor"] == identifier]
+        else:
+            matches = [d for d in devices if d["uuid"] == identifier]
+        if len(matches) != 1:
+            raise ValueError("Ambiguous Slurm/NVIDIA GPU mapping; inspect site configuration")
+        selected.append(matches[0])
+    if len({device["uuid"] for device in selected}) != count:
+        raise ValueError("Duplicate allocated GPU UUID")
+    return selected
+
+
+def verify_container_gpus(command: list[str], env: dict, devices: list[dict], report: Path):
+    """Check actual CUDA UUIDs and initial occupancy before any model is loaded."""
+    result = {
+        "job_id": env["SLURM_JOB_ID"],
+        "image_sha256": env["SELFPLAY_TRAINER_SHA256"],
+        "slurm_job_gpus": env["SLURM_JOB_GPUS"],
+        "slurm_cuda_visible_devices": env["CUDA_VISIBLE_DEVICES"],
+        "allocated": devices,
+        "ready": False,
+    }
+    try:
+        probe = (
+            "import json, torch; "
+            "print(json.dumps([dict(uuid=str(torch.cuda.get_device_properties(i).uuid), "
+            "name=torch.cuda.get_device_name(i), free_bytes=torch.cuda.mem_get_info(i)[0], "
+            "total_bytes=torch.cuda.mem_get_info(i)[1]) "
+            "for i in range(torch.cuda.device_count())]))"
+        )
+        visible = json.loads(
+            subprocess.check_output(
+                command + ["python", "-c", probe], env=env, text=True, timeout=120
+            )
+        )
+        result["visible"] = visible
+        expected = [d["uuid"].removeprefix("GPU-").lower() for d in devices]
+        actual = [d["uuid"].removeprefix("GPU-").lower() for d in visible]
+        if actual != expected:
+            raise ValueError("Container CUDA UUIDs do not match the Slurm allocation")
+        # Driver/context overhead is small. A substantially occupied GPU cannot
+        # establish model memory fit and must not trigger larger-GPU fallback.
+        if any(d["total_bytes"] - d["free_bytes"] > 2 * 1024**3 for d in visible):
+            raise ValueError("Allocated GPU is already occupied; inspect allocation before retry")
+        result["ready"] = True
+    except Exception as error:
+        result["error"] = str(error)
+        raise
+    finally:
+        write(report, result)
 
 
 @contextmanager
@@ -474,6 +564,12 @@ def execute(env: dict) -> int:
                 overrides[key] = process_env[key]
         process_env.update({"APPTAINERENV_" + k: v for k, v in overrides.items()})
         gpu_count = int(env["SELFPLAY_GPU_COUNT"])
+        devices = allocated_gpus(process_env) if gpu_count else []
+        if gpu_count:
+            process_env["APPTAINERENV_CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+            process_env["APPTAINERENV_CUDA_VISIBLE_DEVICES"] = ",".join(
+                device["uuid"] for device in devices
+            )
         args = (
             ["torchrun", "--standalone", "--nnodes=1", f"--nproc-per-node={gpu_count}", "-m"]
             if gpu_count
@@ -536,6 +632,10 @@ def execute(env: dict) -> int:
         ]
         if operation != "backend-check":
             command[2:2] = ["--bind", env["SELFPLAY_DATA"] + ":/data/prepared:ro"]
+        if gpu_count:
+            verify_container_gpus(
+                command, process_env, devices, readiness / f"gpu-allocation-{attempt}.json"
+            )
         if operation == "method-smoke":
             # Separate processes provide fresh model, RNG and optimizer initialization.
             status = 0

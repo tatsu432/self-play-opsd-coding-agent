@@ -343,13 +343,24 @@ def test_slurm_wrapper_runs_the_pinned_image_without_host_venv(tmp_path):
     binary = tmp_path / "bin"
     binary.mkdir()
     stub = binary / "apptainer"
-    stub.write_text('#!/bin/sh\nprintf "%s\\n" "$@" > "$CAPTURE_ARGS"\n')
+    stub.write_text(
+        '#!/bin/sh\nprintf "%s\\n" "$@" > "$CAPTURE_ARGS"\n'
+        'printf \'[{"uuid":"11111111-1111-1111-1111-111111111111",'
+        '"free_bytes":84825604096,"total_bytes":85899345920}]\\n\'\n'
+    )
     stub.chmod(0o755)
+    gpu_stub = binary / "nvidia-smi"
+    gpu_stub.write_text(
+        '#!/bin/sh\nprintf "1, 1, GPU-11111111-1111-1111-1111-111111111111, 0000:02:00.0\\n"\n'
+    )
+    gpu_stub.chmod(0o755)
     env = {
         **os.environ,
         "PATH": str(binary) + os.pathsep + os.environ["PATH"],
         "CAPTURE_ARGS": str(capture),
         "SLURM_JOB_ID": "123",
+        "SLURM_JOB_GPUS": "1",
+        "CUDA_VISIBLE_DEVICES": "0",
         "SELFPLAY_PROJECT": str(project),
         "SELFPLAY_TRAINER_SIF": str(image),
         "SELFPLAY_TRAINER_SHA256": digest,
@@ -379,7 +390,7 @@ def test_slurm_wrapper_runs_the_pinned_image_without_host_venv(tmp_path):
     assert "backend-check" in args
     assert "/runs/compatibility/single_gpu_80gb" in args
     capture.unlink()
-    stub.write_text('#!/bin/sh\nprintf "%s\\n" "$@" > "$CAPTURE_ARGS"\nsleep 0.5\n')
+    stub.write_text(stub.read_text() + "sleep 0.5\n")
     process = subprocess.Popen(
         ["bash", str(Path("scripts/yale.slurm").resolve())],
         env=env,
