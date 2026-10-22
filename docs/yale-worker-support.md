@@ -13,6 +13,24 @@ technical approval or worker configuration.
 Follow up on the same thread after three business days (2026-10-27) if unanswered.
 YCRC has not approved or provisioned a managed service.
 
+## Task 06 diagnostic update
+
+CPU-only job **30293989** completed on `c1104u05n04.mghpcc.ycrc.yale.edu`.
+Apptainer is `1.5.3-1.el9`, Slurm `25.11.8`, systemd `252-51.el9_6.6`.
+The user bus is absent and the user manager reports “No medium found”.
+All inspected cgroup controls in the job ancestry are non-writable by this user.
+The `pids` controller is available at `slurmstepd.scope` but is not enabled in
+its `cgroup.subtree_control`; job descendants expose only `cpuset cpu memory`.
+Thus supplying a bus address alone cannot establish the required PID limit.
+
+The authorized technical update was sent in the same ticket/thread, Gmail
+message `1a164e8afe1c5056`. It asks for supported delegation retaining Slurm
+accounting or the operator/contact for an existing approved Yale service. No
+equivalent worker acceptance probe was repeated and no services were changed.
+Full report: `runs/readiness/repair-selfplay-2026/worker-diagnostics-30293989.json`
+on Yale; fetched under the corresponding local study readiness directory.
+These diagnostics do not establish isolation or approval.
+
 ## Support request draft
 
 Subject: Bouchet — supported per-worker resource isolation inside Slurm

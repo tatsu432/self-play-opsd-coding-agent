@@ -139,15 +139,21 @@ def test_cgroup_probe_reads_nested_effective_limits_and_rejects_writable_parent(
     assert not namespace["check"]()
 
 
-def test_cancellation_terminates_running_worker_process():
+@pytest.mark.parametrize("close_pipes", [False, True])
+def test_cancellation_terminates_running_worker_process(close_pipes):
     from selfplay_opsd.worker_runtime import bounded_process
 
     cancelled = threading.Event()
     timer = threading.Timer(0.2, cancelled.set)
     timer.start()
     try:
+        source = (
+            "import os,time; "
+            + ("os.close(1); os.close(2); " if close_pipes else "")
+            + "time.sleep(60)"
+        )
         code, _, _, reason = bounded_process(
-            [sys.executable, "-c", "import time; time.sleep(60)"],
+            [sys.executable, "-c", source],
             b"",
             60,
             4096,

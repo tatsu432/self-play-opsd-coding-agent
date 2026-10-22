@@ -135,11 +135,17 @@ def bounded_process(
                     break
         finally:
             selector.close()
-            if not reason:
-                try:
-                    process.wait(timeout=max(0.1, deadline - time.monotonic()))
-                except subprocess.TimeoutExpired:
+            while not reason and process.poll() is None:
+                if cancelled is not None and cancelled.is_set():
+                    reason = "cancelled"
+                    break
+                if time.monotonic() >= deadline:
                     reason = "timeout"
+                    break
+                try:
+                    process.wait(timeout=min(0.1, max(0.001, deadline - time.monotonic())))
+                except subprocess.TimeoutExpired:
+                    pass
             if reason:
                 try:
                     os.killpg(process.pid, signal.SIGKILL)
