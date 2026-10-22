@@ -28,6 +28,8 @@ def test_conversion_resolves_copy_paths_and_uses_root_build_without_su():
     assert "%post\nset -eu\nmkdir -p /opt/selfplay\ncd /opt/selfplay" in definition
     assert "su -" not in definition
     assert 'exec selfplay "$@"' in definition
+    assert "From: vllm/vllm-openai@sha256:" in definition
+    assert ":v0.11.0@" not in definition
     metadata = result["image_metadata"]
     assert result["build_key"] == digest(metadata)
     assert all("__pycache__" not in name for name in metadata["context_files"])

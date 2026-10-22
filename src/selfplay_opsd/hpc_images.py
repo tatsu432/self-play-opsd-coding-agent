@@ -95,6 +95,12 @@ def source_build(root: Path, dockerfile: Path, commit: str, *, check: bool = Fal
             copies.append([source, str(target)])
     parser = DockerParser(str(dockerfile))
     recipe = next(iter(parser.recipe.values()))
+    # Yale's Apptainer OCI transport rejects tag@digest although Docker accepts
+    # it. Remove the informational tag, retaining the exact immutable digest.
+    image, pinned_digest = base.rsplit("@", 1)
+    if ":" in image.rsplit("/", 1)[-1]:
+        image = image.rsplit(":", 1)[0]
+    recipe.fromHeader = f"{image}@{pinned_digest}"
     recipe.files = copies
     recipe.install = [step for step in recipe.install if not step.startswith("USER ")]
     definition = SingularityWriter(parser.recipe).convert()
@@ -110,6 +116,7 @@ def source_build(root: Path, dockerfile: Path, commit: str, *, check: bool = Fal
         "lock_sha256": file_hash(root / "uv.lock"),
         "converter": {"name": "spython", "version": CONVERTER_VERSION},
         "base_image": base,
+        "bootstrap_reference": recipe.fromHeader,
         "context_files": context,
         "definition_sha256": hashlib.sha256(definition.encode()).hexdigest(),
     }
