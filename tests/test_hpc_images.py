@@ -144,7 +144,8 @@ def test_native_build_publishes_only_after_sif_validation_and_cleans_its_scratch
         calls.append(args)
         if args[:2] == ["apptainer", "build"]:
             assert (kwargs["cwd"] / "README.md").read_text() == "witness\n"
-            Path(args[3]).write_bytes(b"sif")
+            assert args[3:5] == ["--mksquashfs-args", "-mem 1G -processors 2"]
+            Path(args[-2]).write_bytes(b"sif")
         elif failure:
             raise subprocess.CalledProcessError(1, args)
         return subprocess.CompletedProcess(args, 0)
@@ -244,7 +245,8 @@ def test_trainer_validation_accepts_uv_build_metadata_but_rejects_version_change
 
     def run(args, **kwargs):
         if args[:2] == ["apptainer", "build"]:
-            Path(args[3]).write_bytes(b"sif")
+            assert args[3:5] == ["--mksquashfs-args", "-mem 8G -processors 8"]
+            Path(args[-2]).write_bytes(b"sif")
         return subprocess.CompletedProcess(args, 0)
 
     monkeypatch.setattr(job.subprocess, "check_output", output)

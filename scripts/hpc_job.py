@@ -156,6 +156,8 @@ def source_image(env: dict):
     version = subprocess.check_output(["apptainer", "version"], text=True).strip()
     initial_free = shutil.disk_usage(cache).free
     python_version = None
+    squashfs_memory_gib = 1 if check else 8
+    squashfs_processors = 2 if check else 8
     try:
         with tempfile.TemporaryDirectory(prefix=f"{key[:12]}-", dir=cache) as temporary:
             build = Path(temporary)
@@ -193,7 +195,15 @@ def source_image(env: dict):
             (build / "tmp").mkdir()
             with sampled_scratch_usage(build) as usage:
                 subprocess.run(
-                    ["apptainer", "build", "--force", str(staged), str(recipe)],
+                    [
+                        "apptainer",
+                        "build",
+                        "--force",
+                        "--mksquashfs-args",
+                        f"-mem {squashfs_memory_gib}G -processors {squashfs_processors}",
+                        str(staged),
+                        str(recipe),
+                    ],
                     cwd=context,
                     env=process_env,
                     check=True,
@@ -285,6 +295,8 @@ def source_image(env: dict):
         "architecture": platform.machine(),
         "apptainer_version": version,
         "python_version": python_version,
+        "squashfs_memory_gib": squashfs_memory_gib,
+        "squashfs_processors": squashfs_processors,
         "elapsed_seconds": time.monotonic() - started,
         "scratch_retained_bytes": scratch_bytes,
         "scratch_free_delta_bytes": free_delta,
