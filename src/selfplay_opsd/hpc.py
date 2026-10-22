@@ -10,6 +10,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import math
 import os
 import re
 import subprocess
@@ -449,7 +450,23 @@ def run_payload(
         "supervisor_hash": supervisor_hash(),
         "pilot_suffix": pilot_suffix,
         "target_iterations": iterations if operation == "pilot" else cfg.iterations,
-        "max_continuations": 1 if operation == "pilot" else 0,
+        "max_continuations": 1
+        if operation == "pilot"
+        else min(
+            32,
+            max(
+                1,
+                math.ceil(
+                    state["reports"]["freeze"].get("pilot", {}).get("projection_200_hours", 0) / 22
+                ),
+            ),
+        )
+        if operation == "train"
+        else 0,
+        "estimated_main_hours_from_D_pilot": state["reports"]["freeze"]
+        .get("pilot", {})
+        .get("projection_200_hours"),
+        "retry_setup": not gpu_operation,
         "readiness_budget": 24
         if operation in {"backend-check", "pilot"} or (operation == "evaluate" and base)
         else None,

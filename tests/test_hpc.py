@@ -94,6 +94,40 @@ def test_live_resource_validation_fails_closed(monkeypatch):
         remote.allowed({**good, "gpu_count": 8})
 
 
+def test_cpu_requests_use_individual_nodes_in_heterogeneous_partitions(monkeypatch):
+    remote = remote_module()
+
+    def fake_run(args, **_):
+        if args[0] == "id":
+            stdout = "course_user\n"
+        elif args[0] == "sacctmgr":
+            stdout = "course||normal|normal\n"
+        elif args[0] == "scontrol":
+            stdout = "PartitionName=day MaxTime=1-00:00:00\n"
+        elif args[-1] == "%G":
+            stdout = "(null)\n"
+        else:
+            assert "-N" in args
+            stdout = "48|376832|(null)\n128|512000|(null)\n"
+        return subprocess.CompletedProcess(args, 0, stdout, "")
+
+    monkeypatch.setattr(remote, "run", fake_run)
+    assert (
+        remote.allowed(
+            {
+                "account": "course",
+                "partition": "day",
+                "gpu_type": "h100",
+                "gpu_count": 0,
+                "cpus": 8,
+                "memory_gib": 64,
+                "time": "04:00:00",
+            }
+        )["max_gpus_per_node"]
+        == 0
+    )
+
+
 def test_unknown_sbatch_response_is_not_submitted_twice(tmp_path, monkeypatch):
     remote = remote_module()
     checkout = tmp_path / "checkout"

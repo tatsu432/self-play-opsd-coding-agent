@@ -284,6 +284,18 @@ def register(app: typer.Typer):
                         return
                     time.sleep(30)
                     continue
+                if payload["gpu_count"] == 0 and latest in {
+                    "PREEMPTED",
+                    "NODE_FAIL",
+                    "BOOT_FAIL",
+                    "TIMEOUT",
+                }:
+                    result = remote.call("submit", payload)
+                    output(result)
+                    if result.get("submitted") and watch:
+                        time.sleep(30)
+                        continue
+                    return
                 if operation == "pilot" and latest in {
                     "PREEMPTED",
                     "NODE_FAIL",

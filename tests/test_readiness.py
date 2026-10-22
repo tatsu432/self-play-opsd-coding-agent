@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from types import SimpleNamespace
@@ -252,3 +253,58 @@ def test_controlled_backend_probe_exercises_all_objectives(repository, tmp_path)
     assert report["checkpoint_roundtrip"]
     assert report["gpu_count"] == 0
     assert (tmp_path / "probe/reference_gradients.pt").is_file()
+
+
+def test_cpu_conversion_retries_are_bounded_without_gpu_requests(tmp_path, monkeypatch):
+    remote = endpoint()
+    checkout = tmp_path / "checkout"
+    (checkout / "configs").mkdir(parents=True)
+    (checkout / "configs/yale.yaml").write_text("study_id: study\n")
+    paths = {
+        "checkout": checkout,
+        "state": tmp_path / "state",
+        "runs": tmp_path / "runs",
+        "dataset": tmp_path / "data",
+        "cache": tmp_path / "cache",
+    }
+    identity = {"commit": "a" * 40, "manifest_sha256": "b" * 64}
+    atomic_json(paths["state"] / f"sync-{identity['commit']}.json", identity)
+    monkeypatch.setattr(remote, "workspace", lambda _: tmp_path)
+    monkeypatch.setattr(remote, "paths", lambda _: paths)
+    monkeypatch.setattr(remote, "allowed", lambda _: {"authorized": True})
+    monkeypatch.setattr(remote, "precheck", lambda _: None)
+    monkeypatch.setattr(remote, "job_state", lambda _: {"state": "NODE_FAIL"})
+    calls = []
+
+    def sbatch(args, **_):
+        calls.append(args)
+        return subprocess.CompletedProcess(args, 0, str(120 + len(calls)), "")
+
+    monkeypatch.setattr(remote, "run", sbatch)
+    payload = identity | {
+        "run_id": "convert",
+        "identity": "conversion",
+        "operation": "image-convert",
+        "image": "",
+        "image_sha256": "",
+        "settings": "configs/yale.yaml",
+        "study_id": "study",
+        "method": "D",
+        "seed": 2026,
+        "gpu_count": 0,
+        "profile": "dual_gpu_80gb",
+        "gpu_type": "h100",
+        "account": "course",
+        "partition": "day",
+        "cpus": 8,
+        "memory_gib": 64,
+        "time": "01:00:00",
+        "retry_setup": True,
+        "image_metadata": {"kind": "worker"},
+        "archive_sha256": "c" * 64,
+    }
+    assert all(remote.submit(payload)["submitted"] for _ in range(3))
+    with pytest.raises(ValueError, match="explicit checkpoint resume"):
+        remote.submit(payload)
+    assert len(calls) == 3
+    assert all(not any(arg.startswith("--gpus=") for arg in args) for args in calls)

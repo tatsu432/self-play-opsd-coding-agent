@@ -546,7 +546,9 @@ def allowed(payload: dict) -> dict:
         or int(time_match[3]) > 59
     ):
         raise ValueError("Wall time exceeds the controller's 23-hour bound")
-    nodes = run(["sinfo", "-h", "-p", partition, "-o", "%c|%m|%G"]).stdout
+    # Aggregated CPU partitions use values such as "48+|376832+". Per-node
+    # records avoid interpreting heterogeneous minima as exact node shapes.
+    nodes = run(["sinfo", "-N", "-h", "-p", partition, "-o", "%c|%m|%G"]).stdout
     fits_node = False
     for row in nodes.splitlines():
         fields = row.split("|", 2)
@@ -631,8 +633,16 @@ def submit(payload: dict) -> dict:
                     "reason": "already_completed",
                     "job_id": latest["job_id"],
                 }
-            if not payload.get("resume"):
+            setup_retry = (
+                payload.get("retry_setup")
+                and payload["gpu_count"] == 0
+                and state["state"] in {"PREEMPTED", "NODE_FAIL", "BOOT_FAIL", "TIMEOUT"}
+                and ledger.get("setup_retries", 0) < 2
+            )
+            if not payload.get("resume") and not setup_retry:
                 raise ValueError("Existing run requires explicit checkpoint resume")
+            if setup_retry:
+                ledger["setup_retries"] = ledger.get("setup_retries", 0) + 1
             if state["state"] not in {
                 "PREEMPTED",
                 "NODE_FAIL",
