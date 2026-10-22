@@ -912,7 +912,7 @@ def refreshed_budget(payload: dict) -> dict:
                 "-j",
                 item["job_id"],
                 "--format",
-                "JobIDRaw,State,ElapsedRaw,AllocTRES",
+                "JobIDRaw,State,ElapsedRaw,AllocTRES,Start",
             ]
         )
         if result["exit_code"] != 0:
@@ -931,6 +931,16 @@ def refreshed_budget(payload: dict) -> dict:
             # Keep the reservation unless the actual allocation can be verified.
             if gpu:
                 item["charged"] = int(parts[2]) * int(gpu[1]) / 3600
+            elif (
+                len(parts) >= 5
+                and parts[2] == "0"
+                and not parts[3].strip()
+                and parts[4] in {"None", "Unknown", "N/A"}
+                and parts[1].split()[0] in {"CANCELLED", "FAILED"}
+            ):
+                # A confirmed never-started job consumed no allocated GPU time.
+                # Missing/delayed accounting without this proof stays reserved.
+                item["charged"] = 0.0
     budget["committed_gpu_hours"] = sum(
         i["reserved"] if i.get("charged") is None else i["charged"]
         for i in budget["reservations"].values()

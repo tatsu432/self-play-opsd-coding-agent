@@ -197,3 +197,77 @@ def test_stage_diagnostics_classify_legacy_failure_logs(tmp_path, monkeypatch, m
     stage = remote.stage_status(tmp_path, "study", {"single": False}, {})["single"]
     assert stage["failure_category"] == category
     assert stage["evidence"] == str(log)
+
+
+@pytest.mark.parametrize("operation", ["allocation-check", "worker-diagnose"])
+def test_short_diagnostics_do_not_signal_at_start_or_require_worker_data(monkeypatch, operation):
+    from selfplay_opsd import hpc
+
+    class Remote:
+        def call(self, name, *args):
+            if name == "context":
+                return {
+                    "storage": {
+                        "project": {"project_cpsc4880": "/project/cpsc4880"},
+                        "scratch": {"scratch_cpsc4880": "/scratch/cpsc4880"},
+                    },
+                    "slurm": {
+                        "associations": {"exit_code": 0, "stdout": "cpsc4880||normal|normal\n"}
+                    },
+                }
+            assert name == "study"
+            return {
+                "images": {"trainer": {"path": "/trainer.sif", "sha256": "a" * 64}, "worker": {}},
+                "reports": {"worker": {}, "freeze": {}},
+            }
+
+    monkeypatch.setattr(hpc, "snapshot", lambda: {"commit": "a" * 40, "manifest_sha256": "a" * 64})
+    monkeypatch.setattr(
+        "selfplay_opsd.readiness.execution_identity",
+        lambda *a, **kw: pytest.fail("Diagnostics must not construct data/worker identity"),
+    )
+    payload = hpc.run_payload(
+        Remote(),
+        "yale-hpc-cpsc4880",
+        operation=operation,
+        method="D",
+        profile="single_gpu_80gb",
+        gpu_type="h100",
+        account=None,
+        image="",
+        image_sha256="",
+        settings=Path("configs/yale.yaml"),
+    )
+    assert payload["time"] == "00:05:00" and payload["signal_seconds"] == 30
+    assert payload["cpus"] == 2 and payload["memory_gib"] == 8
+    assert not payload["worker_image"] and payload["runtime_identity"] is None
+
+
+@pytest.mark.parametrize(
+    "row,charged",
+    [
+        ("123|CANCELLED by 35094|0||None", 0),
+        ("123|CANCELLED by 35094|0||Unknown", 0),
+        ("123|CANCELLED by 35094|0|", 1),
+        ("123|FAILED|0||2026-10-22T18:00:00", 1),
+    ],
+)
+def test_never_started_cancellation_releases_only_proven_unused_reservation(
+    tmp_path, monkeypatch, row, charged
+):
+    spec = importlib.util.spec_from_file_location("accounting_remote", "scripts/hpc_remote.py")
+    remote = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(remote)
+    state = tmp_path / "state"
+    state.mkdir()
+    (state / "budget-study.json").write_text(
+        json.dumps(
+            {
+                "limit": 24,
+                "reservations": {"intent": {"job_id": "123", "reserved": 1, "charged": None}},
+            }
+        )
+    )
+    monkeypatch.setattr(remote, "workspace", lambda _: tmp_path)
+    monkeypatch.setattr(remote, "capture", lambda _: {"exit_code": 0, "stdout": row})
+    assert remote.refreshed_budget({"study_id": "study"})["committed_gpu_hours"] == charged

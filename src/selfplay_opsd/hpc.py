@@ -473,6 +473,8 @@ def run_payload(
             ),
         )
         if operation == "train"
+        else 30
+        if operation in {"allocation-check", "worker-diagnose"}
         else 300,
         "worker_image": worker.get("path", "") if runtime_identity else "",
         "worker_sha256": worker.get("sha256", "") if runtime_identity else "",
@@ -514,12 +516,16 @@ def run_payload(
         "gpu_type": chosen_gpu,
         "partition": partition,
         "account": selected_account,
-        "cpus": cfg.hardware.cpu_workers
+        "cpus": 2
+        if operation == "allocation-check"
+        else cfg.hardware.cpu_workers
         if gpu_operation
         else 8
         if operation in {"image-convert", "runtime-check"}
         else 2,
-        "memory_gib": cfg.hardware.host_ram_gib
+        "memory_gib": 8
+        if operation == "allocation-check"
+        else cfg.hardware.host_ram_gib
         if gpu_operation
         else 64
         if operation == "image-convert"

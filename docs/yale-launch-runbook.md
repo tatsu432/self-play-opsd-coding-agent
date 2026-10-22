@@ -58,7 +58,8 @@ uv run selfplay hpc allocation-check --profile dual_gpu_80gb
 ```
 
 Inspect each returned run before advancing. Allocation checks each have a
-five-minute ceiling and share the existing 24 GPU-hour ledger. They publish
+five-minute ceiling, two CPUs, 8 GiB host RAM and a 30-second advance stop signal;
+they share the existing 24 GPU-hour ledger. They publish
 `gpu-allocation-JOB_ID.json` even on failure, and successful profile proofs as
 `allocation-PROFILE.json`. NVIDIA indices and Linux device minors may differ;
 ownership comes from actual kernel device access inside the live Slurm cgroup,
@@ -83,6 +84,9 @@ been provisioned or assumed available.
 with scheduler/run identity, evidence and next action. Allocation and backend
 checks can retry at most two confirmed scheduler interruptions; application
 failure, OOM, uncertain submission and GPU timeout require inspection.
+Only confirmed never-started cancellations (zero elapsed time, no allocated
+resources and no start timestamp) release a reservation without a GPU TRES
+record; incomplete accounting stays reserved.
 
 After the trainer build and hosted CPU CI pass, backend-only GPU acceptance can
 proceed independently of the worker support response:
