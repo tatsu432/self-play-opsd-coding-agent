@@ -126,12 +126,33 @@ The revised launcher (`cf1e64454dc9d5f7c72d9fa892b2ebd65e54264a`) passed
 72 focused tests and the local complete suite (139 passed, 12 local Docker skips,
 3 exclusions), lint/format and mypy. Hosted result: [passed: 151 tests, 3 exclusions, lint/format, mypy and Docker worker build](https://github.com/tatsu432/self-play-opsd-coding-agent/actions/runs/39817237872).
 
-The next preparation attempt stopped during the read-only remote context call:
-the SSH master broke and Yale required keyboard-interactive MFA again. It did
-not reach submission. A normal Duo login is required to continue. At this
-checkpoint there is no active Task 05 GPU allocation, no valid reference/target
-GPU report, and no worker-dependent acceptance. The cumulative charged GPU cost
-is 0.021667 hours; 23.978333 hours remain available under the existing cap.
+A preparation attempt stopped during the read-only context call when the SSH
+master expired; it did not reach submission. Normal Duo login then succeeded.
+The synchronized checkout `bf95b59` submitted exactly one revised one-H100 check:
+run `5f7f3be6fb2c08861d2bd180`, job **30287970**, with a one-hour allocation cap.
+At the final scheduler snapshot it was PENDING, with no start estimate:
+“Nodes required for job are DOWN, DRAINED or reserved for jobs in higher priority
+partitions.” The local preparation watcher was stopped; the confirmed Slurm job
+was retained. It will execute the revised allocation checks when scheduled.
+No two-GPU job has been submitted.
+
+The cumulative charged GPU cost is 0.021667 hours, with 1 hour reserved for the
+queued job. Budget committed is 1.021667 of 24 hours, leaving 22.978333 hours
+available for additional reservations. The latest doctor reports synchronized
+source/data and published images, all eight readiness gates false, and no valid
+H100 memory-fit failure. The existing job must be inspected before further
+preparation; do not submit a replacement merely because the watcher stopped.
+
+```bash
+uv run selfplay hpc status 5f7f3be6fb2c08861d2bd180
+uv run selfplay hpc logs 5f7f3be6fb2c08861d2bd180
+```
+
+After successful reference evidence, synchronize the clean committed checkout
+and continue `hpc prepare-study --stage backend --gpu-hours-limit 24 --watch`.
+If the reference fails, inspect its allocation proof/logs and repair the cause
+before another attempt. A pending job can be monitored with the same commands
+in a later session; no new session or new submission is required.
 
 **A–D are not ready to submit.** The remaining evidence is the one-/two-GPU
 backend checks, supported worker isolation and target data validation, base

@@ -138,11 +138,13 @@ The support request and proposed Yale managed-service design are in
   ambiguous or occupied devices. Its hosted CI passed 151 tests. Live acceptance
   of this correction is pending.
 - Cumulative readiness cost is 0.021667 GPU-hours of the authorized 24. No main
-  A–D runs have started. All production readiness gates remain false. A retry
-  stopped at read-only context inspection after SSH expired, before submission;
-  complete normal Duo MFA, synchronize the clean committed checkout, inspect
-  existing ledgers and resume backend-only preparation. Never duplicate an
-  unresolved attempt.
+  A–D runs have started. All production readiness gates remain false. Normal Duo
+  reauthentication succeeded. Revised one-H100 job 30287970 / run
+  `5f7f3be6fb2c08861d2bd180` is queued (no start estimate; nodes down/drained or
+  reserved). Its local watcher is stopped; the Slurm job is retained, reserving
+  one GPU-hour. Inspect that job before further preparation; do not duplicate it.
+  After it passes, synchronize the clean committed checkout and resume
+  backend-only preparation. If it fails, inspect/repair before another attempt.
 - YCRC ticket 79403 / Gmail thread `1a1640b41863817b` contains the authorized
   request. Only an automated acknowledgement is available. No equivalent worker
   probe was repeated; require a documented supported setup change before another.

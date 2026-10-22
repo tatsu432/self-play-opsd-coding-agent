@@ -4,6 +4,12 @@ Task 05 is preparing this study. **Do not launch main runs until the live doctor
 and all four previews pass and main training is separately authorized.** CPU CI
 does not prove GPU compatibility or generated-code isolation.
 
+The [Task 05 checkpoint](task_completion/05-implemented-yale-experiment-readiness.md)
+records the published trainer, queued reference job, exact budget and external
+worker dependency. Inspect that existing job before submitting more readiness
+work. If doctor reports a verified trainer already available, proceed to the
+readiness sequence; rebuilding is needed only when its authoritative inputs change.
+
 ## Build without a large local archive
 
 From the clean committed Task 05 checkout:
