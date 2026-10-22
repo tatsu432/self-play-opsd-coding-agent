@@ -1,7 +1,5 @@
 # codex
 .codex/
-AGENTS.md
-docs/
 
 .DS_Store
 
@@ -10,6 +8,9 @@ docs/
 docs/*
 !docs/methods.md
 !docs/operations.md
+!docs/plan/
+!docs/task/
+!docs/task_completion/
 
 # Experiment artifacts (authoritative local records, never source-controlled).
 runs/

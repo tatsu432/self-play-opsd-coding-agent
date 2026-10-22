@@ -269,6 +269,16 @@ def load_config(path: Path | None = None, **overrides) -> RunConfig:
         values["hardware"] = {**PROFILES[profile], **values.get("hardware", {}), "profile": profile}
     if "SELFPLAY_ALLOCATED_GPU_COUNT" in os.environ:
         values["hardware"]["allocated_gpu_count"] = int(os.environ["SELFPLAY_ALLOCATED_GPU_COUNT"])
+    # Allocation paths are operational and excluded from the scientific hash.
+    for environment, field in (
+        ("SELFPLAY_DATA_ROOT", "data_root"),
+        ("SELFPLAY_OUTPUT_ROOT", "output_root"),
+    ):
+        if environment in os.environ:
+            value = Path(os.environ[environment])
+            if not value.is_absolute():
+                raise ValueError(f"{environment} must be an absolute path")
+            values[field] = value
     values.update({k: v for k, v in overrides.items() if v is not None})
     if profile == "cpu_debug":
         debug_defaults = {"backend": "hf", "dtype": "float32", "tiny": True, "rank": 4, "alpha": 8}

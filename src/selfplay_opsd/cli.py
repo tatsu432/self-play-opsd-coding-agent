@@ -13,10 +13,12 @@ import typer
 from selfplay_opsd.config import RunConfig, load_config
 from selfplay_opsd.core import ExperimentError, canonical, digest
 from selfplay_opsd.data import TaskRepository
+from selfplay_opsd.hpc import app as hpc_app
 from selfplay_opsd.sandbox import SandboxBackend
 from selfplay_opsd.storage import CheckpointManager, EventStore, atomic_json, provenance, read_json
 
 app = typer.Typer(no_args_is_help=True, pretty_exceptions_enable=False)
+app.add_typer(hpc_app, name="hpc")
 ConfigOption = Annotated[
     Path, typer.Option("--settings", help="Strict composed YAML configuration")
 ]
@@ -412,10 +414,14 @@ def diagnose(
     settings: ConfigOption,
     checkpoint: Annotated[Path, typer.Option("--checkpoint")],
     output: Annotated[Path, typer.Option("--output")],
+    config: str | None = typer.Option(None, "--config"),
+    hardware: str | None = None,
 ):
     from selfplay_opsd.diagnostics import run_diagnostics
 
-    cfg = load_config(settings)
+    cfg = load_config(
+        settings, method=config, **({"hardware_profile": hardware} if hardware else {})
+    )
     policy = make_policy(cfg)
     sandbox = SandboxBackend(cfg.sandbox)
     sandbox.preflight()

@@ -185,21 +185,55 @@ instance price. Nothing is provisioned. `scripts/aws-cost.py --instance ...
 --hours ... --price-per-hour ...` estimates instance cost, excluding storage,
 network and tax. YAML `max_active_hours` / `max_gpu_hours` bound execution.
 
-For Yale, distribute a built pinned image through your approved registry and run
-`apptainer pull trainer.sif docker://REGISTRY/IMAGE@sha256:DIGEST`. Set
-`SELFPLAY_PROJECT`, `SELFPLAY_TRAINER_SIF`, `SELFPLAY_SETTINGS=configs/yale.yaml`
-and `SELFPLAY_METHOD=A|B|C|D`. Submit using actual account/partition/resource values:
+For Yale, use the controller from the local checkout. It discovers account and
+partition permissions from Slurm and keeps the run ledger in project storage:
 
 ```bash
-sbatch --account=YOUR_ACCOUNT --partition=YOUR_PARTITION --gres=gpu:2 scripts/yale.slurm
+uv run selfplay hpc doctor
+uv run selfplay hpc login  # complete Yale's normal MFA prompt in a terminal if needed
+uv run selfplay hpc inspect
+uv run selfplay hpc resources --profile dual_gpu_80gb
+uv run selfplay hpc sync
+uv run selfplay hpc submit --operation backend-check --method D --profile single_gpu_80gb --image /ABSOLUTE/TRAINER.sif --image-sha256 SHA256
+uv run selfplay hpc status RUN_ID
+uv run selfplay hpc logs RUN_ID
 ```
 
-Initial request: 16 CPUs, 128–256 GiB RAM, two allocated GPUs. The template defaults
-to 23h and requests a pre-timeout signal; real limits depend on account/partition.
-Use project scratch for caches and outputs. Never run GPU work on a login node.
-The launcher writes stop requests to a shared file; handlers do not run unsafe
-collectives. If an iteration exceeds preemption grace, resume the last verified
-joint checkpoint and matching staged artifacts.
+Inspection, resource checks and synchronization do not allocate GPUs. A clean committed Git checkout,
+prepared validated data, authenticated SSH, discovered project/scratch storage,
+and a pinned trainer SIF are required before submission. The controller transfers
+a Git bundle to a commit-specific checkout and stores data by manifest hash.
+Submit options support `backend-check`, `pilot`, `train`, `evaluate`, and
+`diagnose`; run `selfplay hpc submit --help` for their arguments. The selected
+profile defaults to H100 for 80 GB and H200 for 141 GB. An RTX Pro 6000
+Blackwell may use an 80 GB profile after live authorization and actual backend
+acceptance. No profile is assumed to fit merely because its VRAM is sufficient.
+Compare measured memory, phase time and allocated GPU-hours on small verified
+pilots before choosing between H100, RTX Pro 6000 Blackwell and H200. Queue
+state is only a snapshot; `sinfo` does not reserve an available GPU.
+
+The trainer SIF must be created from the pinned Docker image through a Yale
+approved distribution path. `scripts/yale.slurm` hashes it on the allocated
+compute node and runs the mounted immutable code with `uv`-locked dependencies
+inside Apptainer. It writes results/checkpoints to durable project storage and
+uses course scratch for model caches. The actual time, CPU, memory and GPU
+request is checked against live Slurm associations and node advertisements.
+The pre-timeout signal creates a shared stop request for checkpointing at a safe
+iteration boundary. Never run model or generated-code work on a login node.
+
+Use `selfplay hpc watch RUN_ID --image ... --image-sha256 ...` for bounded
+automatic recovery of a prior training submission, or `selfplay hpc resume` for
+one check. At most two PREEMPTED/NODE_FAIL/BOOT_FAIL attempts may resume from a
+verified joint checkpoint. A missing job ID, ambiguous `sbatch` response, OOM,
+scientific error or authentication problem stops resubmission. `hpc fetch RUN_ID`
+copies reports locally; `--full` also copies trajectories and checkpoints.
+The default alias is `yale-hpc-cpsc4880`. Other aliases are inspection only until
+their course permissions and shared limits are verified. Consult the current
+[Bouchet partitions](https://docs.ycrc.yale.edu/clusters/bouchet/) before
+comparing GPU options.
+An optional `--secrets-file` points to a mode-600 file on the compute-visible
+filesystem for a worker token or W&B key. The controller passes only its path
+to Slurm and never writes the secret into the repository or scheduler arguments.
 
 ## Recovery and artifacts
 
