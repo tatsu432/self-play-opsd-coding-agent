@@ -76,13 +76,18 @@ Local storage still has approximately **22 GiB** free, below the trainer export'
 selected. Configurability removes the repository-filesystem requirement;
 capacity must still be supplied for both the export and Docker builder storage.
 
-The exact next executable command is read-only:
+The post-repair read-only `hpc doctor` confirmed a clean checkout and validated
+prepared manifest `44fe6caffc0548bebb01bf39208f8b2f5de10ab89ee8487dca20dd436c0154f5`.
+Remote inspection was unavailable because SSH requires keyboard-interactive
+authentication. No remote readiness state was refreshed and no job was allocated.
+The exact next command, in an interactive terminal, is:
 
 ```bash
-uv run selfplay hpc doctor
+uv run selfplay hpc login
 ```
 
-Reestablish normal MFA using `hpc login` if reported. Before image preparation,
+Complete normal Yale MFA, then rerun `uv run selfplay hpc doctor`.
+Before image preparation,
 select sufficient export/builder storage and build the trainer with the
 documented `--build-root` / `--builder` options; monitor its CPU conversion job.
 The build command synchronizes the clean branch into a new immutable checkout.
