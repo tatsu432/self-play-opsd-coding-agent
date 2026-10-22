@@ -48,9 +48,10 @@ verified. All three reach Bouchet, so never assume independent GPU pools.
 2. Before a run, require a clean committed Git tree and prepared, validated
    data. `uv run selfplay hpc sync` sends a Git bundle to a commit-specific
    checkout in project storage and copies the frozen dataset to a manifest-hash
-   directory. Durable runs/checkpoints live in project storage; model caches
-   live in course scratch storage. The controller rejects a missing/ambiguous
-   project or scratch directory.
+   directory. Durable runs/checkpoints live in the user's personal directory
+   inside course project storage; model caches live in the corresponding
+   personal course scratch directory. The controller rejects a missing,
+   unwritable or ambiguous storage directory.
 3. A submission needs the actual account, partition, typed GPU resource,
    profile, SIF path and SHA-256. The controller checks live associations and
    node fit; `scripts/yale.slurm` hashes the SIF on the allocated compute node
@@ -80,10 +81,11 @@ verified. All three reach Bouchet, so never assume independent GPU pools.
   QOS and a blank partition restriction. Read-only resource checks accepted
   the intended H100, H200 and RTX Pro 6000 Blackwell two-GPU requests. The
   scheduler still decides when a job can start.
-- Project and scratch directories exist. Group quota at the Oct 21 snapshot was
-  979/4096 GiB project and 515/10240 GiB scratch. The user had no active jobs;
-  two jobs from other `cpsc4880` users were running. No project workspace for
-  this experiment was present.
+- The writable personal course project and scratch directories are available.
+  Group quota at the Oct 21 snapshot was 979/4096 GiB project and 515/10240
+  GiB scratch. The user had no active jobs; two jobs from other `cpsc4880`
+  users were running. The implementation commit `213647a` and validated data
+  manifest `44fe6caffc05...` were synchronized to the user's project space.
 - Local prepared data and execution validation are present. No Yale trainer SIF,
   isolated worker, target backend proof, pilot or frozen study has been verified.
   No GPU was allocated or training started under task 02.
@@ -91,5 +93,6 @@ verified. All three reach Bouchet, so never assume independent GPU pools.
   prompt for `cpsc4710` timed out, so their permissions and quotas remain unknown.
 
 Read `docs/task_completion/02-implemented-yale-hpc-use.md` for exact evidence and
-re-check live Slurm state before new work. The next operational step is a clean
-implementation commit and `hpc sync`, followed by worker/image readiness.
+re-check live Slurm state before new work. The next operational step is to
+verify a pinned trainer SIF and isolated code worker, then perform a small
+target GPU backend acceptance run.

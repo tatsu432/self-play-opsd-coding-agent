@@ -61,7 +61,7 @@ def roots() -> dict[str, dict[str, str]]:
     }
 
 
-def inspect(_: dict) -> dict:
+def inspect(payload: dict) -> dict:
     user = run(["id", "-un"]).stdout.strip()
     course = user.split("_", 1)[0]
     commands = {
@@ -112,6 +112,18 @@ def inspect(_: dict) -> dict:
     project = roots()["project"].get(f"project_{course}")
     base = Path(project) / f"selfplay-opsd-{user}" if project else None
     workspace_state: dict = {"exists": bool(base and any((base / "state").glob("sync-*.json")))}
+    if (
+        base
+        and SHA.fullmatch(payload.get("commit") or "")
+        and DIGEST.fullmatch(payload.get("manifest_sha256") or "")
+    ):
+        marker = base / "state" / f"sync-{payload['commit']}.json"
+        workspace_state["current_snapshot"] = marker.is_file() and json.loads(
+            marker.read_text()
+        ) == {
+            "commit": payload["commit"],
+            "manifest_sha256": payload["manifest_sha256"],
+        }
     if base and base.is_dir():
         workspace_state["checkouts"] = sorted(
             p.name for p in (base / "checkouts").glob("*") if p.is_dir()

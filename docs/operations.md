@@ -202,7 +202,9 @@ uv run selfplay hpc logs RUN_ID
 Inspection, resource checks and synchronization do not allocate GPUs. A clean committed Git checkout,
 prepared validated data, authenticated SSH, discovered project/scratch storage,
 and a pinned trainer SIF are required before submission. The controller transfers
-a Git bundle to a commit-specific checkout and stores data by manifest hash.
+a Git bundle to a commit-specific checkout under the user's writable course
+project directory and stores data by manifest hash. Model caches use the user's
+course scratch directory; the group fileset roots themselves are not writable.
 Submit options support `backend-check`, `pilot`, `train`, `evaluate`, and
 `diagnose`; run `selfplay hpc submit --help` for their arguments. The selected
 profile defaults to H100 for 80 GB and H200 for 141 GB. An RTX Pro 6000

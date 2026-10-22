@@ -455,7 +455,10 @@ def doctor(alias: Annotated[str, typer.Option()] = ALIASES[0]):
         "manifest_sha256": sha256(manifest_path) if manifest else None,
     }
     try:
-        remote = YaleSSH(alias).call("inspect")
+        remote = YaleSSH(alias).call(
+            "inspect",
+            {"commit": git("rev-parse", "HEAD"), "manifest_sha256": local["manifest_sha256"]},
+        )
         result: dict[str, Any] = {"local": local, "remote": remote, "blockers": []}
         if not local["git_clean"]:
             result["blockers"].append("Local Git commit is not clean for immutable synchronization")
@@ -467,8 +470,8 @@ def doctor(alias: Annotated[str, typer.Option()] = ALIASES[0]):
             result["blockers"].append("Scratch storage not discovered")
         if remote["slurm"]["associations"]["exit_code"] != 0:
             result["blockers"].append("Slurm associations unavailable")
-        if not remote["workspace"]["exists"]:
-            result["blockers"].append("Immutable Yale checkout and data not synchronized")
+        if not remote["workspace"].get("current_snapshot"):
+            result["blockers"].append("Current immutable Yale checkout and data not synchronized")
         if not remote["workspace"].get("backend_proofs"):
             result["blockers"].append("Target GPU backend acceptance not established")
         result["unverified"] = [
@@ -480,7 +483,9 @@ def doctor(alias: Annotated[str, typer.Option()] = ALIASES[0]):
         result["next_action"] = (
             "Commit the implementation and run hpc sync"
             if not local["git_clean"]
-            else "Run hpc sync, then verify the trainer SIF and code worker"
+            else "Run hpc sync"
+            if not remote["workspace"].get("current_snapshot")
+            else "Verify the trainer SIF and isolated code worker, then run target GPU backend acceptance"
         )
     except HpcError as exc:
         result = {
