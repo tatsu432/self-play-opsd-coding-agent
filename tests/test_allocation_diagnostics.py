@@ -162,3 +162,38 @@ def test_cancellation_terminates_running_worker_process(close_pipes):
         assert code < 0 and reason == "cancelled"
     finally:
         timer.cancel()
+
+
+@pytest.mark.parametrize(
+    "message,category",
+    [
+        ("Ambiguous Slurm/NVIDIA GPU mapping", "allocation"),
+        ("DBUS_SESSION_BUS_ADDRESS is not set", "site_setup"),
+        ("tensor shape is wrong", "application"),
+    ],
+)
+def test_stage_diagnostics_classify_legacy_failure_logs(tmp_path, monkeypatch, message, category):
+    spec = importlib.util.spec_from_file_location("diagnostic_remote", "scripts/hpc_remote.py")
+    remote = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(remote)
+    state = tmp_path / "state"
+    state.mkdir()
+    (state / "ledger.json").write_text(
+        json.dumps(
+            {
+                "specification": {
+                    "study_id": "study",
+                    "run_id": "run",
+                    "operation": "backend-check",
+                    "profile": "single_gpu_80gb",
+                },
+                "attempts": [{"job_id": "123"}],
+            }
+        )
+    )
+    log = state / "run-123.out"
+    log.write_text(message)
+    monkeypatch.setattr(remote, "job_state", lambda _: {"state": "FAILED"})
+    stage = remote.stage_status(tmp_path, "study", {"single": False}, {})["single"]
+    assert stage["failure_category"] == category
+    assert stage["evidence"] == str(log)

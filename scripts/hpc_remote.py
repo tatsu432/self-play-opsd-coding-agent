@@ -1053,15 +1053,37 @@ def stage_status(base: Path, study: str, gates: dict, reports: dict) -> dict:
                 elif scheduler != "COMPLETED":
                     attempt = base / "runs/readiness" / study / f"attempt-{job}.json"
                     details = json.loads(attempt.read_text()) if attempt.is_file() else {}
+                    log = base / "state" / f"{run_id}-{job}.out"
+                    message = json.dumps(reports.get(gate, {})).lower()
+                    if log.is_file():
+                        with log.open("rb") as stream:
+                            stream.seek(max(0, log.stat().st_size - 64000))
+                            message += stream.read().decode(errors="replace").lower()
+                    allocation = base / "runs/readiness" / study / f"gpu-allocation-{job}.json"
+                    mapped = allocation.is_file() and json.loads(allocation.read_text()).get(
+                        "ready"
+                    )
+                    inferred = (
+                        "site_setup"
+                        if "dbus_session_bus_address" in message or "delegation" in message
+                        else "allocation"
+                        if "gpu mapping" in message
+                        or "slurm/nvidia" in message
+                        or "unexpected gpu count" in message
+                        or (allocation.is_file() and not mapped)
+                        else "cuda_oom"
+                        if "cuda" in message and "out of memory" in message and mapped
+                        else "application"
+                    )
                     category = details.get("failure_category") or (
                         "scheduler_interrupt"
                         if scheduler in {"PREEMPTED", "NODE_FAIL", "BOOT_FAIL"}
-                        else "application"
+                        else inferred
                     )
                     state.update(
                         state="failed",
                         failure_category=category,
-                        evidence=str(attempt),
+                        evidence=str(attempt if attempt.is_file() else log),
                         next_action=f"Inspect hpc logs {run_id} and hpc status {run_id}; repair before retry",
                     )
         states[gate] = state
