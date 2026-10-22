@@ -180,6 +180,7 @@ class SelfPlayTrainer:
         self.checkpoints = CheckpointManager(self.root) if policy.is_coordinator else None
         from selfplay_opsd.readiness import execution_identity
 
+        self.runtime_identity = execution_identity(config, repository=repository)
         if resume:
             state, metadata = CheckpointManager.load(resume)
             if (
@@ -191,8 +192,9 @@ class SelfPlayTrainer:
                 raise ExperimentError(
                     "Resume scientific/model/data/prompt compatibility check failed"
                 )
-            if config.hardware.gpu_count and metadata.get("runtime_identity") != execution_identity(
-                config
+            if (
+                config.hardware.gpu_count
+                and metadata.get("runtime_identity") != self.runtime_identity
             ):
                 raise ExperimentError("Resume runtime identity differs")
             policy.load_state_dict(state["policy"])
@@ -313,10 +315,8 @@ class SelfPlayTrainer:
                 "elapsed": self.elapsed,
                 "allocated_gpu_hours": self.allocated_gpu_hours,
             }
-            from selfplay_opsd.readiness import execution_identity
-
             metadata = {
-                "runtime_identity": execution_identity(self.config),
+                "runtime_identity": self.runtime_identity,
                 "schema_version": 1,
                 "iteration": self.iteration,
                 "scientific_hash": self.config.scientific_hash,

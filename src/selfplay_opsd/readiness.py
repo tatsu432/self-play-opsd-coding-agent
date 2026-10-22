@@ -33,12 +33,15 @@ def validation_path(config: RunConfig) -> Path:
     )
 
 
-def execution_identity(config: RunConfig) -> dict:
+def execution_identity(config: RunConfig, *, repository: TaskRepository | None = None) -> dict:
+    repository = repository if repository is not None else TaskRepository(config.data_root)
+    if repository.root.resolve() != config.data_root.resolve():
+        raise ExperimentError("Repository root differs from configured data_root")
     return {
         "code_hash": code_hash(),
         "scientific_code_hash": scientific_code_hash(),
         "common_hash": digest(config.scientific_settings(common=True, calibration=True)),
-        "manifest_hash": TaskRepository(config.data_root).hash,
+        "manifest_hash": repository.hash,
         "prompt_hash": PROMPT_HASH,
         "model_revision": config.model.revision,
         "tokenizer_revision": config.model.tokenizer_revision,

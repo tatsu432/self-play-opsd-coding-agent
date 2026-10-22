@@ -6,11 +6,11 @@ import types
 import pytest
 
 from selfplay_opsd.config import load_config
-from selfplay_opsd.core import canonical
+from selfplay_opsd.core import ExperimentError, canonical
 from selfplay_opsd.diagnostics import _optimizer_digest
 from selfplay_opsd.mutations import make_patch
 from selfplay_opsd.policy import Generation, HFPolicy
-from selfplay_opsd.storage import active_events
+from selfplay_opsd.storage import CheckpointManager, active_events
 from selfplay_opsd.trainer import SelfPlayTrainer
 
 
@@ -48,11 +48,12 @@ def scripted_policy(config):
     return policy
 
 
-def configuration(tmp_path, method):
+def configuration(tmp_path, method, repository):
     cfg = load_config(
         study_id="test",
         hardware_profile="cpu_debug",
         output_root=tmp_path,
+        data_root=repository.root,
         method=method,
         iterations=2,
     )
@@ -63,8 +64,12 @@ def configuration(tmp_path, method):
 
 @pytest.mark.sandbox
 @pytest.mark.parametrize("method", ["A", "B", "C", "D"])
-def test_complete_transaction_and_checkpoint(method, tmp_path, repository, sandbox):
-    cfg = configuration(tmp_path, method)
+def test_complete_transaction_and_checkpoint(method, tmp_path, repository, sandbox, monkeypatch):
+    cfg = configuration(tmp_path, method, repository)
+    monkeypatch.setattr(
+        "selfplay_opsd.readiness.TaskRepository",
+        lambda _: pytest.fail("Trainer must reuse its validated repository"),
+    )
     policy = scripted_policy(cfg)
     trainer = SelfPlayTrainer(cfg, policy, repository, sandbox)
     trainer.checkpoint()
@@ -80,6 +85,12 @@ def test_complete_transaction_and_checkpoint(method, tmp_path, repository, sandb
     resumed = SelfPlayTrainer(cfg, restored, repository, sandbox, resume=path)
     assert resumed.iteration == 1 and resumed.history == trainer.history
     assert _optimizer_digest(restored.state_dict()) == _optimizer_digest(policy.state_dict())
+    if method == "A":
+        state, metadata = CheckpointManager.load(path)
+        metadata["manifests_hash"] = "different-manifest"
+        incompatible = CheckpointManager(tmp_path / "incompatible").save(1, state, metadata)
+        with pytest.raises(ExperimentError, match="compatibility"):
+            SelfPlayTrainer(cfg, restored, repository, sandbox, resume=incompatible)
     trainer.sink.finish()
     resumed.sink.finish()
 
@@ -88,7 +99,7 @@ def test_complete_transaction_and_checkpoint(method, tmp_path, repository, sandb
 def test_interruption_between_updates_replays_from_joint_checkpoint(
     tmp_path, repository, sandbox, monkeypatch
 ):
-    cfg = configuration(tmp_path, "D")
+    cfg = configuration(tmp_path, "D", repository)
     policy = scripted_policy(cfg)
     trainer = SelfPlayTrainer(cfg, policy, repository, sandbox)
     checkpoint = trainer.checkpoint()
@@ -107,7 +118,7 @@ def test_interruption_between_updates_replays_from_joint_checkpoint(
     resumed = SelfPlayTrainer(cfg, resumed_policy, repository, sandbox, resume=checkpoint)
     resumed.run_iteration(1)
     # Independent uninterrupted run must produce identical joint states.
-    baseline_cfg = configuration(tmp_path / "baseline", "D")
+    baseline_cfg = configuration(tmp_path / "baseline", "D", repository)
     baseline_policy = scripted_policy(baseline_cfg)
     baseline = SelfPlayTrainer(baseline_cfg, baseline_policy, repository, sandbox)
     baseline.run_iteration(1)
