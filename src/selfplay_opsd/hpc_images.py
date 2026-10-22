@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.metadata
+import json
 import re
 import shlex
 from pathlib import Path, PurePosixPath
@@ -101,6 +102,16 @@ def source_build(root: Path, dockerfile: Path, commit: str, *, check: bool = Fal
     if ":" in image.rsplit("/", 1)[-1]:
         image = image.rsplit(":", 1)[0]
     recipe.fromHeader = f"{image}@{pinned_digest}"
+    entrypoint = json.loads(next(value for name, value in instructions if name == "ENTRYPOINT"))
+    if (
+        not isinstance(entrypoint, list)
+        or not entrypoint
+        or not all(isinstance(arg, str) for arg in entrypoint)
+    ):
+        raise ValueError("ENTRYPOINT must use the JSON argument-array form")
+    # spython joins exec-form arguments without shell quoting. Quote each
+    # original argument so spaces/semicolons cannot change runscript semantics.
+    recipe.entrypoint = [shlex.quote(arg) for arg in entrypoint]
     recipe.files = copies
     recipe.install = [step for step in recipe.install if not step.startswith("USER ")]
     definition = SingularityWriter(parser.recipe).convert()

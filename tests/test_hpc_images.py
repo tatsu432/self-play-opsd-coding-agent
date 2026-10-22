@@ -3,6 +3,7 @@
 import base64
 import importlib.util
 import json
+import shlex
 import subprocess
 from pathlib import Path
 from types import SimpleNamespace
@@ -80,6 +81,16 @@ def inputs(tmp_path):
         "SELFPLAY_CACHE": str(tmp_path / "scratch/huggingface"),
     }
     return result, env
+
+
+def test_exec_form_entrypoint_retains_argument_boundaries(tmp_path):
+    data, _ = inputs(tmp_path)
+    line = next(line for line in data["definition"].splitlines() if line.startswith("exec "))
+    args = shlex.split(line)
+    assert args[:3] == ["exec", "python", "-c"]
+    assert args[3].startswith("import os,pathlib; assert ")
+    assert args[-1] == "$@"
+    assert len(args) == 5
 
 
 @pytest.mark.parametrize("failure", [False, True])
