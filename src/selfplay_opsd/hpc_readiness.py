@@ -6,6 +6,7 @@ import json
 import shutil
 import subprocess
 import tarfile
+import tempfile
 import time
 from pathlib import Path
 from typing import Annotated
@@ -123,7 +124,7 @@ def register(app: typer.Typer):
         sync,
     )
 
-    images = typer.Typer(help="Build AMD64 Docker archives and convert on Yale CPU nodes")
+    images = typer.Typer(help="Build pinned images on Yale CPU nodes or import Docker archives")
     app.add_typer(images, name="images")
 
     def payload_for(remote, operation, settings, **options):
@@ -175,12 +176,45 @@ def register(app: typer.Typer):
         alias: str = ALIASES[0],
         build_root: Annotated[Path | None, typer.Option(envvar="SELFPLAY_IMAGE_BUILD_ROOT")] = None,
         builder: Annotated[str | None, typer.Option(help="Existing Buildx builder name")] = None,
+        build_mode: str = "docker",
+        check_only: bool = False,
     ):
         """Build worker first; --kind all also attempts the much larger trainer."""
         if kind not in {"worker", "trainer", "all"}:
             raise HpcError("Image kind must be worker, trainer or all")
+        if build_mode not in {"docker", "yale"}:
+            raise HpcError("Build mode must be docker or yale")
+        if (check_only or build_mode == "yale") and kind != "trainer":
+            raise HpcError("Yale source builds/checks apply to the trainer only")
+        if check_only and build_mode != "yale":
+            raise HpcError("--check-only requires --build-mode yale")
+        if build_mode == "yale" and (build_root or builder or alias != ALIASES[0]):
+            raise HpcError("Yale builds use cpsc4880 scratch; local build options do not apply")
         remote = YaleSSH(alias)
         snap = sync(remote)
+        if build_mode == "yale":
+            from selfplay_opsd.hpc_images import BUILD_CHECK_DOCKERFILE, source_build
+
+            with tempfile.TemporaryDirectory() as temporary:
+                dockerfile = ROOT / "docker/trainer.Dockerfile"
+                if check_only:
+                    dockerfile = Path(temporary) / "check.Dockerfile"
+                    dockerfile.write_text(BUILD_CHECK_DOCKERFILE)
+                inputs = source_build(ROOT, dockerfile, snap["commit"], check=check_only)
+            payload = payload_for(remote, "image-build", settings)
+            payload.update(inputs)
+            payload.update(
+                {
+                    "cpus": 2 if check_only else 8,
+                    "memory_gib": 4 if check_only else 32,
+                    "time": "00:15:00" if check_only else "04:00:00",
+                }
+            )
+            payload.update(remote.call("prepare_source_image", payload))
+            payload["identity"] = digest([payload["identity"], inputs["build_key"]])
+            payload["run_id"] = payload["identity"][:24]
+            output(remote.call("submit", payload))
+            return
         for current in ["worker", "trainer"] if kind == "all" else [kind]:
             directory = (build_root or ROOT / "runs/hpc/images").expanduser().resolve() / current
             if directory.is_relative_to(ROOT) and not directory.is_relative_to(ROOT / "runs"):
@@ -253,6 +287,7 @@ def register(app: typer.Typer):
                 ("target", "backend-check", {}),
                 ("base", "evaluate", {"base": True}),
                 ("pilot", "pilot", {}),
+                ("methods", "method-smoke", {}),
                 ("freeze", "freeze-study", {}),
             ]
             if stage == "backend":
@@ -286,7 +321,7 @@ def register(app: typer.Typer):
                 output(
                     {
                         "eligible_to_submit_main": False,
-                        "next_action": "hpc images build --kind trainer",
+                        "next_action": "hpc images build --kind trainer --build-mode yale",
                         "state": state,
                     }
                 )

@@ -239,6 +239,11 @@ to Slurm and never writes the secret into the repository or scheduler arguments.
 
 ## Prepare the Yale A–D study
 
+Task 05 continues this workflow with Dockerfile-derived image builds on Yale
+CPU nodes and A/B/C acceptance checks. Follow the current
+[Yale launch runbook](yale-launch-runbook.md); local large-image exports below
+remain an optional compatibility path.
+
 Task 03 authorizes Yale `cpsc4880` only and at most **24 allocated GPU-hours**
 for readiness. It stops before main training. The old AWS hosts are unavailable.
 Run from a clean committed checkout:

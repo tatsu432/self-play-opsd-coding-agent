@@ -16,6 +16,9 @@ dependencies = [
 ]
 
 [dependency-groups]
+build = [
+    "spython==0.3.14",
+]
 dev = ["pytest==8.4.2", "ruff==0.14.1", "mypy==1.18.2", "types-PyYAML==6.0.12.20250915"]
 gpu = [
   "verl @ git+https://github.com/verl-project/verl.git@bec9ef74768dd201881cd4e54cd0385e87caae27 ; sys_platform == 'linux' and platform_machine == 'x86_64'",

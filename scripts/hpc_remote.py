@@ -587,7 +587,7 @@ def submit(payload: dict) -> dict:
     sync = json.loads((p["state"] / f"sync-{payload['commit']}.json").read_text())
     if sync != {"commit": payload["commit"], "manifest_sha256": payload["manifest_sha256"]}:
         raise ValueError("Remote snapshot identity mismatch")
-    if payload["operation"] not in {"image-convert", "worker-check"}:
+    if payload["operation"] not in {"image-convert", "image-build", "worker-check"}:
         if not Path(payload["image"]).is_file() or not DIGEST.fullmatch(payload["image_sha256"]):
             raise ValueError("Pinned trainer SIF missing")
     precheck(payload)
@@ -687,7 +687,7 @@ def submit(payload: dict) -> dict:
                 hashlib.sha256(
                     (
                         "image-" + payload["image_metadata"]["kind"]
-                        if payload["operation"] == "image-convert"
+                        if payload["operation"] in {"image-convert", "image-build"}
                         else str(artifact)
                     ).encode()
                 ).hexdigest()
@@ -739,6 +739,8 @@ def submit(payload: dict) -> dict:
             "SELFPLAY_IMAGE_METADATA": base64.b64encode(
                 json.dumps(payload.get("image_metadata", {})).encode()
             ).decode(),
+            "SELFPLAY_BUILD_KEY": payload.get("build_key", ""),
+            "SELFPLAY_BUILD_DEFINITION": payload.get("definition_path", ""),
             "SELFPLAY_TRAINER_SIF": payload["image"],
             "SELFPLAY_TRAINER_SHA256": payload["image_sha256"],
             "SELFPLAY_DATA": str(p["dataset"]),
@@ -753,7 +755,13 @@ def submit(payload: dict) -> dict:
             "SELFPLAY_PILOT_SUFFIX": payload.get("pilot_suffix", "-pilot"),
             "SELFPLAY_GPU_TYPE": payload["gpu_type"],
             "SELFPLAY_STUDY": payload["study_id"]
-            + (payload.get("pilot_suffix", "-pilot") if payload["operation"] == "pilot" else ""),
+            + (
+                payload.get("pilot_suffix", "-pilot")
+                if payload["operation"] == "pilot"
+                else "-method-smoke"
+                if payload["operation"] == "method-smoke"
+                else ""
+            ),
             "SELFPLAY_SEED": str(payload["seed"]),
             "SELFPLAY_RUN_ID": payload["run_id"],
             "SELFPLAY_RESUME": (payload.get("resume") or "").replace(str(p["runs"]), "/runs", 1),
@@ -843,6 +851,12 @@ def artifact_dir(payload: dict) -> Path:
             / payload["image_metadata"]["kind"]
             / payload["archive_sha256"]
         )
+    if operation == "image-build":
+        return (
+            workspace(payload) / "images" / payload["image_metadata"]["kind"] / payload["build_key"]
+        )
+    if operation == "method-smoke":
+        return runs / "readiness" / study / "method-smokes"
     if operation in {"worker-check", "runtime-check", "readiness-check"}:
         return runs / "readiness" / study
     if operation == "backend-check":
@@ -990,6 +1004,7 @@ def study_state(payload: dict) -> dict:
             / f"{study}{payload.get('pilot_suffix', '-pilot')}/D-seed{payload.get('seed', 2026)}/pilot_report.json"
         ),
         "freeze": read(runs / study / "study_frozen.json"),
+        "methods": {m: read(evidence / "method-smokes" / f"{m}.json") for m in "ABC"},
     }
     worker = reports["worker"]
     gates = {
@@ -1024,8 +1039,19 @@ def study_state(payload: dict) -> dict:
                 and (count == 1 or report.get("single_process_reference_compared"))
             )
     readiness = read(runs / study / "readiness.json")
+    gates["methods"] = all(
+        report.get("ready")
+        and identity
+        and report.get("runtime_identity") == identity
+        and report.get("method") == method
+        and report.get("checks")
+        and all(report["checks"].values())
+        and report.get("gpu_type") == payload.get("gpu_type", "h100")
+        for method, report in reports["methods"].items()
+    )
     eligible = bool(
         readiness.get("eligible_to_submit_main")
+        and all(gates.values())
         and identity
         and readiness.get("runtime_identity") == identity
         and readiness.get("evidence_files")
@@ -1082,6 +1108,7 @@ def study_state(payload: dict) -> dict:
                 study + "-pilot-h200": runs / (study + "-pilot-h200"),
                 "compatibility": runs / "compatibility",
                 "readiness": evidence,
+                study + "-method-smoke": runs / (study + "-method-smoke"),
             }.items()
             if path.is_dir()
         },
@@ -1092,6 +1119,8 @@ def precheck(payload: dict):
     operation = payload["operation"]
     if operation not in {
         "image-convert",
+        "image-build",
+        "method-smoke",
         "backend-check",
         "worker-check",
         "runtime-check",
@@ -1103,6 +1132,14 @@ def precheck(payload: dict):
         "readiness-check",
     }:
         raise ValueError("Unsupported submission operation")
+    if operation == "image-build":
+        validate_source_input(payload)
+        if payload["image_metadata"]["kind"] == "trainer":
+            proof = workspace(payload) / "images/build-check.json"
+            report = json.loads(proof.read_text()) if proof.is_file() else {}
+            if not report.get("ready") or report.get("source_commit") != payload["commit"]:
+                raise ValueError("Run the Yale image build --check-only first for this commit")
+        return
     if operation == "image-convert":
         if not Path(payload["archive"]).is_file() or not DIGEST.fullmatch(
             payload["archive_sha256"]
@@ -1122,6 +1159,7 @@ def precheck(payload: dict):
         "runtime-check",
         "train",
         "pilot",
+        "method-smoke",
         "evaluate",
         "diagnose",
     }
@@ -1132,7 +1170,7 @@ def precheck(payload: dict):
             payload.get("worker_sha256", "")
         ):
             raise ValueError("Pinned worker SIF missing")
-    if operation in {"train", "pilot", "evaluate", "diagnose", "freeze-study"}:
+    if operation in {"train", "pilot", "method-smoke", "evaluate", "diagnose", "freeze-study"}:
         state = study_state(payload)
         if not state["gates"]["worker"] or not state["gates"]["runtime"]:
             raise ValueError("Runtime isolation and target data validation have not passed")
@@ -1178,12 +1216,53 @@ def prepare_image(payload: dict) -> dict:
     }
 
 
+def validate_source_input(payload: dict):
+    metadata = payload["image_metadata"]
+    key = hashlib.sha256(
+        json.dumps(
+            metadata, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False
+        ).encode()
+    ).hexdigest()
+    if (
+        metadata.get("kind") not in {"trainer", "build-check"}
+        or metadata.get("build_mode") != "yale"
+        or metadata.get("source_commit") != payload["commit"]
+        or metadata.get("platform") != "linux/amd64"
+        or key != payload["build_key"]
+        or hashlib.sha256(payload["definition"].encode()).hexdigest()
+        != metadata["definition_sha256"]
+    ):
+        raise ValueError("Invalid source build identity")
+
+
+def prepare_source_image(payload: dict) -> dict:
+    validate_source_input(payload)
+    base = workspace(payload)
+    kind, key = payload["image_metadata"]["kind"], payload["build_key"]
+    target = base / "images" / kind / key
+    target.mkdir(parents=True, exist_ok=True, mode=0o700)
+    definition = target / "image.def"
+    with locked(base / "state/.source-images.lock"):
+        if definition.exists() and definition.read_text() != payload["definition"]:
+            raise ValueError("Conflicting immutable image definition")
+        if not definition.exists():
+            temporary = target / (uuid.uuid4().hex + ".pending.def")
+            temporary.write_text(payload["definition"])
+            os.replace(temporary, definition)
+    return {
+        "definition_path": str(definition),
+        "image_target": str(target / f"{kind}.sif"),
+        "image_manifest": str(base / "images" / f"{kind}.json"),
+    }
+
+
 COMMANDS = {
     "inspect": inspect,
     "context": context,
     "study": study_state,
     "preview": preview,
     "prepare_image": prepare_image,
+    "prepare_source_image": prepare_source_image,
     "resources": allowed,
     "prepare": prepare,
     "finalize": finalize,

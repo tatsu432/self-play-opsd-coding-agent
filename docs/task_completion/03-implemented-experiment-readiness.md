@@ -127,3 +127,17 @@ Also provide at least the trainer build's required free disk capacity. Once
 both environment gates are resolved, rerun image/runtime preparation and let
 the existing controller advance through the remaining measured gates within
 the unchanged 24 GPU-hour cap. Keep main A–D launch as a separate action.
+
+## Readiness continuation checkpoint (2026-10-22)
+
+Normal Yale MFA login was completed successfully and the remote doctor now
+reaches the `cpsc4880` account, project storage, and Slurm metadata. The
+prepared-data check remains valid with manifest SHA-256
+`44fe6caffc0548bebb01bf39208f8b2f5de10ab89ee8487dca20dd436c0154f5`.
+`hpc prepare-study --stage backend` stopped before any allocation with next
+action `hpc images build --kind trainer`: the trainer image is still absent.
+Local capacity remains 22 GiB free against the 60 GiB preflight minimum. The
+Docker Buildx cache reports 58.59 GiB reclaimable, but it was left untouched
+because it is shared local build state. The worker evidence remains failed on
+the same absent D-Bus session; all downstream gates remain false. GPU budget
+remains 0 of 24 hours, and A–D are not eligible to launch.

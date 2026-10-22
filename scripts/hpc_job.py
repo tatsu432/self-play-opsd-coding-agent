@@ -9,10 +9,14 @@ import json
 import os
 import platform
 import secrets
+import shutil
 import signal
 import subprocess
 import sys
+import tempfile
+import threading
 import time
+from contextlib import contextmanager
 from pathlib import Path
 
 
@@ -37,6 +41,36 @@ def write(path: Path, value: dict):
 def checked_image(path: str, expected: str):
     if sha256(Path(path)) != expected:
         raise ValueError("Pinned image SHA-256 mismatch")
+
+
+@contextmanager
+def sampled_scratch_usage(path: Path):
+    """Sample this build's logical file sizes, excluding symlinks and other jobs."""
+    usage = {"sampled_peak_logical_bytes": 0}
+    stopped = threading.Event()
+
+    def sample():
+        total = 0
+        for item in path.rglob("*"):
+            try:
+                if not item.is_symlink() and item.is_file():
+                    total += item.stat().st_size
+            except FileNotFoundError:
+                continue
+        usage["sampled_peak_logical_bytes"] = max(usage["sampled_peak_logical_bytes"], total)
+
+    def monitor():
+        while not stopped.wait(10):
+            sample()
+
+    thread = threading.Thread(target=monitor, daemon=True)
+    thread.start()
+    try:
+        yield usage
+    finally:
+        stopped.set()
+        thread.join()
+        sample()
 
 
 def convert(env: dict):
@@ -78,6 +112,153 @@ def convert(env: dict):
     }
     write(manifest, report)
     write(target.with_suffix(".json"), report)
+
+
+def source_image(env: dict):
+    """Build trusted committed sources, independently of candidate worker capabilities."""
+    metadata = json.loads(base64.b64decode(env["SELFPLAY_IMAGE_METADATA"]))
+    key = hashlib.sha256(
+        json.dumps(metadata, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+    ).hexdigest()
+    if key != env["SELFPLAY_BUILD_KEY"] or platform.machine() != "x86_64":
+        raise ValueError("Source build identity or architecture mismatch")
+    root = Path(env["SELFPLAY_PROJECT"])
+    if (
+        subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
+        != metadata["source_commit"]
+    ):
+        raise ValueError("Source build checkout mismatch")
+    checked_image(str(root / "uv.lock"), metadata["lock_sha256"])
+    if metadata["kind"] == "trainer":
+        checked_image(str(root / "docker/trainer.Dockerfile"), metadata["dockerfile_sha256"])
+    definition = Path(env["SELFPLAY_BUILD_DEFINITION"])
+    checked_image(str(definition), metadata["definition_sha256"])
+    target, manifest = Path(env["SELFPLAY_IMAGE_TARGET"]), Path(env["SELFPLAY_IMAGE_MANIFEST"])
+    if manifest.exists():
+        existing = json.loads(manifest.read_text())
+        if existing.get("build_key") == key:
+            checked_image(existing["path"], existing["sha256"])
+            return
+    check = metadata["kind"] == "build-check"
+    cache = Path(env["SELFPLAY_CACHE"]).parent / "image-builds"
+    cache.mkdir(parents=True, exist_ok=True)
+    minimum = (2 if check else 150) * 1024**3
+    if shutil.disk_usage(cache).free < minimum:
+        raise ValueError(f"Insufficient build scratch capacity: need {minimum // 1024**3} GiB")
+    if shutil.disk_usage(target.parent).free < (1 if check else 30) * 1024**3:
+        raise ValueError("Insufficient project capacity for completed SIF")
+    started = time.monotonic()
+    staged = target.with_name(f".{env['SLURM_JOB_ID']}.pending.sif")
+    version = subprocess.check_output(["apptainer", "version"], text=True).strip()
+    initial_free = shutil.disk_usage(cache).free
+    try:
+        with tempfile.TemporaryDirectory(prefix=f"{key[:12]}-", dir=cache) as temporary:
+            build = Path(temporary)
+            context = build / "context"
+            context.mkdir()
+            for relative, expected in metadata["context_files"].items():
+                path = root / relative
+                if (
+                    Path(relative).is_absolute()
+                    or ".." in Path(relative).parts
+                    or path.is_symlink()
+                    or not path.resolve().is_relative_to(root.resolve())
+                ):
+                    raise ValueError("Source context path escapes immutable checkout")
+                checked_image(str(path), expected)
+                destination = context / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(path, destination)
+            recipe = build / "image.def"
+            shutil.copyfile(definition, recipe)
+            process_env = dict(env)
+            # Build setup receives no trainer/worker/W&B credentials or implicit
+            # host binds. No host privilege changes are made here.
+            for name in list(process_env):
+                if name.startswith(("APPTAINERENV_", "SINGULARITYENV_")) or name in {
+                    "SELFPLAY_WORKER_TOKEN",
+                    "WANDB_API_KEY",
+                    "APPTAINER_BIND",
+                    "APPTAINER_BINDPATH",
+                }:
+                    process_env.pop(name)
+            process_env.update(
+                {"APPTAINER_CACHEDIR": str(build / "cache"), "APPTAINER_TMPDIR": str(build / "tmp")}
+            )
+            (build / "tmp").mkdir()
+            with sampled_scratch_usage(build) as usage:
+                subprocess.run(
+                    ["apptainer", "build", "--force", str(staged), str(recipe)],
+                    cwd=context,
+                    env=process_env,
+                    check=True,
+                    timeout=780 if check else 13800,
+                )
+            command = ["apptainer", "exec", "--containall", "--cleanenv", "--no-home", str(staged)]
+            if check:
+                subprocess.run(
+                    ["apptainer", "run", "--containall", "--cleanenv", "--no-home", str(staged)],
+                    env=process_env,
+                    check=True,
+                    timeout=60,
+                )
+            else:
+                validation = (
+                    "import importlib.metadata as m, torch, transformers, peft, verl, vllm; "
+                    + "; ".join(
+                        f"assert m.version({package!r}).split('+')[0]=={expected!r}"
+                        for package, expected in (
+                            ("torch", "2.8.0"),
+                            ("transformers", "4.57.1"),
+                            ("peft", "0.17.1"),
+                            ("verl", "0.7.1"),
+                            ("vllm", "0.11.0"),
+                        )
+                    )
+                )
+                subprocess.run(
+                    command + ["/opt/selfplay/.venv/bin/python", "-c", validation],
+                    env=process_env,
+                    check=True,
+                    timeout=180,
+                )
+                if (
+                    subprocess.check_output(
+                        command + ["uv", "--version"], env=process_env, text=True, timeout=30
+                    ).strip()
+                    != "uv 0.8.15"
+                ):
+                    raise ValueError("Trainer uv version mismatch")
+                subprocess.run(
+                    command + ["/opt/selfplay/.venv/bin/selfplay", "--help"],
+                    env=process_env,
+                    check=True,
+                    timeout=180,
+                )
+            # Measure retained scratch use before deleting this build's context,
+            # extracted image and temporary cache. Filesystem changes by other
+            # jobs may affect the free-space delta; it is not a peak guarantee.
+            scratch_bytes = sum(
+                p.stat().st_size for p in build.rglob("*") if p.is_file() and not p.is_symlink()
+            )
+            free_delta = max(0, initial_free - shutil.disk_usage(cache).free)
+            os.replace(staged, target)
+    finally:
+        staged.unlink(missing_ok=True)
+    report = metadata | {
+        "path": str(target),
+        "sha256": sha256(target),
+        "build_key": key,
+        "architecture": platform.machine(),
+        "apptainer_version": version,
+        "elapsed_seconds": time.monotonic() - started,
+        "scratch_retained_bytes": scratch_bytes,
+        "scratch_free_delta_bytes": free_delta,
+        **usage,
+        "ready": True,
+    }
+    write(target.with_suffix(".json"), report)
+    write(manifest, report)
 
 
 def broker_args(env: dict, ready: Path, report: Path) -> list[str]:
@@ -127,6 +308,7 @@ def execute(env: dict) -> int:
         "runtime-check",
         "train",
         "pilot",
+        "method-smoke",
         "evaluate",
         "diagnose",
         "freeze-study",
@@ -138,6 +320,7 @@ def execute(env: dict) -> int:
         "runtime-check",
         "train",
         "pilot",
+        "method-smoke",
         "evaluate",
         "diagnose",
     }
@@ -256,7 +439,7 @@ def execute(env: dict) -> int:
             "--settings",
             "/workspace/" + env["SELFPLAY_SETTINGS"],
         ]
-        if operation in {"train", "pilot", "evaluate", "diagnose"}:
+        if operation in {"train", "pilot", "method-smoke", "evaluate", "diagnose"}:
             args += ["--config", env["SELFPLAY_METHOD"], "--hardware", env["SELFPLAY_HARDWARE"]]
         if operation in {"train", "pilot"} and env.get("SELFPLAY_RESUME"):
             args += ["--resume", env["SELFPLAY_RESUME"]]
@@ -307,7 +490,22 @@ def execute(env: dict) -> int:
         ]
         if operation != "backend-check":
             command[2:2] = ["--bind", env["SELFPLAY_DATA"] + ":/data/prepared:ro"]
-        status = subprocess.run(command + args, env=process_env, check=False).returncode
+        if operation == "method-smoke":
+            # Separate processes provide fresh model, RNG and optimizer initialization.
+            status = 0
+            method_index = args.index("--config") + 1
+            for method in "ABC":
+                if stop.exists():
+                    return 75
+                method_args = list(args)
+                method_args[method_index] = method
+                status = subprocess.run(
+                    command + method_args, env=process_env, check=False
+                ).returncode
+                if status:
+                    break
+        else:
+            status = subprocess.run(command + args, env=process_env, check=False).returncode
         if status == 0 and operation == "freeze-study":
             command_report = [
                 "python",
@@ -336,7 +534,9 @@ def execute(env: dict) -> int:
 
 def main():
     env = dict(os.environ)
-    if env["SELFPLAY_OPERATION"] == "image-convert":
+    if env["SELFPLAY_OPERATION"] == "image-build":
+        source_image(env)
+    elif env["SELFPLAY_OPERATION"] == "image-convert":
         convert(env)
     else:
         raise SystemExit(execute(env))

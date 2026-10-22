@@ -178,6 +178,10 @@ def readiness_report(config: RunConfig, *, require_freeze: bool = True) -> dict:
     gate("target_backend", lambda: backend(config.hardware.profile))
     gate("base_evaluation", base)
     gate("pilot_and_continuation", pilot)
+    from selfplay_opsd.method_smoke import verify_smoke
+
+    for method in "ABC":
+        gate(f"method_{method}", lambda method=method: bool(verify_smoke(config, method)))
     if require_freeze:
 
         def frozen():
@@ -200,6 +204,7 @@ def readiness_report(config: RunConfig, *, require_freeze: bool = True) -> dict:
     ]
     if require_freeze:
         files.append(config.output_root / config.study_id / "study_frozen.json")
+    files.extend(root / "method-smokes" / f"{method}.json" for method in "ABC")
     from selfplay_opsd.storage import file_hash
 
     evidence_files = {

@@ -206,6 +206,26 @@ def train(
         policy.close()
 
 
+@app.command("method-smoke")
+def method_smoke(settings: ConfigOption, config: str, hardware: str | None = None):
+    """One full training iteration for A/B/C, separate from pilot and main state."""
+    from selfplay_opsd.method_smoke import run_smoke, smoke_config
+
+    cfg = load_config(
+        settings, method=config, **({"hardware_profile": hardware} if hardware else {})
+    )
+    if cfg.method not in {"A", "B", "C"}:
+        raise ExperimentError("Method smoke accepts A/B/C only")
+    report = checked_preflight(cfg)
+    if not report["ready_for_pilot"]:
+        raise ExperimentError("Method smoke preflight blocked: " + "; ".join(report["blockers"]))
+    policy = make_policy(smoke_config(cfg, cfg.method))
+    try:
+        run_smoke(cfg, policy, TaskRepository(cfg.data_root), SandboxBackend(cfg.sandbox))
+    finally:
+        policy.close()
+
+
 @app.command()
 def pilot(
     settings: ConfigOption,

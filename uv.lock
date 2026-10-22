@@ -2683,6 +2683,7 @@ dependencies = [
 ]
 
 [package.dev-dependencies]
+build = [{ name = "spython" }]
 dev = [
     { name = "mypy" },
     { name = "pytest" },
@@ -2713,6 +2714,7 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
+build = [{ name = "spython", specifier = "==0.3.14" }]
 dev = [
     { name = "mypy", specifier = "==1.18.2" },
     { name = "pytest", specifier = "==8.4.2" },
@@ -2861,6 +2863,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ed/11/27cebce4a108f77afea7c80545115536b45e3f11ebfb914f638fdd9ba847/soxr-1.1.0.tar.gz", hash = "sha256:9f228ae21c78fa9359ca98d8a5e8e91f30639e438e574133dace62c5b5309e44", size = 173067, upload-time = "2026-05-03T00:15:18.214Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5c/f1/0e55195893228609c9a08c3b13b7a83a46c3a992cd00d3304f0f320cfb07/soxr-1.1.0-cp312-abi3-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:3b033078e86f3c4a658e5697fac8995764fad9e799563616b630136b613167f1", size = 240413, upload-time = "2026-05-03T00:14:59.363Z" },
+]
+
+[[package]]
+name = "spython"
+version = "0.3.14"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f0/55/ecc3cfb2168177440d42fdea999a3c64a92e97e1e3fde9884a19408aab4c/spython-0.3.14.tar.gz", hash = "sha256:8ad53ef034395cfa2d8a710cc1c3638e4475e5bbc6a2842d317db8013c2e4188", size = 69164, upload-time = "2024-09-15T00:28:58.14Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f9/38/8b6fc7a8153cb49eb3a9a13acfa9eeb6cc476e37888781e593e6f02ac05e/spython-0.3.14-py3-none-any.whl", hash = "sha256:72968583e498bc2a51f9acd0ed6bc0d7d1f7ccd491feaba5e2f7d944bc51da3a", size = 109720, upload-time = "2024-09-15T00:28:56.713Z" },
 ]
 
 [[package]]

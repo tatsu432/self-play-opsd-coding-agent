@@ -20,6 +20,8 @@ uv run selfplay smoke --output runs/local-smoke
 
 ## Documentation
 
+- [Yale launch runbook](docs/yale-launch-runbook.md): Task 05 image builds,
+  readiness gates, four submission previews and recovery.
 - [Operations guide](docs/operations.md): data preparation, containers, worker
   setup, hardware checks, pilot, launch, recovery, evaluation and W&B.
 - [Implemented methods](docs/methods.md): objectives, normalization, data boundaries

@@ -9,7 +9,7 @@ jobs:
         with:
           version: '0.8.15'
           python-version: '3.12'
-      - run: uv sync --frozen
+      - run: uv sync --frozen --group build
       - run: uv run ruff check src tests scripts
       - run: uv run ruff format --check src tests scripts
       - run: uv run mypy src/selfplay_opsd

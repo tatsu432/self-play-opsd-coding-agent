@@ -63,6 +63,27 @@ def configuration(tmp_path, method, repository):
 
 
 @pytest.mark.sandbox
+@pytest.mark.parametrize("method", ["A", "B", "C"])
+def test_full_method_smoke_is_separate_and_rejects_checkpoint_corruption(
+    method, tmp_path, repository, sandbox
+):
+    from selfplay_opsd.method_smoke import run_smoke, smoke_config, verify_smoke
+
+    cfg = configuration(tmp_path, method, repository)
+    policy = scripted_policy(smoke_config(cfg, method))
+    try:
+        run_smoke(cfg, policy, repository, sandbox)
+        assert verify_smoke(cfg, method)["ready"]
+        assert not cfg.run_dir.exists()
+        checkpoint = smoke_config(cfg, method).run_dir / "checkpoints/000001/state.pt"
+        checkpoint.write_bytes(b"corrupt")
+        with pytest.raises(ExperimentError, match="checksum"):
+            verify_smoke(cfg, method)
+    finally:
+        policy.close()
+
+
+@pytest.mark.sandbox
 @pytest.mark.parametrize("method", ["A", "B", "C", "D"])
 def test_complete_transaction_and_checkpoint(method, tmp_path, repository, sandbox, monkeypatch):
     cfg = configuration(tmp_path, method, repository)

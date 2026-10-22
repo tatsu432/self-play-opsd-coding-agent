@@ -29,11 +29,11 @@ documents are historical. Read `README.md`, `docs/methods.md` and
 
 ## Yale operations
 
-The current task is `docs/task/04-fix-launch-issue-yale-hpc-spec.md`; its plan is
-`docs/plan/04-fix-launch-issue-yale-hpc-plan.md`. Task 04 authorizes repairs and
-CPU verification only: spend zero GPU-hours and submit no experiments. The prior
-task 03 readiness allowance must not be used during this repair. Task 02
-established basic operations.
+The current task is `docs/task/05-yale-experiment-readiness-spec.md`; its plan is
+`docs/plan/05-yale-experiment-readiness-plan.md`. Task 05 resumes the cumulative
+Task 03 24 GPU-hour readiness allowance on cpsc4880 and authorizes YCRC contact
+and Dockerfile-derived SIF builds on Yale CPU nodes. Task 04's CPU-only repair is
+complete. Main A–D training and additional host provisioning remain unauthorized.
 The local controller is
 `uv run selfplay hpc --help`. Its standard-library remote endpoint is
 `scripts/hpc_remote.py`; `scripts/yale.slurm` runs allocated jobs. The default
@@ -114,11 +114,11 @@ Read `docs/task_completion/03-implemented-experiment-readiness.md` for the exact
 state, fetched diagnostics, remaining gates and a YCRC support-request draft.
 Re-check live state before new work. Trusted `backend-check` and
 `hpc prepare-study --stage backend` do not require a worker or target execution
-validation. Actual GPU execution requires later authorization. Backend evidence
+validation. Task 05 authorizes bounded GPU readiness after CPU/hosted CI. Backend evidence
 uses `compatibility/backend-v2`; legacy evidence cannot satisfy the new contract.
 Resolve the supported worker execution setup before generated-code work.
 Trainer exports support `hpc images build --build-root PATH --builder NAME`;
 the Docker builder also needs sufficient cache storage. Do not provision
-another host or contact support without the user's explicit instruction.
-The unsent support request and proposed Yale managed-service design are in
+another host. Task 05 explicitly authorizes contacting support.
+The support request and proposed Yale managed-service design are in
 `docs/yale-worker-support.md`.

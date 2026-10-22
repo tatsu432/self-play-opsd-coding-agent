@@ -113,6 +113,7 @@ class YaleSSH:
             "study",
             "preview",
             "prepare_image",
+            "prepare_source_image",
             "resources",
             "prepare",
             "finalize",
@@ -334,6 +335,8 @@ def run_payload(
         "evaluate",
         "diagnose",
         "image-convert",
+        "image-build",
+        "method-smoke",
         "worker-check",
         "runtime-check",
         "freeze-study",
@@ -383,7 +386,9 @@ def run_payload(
     worker = state["images"]["worker"]
     image = image or trainer.get("path", "")
     image_sha256 = image_sha256 or trainer.get("sha256", "")
-    if operation not in {"image-convert", "worker-check"} and (not image or not image_sha256):
+    if operation not in {"image-convert", "image-build", "worker-check"} and (
+        not image or not image_sha256
+    ):
         raise HpcError("Build and convert the trainer image first: hpc images build --kind trainer")
     from selfplay_opsd.readiness import backend_identity, execution_identity
 
@@ -432,7 +437,14 @@ def run_payload(
         "endpoint": endpoint if operation == "evaluate" else None,
     }
     identity = hashlib.sha256(json.dumps(logical, sort_keys=True).encode()).hexdigest()
-    gpu_operation = operation in {"backend-check", "pilot", "train", "evaluate", "diagnose"}
+    gpu_operation = operation in {
+        "backend-check",
+        "pilot",
+        "method-smoke",
+        "train",
+        "evaluate",
+        "diagnose",
+    }
     count = cfg.hardware.gpu_count if gpu_operation else 0
     if not gpu_operation:
         partition = "day"
@@ -479,7 +491,8 @@ def run_payload(
         .get("projection_200_hours"),
         "retry_setup": not gpu_operation,
         "readiness_budget": 24
-        if operation in {"backend-check", "pilot"} or (operation == "evaluate" and base)
+        if operation in {"backend-check", "pilot", "method-smoke"}
+        or (operation == "evaluate" and base)
         else None,
         "run_id": identity[:24],
         "scientific_hash": checkpoint_cfg.scientific_hash,
@@ -512,7 +525,7 @@ def run_payload(
         else "06:00:00"
         if operation == "pilot"
         else "02:00:00"
-        if operation == "evaluate" and base
+        if (operation == "evaluate" and base) or operation == "method-smoke"
         else "00:15:00"
         if operation in {"worker-check", "freeze-study", "readiness-check"}
         else "01:00:00"

@@ -1,7 +1,17 @@
 # Yale worker delegation: support draft and fallback design
 
-Task 04: this request is **not sent**. The user selected a Yale managed service
-as the fallback design to document. YCRC has not approved or provisioned it.
+Task 05: the user authorized contact. The request was sent on 2026-10-22 from
+the connected Yale account to research.computing@yale.edu, subject
+“Bouchet cpsc4880: supported per-worker Apptainer isolation and CPU image builds”.
+Gmail message/thread ID: `1a1640b41863817b`. It includes the exact worker
+invocation and asks about Dockerfile-derived CPU builds as well as isolation.
+YCRC's automated acknowledgement created ticket
+[79403](https://help.ycrc.yale.edu/helpdesk/tickets/79403), with a normal response
+target of 24 business hours. It also warns that Bouchet is urgently low on shared
+storage; inspect capacity before a large build. This acknowledgement supplies no
+technical approval or worker configuration.
+Follow up on the same thread after three business days (2026-10-27) if unanswered.
+YCRC has not approved or provisioned a managed service.
 
 ## Support request draft
 

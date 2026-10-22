@@ -211,6 +211,39 @@ def ready_fixture(tmp_path, monkeypatch):
             "hardware": cfg.hardware.model_dump(),
         },
     )
+    from selfplay_opsd.method_smoke import SMOKE_CHECKS, smoke_config, smoke_path
+    from selfplay_opsd.storage import file_hash
+
+    for method in "ABC":
+        smoke_cfg = smoke_config(cfg, method)
+        checkpoint = smoke_cfg.run_dir / "checkpoints/000001"
+        atomic_json(
+            checkpoint / "metadata.json",
+            {
+                "iteration": 1,
+                "scientific_hash": smoke_cfg.scientific_hash,
+                "runtime_identity": identity,
+                "manifests_hash": "data",
+            },
+        )
+        atomic_json(
+            checkpoint / "complete.json",
+            {"files": {"metadata.json": file_hash(checkpoint / "metadata.json")}},
+        )
+        atomic_json(
+            smoke_path(cfg, method),
+            {
+                "ready": True,
+                "method": method,
+                "checks": dict.fromkeys(SMOKE_CHECKS, True),
+                "runtime_identity": identity,
+                "smoke_runtime_identity": identity,
+                "common_settings": cfg.scientific_settings(common=True, calibration=True),
+                "hardware": cfg.hardware.model_dump(mode="json"),
+                "gpu_type": "h100",
+                "checkpoint_marker_sha256": file_hash(checkpoint / "complete.json"),
+            },
+        )
     return cfg, pilot
 
 
@@ -231,6 +264,20 @@ def test_freeze_is_idempotent_and_all_methods_share_the_gate(tmp_path, monkeypat
     assert not readiness_report(cfg)["eligible_to_submit_main"]
     with pytest.raises(ExperimentError, match="stale"):
         check_frozen(cfg, SimpleNamespace(hash="data"))
+
+
+def test_all_method_proofs_and_intact_checkpoints_are_required(tmp_path, monkeypatch):
+    cfg, _ = ready_fixture(tmp_path, monkeypatch)
+    from selfplay_opsd.method_smoke import smoke_config, smoke_path
+
+    path = smoke_path(cfg, "B")
+    original = json.loads(path.read_text())
+    atomic_json(path, original | {"method": "A"})
+    assert not readiness_report(cfg, require_freeze=False)["gates"]["method_B"]["ready"]
+    atomic_json(path, original)
+    checkpoint = smoke_config(cfg, "B").run_dir / "checkpoints/000001/metadata.json"
+    checkpoint.write_text("{}")
+    assert not readiness_report(cfg, require_freeze=False)["gates"]["method_B"]["ready"]
 
 
 def test_main_preview_rejects_missing_runtime_before_scheduler(tmp_path, monkeypatch):
@@ -379,7 +426,8 @@ def test_backend_precheck_does_not_consult_runtime_evidence(tmp_path, monkeypatc
 
 
 @pytest.mark.parametrize(
-    "operation", ["worker-check", "runtime-check", "train", "pilot", "evaluate", "diagnose"]
+    "operation",
+    ["worker-check", "runtime-check", "train", "pilot", "method-smoke", "evaluate", "diagnose"],
 )
 def test_generated_code_cannot_launch_without_worker(operation):
     with pytest.raises(ValueError, match="allocation worker"):
@@ -388,7 +436,9 @@ def test_generated_code_cannot_launch_without_worker(operation):
         allocation_module().execute({"SELFPLAY_OPERATION": operation})
 
 
-@pytest.mark.parametrize("operation", ["train", "pilot", "evaluate", "diagnose", "freeze-study"])
+@pytest.mark.parametrize(
+    "operation", ["train", "pilot", "method-smoke", "evaluate", "diagnose", "freeze-study"]
+)
 @pytest.mark.parametrize(
     "gates", [{"worker": False, "runtime": True}, {"worker": True, "runtime": False}]
 )
