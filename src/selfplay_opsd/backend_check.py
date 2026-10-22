@@ -13,7 +13,7 @@ from selfplay_opsd.core import ExperimentError
 from selfplay_opsd.diagnostics import _optimizer_digest
 from selfplay_opsd.objectives import alignment, sd_coefficients
 from selfplay_opsd.policy import LossExample
-from selfplay_opsd.readiness import execution_identity
+from selfplay_opsd.readiness import BACKEND_EVIDENCE_DIRECTORY, backend_identity
 from selfplay_opsd.storage import (
     CheckpointManager,
     atomic_json,
@@ -29,6 +29,9 @@ def check_backend(config: RunConfig, output: Path, *, reference: Path | None = N
 
     config = config.model_copy(deep=True)
     config.study_id += "-backend-check"
+    identity = backend_identity(config)
+    if config.hardware.gpu_count and config.model.backend != "verl":
+        raise ExperimentError("Production backend checks require verl")
     policy = make_policy(config)
     try:
         initial = copy.deepcopy(policy.state_dict())
@@ -122,7 +125,7 @@ def check_backend(config: RunConfig, output: Path, *, reference: Path | None = N
         if reference:
             reference_report = read_json(reference.parent / "backend_report.json")
             if (
-                reference_report.get("runtime_identity") != execution_identity(config)
+                reference_report.get("backend_identity") != identity
                 or reference_report.get("gpu_count") != 1
                 or reference_report.get("reference_sha256") != file_hash(reference)
             ):
@@ -172,7 +175,7 @@ def check_backend(config: RunConfig, output: Path, *, reference: Path | None = N
             "ready": True,
             "objective_probes": list("ABCD"),
             "probe_label": "controlled synthetic gradient fixtures; not performance evidence",
-            "runtime_identity": execution_identity(config),
+            "backend_identity": identity,
             "devices": [torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())],
             "gpu_count": config.hardware.gpu_count,
             "gpu_type": os.getenv("SELFPLAY_GPU_TYPE", "h100"),
@@ -192,7 +195,8 @@ def check_backend(config: RunConfig, output: Path, *, reference: Path | None = N
             report["reference_sha256"] = file_hash(output / "reference_gradients.pt")
             atomic_json(output / "backend_report.json", report)
             atomic_json(
-                config.output_root / "compatibility" / f"{config.hardware.profile}.json", report
+                config.output_root / BACKEND_EVIDENCE_DIRECTORY / f"{config.hardware.profile}.json",
+                report,
             )
         return report
     finally:

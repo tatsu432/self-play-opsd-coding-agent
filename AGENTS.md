@@ -29,8 +29,11 @@ documents are historical. Read `README.md`, `docs/methods.md` and
 
 ## Yale operations
 
-The current task is `docs/task/03-experiment-readiness-spec.md`; its plan is
-`docs/plan/03-experiment-readiness-plan.md`. Task 02 established basic operations.
+The current task is `docs/task/04-fix-launch-issue-yale-hpc-spec.md`; its plan is
+`docs/plan/04-fix-launch-issue-yale-hpc-plan.md`. Task 04 authorizes repairs and
+CPU verification only: spend zero GPU-hours and submit no experiments. The prior
+task 03 readiness allowance must not be used during this repair. Task 02
+established basic operations.
 The local controller is
 `uv run selfplay hpc --help`. Its standard-library remote endpoint is
 `scripts/hpc_remote.py`; `scripts/yale.slurm` runs allocated jobs. The default
@@ -109,6 +112,13 @@ image or failed evidence gate. Never treat a passed CPU test as target readiness
 
 Read `docs/task_completion/03-implemented-experiment-readiness.md` for the exact
 state, fetched diagnostics, remaining gates and a YCRC support-request draft.
-Re-check live state before new work. Resolve the supported worker execution
-setup and trainer-build storage before advancing readiness. Do not provision
+Re-check live state before new work. Trusted `backend-check` and
+`hpc prepare-study --stage backend` do not require a worker or target execution
+validation. Actual GPU execution requires later authorization. Backend evidence
+uses `compatibility/backend-v2`; legacy evidence cannot satisfy the new contract.
+Resolve the supported worker execution setup before generated-code work.
+Trainer exports support `hpc images build --build-root PATH --builder NAME`;
+the Docker builder also needs sufficient cache storage. Do not provision
 another host or contact support without the user's explicit instruction.
+The unsent support request and proposed Yale managed-service design are in
+`docs/yale-worker-support.md`.

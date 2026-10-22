@@ -8,12 +8,104 @@ import subprocess
 import tarfile
 import time
 from pathlib import Path
+from typing import Annotated
 
 import typer
 
 from selfplay_opsd.config import load_config
 from selfplay_opsd.core import digest
 from selfplay_opsd.worker_runtime import supervisor_hash
+
+
+def build_archive(
+    kind: str, source_root: Path, directory: Path, commit: str, builder: str | None = None
+) -> tuple[Path, dict]:
+    """Build/export locally; remote synchronization and submission belong to the caller."""
+    from selfplay_opsd.hpc import HpcError, sha256
+    from selfplay_opsd.storage import atomic_json
+
+    directory.mkdir(parents=True, exist_ok=True)
+    dockerfile_hash = sha256(source_root / f"docker/{kind}.Dockerfile")
+    lock_hash = sha256(source_root / "uv.lock")
+    expected_metadata = {
+        "kind": kind,
+        "platform": "linux/amd64",
+        "source_commit": commit,
+        "lock_sha256": lock_hash,
+        "dockerfile_sha256": dockerfile_hash,
+    }
+    key = digest(
+        {
+            "commit": commit,
+            "dockerfile": dockerfile_hash,
+            "lock": lock_hash,
+            "platform": "linux/amd64",
+        }
+    )[:24]
+    archive = directory / f"{key}.tar"
+    metadata_path = directory / f"{key}.json"
+    if archive.exists() and metadata_path.exists():
+        metadata = json.loads(metadata_path.read_text())
+        if sha256(archive) != metadata["archive_sha256"]:
+            raise HpcError("Cached Docker archive checksum mismatch")
+        if any(metadata.get(key) != value for key, value in expected_metadata.items()):
+            raise HpcError("Cached Docker archive provenance mismatch")
+    else:
+        required = (60 if kind == "trainer" else 2) * 1024**3
+        free = shutil.disk_usage(directory).free
+        if free < required:
+            raise HpcError(
+                f"Insufficient local capacity for {kind}: need {required // 1024**3} GiB free, have {free / 1024**3:.1f} GiB"
+            )
+        pending = archive.with_suffix(".pending.tar")
+        tag = f"selfplay-{kind}:readiness-{key}"
+        log_path = directory / f"{key}.build.log"
+        typer.echo(f"Building {kind} for linux/amd64; log: {log_path}")
+        try:
+            with log_path.open("w") as log:
+                subprocess.run(
+                    [
+                        "docker",
+                        "buildx",
+                        "build",
+                        *(["--builder", builder] if builder else []),
+                        "--platform",
+                        "linux/amd64",
+                        "--tag",
+                        tag,
+                        "--file",
+                        str(source_root / f"docker/{kind}.Dockerfile"),
+                        "--output",
+                        f"type=docker,dest={pending}",
+                        str(source_root),
+                    ],
+                    stdout=log,
+                    stderr=subprocess.STDOUT,
+                    check=True,
+                    timeout=14400,
+                )
+            with tarfile.open(pending) as tar:
+                manifest_file = tar.extractfile("manifest.json")
+                assert manifest_file is not None
+                manifest = json.load(manifest_file)
+                config_file = tar.extractfile(manifest[0]["Config"])
+                assert config_file is not None
+                config_bytes = config_file.read()
+                image_config = json.loads(config_bytes)
+            if image_config.get("architecture") != "amd64" or image_config.get("os") != "linux":
+                raise HpcError("Docker archive is not Linux AMD64")
+            import hashlib
+
+            metadata = {
+                **expected_metadata,
+                "docker_image_id": "sha256:" + hashlib.sha256(config_bytes).hexdigest(),
+                "archive_sha256": sha256(pending),
+            }
+            pending.replace(archive)
+            atomic_json(metadata_path, metadata)
+        finally:
+            pending.unlink(missing_ok=True)
+    return archive, metadata
 
 
 def register(app: typer.Typer):
@@ -27,7 +119,6 @@ def register(app: typer.Typer):
         output,
         remote_context,
         run_payload,
-        sha256,
         snapshot,
         sync,
     )
@@ -50,115 +141,53 @@ def register(app: typer.Typer):
             **options,
         )
 
-    def study(remote, settings, gpu_type="h100"):
+    def study(remote, settings, gpu_type="h100", *, backend_only=False):
         cfg = load_config(settings)
         context = remote_context(remote, remote.alias)
         request = {
             "storage_root": context["storage_root"],
             "study_id": cfg.study_id,
             "profile": cfg.hardware.profile,
+            "profile_gpu_count": cfg.hardware.gpu_count,
             "gpu_type": gpu_type,
             "pilot_suffix": "-pilot" if gpu_type == "h100" else "-pilot-h200",
             "supervisor_hash": supervisor_hash(),
             "seed": cfg.seed,
         }
         result = remote.call("study", request)
-        from selfplay_opsd.readiness import execution_identity
+        from selfplay_opsd.readiness import backend_identity, execution_identity
 
-        request["runtime_identity"] = execution_identity(cfg) | {
-            "trainer_sha256": result["images"]["trainer"].get("sha256"),
-            "worker_sha256": result["images"]["worker"].get("sha256"),
+        trainer_digest = result["images"]["trainer"].get("sha256")
+        request["backend_identity"] = backend_identity(cfg) | {
+            "trainer_sha256": trainer_digest,
         }
+        if not backend_only:
+            request["runtime_identity"] = execution_identity(cfg) | {
+                "trainer_sha256": trainer_digest,
+                "worker_sha256": result["images"]["worker"].get("sha256"),
+            }
         return remote.call("study", request), request
 
     @images.command("build")
     def build(
-        kind: str = "worker", settings: Path = Path("configs/yale.yaml"), alias: str = ALIASES[0]
+        kind: str = "worker",
+        settings: Path = Path("configs/yale.yaml"),
+        alias: str = ALIASES[0],
+        build_root: Annotated[Path | None, typer.Option(envvar="SELFPLAY_IMAGE_BUILD_ROOT")] = None,
+        builder: Annotated[str | None, typer.Option(help="Existing Buildx builder name")] = None,
     ):
         """Build worker first; --kind all also attempts the much larger trainer."""
         if kind not in {"worker", "trainer", "all"}:
             raise HpcError("Image kind must be worker, trainer or all")
         remote = YaleSSH(alias)
-        snap = snapshot()
-        sync(remote)
+        snap = sync(remote)
         for current in ["worker", "trainer"] if kind == "all" else [kind]:
-            directory = ROOT / "runs/hpc/images" / current
-            directory.mkdir(parents=True, exist_ok=True)
-            key = digest(
-                {
-                    "commit": snap["commit"],
-                    "dockerfile": sha256(ROOT / f"docker/{current}.Dockerfile"),
-                    "lock": sha256(ROOT / "uv.lock"),
-                    "platform": "linux/amd64",
-                }
-            )[:24]
-            archive = directory / f"{key}.tar"
-            metadata_path = directory / f"{key}.json"
-            if archive.exists() and metadata_path.exists():
-                metadata = json.loads(metadata_path.read_text())
-                if sha256(archive) != metadata["archive_sha256"]:
-                    raise HpcError("Cached Docker archive checksum mismatch")
-            else:
-                required = (60 if current == "trainer" else 2) * 1024**3
-                free = shutil.disk_usage(directory).free
-                if free < required:
-                    raise HpcError(
-                        f"Insufficient local capacity for {current}: need {required // 1024**3} GiB free, have {free / 1024**3:.1f} GiB"
-                    )
-                pending = archive.with_suffix(".pending.tar")
-                tag = f"selfplay-{current}:readiness-{key}"
-                log_path = directory / f"{key}.build.log"
-                typer.echo(f"Building {current} for linux/amd64; log: {log_path}")
-                try:
-                    with log_path.open("w") as log:
-                        subprocess.run(
-                            [
-                                "docker",
-                                "buildx",
-                                "build",
-                                "--platform",
-                                "linux/amd64",
-                                "--tag",
-                                tag,
-                                "--file",
-                                str(ROOT / f"docker/{current}.Dockerfile"),
-                                "--output",
-                                f"type=docker,dest={pending}",
-                                str(ROOT),
-                            ],
-                            stdout=log,
-                            stderr=subprocess.STDOUT,
-                            check=True,
-                            timeout=14400,
-                        )
-                    with tarfile.open(pending) as tar:
-                        manifest_file = tar.extractfile("manifest.json")
-                        assert manifest_file is not None
-                        manifest = json.load(manifest_file)
-                        config_file = tar.extractfile(manifest[0]["Config"])
-                        assert config_file is not None
-                        config_bytes = config_file.read()
-                        image_config = json.loads(config_bytes)
-                    if (
-                        image_config.get("architecture") != "amd64"
-                        or image_config.get("os") != "linux"
-                    ):
-                        raise HpcError("Docker archive is not Linux AMD64")
-                    import hashlib
-
-                    metadata = {
-                        "kind": current,
-                        "platform": "linux/amd64",
-                        "source_commit": snap["commit"],
-                        "lock_sha256": sha256(ROOT / "uv.lock"),
-                        "docker_image_id": "sha256:" + hashlib.sha256(config_bytes).hexdigest(),
-                        "dockerfile_sha256": sha256(ROOT / f"docker/{current}.Dockerfile"),
-                        "archive_sha256": sha256(pending),
-                    }
-                    pending.replace(archive)
-                    metadata_path.write_text(json.dumps(metadata, sort_keys=True) + "\n")
-                finally:
-                    pending.unlink(missing_ok=True)
+            directory = (build_root or ROOT / "runs/hpc/images").expanduser().resolve() / current
+            if directory.is_relative_to(ROOT) and not directory.is_relative_to(ROOT / "runs"):
+                raise HpcError("Build root inside the checkout must be under ignored runs/")
+            if "," in str(directory):
+                raise HpcError("Build root cannot contain a comma (Buildx output syntax)")
+            archive, metadata = build_archive(current, ROOT, directory, snap["commit"], builder)
             payload = payload_for(remote, "image-convert", settings)
             location = remote.call(
                 "prepare_image",
@@ -189,10 +218,13 @@ def register(app: typer.Typer):
         watch: bool = False,
         alias: str = ALIASES[0],
         gpu_type: str = "h100",
+        stage: str = "all",
     ):
         """Advance readiness one allocation at a time; stop before main training."""
         if gpu_type not in {"h100", "h200"}:
             raise HpcError("Readiness supports H100, or H200 after verified H100 memory failure")
+        if stage not in {"all", "backend"}:
+            raise HpcError("Stage must be all or backend")
         if alias != ALIASES[0]:
             raise HpcError("Readiness authorization is restricted to cpsc4880")
         if not 0 < gpu_hours_limit <= 24:
@@ -200,12 +232,12 @@ def register(app: typer.Typer):
         snapshot()
         remote = YaleSSH(alias)
         while True:
-            state, request = study(remote, settings, gpu_type)
+            state, request = study(remote, settings, gpu_type, backend_only=stage == "backend")
             if gpu_type == "h200" and not state["h100_memory_fit_failure"]:
                 raise HpcError(
                     "H200 fallback requires a recorded managed H100 CUDA out-of-memory failure"
                 )
-            if not state["images"]["worker"].get("ready"):
+            if stage == "all" and not state["images"]["worker"].get("ready"):
                 output(
                     {
                         "eligible_to_submit_main": False,
@@ -223,7 +255,19 @@ def register(app: typer.Typer):
                 ("pilot", "pilot", {}),
                 ("freeze", "freeze-study", {}),
             ]
+            if stage == "backend":
+                stages = [entry for entry in stages if entry[0] in {"single", "target"}]
             next_stage = next((entry for entry in stages if not state["gates"][entry[0]]), None)
+            if stage == "backend" and next_stage is None:
+                output(
+                    {
+                        "backend_ready": True,
+                        "eligible_to_submit_main": state["eligible_to_submit_main"],
+                        "gates": state["gates"],
+                        "budget": state["budget"],
+                    }
+                )
+                return
             if next_stage is None and not state["eligible_to_submit_main"]:
                 next_stage = ("readiness", "readiness-check", {})
             if next_stage is None:
@@ -251,22 +295,9 @@ def register(app: typer.Typer):
                 remote,
                 operation,
                 settings,
-                gpu_type=gpu_type,
-                **{k: v for k, v in options.items() if k != "profile"},
+                gpu_type="h100" if name == "single" else gpu_type,
+                **options,
             )
-            if "profile" in options:
-                payload = run_payload(
-                    remote,
-                    alias,
-                    operation=operation,
-                    method="D",
-                    profile=options["profile"],
-                    gpu_type="h100",
-                    account=None,
-                    image="",
-                    image_sha256="",
-                    settings=settings,
-                )
             payload["readiness_budget"] = gpu_hours_limit
             if operation == "pilot":
                 payload.update(
@@ -315,7 +346,7 @@ def register(app: typer.Typer):
                     if result.get("submitted"):
                         return
                 if gpu_type == "h100" and state["h100_memory_fit_failure"]:
-                    return prepare_study(settings, gpu_hours_limit, watch, alias, "h200")
+                    return prepare_study(settings, gpu_hours_limit, watch, alias, "h200", stage)
                 output(
                     {
                         "stage": name,

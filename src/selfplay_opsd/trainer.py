@@ -42,11 +42,9 @@ from selfplay_opsd.storage import (
     CheckpointManager,
     EventStore,
     atomic_json,
-    code_hash,
     provenance,
     restore_rng,
     rng_state,
-    scientific_code_hash,
 )
 
 
@@ -187,7 +185,8 @@ class SelfPlayTrainer:
                 metadata["scientific_hash"] != config.scientific_hash
                 or metadata["manifests_hash"] != repository.hash
                 or metadata["prompt_hash"] != PROMPT_HASH
-                or metadata.get("scientific_code_hash") != scientific_code_hash()
+                or metadata.get("scientific_code_hash")
+                != self.runtime_identity["scientific_code_hash"]
             ):
                 raise ExperimentError(
                     "Resume scientific/model/data/prompt compatibility check failed"
@@ -322,8 +321,8 @@ class SelfPlayTrainer:
                 "scientific_hash": self.config.scientific_hash,
                 "manifests_hash": self.repository.hash,
                 "prompt_hash": PROMPT_HASH,
-                "code_hash": code_hash(),
-                "scientific_code_hash": scientific_code_hash(),
+                "code_hash": self.runtime_identity["code_hash"],
+                "scientific_code_hash": self.runtime_identity["scientific_code_hash"],
                 "best_development": self.best,
                 "resolved_config": self.config.resolved(),
                 "reference_hash": digest(self.reference_anchors),

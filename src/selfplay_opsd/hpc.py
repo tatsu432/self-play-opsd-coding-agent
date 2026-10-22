@@ -385,12 +385,18 @@ def run_payload(
     image_sha256 = image_sha256 or trainer.get("sha256", "")
     if operation not in {"image-convert", "worker-check"} and (not image or not image_sha256):
         raise HpcError("Build and convert the trainer image first: hpc images build --kind trainer")
-    from selfplay_opsd.readiness import execution_identity
+    from selfplay_opsd.readiness import backend_identity, execution_identity
 
-    runtime_identity = execution_identity(cfg) | {
-        "trainer_sha256": image_sha256 or None,
-        "worker_sha256": worker.get("sha256"),
-    }
+    backend_expected = backend_identity(cfg) | {"trainer_sha256": image_sha256 or None}
+    runtime_identity = (
+        None
+        if operation == "backend-check"
+        else execution_identity(cfg)
+        | {
+            "trainer_sha256": image_sha256 or None,
+            "worker_sha256": worker.get("sha256"),
+        }
+    )
     pilot_suffix = "-pilot" if chosen_gpu == "h100" else "-pilot-" + chosen_gpu
     checkpoint_cfg = cfg.model_copy(deep=True)
     if operation == "pilot":
@@ -411,7 +417,8 @@ def run_payload(
         "settings_sha256": sha256(settings),
         "scientific_hash": checkpoint_cfg.scientific_hash,
         "image_sha256": image_sha256,
-        "worker_sha256": worker.get("sha256"),
+        "worker_sha256": worker.get("sha256") if operation != "backend-check" else None,
+        "backend_identity": backend_expected if operation == "backend-check" else None,
         "operation": operation,
         "method": method,
         "profile": profile,
@@ -436,6 +443,7 @@ def run_payload(
         "scratch_root": scratch,
         "identity": identity,
         "runtime_identity": runtime_identity,
+        "backend_identity": backend_expected,
         "common_config": cfg.scientific_settings(common=True),
         "signal_seconds": max(
             300,
@@ -447,8 +455,8 @@ def run_payload(
         )
         if operation == "train"
         else 300,
-        "worker_image": worker.get("path", ""),
-        "worker_sha256": worker.get("sha256", ""),
+        "worker_image": worker.get("path", "") if operation != "backend-check" else "",
+        "worker_sha256": worker.get("sha256", "") if operation != "backend-check" else "",
         "worker_config": cfg.sandbox.model_dump(mode="json"),
         "supervisor_hash": supervisor_hash(),
         "pilot_suffix": pilot_suffix,
@@ -475,7 +483,7 @@ def run_payload(
         else None,
         "run_id": identity[:24],
         "scientific_hash": checkpoint_cfg.scientific_hash,
-        "manifests_hash": digest(json.loads((ROOT / "data/prepared/manifest.json").read_text())),
+        "manifests_hash": runtime_identity["manifest_hash"] if runtime_identity else None,
         "operation": operation,
         "method": method,
         "profile": profile,
@@ -517,8 +525,10 @@ def run_payload(
         "seed": cfg.seed,
         "iterations": iterations,
         "resume": resume,
-        "output": f"/runs/compatibility/{profile}",
-        "reference": "/runs/compatibility/single_gpu_80gb/reference_gradients.pt"
+        "output": f"/runs/compatibility/backend-v2/{profile}"
+        if operation == "backend-check"
+        else f"/runs/compatibility/{profile}",
+        "reference": "/runs/compatibility/backend-v2/single_gpu_80gb/reference_gradients.pt"
         if count > 1
         else "",
         "base": base,
@@ -583,7 +593,7 @@ def doctor(
             result["blockers"].append("Slurm associations unavailable")
         if not remote["workspace"].get("current_snapshot"):
             result["blockers"].append("Current immutable Yale checkout and data not synchronized")
-        from selfplay_opsd.readiness import execution_identity
+        from selfplay_opsd.readiness import backend_identity, execution_identity
 
         cfg = load_config(settings)
         target = YaleSSH(alias)
@@ -591,6 +601,7 @@ def doctor(
             "storage_root": choose_storage(remote, alias),
             "study_id": cfg.study_id,
             "profile": cfg.hardware.profile,
+            "profile_gpu_count": cfg.hardware.gpu_count,
             "supervisor_hash": supervisor_hash(),
             "seed": cfg.seed,
         }
@@ -601,7 +612,15 @@ def doctor(
             "trainer_sha256": state["images"]["trainer"].get("sha256"),
             "worker_sha256": state["images"]["worker"].get("sha256"),
         }
-        state = target.call("study", context | {"runtime_identity": identity})
+        state = target.call(
+            "study",
+            context
+            | {
+                "runtime_identity": identity,
+                "backend_identity": backend_identity(cfg)
+                | {"trainer_sha256": state["images"]["trainer"].get("sha256")},
+            },
+        )
         result["study"] = state
         result["eligible_to_submit_main"] = (
             state["eligible_to_submit_main"] and not result["blockers"]

@@ -18,6 +18,25 @@ from selfplay_opsd.storage import (
     scientific_code_hash,
 )
 
+BACKEND_EVIDENCE_DIRECTORY = "compatibility/backend-v2"
+
+
+def backend_identity(config: RunConfig) -> dict:
+    """Trusted synthetic probes need neither a dataset nor a generated-code worker.
+
+    Hardware count is recorded separately so one-GPU gradients can be compared
+    with distributed gradients from the same model/objective implementation.
+    """
+    return {
+        "schema_version": 2,
+        "code_hash": code_hash(),
+        "scientific_code_hash": scientific_code_hash(),
+        "model": config.model.model_dump(mode="json"),
+        "objective": config.objective.model_dump(mode="json"),
+        "prompt_hash": PROMPT_HASH,
+        "trainer_sha256": os.getenv("SELFPLAY_IMAGE_DIGEST"),
+    }
+
 
 def evidence_root(config: RunConfig) -> Path:
     return (
@@ -56,14 +75,13 @@ def validate_runtime(config: RunConfig) -> dict:
     root = evidence_root(config)
     sandbox = SandboxBackend(config.sandbox)
     isolation = sandbox.preflight()
-    validation = validate_data(
-        TaskRepository(config.data_root), sandbox, output=root / "validation.json"
-    )
+    repository = TaskRepository(config.data_root)
+    validation = validate_data(repository, sandbox, output=root / "validation.json")
     report = {
         "ready": bool(isolation["ready"] and validation["ready"]),
         "isolation": isolation,
         "validation": validation,
-        "runtime_identity": execution_identity(config),
+        "runtime_identity": execution_identity(config, repository=repository),
     }
     atomic_json(root / "runtime.json", report)
     return report
@@ -75,6 +93,7 @@ def readiness_report(config: RunConfig, *, require_freeze: bool = True) -> dict:
     pilot_suffix = os.getenv("SELFPLAY_PILOT_SUFFIX", "-pilot")
     gpu_type = os.getenv("SELFPLAY_GPU_TYPE", "h100")
     identity = execution_identity(config)
+    backend_expected = backend_identity(config)
     gates: dict[str, dict] = {}
 
     def gate(name: str, action):
@@ -107,10 +126,11 @@ def readiness_report(config: RunConfig, *, require_freeze: bool = True) -> dict:
         )
 
     def backend(profile: str):
-        report = report_matches(config.output_root / "compatibility" / f"{profile}.json")
+        report = read_json(config.output_root / BACKEND_EVIDENCE_DIRECTORY / f"{profile}.json")
         count = 1 if profile == "single_gpu_80gb" else config.hardware.gpu_count
         return bool(
             report.get("ready")
+            and report.get("backend_identity") == backend_expected
             and report.get("gpu_count") == count
             and report.get("hardware_profile") == profile
             and (count == 1 or report.get("gpu_type") == gpu_type)
@@ -171,8 +191,8 @@ def readiness_report(config: RunConfig, *, require_freeze: bool = True) -> dict:
     files = [
         root / "runtime.json",
         root / "validation.json",
-        config.output_root / "compatibility/single_gpu_80gb.json",
-        config.output_root / "compatibility" / f"{config.hardware.profile}.json",
+        config.output_root / BACKEND_EVIDENCE_DIRECTORY / "single_gpu_80gb.json",
+        config.output_root / BACKEND_EVIDENCE_DIRECTORY / f"{config.hardware.profile}.json",
         config.output_root / config.study_id / "base/evaluation_complete.json",
         config.output_root / config.study_id / "base/runtime_identity.json",
         config.output_root

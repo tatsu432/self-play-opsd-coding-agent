@@ -121,6 +121,28 @@ def user_bus_environment(env: dict, directory: Path | None = None) -> dict:
 
 def execute(env: dict) -> int:
     operation = env["SELFPLAY_OPERATION"]
+    if operation not in {
+        "backend-check",
+        "worker-check",
+        "runtime-check",
+        "train",
+        "pilot",
+        "evaluate",
+        "diagnose",
+        "freeze-study",
+        "readiness-check",
+    }:
+        raise ValueError("Unsupported allocation operation")
+    uses_worker = operation in {
+        "worker-check",
+        "runtime-check",
+        "train",
+        "pilot",
+        "evaluate",
+        "diagnose",
+    }
+    if uses_worker and not env.get("SELFPLAY_WORKER_SIF"):
+        raise ValueError("Generated-code operations require the allocation worker")
     runs = Path(env["SELFPLAY_RUNS"])
     study = env["SELFPLAY_STUDY"]
     study_root = env.get("SELFPLAY_MAIN_STUDY", study.removesuffix("-pilot"))
@@ -134,9 +156,13 @@ def execute(env: dict) -> int:
     process_env = env | {
         "APPTAINER_CACHEDIR": str(Path(env["SELFPLAY_CACHE"]) / "apptainer"),
         "PYTHONPATH": str(Path.cwd() / "src"),
-        "SELFPLAY_WORKER_TOKEN": secrets.token_urlsafe(32),
     }
-    process_env = user_bus_environment(process_env)
+    # Do not inherit stale worker endpoints or credentials into trusted-only jobs.
+    for key in ("SELFPLAY_WORKER_URL", "SELFPLAY_WORKER_TOKEN"):
+        process_env.pop(key, None)
+    if uses_worker:
+        process_env["SELFPLAY_WORKER_TOKEN"] = secrets.token_urlsafe(32)
+        process_env = user_bus_environment(process_env)
     runtime_directory = Path(f"/run/user/{os.getuid()}")
     write(
         readiness / f"node-environment-{attempt}.json",
@@ -159,7 +185,7 @@ def execute(env: dict) -> int:
     checked_image(env["SELFPLAY_TRAINER_SIF"], env["SELFPLAY_TRAINER_SHA256"])
     broker = None
     try:
-        if env.get("SELFPLAY_WORKER_SIF"):
+        if uses_worker:
             broker = subprocess.Popen(
                 broker_args(process_env, ready, broker_report), env=process_env
             )
@@ -272,8 +298,6 @@ def execute(env: dict) -> int:
             "--bind",
             env["SELFPLAY_PROJECT"] + ":/workspace:ro",
             "--bind",
-            env["SELFPLAY_DATA"] + ":/data/prepared:ro",
-            "--bind",
             str(runs) + ":/runs",
             "--bind",
             cache + ":/cache/huggingface",
@@ -281,6 +305,8 @@ def execute(env: dict) -> int:
             "/workspace",
             env["SELFPLAY_TRAINER_SIF"],
         ]
+        if operation != "backend-check":
+            command[2:2] = ["--bind", env["SELFPLAY_DATA"] + ":/data/prepared:ro"]
         status = subprocess.run(command + args, env=process_env, check=False).returncode
         if status == 0 and operation == "freeze-study":
             command_report = [

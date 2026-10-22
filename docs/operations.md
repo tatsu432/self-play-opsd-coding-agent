@@ -250,8 +250,8 @@ uv run selfplay hpc prepare-study --gpu-hours-limit 24 --watch
 
 Image building explicitly targets Linux AMD64, even on an ARM64 workstation.
 Docker archives are checksummed, transferred and converted to SIF in a CPU
-allocation. Large trainer builds require at least 60 GiB free locally; worker
-builds require 2 GiB. Inspect the reported conversion job with `hpc status` and
+allocation. Large trainer exports require at least 60 GiB free on the selected
+artifact filesystem; worker exports require 2 GiB. Inspect the conversion job with `hpc status` and
 `hpc logs`. The preparation command reports `hpc images build --kind trainer`
 when the worker has passed and the trainer is needed. Resume preparation after
 conversion. Cached completed archives and image manifests are reused.
@@ -259,8 +259,8 @@ conversion. Cached completed archives and image manifests are reused.
 The worker is a loopback authenticated service started on the allocated host.
 It launches isolated Apptainer processes with the shared standard-library
 supervisor, without a host training virtual environment. Its ephemeral token
-is injected only into the trusted trainer. Every allocation probes isolation;
-site restrictions stop readiness before model work. No Docker socket, external
+is injected only into the trusted trainer. Every generated-code allocation probes
+isolation; site restrictions stop those operations before model work. No Docker socket, external
 worker host, privilege workaround or weaker execution contract is used.
 
 Readiness advances through worker isolation, target execution validation,
@@ -300,6 +300,52 @@ uv run selfplay analyze runs/hpc/yale-hpc-cpsc4880/studies/repair-selfplay-2026/
 `hpc fetch RUN_ID` now follows each operation's real output directory, including
 base and backend outputs. `--full` opts into checkpoint/trajectory/W&B files.
 W&B remains offline; local events and checkpoints are authoritative.
+
+### Independent backend diagnostics and build storage
+
+Task 04 permits CPU repairs and verification only, with zero GPU-hours. The
+following backend preparation command requires later GPU authorization:
+
+```bash
+uv run selfplay hpc prepare-study --stage backend --gpu-hours-limit 24 --watch
+```
+
+It runs the one-H100 reference and target comparison without a worker image,
+worker broker or target execution-validation report. It checks trusted synthetic
+gradient fixtures, model loading, verl/vLLM adapter synchronization and checkpoint
+roundtrips; generated model output is never executed. `--stage all` remains the
+default full readiness flow. Backend completion does not establish A–D readiness.
+Synchronization still requires the existing prepared, validated dataset snapshot;
+the backend probe itself neither opens nor mounts it.
+
+Backend evidence now lives under `runs/compatibility/backend-v2/`. Its versioned
+identity binds code/dependencies, model/tokenizer, objective settings and trainer
+image. Worker/data runtime evidence remains separate and mandatory for generated
+code. Old compatibility artifacts are retained but cannot satisfy the new gate.
+
+Export storage is configurable, with precedence flag, environment, default
+`runs/hpc/images`. For example, after selecting a filesystem with enough space:
+
+```bash
+uv run selfplay hpc images build --kind trainer --build-root /PATH/TO/LARGE/DISK/selfplay-images
+# Equivalent default for subsequent builds:
+export SELFPLAY_IMAGE_BUILD_ROOT=/PATH/TO/LARGE/DISK/selfplay-images
+```
+
+`--builder NAME` selects an existing Buildx builder. Archives, temporary exports,
+metadata and logs use the selected root, which may be outside the checkout.
+Cached archives are checksummed and provenance-checked before reuse; incomplete
+exports are removed. BuildKit cache and Docker Desktop's disk image occupy
+separate storage: changing `--build-root` does not relocate them. Select a builder
+whose backing filesystem has sufficient capacity or move Docker Desktop's disk
+image using its settings before building. The controller does not prune caches
+or change daemon settings. See [Buildx cache storage](https://docs.docker.com/build/builders/drivers/docker-container/)
+and [Docker Desktop storage settings](https://docs.docker.com/desktop/settings-and-maintenance/settings/).
+
+The observed Yale delegation failure and unsent support request are documented
+in [Yale worker support](yale-worker-support.md). A YCRC managed Yale worker
+service is the proposed fallback; site approval, integration and fresh isolation
+evidence are still required before using it.
 
 ## Recovery and artifacts
 

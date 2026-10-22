@@ -150,6 +150,7 @@ def ready_fixture(tmp_path, monkeypatch):
     cfg = load_config(Path("configs/yale.yaml"), output_root=tmp_path, study_id="test-ready")
     identity = {"trainer_sha256": "a" * 64, "worker_sha256": "b" * 64, "manifest_hash": "data"}
     monkeypatch.setattr(readiness, "execution_identity", lambda _: identity)
+    backend_expected = readiness.backend_identity(cfg)
     monkeypatch.setattr(
         readiness,
         "active_events",
@@ -175,10 +176,10 @@ def ready_fixture(tmp_path, monkeypatch):
     )
     for profile, count in (("single_gpu_80gb", 1), ("dual_gpu_80gb", 2)):
         atomic_json(
-            tmp_path / "compatibility" / (profile + ".json"),
+            tmp_path / readiness.BACKEND_EVIDENCE_DIRECTORY / (profile + ".json"),
             {
                 "ready": True,
-                "runtime_identity": identity,
+                "backend_identity": backend_expected,
                 "gpu_count": count,
                 "hardware_profile": profile,
                 "gpu_type": "h100",
@@ -241,20 +242,191 @@ def test_main_preview_rejects_missing_runtime_before_scheduler(tmp_path, monkeyp
         remote.preview({"operation": "train", "gpu_count": 2})
 
 
-def test_controlled_backend_probe_exercises_all_objectives(repository, tmp_path):
+def test_legacy_and_stale_backend_evidence_cannot_satisfy_readiness(tmp_path, monkeypatch):
+    cfg, _ = ready_fixture(tmp_path, monkeypatch)
+    current = tmp_path / "compatibility/backend-v2/single_gpu_80gb.json"
+    legacy = tmp_path / "compatibility/single_gpu_80gb.json"
+    current.replace(legacy)
+    assert not readiness_report(cfg, require_freeze=False)["gates"]["single_gpu_reference"]["ready"]
+    stale = json.loads(legacy.read_text())
+    stale["backend_identity"]["trainer_sha256"] = "different-image"
+    atomic_json(current, stale)
+    assert not readiness_report(cfg, require_freeze=False)["gates"]["single_gpu_reference"]["ready"]
+
+
+def test_remote_backend_evidence_does_not_establish_runtime_readiness(tmp_path, monkeypatch):
+    remote = endpoint()
+    monkeypatch.setattr(remote, "workspace", lambda _: tmp_path)
+    monkeypatch.setattr(remote, "refreshed_budget", lambda _: {})
+    identity = {"schema_version": 2, "trainer_sha256": "a" * 64}
+    for profile, count in [("single_gpu_80gb", 1), ("dual_gpu_80gb", 2)]:
+        atomic_json(
+            tmp_path / "runs/compatibility/backend-v2" / (profile + ".json"),
+            {
+                "ready": True,
+                "backend_identity": identity,
+                "gpu_count": count,
+                "hardware_profile": profile,
+                "gpu_type": "h100",
+                "objective_probes": list("ABCD"),
+                "single_process_reference_compared": count > 1,
+            },
+        )
+    payload = {"study_id": "study", "backend_identity": identity}
+    report = remote.study_state(payload)
+    assert report["gates"]["single"] and report["gates"]["target"]
+    assert not report["gates"]["worker"] and not report["gates"]["runtime"]
+    assert not report["eligible_to_submit_main"]
+    payload["backend_identity"] = {"schema_version": 1}
+    report = remote.study_state(payload)
+    assert not report["gates"]["single"] and not report["gates"]["target"]
+
+
+def test_controlled_backend_probe_exercises_all_objectives(tmp_path, monkeypatch):
     from selfplay_opsd.backend_check import check_backend
 
     cfg = load_config(
         study_id="probe-fixture",
         hardware_profile="cpu_debug",
-        data_root=repository.root,
+        data_root=tmp_path / "does-not-exist",
         output_root=tmp_path,
+    )
+    monkeypatch.setattr(
+        "selfplay_opsd.readiness.TaskRepository",
+        lambda _: pytest.fail("Trusted backend probes must not open a dataset"),
+    )
+    monkeypatch.setattr(
+        "selfplay_opsd.sandbox.SandboxBackend.__init__",
+        lambda *a, **kw: pytest.fail("Trusted backend probes must not construct a sandbox"),
     )
     report = check_backend(cfg, tmp_path / "probe")
     assert report["objective_probes"] == list("ABCD")
     assert report["checkpoint_roundtrip"]
     assert report["gpu_count"] == 0
     assert (tmp_path / "probe/reference_gradients.pt").is_file()
+    assert "runtime_identity" not in report
+    assert report["backend_identity"]["schema_version"] == 2
+    assert "worker_sha256" not in report["backend_identity"]
+
+
+def allocation_module():
+    spec = importlib.util.spec_from_file_location("repair_job", "scripts/hpc_job.py")
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def allocation_env(tmp_path):
+    image = tmp_path / "trainer.sif"
+    image.write_bytes(b"pinned trainer fixture")
+    return {
+        "SELFPLAY_OPERATION": "backend-check",
+        "SELFPLAY_RUNS": str(tmp_path / "runs"),
+        "SELFPLAY_STUDY": "study",
+        "SLURM_JOB_ID": "123",
+        "SELFPLAY_CACHE": str(tmp_path / "cache"),
+        "SELFPLAY_PROJECT": str(tmp_path / "checkout"),
+        "SELFPLAY_TRAINER_SIF": str(image),
+        "SELFPLAY_TRAINER_SHA256": hashlib.sha256(image.read_bytes()).hexdigest(),
+        "SELFPLAY_METHOD": "D",
+        "SELFPLAY_SEED": "2026",
+        "SELFPLAY_GPU_COUNT": "1",
+        "SELFPLAY_HARDWARE": "single_gpu_80gb",
+        "SELFPLAY_SETTINGS": "configs/yale.yaml",
+        "SELFPLAY_OUTPUT": "/runs/probe",
+    }
+
+
+def test_backend_allocation_ignores_broken_worker_and_needs_no_data(tmp_path, monkeypatch):
+    job = allocation_module()
+    env = allocation_env(tmp_path) | {
+        "SELFPLAY_WORKER_SIF": "/missing/worker.sif",
+        "SELFPLAY_WORKER_TOKEN": "stale-token",
+        "SELFPLAY_WORKER_URL": "invalid",
+    }
+    monkeypatch.setattr(job.subprocess, "Popen", lambda *a, **k: pytest.fail("No worker broker"))
+    monkeypatch.setattr(job, "user_bus_environment", lambda _: pytest.fail("No D-Bus dependency"))
+    captured = []
+    monkeypatch.setattr(
+        job.subprocess,
+        "run",
+        lambda args, **kw: captured.append((args, kw)) or SimpleNamespace(returncode=0),
+    )
+    assert job.execute(env) == 0
+    args, options = captured[0]
+    assert "backend-check" in args and "--nv" in args
+    assert not any(":/data/prepared" in arg for arg in args)
+    assert "SELFPLAY_WORKER_TOKEN" not in options["env"]
+    assert "APPTAINERENV_SELFPLAY_WORKER_URL" not in options["env"]
+
+
+def test_backend_precheck_does_not_consult_runtime_evidence(tmp_path, monkeypatch):
+    remote = endpoint()
+    env = allocation_env(tmp_path)
+    monkeypatch.setattr(remote, "study_state", lambda _: pytest.fail("No worker evidence gate"))
+    remote.precheck(
+        {
+            "operation": "backend-check",
+            "gpu_count": 1,
+            "image": env["SELFPLAY_TRAINER_SIF"],
+            "image_sha256": env["SELFPLAY_TRAINER_SHA256"],
+            "worker_image": "/missing/worker.sif",
+        }
+    )
+    with pytest.raises(ValueError, match="trainer SIF"):
+        remote.precheck({"operation": "backend-check"})
+
+
+@pytest.mark.parametrize(
+    "operation", ["worker-check", "runtime-check", "train", "pilot", "evaluate", "diagnose"]
+)
+def test_generated_code_cannot_launch_without_worker(operation):
+    with pytest.raises(ValueError, match="allocation worker"):
+        endpoint().precheck({"operation": operation})
+    with pytest.raises(ValueError, match="allocation worker"):
+        allocation_module().execute({"SELFPLAY_OPERATION": operation})
+
+
+@pytest.mark.parametrize("operation", ["train", "pilot", "evaluate", "diagnose", "freeze-study"])
+@pytest.mark.parametrize(
+    "gates", [{"worker": False, "runtime": True}, {"worker": True, "runtime": False}]
+)
+def test_generated_code_rejects_failed_or_stale_runtime(operation, gates, tmp_path, monkeypatch):
+    remote = endpoint()
+    worker = tmp_path / "worker.sif"
+    worker.write_bytes(b"worker fixture")
+    monkeypatch.setattr(remote, "study_state", lambda _: {"gates": gates})
+    with pytest.raises(ValueError, match="Runtime isolation"):
+        remote.precheck(
+            {"operation": operation, "worker_image": str(worker), "worker_sha256": "a" * 64}
+        )
+
+
+def test_failed_allocation_probe_prevents_generated_code(tmp_path, monkeypatch):
+    job = allocation_module()
+    env = allocation_env(tmp_path) | {
+        "SELFPLAY_OPERATION": "runtime-check",
+        "SELFPLAY_WORKER_SIF": "worker.sif",
+    }
+    monkeypatch.setattr(job, "broker_args", lambda *args: ["probe"])
+    monkeypatch.setattr(
+        job.subprocess,
+        "Popen",
+        lambda *a, **k: SimpleNamespace(poll=lambda: 1, terminate=lambda: None, wait=lambda **_: 1),
+    )
+    monkeypatch.setattr(
+        job.subprocess, "run", lambda *a, **k: pytest.fail("Generated-code command must not start")
+    )
+    with pytest.raises(RuntimeError, match="isolation/startup failed"):
+        job.execute(env)
+
+
+def test_unknown_operation_fails_at_both_boundaries():
+    with pytest.raises(ValueError, match="Unsupported"):
+        endpoint().precheck({"operation": "unrecognized"})
+    with pytest.raises(ValueError, match="Unsupported"):
+        allocation_module().execute({"SELFPLAY_OPERATION": "unrecognized"})
 
 
 def test_cpu_conversion_retries_are_bounded_without_gpu_requests(tmp_path, monkeypatch):

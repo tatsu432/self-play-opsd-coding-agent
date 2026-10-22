@@ -846,6 +846,8 @@ def artifact_dir(payload: dict) -> Path:
     if operation in {"worker-check", "runtime-check", "readiness-check"}:
         return runs / "readiness" / study
     if operation == "backend-check":
+        if payload.get("backend_identity", {}).get("schema_version") == 2:
+            return runs / "compatibility/backend-v2" / payload["profile"]
         return runs / "compatibility" / payload["profile"]
     if operation == "freeze-study":
         return runs / study
@@ -978,9 +980,9 @@ def study_state(payload: dict) -> dict:
     reports = {
         "worker": read(evidence / "worker.json"),
         "runtime": read(evidence / "runtime.json"),
-        "single": read(runs / "compatibility/single_gpu_80gb.json"),
+        "single": read(runs / "compatibility/backend-v2/single_gpu_80gb.json"),
         "target": read(
-            runs / "compatibility" / (payload.get("profile", "dual_gpu_80gb") + ".json")
+            runs / "compatibility/backend-v2" / (payload.get("profile", "dual_gpu_80gb") + ".json")
         ),
         "base": read(runs / study / "base/evaluation_complete.json"),
         "pilot": read(
@@ -1001,11 +1003,26 @@ def study_state(payload: dict) -> dict:
     }
     for name in ("runtime", "single", "target", "base", "pilot", "freeze"):
         report = reports[name]
-        gates[name] = bool(report and identity and report.get("runtime_identity") == identity)
+        backend = name in {"single", "target"}
+        expected = payload.get("backend_identity") if backend else identity
+        field = "backend_identity" if backend else "runtime_identity"
+        gates[name] = bool(report and expected and report.get(field) == expected)
         if name in {"runtime", "single", "target", "base"}:
             gates[name] = gates[name] and bool(report.get("ready"))
         if name == "target":
             gates[name] = gates[name] and report.get("gpu_type") == payload.get("gpu_type", "h100")
+        if backend:
+            count = 1 if name == "single" else payload.get("profile_gpu_count", 2)
+            profile = (
+                "single_gpu_80gb" if name == "single" else payload.get("profile", "dual_gpu_80gb")
+            )
+            gates[name] = bool(
+                gates[name]
+                and report.get("gpu_count") == count
+                and report.get("hardware_profile") == profile
+                and report.get("objective_probes") == list("ABCD")
+                and (count == 1 or report.get("single_process_reference_compared"))
+            )
     readiness = read(runs / study / "readiness.json")
     eligible = bool(
         readiness.get("eligible_to_submit_main")
@@ -1073,20 +1090,49 @@ def study_state(payload: dict) -> dict:
 
 def precheck(payload: dict):
     operation = payload["operation"]
+    if operation not in {
+        "image-convert",
+        "backend-check",
+        "worker-check",
+        "runtime-check",
+        "train",
+        "pilot",
+        "evaluate",
+        "diagnose",
+        "freeze-study",
+        "readiness-check",
+    }:
+        raise ValueError("Unsupported submission operation")
     if operation == "image-convert":
         if not Path(payload["archive"]).is_file() or not DIGEST.fullmatch(
             payload["archive_sha256"]
         ):
             raise ValueError("Image archive missing")
         return
-    if payload.get("worker_image"):
+    if operation == "backend-check":
+        # This entry point only scores trusted synthetic fixtures. Worker state,
+        # including stale optional worker paths, must not couple this diagnostic.
+        if not Path(payload.get("image", "")).is_file() or not DIGEST.fullmatch(
+            payload.get("image_sha256", "")
+        ):
+            raise ValueError("Pinned trainer SIF missing")
+        return
+    uses_worker = operation in {
+        "worker-check",
+        "runtime-check",
+        "train",
+        "pilot",
+        "evaluate",
+        "diagnose",
+    }
+    if uses_worker and not payload.get("worker_image"):
+        raise ValueError("Yale jobs require the verified allocation worker")
+    if uses_worker:
         if not Path(payload["worker_image"]).is_file() or not DIGEST.fullmatch(
             payload.get("worker_sha256", "")
         ):
             raise ValueError("Pinned worker SIF missing")
-    if payload["gpu_count"] or operation == "freeze-study":
-        if not payload.get("worker_image"):
-            raise ValueError("Yale jobs require the verified allocation worker")
+    if operation in {"train", "pilot", "evaluate", "diagnose", "freeze-study"}:
         state = study_state(payload)
         if not state["gates"]["worker"] or not state["gates"]["runtime"]:
             raise ValueError("Runtime isolation and target data validation have not passed")

@@ -8,6 +8,7 @@
 docs/*
 !docs/methods.md
 !docs/operations.md
+!docs/yale-worker-support.md
 !docs/plan/
 !docs/task/
 !docs/task_completion/
