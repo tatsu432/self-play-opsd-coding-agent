@@ -85,7 +85,7 @@ image or failed evidence gate. Never treat a passed CPU test as target readiness
    never create a duplicate. Scientific failures, OOM, authentication, quota
    and unauthorized resource requests are not automatic retries.
 
-## Current observed state (2026-10-22)
+## Task 03 historical checkpoint (2026-10-22)
 
 - Normal Duo MFA established a control session for `yale-hpc-cpsc4880`.
   `cpsc4880_ts2236` has Slurm account `cpsc4880`, with `interactive,normal`
@@ -122,3 +122,33 @@ the Docker builder also needs sufficient cache storage. Do not provision
 another host. Task 05 explicitly authorizes contacting support.
 The support request and proposed Yale managed-service design are in
 `docs/yale-worker-support.md`.
+
+## Task 05 checkpoint (2026-10-22)
+
+- Yale-native Dockerfile-derived trainer build is verified. CPU job 30275129
+  published an 11.02-GiB SIF, SHA-256
+  `fbe2737a6815644ecaad01df40cfa7883b05e5554d518fd0352129b1f6fd69e2`,
+  from source `2d17d4d`. Base Python 3.12.11, pinned packages/imports and CLI
+  passed. Build mode is `hpc images build --kind trainer --build-mode yale`;
+  no large local archive is required. CPU attempts consumed 11.6556 CPU-hours.
+- The first H100 reference job 30278347 failed after 78 seconds with a nearly
+  full device but only about 7 GiB attributed to this process. Allocation mapping
+  was not proven, so this does not authorize H200. Source `cf1e644` now resolves
+  Slurm GPU UUIDs, verifies actual container UUIDs/initial occupancy and rejects
+  ambiguous or occupied devices. Its hosted CI passed 151 tests. Live acceptance
+  of this correction is pending.
+- Cumulative readiness cost is 0.021667 GPU-hours of the authorized 24. No main
+  A–D runs have started. All production readiness gates remain false. A retry
+  stopped at read-only context inspection after SSH expired, before submission;
+  complete normal Duo MFA, synchronize the clean committed checkout, inspect
+  existing ledgers and resume backend-only preparation. Never duplicate an
+  unresolved attempt.
+- YCRC ticket 79403 / Gmail thread `1a1640b41863817b` contains the authorized
+  request. Only an automated acknowledgement is available. No equivalent worker
+  probe was repeated; require a documented supported setup change before another.
+  Follow up in that thread after three business days (2026-10-27) if unanswered.
+
+Read `docs/task_completion/05-implemented-yale-experiment-readiness.md` and
+`docs/yale-launch-runbook.md` for exact artifacts, CI evidence, remaining gates
+and continuation commands. The Task 03 absence of a trainer and zero GPU cost
+above are historical and have been superseded by this checkpoint.
