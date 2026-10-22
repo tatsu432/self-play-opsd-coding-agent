@@ -38,6 +38,28 @@ def test_inspection_never_invents_an_account_or_project():
         choose_account(report, "gpu_h200")
 
 
+def test_remote_storage_uses_only_writable_personal_course_directories(tmp_path, monkeypatch):
+    remote = remote_module()
+    user = "cpsc4880_ts2236"
+    project = tmp_path / "project"
+    scratch = tmp_path / "scratch"
+    (project / user).mkdir(parents=True)
+    (scratch / user).mkdir(parents=True)
+    (tmp_path / "project_cpsc4880").symlink_to(project, target_is_directory=True)
+    (tmp_path / "scratch_cpsc4880").symlink_to(scratch, target_is_directory=True)
+    (tmp_path / "project_other").mkdir()
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+    monkeypatch.setattr(
+        remote,
+        "run",
+        lambda args, **_: subprocess.CompletedProcess(args, 0, user + "\n", ""),
+    )
+    assert remote.roots() == {
+        "project": {"project_cpsc4880": str(project / user)},
+        "scratch": {"scratch_cpsc4880": str(scratch / user)},
+    }
+
+
 def test_live_resource_validation_fails_closed(monkeypatch):
     remote = remote_module()
 

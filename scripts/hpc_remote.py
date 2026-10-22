@@ -45,9 +45,19 @@ def capture(args: list[str]) -> dict:
 
 def roots() -> dict[str, dict[str, str]]:
     home = Path.home()
+    user = run(["id", "-un"]).stdout.strip()
+
+    def personal_directories(pattern: str) -> dict[str, str]:
+        result = {}
+        for entry in home.glob(pattern):
+            personal = entry.resolve() / user
+            if personal.is_dir() and os.access(personal, os.W_OK | os.X_OK):
+                result[entry.name] = str(personal)
+        return result
+
     return {
-        "project": {p.name: str(p.resolve()) for p in home.glob("project_*") if p.is_dir()},
-        "scratch": {p.name: str(p.resolve()) for p in home.glob("scratch*") if p.is_dir()},
+        "project": personal_directories("project_*"),
+        "scratch": personal_directories("scratch_*"),
     }
 
 
