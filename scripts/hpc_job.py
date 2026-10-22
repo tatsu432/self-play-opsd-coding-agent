@@ -100,6 +100,22 @@ def broker_args(env: dict, ready: Path, report: Path) -> list[str]:
     ]
 
 
+def user_bus_environment(env: dict, directory: Path | None = None) -> dict:
+    """Use an existing user-owned systemd bus; never create privileged services."""
+    result = dict(env)
+    directory = directory or Path(f"/run/user/{os.getuid()}")
+    bus = directory / "bus"
+    if (
+        directory.is_dir()
+        and directory.stat().st_uid == os.getuid()
+        and bus.is_socket()
+        and bus.stat().st_uid == os.getuid()
+    ):
+        result.setdefault("XDG_RUNTIME_DIR", str(directory))
+        result.setdefault("DBUS_SESSION_BUS_ADDRESS", "unix:path=" + str(bus))
+    return result
+
+
 def execute(env: dict) -> int:
     operation = env["SELFPLAY_OPERATION"]
     runs = Path(env["SELFPLAY_RUNS"])
@@ -117,6 +133,20 @@ def execute(env: dict) -> int:
         "PYTHONPATH": str(Path.cwd() / "src"),
         "SELFPLAY_WORKER_TOKEN": secrets.token_urlsafe(32),
     }
+    process_env = user_bus_environment(process_env)
+    runtime_directory = Path(f"/run/user/{os.getuid()}")
+    write(
+        readiness / f"node-environment-{attempt}.json",
+        {
+            "job_id": attempt,
+            "host": platform.node(),
+            "uid": os.getuid(),
+            "user_runtime_directory_exists": runtime_directory.is_dir(),
+            "user_bus_socket_exists": (runtime_directory / "bus").is_socket(),
+            "dbus_session_bus_address_set": bool(process_env.get("DBUS_SESSION_BUS_ADDRESS")),
+            "cgroups_v2": Path("/sys/fs/cgroup/cgroup.controllers").exists(),
+        },
+    )
     if operation == "worker-check":
         return subprocess.run(
             broker_args(process_env, ready, readiness / "worker.json") + ["--check-only"],

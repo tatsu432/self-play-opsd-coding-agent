@@ -5,7 +5,9 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import socket
 import subprocess
+import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from types import SimpleNamespace
@@ -308,3 +310,25 @@ def test_cpu_conversion_retries_are_bounded_without_gpu_requests(tmp_path, monke
         remote.submit(payload)
     assert len(calls) == 3
     assert all(not any(arg.startswith("--gpus=") for arg in args) for args in calls)
+
+
+def test_worker_uses_only_an_existing_user_bus():
+    spec = importlib.util.spec_from_file_location("hpc_job", "scripts/hpc_job.py")
+    assert spec and spec.loader
+    job = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(job)
+    # AF_UNIX addresses have a short platform-specific path bound.
+    with tempfile.TemporaryDirectory(prefix="sp-bus-", dir="/tmp") as location:
+        directory = Path(location)
+        assert job.user_bus_environment({}, directory) == {}
+        with socket.socket(socket.AF_UNIX) as bus:
+            bus.bind(str(directory / "bus"))
+            env = job.user_bus_environment({}, directory)
+            assert env["XDG_RUNTIME_DIR"] == str(directory)
+            assert env["DBUS_SESSION_BUS_ADDRESS"] == "unix:path=" + str(directory / "bus")
+            assert (
+                job.user_bus_environment({"DBUS_SESSION_BUS_ADDRESS": "existing"}, directory)[
+                    "DBUS_SESSION_BUS_ADDRESS"
+                ]
+                == "existing"
+            )

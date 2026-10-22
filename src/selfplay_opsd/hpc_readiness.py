@@ -284,6 +284,7 @@ def register(app: typer.Typer):
                         return
                     time.sleep(30)
                     continue
+                state = remote.call("study", request)
                 if payload["gpu_count"] == 0 and latest in {
                     "PREEMPTED",
                     "NODE_FAIL",
