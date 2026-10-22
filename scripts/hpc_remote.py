@@ -867,11 +867,13 @@ def artifact_dir(payload: dict) -> Path:
         )
     if operation == "method-smoke":
         return runs / "readiness" / study / "method-smokes"
-    if operation == "allocation-check":
-        return runs / "readiness" / study / ("allocation-" + payload["profile"])
-    if operation == "worker-diagnose":
-        return runs / "readiness" / study / "worker-diagnostics"
-    if operation in {"worker-check", "runtime-check", "readiness-check"}:
+    if operation in {
+        "worker-check",
+        "runtime-check",
+        "readiness-check",
+        "allocation-check",
+        "worker-diagnose",
+    }:
         return runs / "readiness" / study
     if operation == "backend-check":
         if payload.get("backend_identity", {}).get("schema_version") == 2:
@@ -1011,8 +1013,11 @@ def stage_status(base: Path, study: str, gates: dict, reports: dict) -> dict:
             ledgers.append((path.stat().st_mtime_ns, item))
     states = {}
     for gate, passed in gates.items():
+        present = (
+            any(reports.get(gate, {}).values()) if gate == "methods" else bool(reports.get(gate))
+        )
         state = {
-            "state": "passed" if passed else "stale" if reports.get(gate) else "pending",
+            "state": "passed" if passed else "stale" if present else "pending",
             "next_action": None if passed else "Run hpc prepare-study --watch",
         }
         candidates = []
