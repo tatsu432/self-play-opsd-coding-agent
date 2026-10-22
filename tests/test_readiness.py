@@ -332,3 +332,22 @@ def test_worker_uses_only_an_existing_user_bus():
                 ]
                 == "existing"
             )
+
+
+def test_live_readers_never_observe_partial_worker_reports(tmp_path):
+    from selfplay_opsd.worker_runtime import publish_json
+
+    report = tmp_path / "worker.json"
+    publish_json(report, {"attempt": 0, "detail": "x" * 65536})
+
+    def writer():
+        for attempt in range(1, 10):
+            publish_json(report, {"attempt": attempt, "detail": "x" * 65536})
+
+    with ThreadPoolExecutor(1) as executor:
+        future = executor.submit(writer)
+        while not future.done():
+            value = json.loads(report.read_text())
+            assert 0 <= value["attempt"] <= 9 and len(value["detail"]) == 65536
+        future.result()
+    assert json.loads(report.read_text())["attempt"] == 9

@@ -27,7 +27,10 @@ def sha256(path: Path) -> str:
 def write(path: Path, value: dict):
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(f".{os.getpid()}.tmp")
-    tmp.write_text(json.dumps(value, sort_keys=True) + "\n")
+    with tmp.open("w") as stream:
+        stream.write(json.dumps(value, sort_keys=True) + "\n")
+        stream.flush()
+        os.fsync(stream.fileno())
     os.replace(tmp, path)
 
 

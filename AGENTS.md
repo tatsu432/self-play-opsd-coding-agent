@@ -94,13 +94,21 @@ image or failed evidence gate. Never treat a passed CPU test as target readiness
   GiB scratch. The user had no active jobs; two jobs from other `cpsc4880`
   users were running. The implementation commit `213647a` and validated data
   manifest `44fe6caffc05...` were synchronized to the user's project space.
-- Local prepared data and execution validation are present. No Yale trainer SIF,
-  isolated worker, target backend proof, pilot or frozen study has been verified.
-  No GPU was allocated or training started under task 02.
+- Task 03 built and converted a Linux AMD64 worker SIF successfully (job
+  30217522; SHA-256 `76a43eef3424...`). Worker probes 30217591 and 30218129
+  failed before candidate startup because Apptainer could not apply cgroup
+  limits. The second node had cgroups v2 but no `/run/user/35094/bus`; normal
+  user-bus discovery could not supply `DBUS_SESSION_BUS_ADDRESS`. This requires
+  a YCRC-supported execution setup; do not remove limits or probes to proceed.
+- Readiness used zero GPU-hours (approximately 0.148 allocated CPU-hours).
+  No trainer SIF, GPU backend proof, base evaluation, pilot or frozen study has
+  been established. Main A–D have not started. Local free storage was about
+  22 GiB, below the 60 GiB trainer-build preflight minimum.
 - `cpsc4710` and `sds6190` noninteractive access was rejected by MFA. A Duo
   prompt for `cpsc4710` timed out, so their permissions and quotas remain unknown.
 
-Read `docs/task_completion/02-implemented-yale-hpc-use.md` for exact evidence and
-re-check live Slurm state before new work. The next operational step is to
-verify a pinned trainer SIF and isolated code worker, then perform a small
-target GPU backend acceptance run.
+Read `docs/task_completion/03-implemented-experiment-readiness.md` for the exact
+state, fetched diagnostics, remaining gates and a YCRC support-request draft.
+Re-check live state before new work. Resolve the supported worker execution
+setup and trainer-build storage before advancing readiness. Do not provision
+another host or contact support without the user's explicit instruction.

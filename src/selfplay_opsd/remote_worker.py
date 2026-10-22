@@ -15,7 +15,7 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from selfplay_opsd.worker_runtime import LocalRuntime, RuntimeConfig, canonical
+from selfplay_opsd.worker_runtime import LocalRuntime, RuntimeConfig, canonical, publish_json
 
 
 def serve(
@@ -39,8 +39,7 @@ def serve(
     sandbox = LocalRuntime(config)
     attestation = sandbox.preflight()
     if report:
-        report.parent.mkdir(parents=True, exist_ok=True)
-        report.write_text(canonical(attestation) + "\n")
+        publish_json(report, attestation)
     if not attestation["ready"]:
         raise ValueError("Worker isolation failed: " + canonical(attestation))
     if check_only:
@@ -117,9 +116,8 @@ def serve(
 
     with ThreadingHTTPServer((host, port), Handler) as server:
         if ready_file:
-            ready_file.parent.mkdir(parents=True, exist_ok=True)
-            ready_file.write_text(
-                canonical({"url": f"http://127.0.0.1:{server.server_port}", "ready": True}) + "\n"
+            publish_json(
+                ready_file, {"url": f"http://127.0.0.1:{server.server_port}", "ready": True}
             )
         server.daemon_threads = True
         server.serve_forever(poll_interval=0.5)

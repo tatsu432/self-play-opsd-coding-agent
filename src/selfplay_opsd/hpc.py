@@ -168,7 +168,7 @@ class YaleSSH:
     def fetch(self, source: str, destination: Path, *, full: bool = False) -> None:
         if not re.fullmatch(r"/[A-Za-z0-9_./-]+", source):
             raise HpcError("Unsafe remote artifact path")
-        destination.mkdir(parents=True, exist_ok=True)
+        destination.mkdir(parents=True, exist_ok=True, mode=0o700)
         excludes = (
             []
             if full
@@ -184,6 +184,9 @@ class YaleSSH:
             [
                 "rsync",
                 "-a",
+                "--no-perms",
+                "--no-owner",
+                "--no-group",
                 "--checksum",
                 *excludes,
                 "-e",
