@@ -26,11 +26,14 @@ It does not execute generated code or prove worker isolation. After it passes:
 uv run selfplay hpc images build --kind trainer --build-mode yale
 ```
 
-This uses eight CPUs, 32 GiB and at most four hours. Personal course scratch
+This uses eight CPUs, 32 GiB and at most four hours. Squashfs compression is
+explicitly limited to eight CPUs and 8 GiB; dependency downloads are not cached
+inside the image. Personal course scratch
 requires 150 GiB free; final project storage requires 30 GiB. Source, generated
 definition, dependency lock, base digest, converter version and resulting SIF
 are checksummed. Only the successful verified SIF is published. Large build
-contexts/caches stay on Yale; the Mac receives small logs/reports. The previous
+contexts/caches stay on Yale; the Mac receives small logs/reports. Docker Buildx
+on the Mac reads only small registry configuration metadata for conversion. The previous
 Docker archive path remains available with `--build-mode docker`.
 
 If a site permission failure occurs, inspect that job and discuss it in the
@@ -42,8 +45,12 @@ After the trainer build and hosted CPU CI pass, backend-only GPU acceptance can
 proceed independently of the worker support response:
 
 ```bash
+uv run selfplay hpc sync
 uv run selfplay hpc prepare-study --stage backend --gpu-hours-limit 24 --watch
 ```
+
+Synchronize again after any new source commit before preparing evidence. A
+successful build does not synchronize later changes automatically.
 
 The full workflow requires a YCRC-supported worker setup and fresh successful
 isolation evidence. After that setup change:
