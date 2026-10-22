@@ -128,6 +128,50 @@ def test_cpu_requests_use_individual_nodes_in_heterogeneous_partitions(monkeypat
     )
 
 
+def test_finalized_checkout_ignores_only_managed_output_links(tmp_path, monkeypatch):
+    remote = remote_module()
+    origin = tmp_path / "origin"
+    origin.mkdir()
+    subprocess.run(["git", "init", "-q", str(origin)], check=True)
+    subprocess.run(["git", "-C", str(origin), "config", "user.name", "Fixture"], check=True)
+    subprocess.run(
+        ["git", "-C", str(origin), "config", "user.email", "fixture@example.com"], check=True
+    )
+    (origin / "README").write_text("immutable\n")
+    (origin / ".gitignore").write_text("runs/\ndata/\n")
+    subprocess.run(["git", "-C", str(origin), "add", "."], check=True)
+    subprocess.run(["git", "-C", str(origin), "commit", "-qm", "fixture"], check=True)
+    commit = subprocess.run(
+        ["git", "-C", str(origin), "rev-parse", "HEAD"], check=True, capture_output=True, text=True
+    ).stdout.strip()
+    bundle = tmp_path / "fixture.bundle"
+    subprocess.run(
+        ["git", "-C", str(origin), "bundle", "create", str(bundle), "HEAD"],
+        check=True,
+        capture_output=True,
+    )
+    dataset = tmp_path / "prepared"
+    dataset.mkdir()
+    (dataset / "manifest.json").write_text('{"ready": true}\n')
+    runs = tmp_path / "runs"
+    runs.mkdir()
+    paths = {
+        "bundle": bundle,
+        "checkout": tmp_path / commit,
+        "dataset": dataset,
+        "runs": runs,
+        "state": tmp_path / "state",
+    }
+    monkeypatch.setattr(remote, "paths", lambda _: paths)
+    assert remote.finalize(
+        {"commit": commit, "manifest_sha256": remote.sha256(dataset / "manifest.json")}
+    )["ready"]
+    status = ["git", "-C", str(paths["checkout"]), "status", "--porcelain", "--untracked-files=all"]
+    assert not subprocess.run(status, check=True, capture_output=True, text=True).stdout
+    (paths["checkout"] / "README").write_text("changed\n")
+    assert "README" in subprocess.run(status, check=True, capture_output=True, text=True).stdout
+
+
 def test_unknown_sbatch_response_is_not_submitted_twice(tmp_path, monkeypatch):
     remote = remote_module()
     checkout = tmp_path / "checkout"

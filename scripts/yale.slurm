@@ -9,8 +9,12 @@ set -euo pipefail
 : "${SELFPLAY_PROJECT:?Missing immutable project checkout}"
 : "${SELFPLAY_OPERATION:?Missing operation}"
 cd "$SELFPLAY_PROJECT"
-test "$(git rev-parse HEAD)" = "$(basename "$SELFPLAY_PROJECT")"
-test -z "$(git status --porcelain --untracked-files=all)"
+if [[ "$(git rev-parse HEAD)" != "$(basename "$SELFPLAY_PROJECT")" ]]; then
+  printf 'Immutable checkout commit mismatch\n' >&2; exit 2
+fi
+if [[ -n "$(git status --porcelain --untracked-files=all)" ]]; then
+  printf 'Immutable checkout is dirty; inspect the synchronized checkout\n' >&2; exit 2
+fi
 if [[ -n "${SELFPLAY_SECRETS_FILE:-}" ]]; then
   test -f "$SELFPLAY_SECRETS_FILE"
   test "$(stat -c %a "$SELFPLAY_SECRETS_FILE")" = 600

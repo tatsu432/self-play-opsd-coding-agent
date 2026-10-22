@@ -262,6 +262,14 @@ def finalize(payload: dict) -> dict:
         runs_link.symlink_to(p["runs"], target_is_directory=True)
     if runs_link.resolve() != p["runs"].resolve():
         raise ValueError("Remote runs symlink points elsewhere")
+    # Git's directory-only `runs/` ignore does not match a managed symlink.
+    # Keep operational links in local Git metadata, preserving a clean checkout.
+    exclude = p["checkout"] / ".git/info/exclude"
+    existing = exclude.read_text() if exclude.exists() else ""
+    additions = [name for name in ("/runs", "/data/prepared") if name not in existing.splitlines()]
+    if additions:
+        exclude.parent.mkdir(parents=True, exist_ok=True)
+        exclude.write_text(existing.rstrip() + "\n" + "\n".join(additions) + "\n")
     marker = {"commit": head, "manifest_sha256": payload["manifest_sha256"]}
     write_json(p["state"] / f"sync-{payload['commit']}.json", marker)
     return {
