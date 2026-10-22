@@ -101,3 +101,51 @@ def test_image_build_root_precedence_and_builder(selection, tmp_path, monkeypatc
     result = CliRunner().invoke(app, args)
     assert result.exit_code == 0, result.exception
     assert recorded == [(Path(expected).resolve() / "trainer", "external-builder")]
+
+
+def test_preparation_does_not_repeat_unchanged_site_worker_failure(monkeypatch):
+    calls = []
+    state = {
+        "images": {"worker": {"ready": True}, "trainer": {"ready": True}},
+        "gates": {
+            key: False
+            for key in (
+                "worker",
+                "runtime",
+                "single",
+                "target",
+                "base",
+                "pilot",
+                "methods",
+                "freeze",
+            )
+        },
+        "allocation_checks": {"single": True, "target": True},
+        "reports": {
+            "worker": {
+                "ready": False,
+                "details": {"cpu_limit": "DBUS_SESSION_BUS_ADDRESS is not set"},
+            }
+        },
+        "eligible_to_submit_main": False,
+    }
+
+    class Remote:
+        def __init__(self, alias):
+            self.alias = alias
+
+        def call(self, operation, payload):
+            calls.append(operation)
+            assert operation == "study"
+            return state
+
+    monkeypatch.setattr(hpc, "YaleSSH", Remote)
+    monkeypatch.setattr(hpc, "snapshot", lambda: {})
+    monkeypatch.setattr(hpc, "remote_context", lambda *a: {"storage_root": "/project"})
+    monkeypatch.setattr("selfplay_opsd.readiness.execution_identity", lambda *a, **kw: {})
+    app = typer.Typer()
+    hpc_readiness.register(app)
+    result = CliRunner().invoke(app, ["prepare-study", "--watch"])
+    assert result.exit_code == 0, result.exception
+    assert '"failure_category": "site_setup"' in result.output
+    assert "submit" not in calls

@@ -11,6 +11,7 @@ import hmac
 import json
 import math
 import os
+import signal
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -36,7 +37,8 @@ def serve(
         )
     if host not in {"127.0.0.1", "localhost"} or not 1 <= concurrency <= 32:
         raise ValueError("Worker must bind loopback with concurrency 1 through 32")
-    sandbox = LocalRuntime(config)
+    cancelled = threading.Event()
+    sandbox = LocalRuntime(config, cancelled=cancelled)
     attestation = sandbox.preflight()
     if report:
         publish_json(report, attestation)
@@ -119,8 +121,23 @@ def serve(
             publish_json(
                 ready_file, {"url": f"http://127.0.0.1:{server.server_port}", "ready": True}
             )
-        server.daemon_threads = True
-        server.serve_forever(poll_interval=0.5)
+        previous_handlers = {}
+
+        def terminate(*_):
+            cancelled.set()
+            threading.Thread(target=server.shutdown, daemon=True).start()
+
+        if threading.current_thread() is threading.main_thread():
+            for sig in (signal.SIGTERM, signal.SIGINT):
+                previous_handlers[sig] = signal.signal(sig, terminate)
+        try:
+            server.serve_forever(poll_interval=0.5)
+        finally:
+            cancelled.set()
+            for sig, previous in previous_handlers.items():
+                signal.signal(sig, previous)
+            if ready_file:
+                ready_file.unlink(missing_ok=True)
 
 
 def main():

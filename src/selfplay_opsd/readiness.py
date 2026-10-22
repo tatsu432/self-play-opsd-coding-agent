@@ -14,11 +14,16 @@ from selfplay_opsd.storage import (
     active_events,
     atomic_json,
     code_hash,
+    file_hash,
     read_json,
     scientific_code_hash,
 )
 
 BACKEND_EVIDENCE_DIRECTORY = "compatibility/backend-v2"
+
+
+def allocation_code_hash() -> str:
+    return file_hash(Path(__file__).resolve().parents[2] / "scripts/hpc_job.py")
 
 
 def backend_identity(config: RunConfig) -> dict:
@@ -30,6 +35,7 @@ def backend_identity(config: RunConfig) -> dict:
     return {
         "schema_version": 2,
         "code_hash": code_hash(),
+        "allocation_code_hash": allocation_code_hash(),
         "scientific_code_hash": scientific_code_hash(),
         "model": config.model.model_dump(mode="json"),
         "objective": config.objective.model_dump(mode="json"),
@@ -58,6 +64,7 @@ def execution_identity(config: RunConfig, *, repository: TaskRepository | None =
         raise ExperimentError("Repository root differs from configured data_root")
     return {
         "code_hash": code_hash(),
+        "allocation_code_hash": allocation_code_hash(),
         "scientific_code_hash": scientific_code_hash(),
         "common_hash": digest(config.scientific_settings(common=True, calibration=True)),
         "manifest_hash": repository.hash,
@@ -66,6 +73,7 @@ def execution_identity(config: RunConfig, *, repository: TaskRepository | None =
         "tokenizer_revision": config.model.tokenizer_revision,
         "trainer_sha256": os.getenv("SELFPLAY_IMAGE_DIGEST"),
         "worker_sha256": os.getenv("SELFPLAY_WORKER_SHA256"),
+        "worker_setup_id": os.getenv("SELFPLAY_WORKER_SETUP_ID", ""),
     }
 
 

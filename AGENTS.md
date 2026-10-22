@@ -29,8 +29,8 @@ documents are historical. Read `README.md`, `docs/methods.md` and
 
 ## Yale operations
 
-The current task is `docs/task/05-yale-experiment-readiness-spec.md`; its plan is
-`docs/plan/05-yale-experiment-readiness-plan.md`. Task 05 resumes the cumulative
+The current task is `docs/task/06-close-yale-launch-blockers-spec.md`; its plan is
+`docs/plan/06-close-yale-launch-blockers-plan.md`. Task 06 continues Task 05 and the cumulative
 Task 03 24 GPU-hour readiness allowance on cpsc4880 and authorizes YCRC contact
 and Dockerfile-derived SIF builds on Yale CPU nodes. Task 04's CPU-only repair is
 complete. Main A–D training and additional host provisioning remain unauthorized.
@@ -158,3 +158,22 @@ Read `docs/task_completion/05-implemented-yale-experiment-readiness.md` and
 `docs/yale-launch-runbook.md` for exact artifacts, CI evidence, remaining gates
 and continuation commands. The Task 03 absence of a trainer and zero GPU cost
 above are historical and have been superseded by this checkpoint.
+
+## Task 06 acceptance in progress
+
+The user requires actual submission readiness, not implementation completion.
+Job 30289141 failed before model load after 16 seconds; reconciled cumulative
+readiness consumption is 0.03 GPU-hours. No H100 memory-fit failure is proven.
+The old pending-job description above is superseded. No equivalent worker
+acceptance probe may run until a documented supported setup change.
+
+Task 06 adds `hpc worker-diagnose` (CPU only) and five-minute
+`hpc allocation-check --profile single_gpu_80gb|dual_gpu_80gb` operations.
+GPU ownership must be proven through the actual Slurm device cgroup and container
+UUIDs; NVIDIA index/minor equality is not required. Diagnostics cannot establish
+backend compatibility or worker safety. Runtime evidence includes the allocation
+code and documented worker setup identity. See the launch runbook for commands.
+
+Continue through all eight gates and four valid previews before recording Task 06
+as complete. Existing approved Yale services are the only worker fallback;
+new infrastructure, main training and exceeding 24 GPU-hours remain unauthorized.

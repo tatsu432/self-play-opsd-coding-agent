@@ -13,6 +13,7 @@ import re
 import secrets
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
@@ -46,8 +47,58 @@ def checked_image(path: str, expected: str):
         raise ValueError("Pinned image SHA-256 mismatch")
 
 
-def allocated_gpus(env: dict) -> list[dict]:
-    """Resolve only Slurm's allocated physical GPUs, rejecting ambiguous numbering."""
+def diagnostic_command(args: list[str], env: dict) -> dict:
+    """Bounded, allowlisted commands only; never dump the process environment."""
+    try:
+        result = subprocess.run(args, capture_output=True, text=True, env=env, timeout=30)
+        return {
+            "exit_code": result.returncode,
+            "stdout": result.stdout[:512000],
+            "stderr": result.stderr[:2000],
+        }
+    except (OSError, subprocess.TimeoutExpired) as error:
+        return {"exit_code": -1, "error": str(error)}
+
+
+def device_access(minor: str) -> bool:
+    """Test the kernel's device policy without creating a CUDA context."""
+    path = Path("/dev") / ("nvidia" + minor)
+    metadata = path.stat()
+    if not stat.S_ISCHR(metadata.st_mode) or os.minor(metadata.st_rdev) != int(minor):
+        raise ValueError("NVIDIA device node/minor mismatch")
+    try:
+        descriptor = os.open(path, os.O_RDWR | os.O_CLOEXEC)
+    except PermissionError:
+        return False
+    os.close(descriptor)
+    return True
+
+
+def allocated_gpus(env: dict, report: Path | None = None) -> list[dict]:
+    """Prove physical ownership using Slurm's enforced device access, not ordinals."""
+    result = {
+        "schema_version": 3,
+        "job_id": env.get("SLURM_JOB_ID"),
+        "host": platform.node(),
+        "ready": False,
+        "slurm_job_gpus": env.get("SLURM_JOB_GPUS"),
+        "slurm_cuda_visible_devices": env.get("CUDA_VISIBLE_DEVICES"),
+        "image_sha256": env.get("SELFPLAY_TRAINER_SHA256"),
+    }
+    if report:
+        write(report, result)
+    try:
+        return resolve_gpus(env, result, report)
+    except Exception as error:
+        result["error"] = str(error)
+        result["failure_category"] = "allocation"
+        raise
+    finally:
+        if report:
+            write(report, result)
+
+
+def resolve_gpus(env: dict, result: dict, report: Path | None) -> list[dict]:
     count = int(env["SELFPLAY_GPU_COUNT"])
     identifiers = env.get("SLURM_JOB_GPUS", "").split(",")
     mask = env.get("CUDA_VISIBLE_DEVICES", "").split(",")
@@ -60,21 +111,38 @@ def allocated_gpus(env: dict) -> list[dict]:
         or not all(mask)
     ):
         raise ValueError("Missing or inconsistent Slurm GPU allocation/mask")
-    inventory = subprocess.check_output(
-        [
+    commands = {
+        "inventory": [
             "nvidia-smi",
             "--query-gpu=index,uuid,pci.bus_id",
             "--format=csv,noheader,nounits",
         ],
-        text=True,
-        env=env,
-        timeout=30,
-    )
+        "xml_inventory": ["nvidia-smi", "-q", "-x"],
+        "slurm_job": ["scontrol", "show", "job", "-o", env["SLURM_JOB_ID"]],
+    }
+    for name, command in commands.items():
+        result[name] = diagnostic_command(command, env)
+        if report:
+            write(report, result)
+        if result[name]["exit_code"]:
+            raise ValueError("Allocation diagnostic failed: " + name)
+    inventory = result["inventory"]["stdout"]
+    cgroup = Path("/proc/self/cgroup").read_text()
+    result["cgroup_membership"] = cgroup
+    job = result["slurm_job"]["stdout"]
+    job_id = env["SLURM_JOB_ID"]
+    if not re.search(r"(?:^|/)job_" + re.escape(job_id) + r"(?:/|$)", cgroup.strip()):
+        raise ValueError("Process is not in its Slurm job cgroup")
+    if (
+        not re.search(r"(?:^|\s)JobId=" + re.escape(job_id) + r"(?:\s|$)", job)
+        or "JobState=RUNNING" not in job
+        or "NumNodes=1 " not in job
+        or not re.search(r"(?:^|,)gres/gpu=" + str(count) + r"(?:,|\s|$)", job)
+    ):
+        raise ValueError("Live Slurm allocation does not match requested GPU count")
     # Minor Number is available in the full XML query, not --query-gpu on
     # the Yale driver. Join by UUID instead of relying on XML element order.
-    xml_inventory = ET.fromstring(
-        subprocess.check_output(["nvidia-smi", "-q", "-x"], text=True, env=env, timeout=30)
-    )
+    xml_inventory = ET.fromstring(result["xml_inventory"]["stdout"])
     minors = {}
     for gpu in xml_inventory.findall("gpu"):
         uuid = gpu.findtext("uuid", "").strip()
@@ -87,28 +155,34 @@ def allocated_gpus(env: dict) -> list[dict]:
             raise ValueError("Invalid NVIDIA GPU inventory")
         index, uuid, bus = [field.strip() for field in fields]
         minor = minors.get(uuid, "")
+        if not minor.isdigit():
+            raise ValueError("Missing NVIDIA device minor")
         if not re.fullmatch(r"GPU-[0-9a-fA-F-]{36}", uuid):
             raise ValueError("Invalid NVIDIA GPU UUID")
         devices.append({"index": index, "minor": minor, "uuid": uuid, "pci_bus_id": bus})
-    selected = []
-    for identifier in identifiers:
-        if identifier.isdigit():
-            # GRES/device-file and NVML indices can diverge after a reboot.
-            # Require agreement instead of guessing a site's device mapping.
-            matches = [d for d in devices if d["index"] == d["minor"] == identifier]
-        else:
-            matches = [d for d in devices if d["uuid"] == identifier]
-        if len(matches) != 1:
-            raise ValueError("Ambiguous Slurm/NVIDIA GPU mapping; inspect site configuration")
-        selected.append(matches[0])
-    if len({device["uuid"] for device in selected}) != count:
-        raise ValueError("Duplicate allocated GPU UUID")
+    if len({d["uuid"] for d in devices}) != len(devices) or len(
+        {d["minor"] for d in devices}
+    ) != len(devices):
+        raise ValueError("Duplicate NVIDIA inventory identity")
+    for device in devices:
+        device["accessible"] = device_access(device["minor"])
+    result["devices"] = devices
+    selected = sorted([d for d in devices if d["accessible"]], key=lambda d: d["pci_bus_id"])
+    if len(selected) != count:
+        raise ValueError(
+            "Slurm device policy permits an unexpected GPU count; inspect site configuration"
+        )
+    uuid_ids = [identifier for identifier in identifiers if identifier.startswith("GPU-")]
+    if uuid_ids and set(uuid_ids) != {d["uuid"] for d in selected}:
+        raise ValueError("Slurm GPU UUIDs disagree with enforced device access")
+    result["allocated"] = selected
+    result["ownership_verified"] = True
     return selected
 
 
 def verify_container_gpus(command: list[str], env: dict, devices: list[dict], report: Path):
     """Check actual CUDA UUIDs and initial occupancy before any model is loaded."""
-    result = {
+    result = (json.loads(report.read_text()) if report.is_file() else {}) | {
         "job_id": env["SLURM_JOB_ID"],
         "image_sha256": env["SELFPLAY_TRAINER_SHA256"],
         "slurm_job_gpus": env["SLURM_JOB_GPUS"],
@@ -449,10 +523,76 @@ def user_bus_environment(env: dict, directory: Path | None = None) -> dict:
     return result
 
 
+def worker_diagnostics(env: dict) -> dict:
+    """Inspect supported setup prerequisites without launching candidates or services."""
+    membership = Path("/proc/self/cgroup").read_text()
+    relative = next(
+        (row.split(":", 2)[2] for row in membership.splitlines() if row.startswith("0::")), None
+    )
+    groups = []
+    if relative is not None:
+        root = Path("/sys/fs/cgroup")
+        current = root / relative.lstrip("/")
+        while current.is_relative_to(root):
+            files = {}
+            for filename in (
+                "cgroup.controllers",
+                "cgroup.subtree_control",
+                "cpu.max",
+                "memory.max",
+                "memory.swap.max",
+                "pids.max",
+            ):
+                path = current / filename
+                if path.is_file():
+                    files[filename] = {
+                        "value": path.read_text().strip(),
+                        "writable": os.access(path, os.W_OK),
+                    }
+            groups.append({"path": str(current), "files": files})
+            if current == root:
+                break
+            current = current.parent
+    configuration = {}
+    for filename in ("/etc/apptainer/apptainer.conf", "/etc/slurm/cgroup.conf"):
+        path = Path(filename)
+        if path.is_file():
+            configuration[filename] = [
+                line
+                for line in path.read_text().splitlines()
+                if line.strip() and not line.lstrip().startswith("#")
+            ]
+    bus = Path(f"/run/user/{os.getuid()}/bus")
+    return {
+        "diagnostic_only": True,
+        "ready": False,
+        "host": platform.node(),
+        "job_id": env["SLURM_JOB_ID"],
+        "uid": os.getuid(),
+        "kernel": platform.release(),
+        "owned_user_bus": bus.is_socket() and bus.stat().st_uid == os.getuid(),
+        "cgroup_membership": membership,
+        "cgroup_ancestry": groups,
+        "configuration": configuration,
+        "versions": {
+            name: diagnostic_command(args, env)
+            for name, args in {
+                "apptainer": ["apptainer", "version"],
+                "systemd": ["systemctl", "--version"],
+                "user_manager": ["systemctl", "--user", "is-system-running"],
+                "slurm": ["scontrol", "--version"],
+            }.items()
+        },
+        "next_action": "Obtain YCRC-supported delegation or existing approved service; diagnostics do not establish isolation",
+    }
+
+
 def execute(env: dict) -> int:
     operation = env["SELFPLAY_OPERATION"]
     if operation not in {
         "backend-check",
+        "allocation-check",
+        "worker-diagnose",
         "worker-check",
         "runtime-check",
         "train",
@@ -508,6 +648,9 @@ def execute(env: dict) -> int:
             "cgroups_v2": Path("/sys/fs/cgroup/cgroup.controllers").exists(),
         },
     )
+    if operation == "worker-diagnose":
+        write(readiness / f"worker-diagnostics-{attempt}.json", worker_diagnostics(process_env))
+        return 0
     if operation == "worker-check":
         return subprocess.run(
             broker_args(process_env, ready, readiness / "worker.json") + ["--check-only"],
@@ -566,6 +709,7 @@ def execute(env: dict) -> int:
             "SELFPLAY_WORKER_TOKEN",
             "SELFPLAY_WORKER_URL",
             "SELFPLAY_WORKER_SHA256",
+            "SELFPLAY_WORKER_SETUP_ID",
             "WANDB_API_KEY",
             "CUDA_VISIBLE_DEVICES",
             "SLURM_JOB_ID",
@@ -577,7 +721,8 @@ def execute(env: dict) -> int:
                 overrides[key] = process_env[key]
         process_env.update({"APPTAINERENV_" + k: v for k, v in overrides.items()})
         gpu_count = int(env["SELFPLAY_GPU_COUNT"])
-        devices = allocated_gpus(process_env) if gpu_count else []
+        allocation_report = readiness / f"gpu-allocation-{attempt}.json"
+        devices = allocated_gpus(process_env, allocation_report) if gpu_count else []
         if gpu_count:
             process_env["APPTAINERENV_CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
             process_env["APPTAINERENV_CUDA_VISIBLE_DEVICES"] = ",".join(
@@ -643,12 +788,22 @@ def execute(env: dict) -> int:
             "/workspace",
             env["SELFPLAY_TRAINER_SIF"],
         ]
-        if operation != "backend-check":
+        if operation not in {"backend-check", "allocation-check"}:
             command[2:2] = ["--bind", env["SELFPLAY_DATA"] + ":/data/prepared:ro"]
         if gpu_count:
-            verify_container_gpus(
-                command, process_env, devices, readiness / f"gpu-allocation-{attempt}.json"
+            verify_container_gpus(command, process_env, devices, allocation_report)
+        if operation == "allocation-check":
+            write(
+                readiness / f"allocation-{env['SELFPLAY_HARDWARE']}.json",
+                json.loads(allocation_report.read_text())
+                | {
+                    "execution_commit": Path(env["SELFPLAY_PROJECT"]).name,
+                    "allocation_code_hash": sha256(Path(__file__)),
+                    "gpu_type": env["SELFPLAY_GPU_TYPE"],
+                    "gpu_count": gpu_count,
+                },
             )
+            return 0
         if operation == "method-smoke":
             # Separate processes provide fresh model, RNG and optimizer initialization.
             status = 0
@@ -698,7 +853,33 @@ def main():
     elif env["SELFPLAY_OPERATION"] == "image-convert":
         convert(env)
     else:
-        raise SystemExit(execute(env))
+        outcome = {
+            "job_id": env["SLURM_JOB_ID"],
+            "operation": env["SELFPLAY_OPERATION"],
+            "state": "running",
+            "failure_category": None,
+        }
+        root = (
+            Path(env["SELFPLAY_RUNS"])
+            / "readiness"
+            / env.get("SELFPLAY_MAIN_STUDY", env["SELFPLAY_STUDY"])
+        )
+        report = root / f"attempt-{env['SLURM_JOB_ID']}.json"
+        write(report, outcome)
+        try:
+            status = execute(env)
+            outcome.update(state="passed" if status == 0 else "failed", exit_code=status)
+        except Exception as error:
+            outcome.update(state="failed", error=str(error), failure_category="application")
+            allocation = root / f"gpu-allocation-{env['SLURM_JOB_ID']}.json"
+            if allocation.is_file() and not json.loads(allocation.read_text()).get("ready"):
+                outcome["failure_category"] = "allocation"
+            elif "worker" in str(error).lower():
+                outcome["failure_category"] = "worker"
+            raise
+        finally:
+            write(report, outcome)
+        raise SystemExit(status)
 
 
 if __name__ == "__main__":

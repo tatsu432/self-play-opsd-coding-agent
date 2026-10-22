@@ -9,6 +9,7 @@ import os
 import shutil
 import signal
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -342,6 +343,17 @@ def test_slurm_wrapper_runs_the_pinned_image_without_host_venv(tmp_path):
     capture = tmp_path / "apptainer-args.txt"
     binary = tmp_path / "bin"
     binary.mkdir()
+    # The shell-wrapper contract is independent of kernel GPU ownership, which
+    # is exercised by test_allocation_diagnostics on synthetic device policies.
+    python_stub = binary / "python3"
+    python_stub.write_text(
+        f"#!{sys.executable}\nimport runpy,sys\n"
+        "ns=runpy.run_path(sys.argv[1])\n"
+        "ns['execute'].__globals__['allocated_gpus']=lambda env,report: "
+        "[dict(uuid='GPU-11111111-1111-1111-1111-111111111111')]\n"
+        "ns['main']()\n"
+    )
+    python_stub.chmod(0o755)
     stub = binary / "apptainer"
     stub.write_text(
         '#!/bin/sh\nprintf "%s\\n" "$@" > "$CAPTURE_ARGS"\n'

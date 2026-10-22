@@ -166,6 +166,7 @@ def register(app: typer.Typer):
             request["runtime_identity"] = execution_identity(cfg) | {
                 "trainer_sha256": trainer_digest,
                 "worker_sha256": result["images"]["worker"].get("sha256"),
+                "worker_setup_id": result["reports"]["worker"].get("worker_setup_id", ""),
             }
         return remote.call("study", request), request
 
@@ -263,6 +264,7 @@ def register(app: typer.Typer):
         alias: str = ALIASES[0],
         gpu_type: str = "h100",
         stage: str = "all",
+        worker_setup_id: str = "",
     ):
         """Advance readiness one allocation at a time; stop before main training."""
         if gpu_type not in {"h100", "h200"}:
@@ -302,6 +304,13 @@ def register(app: typer.Typer):
             ]
             if stage == "backend":
                 stages = [entry for entry in stages if entry[0] in {"single", "target"}]
+            if "allocation_checks" in state and gpu_type == "h100":
+                stages = [
+                    ("allocation_single", "allocation-check", {"profile": "single_gpu_80gb"}),
+                    ("allocation_target", "allocation-check", {}),
+                ] + stages
+                for key, ready in state["allocation_checks"].items():
+                    state["gates"]["allocation_" + key] = ready
             next_stage = next((entry for entry in stages if not state["gates"][entry[0]]), None)
             if stage == "backend" and next_stage is None:
                 output(
@@ -327,6 +336,26 @@ def register(app: typer.Typer):
                 )
                 return
             name, operation, options = next_stage
+            if operation == "worker-check":
+                options["worker_setup_id"] = worker_setup_id
+                prior = state["reports"].get("worker", {})
+                detail = json.dumps(prior.get("details", {})).lower()
+                if (
+                    not prior.get("ready")
+                    and ("dbus_session_bus_address" in detail or "delegat" in detail)
+                    and worker_setup_id == prior.get("worker_setup_id", "")
+                ):
+                    output(
+                        {
+                            "stage": name,
+                            "state": "failed",
+                            "failure_category": "site_setup",
+                            "eligible_to_submit_main": False,
+                            "next_action": "Run hpc worker-diagnose; obtain a supported setup in YCRC ticket 79403, then use --worker-setup-id with that documented change",
+                            "evidence": prior,
+                        }
+                    )
+                    return
             if operation != "worker-check" and not state["images"]["trainer"].get("ready"):
                 output(
                     {
@@ -361,12 +390,20 @@ def register(app: typer.Typer):
                     time.sleep(30)
                     continue
                 state = remote.call("study", request)
-                if payload["gpu_count"] == 0 and latest in {
-                    "PREEMPTED",
-                    "NODE_FAIL",
-                    "BOOT_FAIL",
-                    "TIMEOUT",
-                }:
+                if (
+                    (
+                        payload["gpu_count"] == 0
+                        or operation in {"allocation-check", "backend-check"}
+                    )
+                    and latest
+                    in {
+                        "PREEMPTED",
+                        "NODE_FAIL",
+                        "BOOT_FAIL",
+                        "TIMEOUT",
+                    }
+                    and (payload["gpu_count"] == 0 or latest != "TIMEOUT")
+                ):
                     result = remote.call("submit", payload)
                     output(result)
                     if result.get("submitted") and watch:
@@ -391,7 +428,9 @@ def register(app: typer.Typer):
                     if result.get("submitted"):
                         return
                 if gpu_type == "h100" and state["h100_memory_fit_failure"]:
-                    return prepare_study(settings, gpu_hours_limit, watch, alias, "h200", stage)
+                    return prepare_study(
+                        settings, gpu_hours_limit, watch, alias, "h200", stage, worker_setup_id
+                    )
                 output(
                     {
                         "stage": name,

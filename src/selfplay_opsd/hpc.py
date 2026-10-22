@@ -327,9 +327,12 @@ def run_payload(
     checkpoint_iteration: int | None = None,
     endpoint: str = "primary",
     secrets_file: str | None = None,
+    worker_setup_id: str = "",
 ) -> dict:
     if operation not in {
         "backend-check",
+        "allocation-check",
+        "worker-diagnose",
         "pilot",
         "train",
         "evaluate",
@@ -384,9 +387,10 @@ def run_payload(
             snap["commit"] = pinned_commit
     trainer = state["images"]["trainer"]
     worker = state["images"]["worker"]
+    worker_setup_id = worker_setup_id or state["reports"]["worker"].get("worker_setup_id", "")
     image = image or trainer.get("path", "")
     image_sha256 = image_sha256 or trainer.get("sha256", "")
-    if operation not in {"image-convert", "image-build", "worker-check"} and (
+    if operation not in {"image-convert", "image-build", "worker-check", "worker-diagnose"} and (
         not image or not image_sha256
     ):
         raise HpcError("Build and convert the trainer image first: hpc images build --kind trainer")
@@ -395,11 +399,12 @@ def run_payload(
     backend_expected = backend_identity(cfg) | {"trainer_sha256": image_sha256 or None}
     runtime_identity = (
         None
-        if operation == "backend-check"
+        if operation in {"backend-check", "allocation-check", "worker-diagnose"}
         else execution_identity(cfg)
         | {
             "trainer_sha256": image_sha256 or None,
             "worker_sha256": worker.get("sha256"),
+            "worker_setup_id": worker_setup_id,
         }
     )
     pilot_suffix = "-pilot" if chosen_gpu == "h100" else "-pilot-" + chosen_gpu
@@ -422,7 +427,8 @@ def run_payload(
         "settings_sha256": sha256(settings),
         "scientific_hash": checkpoint_cfg.scientific_hash,
         "image_sha256": image_sha256,
-        "worker_sha256": worker.get("sha256") if operation != "backend-check" else None,
+        "worker_sha256": worker.get("sha256") if runtime_identity else None,
+        "worker_setup_id": worker_setup_id if runtime_identity else None,
         "backend_identity": backend_expected if operation == "backend-check" else None,
         "operation": operation,
         "method": method,
@@ -439,6 +445,7 @@ def run_payload(
     identity = hashlib.sha256(json.dumps(logical, sort_keys=True).encode()).hexdigest()
     gpu_operation = operation in {
         "backend-check",
+        "allocation-check",
         "pilot",
         "method-smoke",
         "train",
@@ -467,9 +474,10 @@ def run_payload(
         )
         if operation == "train"
         else 300,
-        "worker_image": worker.get("path", "") if operation != "backend-check" else "",
-        "worker_sha256": worker.get("sha256", "") if operation != "backend-check" else "",
+        "worker_image": worker.get("path", "") if runtime_identity else "",
+        "worker_sha256": worker.get("sha256", "") if runtime_identity else "",
         "worker_config": cfg.sandbox.model_dump(mode="json"),
+        "worker_setup_id": worker_setup_id,
         "supervisor_hash": supervisor_hash(),
         "pilot_suffix": pilot_suffix,
         "target_iterations": iterations if operation == "pilot" else cfg.iterations,
@@ -489,9 +497,9 @@ def run_payload(
         "estimated_main_hours_from_D_pilot": state["reports"]["freeze"]
         .get("pilot", {})
         .get("projection_200_hours"),
-        "retry_setup": not gpu_operation,
+        "retry_setup": not gpu_operation or operation in {"allocation-check", "backend-check"},
         "readiness_budget": 24
-        if operation in {"backend-check", "pilot", "method-smoke"}
+        if operation in {"backend-check", "allocation-check", "pilot", "method-smoke"}
         or (operation == "evaluate" and base)
         else None,
         "run_id": identity[:24],
@@ -520,7 +528,9 @@ def run_payload(
         else 4
         if operation == "worker-check"
         else 8,
-        "time": "01:00:00"
+        "time": "00:05:00"
+        if operation in {"allocation-check", "worker-diagnose"}
+        else "01:00:00"
         if operation == "backend-check"
         else "06:00:00"
         if operation == "pilot"
@@ -555,6 +565,62 @@ def run_payload(
     if operation == "diagnose":
         payload["output"] = f"/runs/{cfg.study_id}/diagnostics/{checkpoint_iteration:06d}"
     return payload
+
+
+@app.command("allocation-check")
+def allocation_check(
+    profile: str = "single_gpu_80gb",
+    gpu_type: str = "h100",
+    settings: Path = Path("configs/yale.yaml"),
+    dry_run: bool = False,
+    alias: str = ALIASES[0],
+):
+    """Prove physical GPU ownership and container UUIDs without loading a model."""
+    if (
+        alias != ALIASES[0]
+        or gpu_type != "h100"
+        or profile not in {"single_gpu_80gb", "dual_gpu_80gb"}
+    ):
+        raise HpcError("Allocation diagnostics require cpsc4880 and one or two H100s")
+    remote = YaleSSH(alias)
+    payload = run_payload(
+        remote,
+        alias,
+        operation="allocation-check",
+        method="D",
+        profile=profile,
+        gpu_type=gpu_type,
+        settings=settings,
+        account=None,
+        image="",
+        image_sha256="",
+    )
+    output(remote.call("preview" if dry_run else "submit", payload))
+
+
+@app.command("worker-diagnose")
+def worker_diagnose(
+    settings: Path = Path("configs/yale.yaml"),
+    dry_run: bool = False,
+    alias: str = ALIASES[0],
+):
+    """Inspect compute-node worker prerequisites; execute no candidate code."""
+    if alias != ALIASES[0]:
+        raise HpcError("Worker diagnostics are authorized only on cpsc4880")
+    remote = YaleSSH(alias)
+    payload = run_payload(
+        remote,
+        alias,
+        operation="worker-diagnose",
+        method="D",
+        profile="dual_gpu_80gb",
+        gpu_type="h100",
+        settings=settings,
+        account=None,
+        image="",
+        image_sha256="",
+    )
+    output(remote.call("preview" if dry_run else "submit", payload))
 
 
 @app.command("inspect")
@@ -624,6 +690,7 @@ def doctor(
         identity = execution_identity(cfg) | {
             "trainer_sha256": state["images"]["trainer"].get("sha256"),
             "worker_sha256": state["images"]["worker"].get("sha256"),
+            "worker_setup_id": state["reports"]["worker"].get("worker_setup_id", ""),
         }
         state = target.call(
             "study",

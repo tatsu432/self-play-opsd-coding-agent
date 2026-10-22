@@ -412,6 +412,13 @@ def test_backend_allocation_ignores_broken_worker_and_needs_no_data(tmp_path, mo
     }
     monkeypatch.setattr(job.subprocess, "Popen", lambda *a, **k: pytest.fail("No worker broker"))
     monkeypatch.setattr(job, "user_bus_environment", lambda _: pytest.fail("No D-Bus dependency"))
+    # Kernel allocation ownership has independent adversarial coverage. This
+    # test checks that trusted backend work has no worker/data dependencies.
+    monkeypatch.setattr(
+        job,
+        "allocated_gpus",
+        lambda env, report: [{"uuid": "GPU-11111111-1111-1111-1111-111111111111"}],
+    )
     monkeypatch.setattr(
         job.subprocess,
         "check_output",
@@ -457,14 +464,27 @@ def test_gpu_selection_rejects_missing_or_inconsistent_slurm_mask(tmp_path, gpu_
         job.allocated_gpus(env)
 
 
-def test_gpu_selection_rejects_ambiguous_nvidia_numbering(tmp_path, monkeypatch):
+def test_gpu_selection_rejects_duplicate_physical_device_identity(tmp_path, monkeypatch):
     job = allocation_module()
+    original_read = Path.read_text
     monkeypatch.setattr(
-        job.subprocess,
-        "check_output",
-        lambda args, **kw: gpu_inventory(args).replace("<minor_number>1", "<minor_number>0"),
+        Path,
+        "read_text",
+        lambda path, *a, **kw: "0::/slurm/job_123/step_batch\n"
+        if str(path) == "/proc/self/cgroup"
+        else original_read(path, *a, **kw),
     )
-    with pytest.raises(ValueError, match="Ambiguous Slurm/NVIDIA"):
+    monkeypatch.setattr(
+        job,
+        "diagnostic_command",
+        lambda args, env: {
+            "exit_code": 0,
+            "stdout": "JobId=123 JobState=RUNNING NumNodes=1 TRES=cpu=2,gres/gpu=1 "
+            if args[0] == "scontrol"
+            else gpu_inventory(args).replace("<minor_number>1", "<minor_number>0"),
+        },
+    )
+    with pytest.raises(ValueError, match="Duplicate NVIDIA inventory"):
         job.allocated_gpus(allocation_env(tmp_path))
 
 

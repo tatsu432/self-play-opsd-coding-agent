@@ -12,6 +12,7 @@ import signal
 import socket
 import subprocess
 import tempfile
+import threading
 import time
 import uuid
 from dataclasses import asdict, dataclass, fields
@@ -88,7 +89,11 @@ class RuntimeConfig:
 
 
 def bounded_process(
-    command: list[str], data: bytes, timeout: float, limit: int
+    command: list[str],
+    data: bytes,
+    timeout: float,
+    limit: int,
+    cancelled: threading.Event | None = None,
 ) -> tuple[int, bytes, bytes, str]:
     """Drain both pipes concurrently, kill at a bound, and always reap the process."""
     with tempfile.TemporaryFile() as request:
@@ -109,6 +114,9 @@ def bounded_process(
         deadline, reason = time.monotonic() + timeout, ""
         try:
             while selector.get_map():
+                if cancelled is not None and cancelled.is_set():
+                    reason = "cancelled"
+                    break
                 if time.monotonic() > deadline:
                     reason = "timeout"
                     break
@@ -143,6 +151,31 @@ def bounded_process(
         return process.returncode, bytes(chunks[0][:limit]), bytes(chunks[1][:limit]), reason
 
 
+def cgroup_probe(expression: str) -> str:
+    """Resolve membership and mount roots; containers need not mount their cgroup at /."""
+    return (
+        "import os\n"
+        "def check():\n"
+        " try:\n"
+        "  membership=next(line.strip().split(':',2)[2] for line in open('/proc/self/cgroup') if line.startswith('0::'))\n"
+        "  mount=next(line.split(' - ',1)[0].split() for line in open('/proc/self/mountinfo') if ' - cgroup2 ' in line)\n"
+        "  root,point=mount[3:5]\n"
+        "  if root!='/' and membership!=root and not membership.startswith(root+'/'): return False\n"
+        "  relative=membership[len(root):] if root!='/' else membership\n"
+        "  current=os.path.normpath(point+'/'+relative.lstrip('/'))\n"
+        "  if os.path.commonpath([point,current])!=point: return False\n"
+        "  groups=[]\n"
+        "  while True:\n"
+        "   groups.append(current)\n"
+        "   if current==point: break\n"
+        "   current=os.path.dirname(current)\n"
+        "  def values(name):\n"
+        "   return [open(group+'/'+name).read().strip() for group in groups if os.path.isfile(group+'/'+name)]\n"
+        f"  return {expression}\n"
+        " except (OSError,ValueError,StopIteration): return False\n"
+    )
+
+
 def isolation_probes(config) -> dict[str, str]:
     return {
         "network_namespace": "import socket,fcntl,struct\ndef check():\n s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM)\n try:\n  return all(name=='lo' or not (struct.unpack('H',fcntl.ioctl(s.fileno(),0x8913,struct.pack('256s',name.encode()))[16:18])[0]&1) for _,name in socket.if_nameindex())\n finally: s.close()\n",
@@ -151,17 +184,27 @@ def isolation_probes(config) -> dict[str, str]:
         "readonly_root": "def check():\n try:\n  open('/opt/escape','w').write('x'); return False\n except OSError: return True\n",
         "no_gpu": "import os\ndef check():\n return not any(n.startswith('nvidia') for n in os.listdir('/dev'))\n",
         "nonroot": "import os\ndef check():\n return os.geteuid()!=0\n",
-        "pids_limit": f"def check():\n try:\n  value=open('/sys/fs/cgroup/pids.max').read().strip()\n  return value!='max' and int(value)<={config.pids}\n except OSError: return False\n",
-        "memory_limit": f"def check():\n try:\n  value=open('/sys/fs/cgroup/memory.max').read().strip()\n  return value!='max' and int(value)<={config.memory_mib * 1024**2}\n except OSError: return False\n",
-        "cpu_limit": f"def check():\n try:\n  quota,period=open('/sys/fs/cgroup/cpu.max').read().split()\n  return quota!='max' and int(quota)/int(period)<={config.cpus}\n except OSError: return False\n",
+        "pids_limit": cgroup_probe(
+            f"any(v!='max' and int(v)<={config.pids} for v in values('pids.max'))"
+        ),
+        "memory_limit": cgroup_probe(
+            f"any(v!='max' and int(v)<={config.memory_mib * 1024**2} for v in values('memory.max'))"
+        ),
+        "cpu_limit": cgroup_probe(
+            f"any(v.split()[0]!='max' and int(v.split()[0])/int(v.split()[1])<={config.cpus} for v in values('cpu.max'))"
+        ),
+        "cgroup_readonly": cgroup_probe(
+            "not any(os.access(group+'/cgroup.procs',os.W_OK) for group in groups)"
+        ),
         "disk_limit": f"import os\ndef check():\n v=os.statvfs('/tmp'); return v.f_blocks*v.f_frsize<={config.disk_mib * 1024**2}\n",
     }
 
 
 class LocalRuntime:
-    def __init__(self, config):
+    def __init__(self, config, *, cancelled: threading.Event | None = None):
         self.config = config
-        self._image_id = None
+        self.cancelled = cancelled
+        self._image_id: str | None = None
 
     def identity(self) -> str:
         if self._image_id is None:
@@ -266,7 +309,11 @@ class LocalRuntime:
             # Include startup outside code's calibrated allowance; Docker startup
             # is measured separately in the pilot. Overall host timeout is bounded.
             code, stdout, stderr, reason = bounded_process(
-                self.command(name), raw, seconds + 5, self.config.output_bytes
+                self.command(name),
+                raw,
+                seconds + 5,
+                self.config.output_bytes,
+                **({"cancelled": self.cancelled} if self.cancelled is not None else {}),
             )
         except OSError as exc:
             return result("missing_dependency", [], time.monotonic() - started, str(exc))
@@ -280,7 +327,7 @@ class LocalRuntime:
                     check=False,
                 )
         elapsed = time.monotonic() - started
-        if reason in {"timeout", "output_limit"}:
+        if reason in {"timeout", "output_limit", "cancelled"}:
             return result("student_failure", [], elapsed, reason)
         if (
             (
@@ -341,6 +388,7 @@ class LocalRuntime:
             "image_digest": self.identity(),
             "config_hash": digest(self.config.model_dump()),
             "supervisor_hash": supervisor_hash(),
+            "worker_setup_id": os.getenv("SELFPLAY_WORKER_SETUP_ID", ""),
             "timestamp": time.time(),
             "limits": self.config.model_dump(),
         }

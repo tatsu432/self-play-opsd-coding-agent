@@ -47,6 +47,43 @@ existing YCRC thread. Do not repeat it without a changed supported setup.
 
 ## Readiness sequence
 
+Task 06 first establishes physical allocation ownership in short model-free
+checks and collects worker setup diagnostics on a CPU node:
+
+```bash
+uv run selfplay hpc sync
+uv run selfplay hpc worker-diagnose
+uv run selfplay hpc allocation-check --profile single_gpu_80gb
+uv run selfplay hpc allocation-check --profile dual_gpu_80gb
+```
+
+Inspect each returned run before advancing. Allocation checks each have a
+five-minute ceiling and share the existing 24 GPU-hour ledger. They publish
+`gpu-allocation-JOB_ID.json` even on failure, and successful profile proofs as
+`allocation-PROFILE.json`. NVIDIA indices and Linux device minors may differ;
+ownership comes from actual kernel device access inside the live Slurm cgroup,
+followed by a container CUDA UUID/occupancy check. Extra device access fails.
+
+Worker diagnostics execute no candidate code, establish no isolation evidence,
+and publish `worker-diagnostics-JOB_ID.json`. Use these findings in YCRC ticket
+79403. After a documented supported site change, identify it explicitly:
+
+```bash
+uv run selfplay hpc prepare-study --worker-setup-id TICKET-AND-SETUP-REVISION --watch
+```
+
+The setup ID records the change; actual isolation probes must still pass. An
+unchanged delegation failure cannot be retried merely by restarting preparation.
+The setup identity follows runtime evidence and checkpoints into main previews.
+An existing approved Yale service remains a contingency pending YCRC's concrete
+endpoint, authentication, cancellation and accounting contract; no service has
+been provisioned or assumed available.
+
+`doctor` includes `stage_status`: pending, running, passed, stale or failed,
+with scheduler/run identity, evidence and next action. Allocation and backend
+checks can retry at most two confirmed scheduler interruptions; application
+failure, OOM, uncertain submission and GPU timeout require inspection.
+
 After the trainer build and hosted CPU CI pass, backend-only GPU acceptance can
 proceed independently of the worker support response:
 

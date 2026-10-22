@@ -587,7 +587,12 @@ def submit(payload: dict) -> dict:
     sync = json.loads((p["state"] / f"sync-{payload['commit']}.json").read_text())
     if sync != {"commit": payload["commit"], "manifest_sha256": payload["manifest_sha256"]}:
         raise ValueError("Remote snapshot identity mismatch")
-    if payload["operation"] not in {"image-convert", "image-build", "worker-check"}:
+    if payload["operation"] not in {
+        "image-convert",
+        "image-build",
+        "worker-check",
+        "worker-diagnose",
+    }:
         if not Path(payload["image"]).is_file() or not DIGEST.fullmatch(payload["image_sha256"]):
             raise ValueError("Pinned trainer SIF missing")
     precheck(payload)
@@ -646,8 +651,12 @@ def submit(payload: dict) -> dict:
                 }
             setup_retry = (
                 payload.get("retry_setup")
-                and payload["gpu_count"] == 0
+                and (
+                    payload["gpu_count"] == 0
+                    or payload["operation"] in {"allocation-check", "backend-check"}
+                )
                 and state["state"] in {"PREEMPTED", "NODE_FAIL", "BOOT_FAIL", "TIMEOUT"}
+                and (payload["gpu_count"] == 0 or state["state"] != "TIMEOUT")
                 and ledger.get("setup_retries", 0) < 2
             )
             if not payload.get("resume") and not setup_retry:
@@ -728,6 +737,7 @@ def submit(payload: dict) -> dict:
             "SELFPLAY_PROJECT": str(p["checkout"]),
             "SELFPLAY_WORKER_SIF": payload.get("worker_image", ""),
             "SELFPLAY_WORKER_SHA256": payload.get("worker_sha256", ""),
+            "SELFPLAY_WORKER_SETUP_ID": payload.get("worker_setup_id", ""),
             "SELFPLAY_WORKER_CONFIG": base64.b64encode(
                 json.dumps(payload.get("worker_config", {})).encode()
             ).decode(),
@@ -857,6 +867,10 @@ def artifact_dir(payload: dict) -> Path:
         )
     if operation == "method-smoke":
         return runs / "readiness" / study / "method-smokes"
+    if operation == "allocation-check":
+        return runs / "readiness" / study / ("allocation-" + payload["profile"])
+    if operation == "worker-diagnose":
+        return runs / "readiness" / study / "worker-diagnostics"
     if operation in {"worker-check", "runtime-check", "readiness-check"}:
         return runs / "readiness" / study
     if operation == "backend-check":
@@ -978,6 +992,77 @@ def release_budget(payload: dict, token: str):
             write_json(path, budget)
 
 
+def stage_status(base: Path, study: str, gates: dict, reports: dict) -> dict:
+    """Summarize durable attempts without treating a scheduler success as evidence."""
+    operations = {
+        "worker": "worker-check",
+        "runtime": "runtime-check",
+        "single": "backend-check",
+        "target": "backend-check",
+        "base": "evaluate",
+        "pilot": "pilot",
+        "methods": "method-smoke",
+        "freeze": "freeze-study",
+    }
+    ledgers = []
+    for path in (base / "state").glob("*.json"):
+        item = json.loads(path.read_text())
+        if item.get("specification", {}).get("study_id") == study:
+            ledgers.append((path.stat().st_mtime_ns, item))
+    states = {}
+    for gate, passed in gates.items():
+        state = {
+            "state": "passed" if passed else "stale" if reports.get(gate) else "pending",
+            "next_action": None if passed else "Run hpc prepare-study --watch",
+        }
+        candidates = []
+        for modified, ledger in ledgers:
+            spec = ledger["specification"]
+            if spec.get("operation") != operations[gate]:
+                continue
+            if gate in {"single", "target"} and (spec.get("profile") == "single_gpu_80gb") != (
+                gate == "single"
+            ):
+                continue
+            if gate == "base" and not spec.get("base"):
+                continue
+            candidates.append((modified, ledger))
+        if candidates and not passed:
+            ledger = max(candidates, key=lambda item: item[0])[1]
+            run_id = ledger["specification"]["run_id"]
+            state["run_id"] = run_id
+            if ledger.get("pending_intent"):
+                state.update(
+                    state="pending",
+                    failure_category="uncertain_submission",
+                    next_action=f"Reconcile hpc status {run_id}; do not replace this intent",
+                )
+            elif ledger.get("attempts"):
+                job = ledger["attempts"][-1]["job_id"]
+                scheduler = job_state(job)["state"]
+                state.update(job_id=job, scheduler_state=scheduler)
+                if scheduler in ACTIVE:
+                    state["state"] = "pending" if scheduler == "PENDING" else "running"
+                elif scheduler == "UNKNOWN":
+                    state.update(state="pending", failure_category="uncertain_submission")
+                elif scheduler != "COMPLETED":
+                    attempt = base / "runs/readiness" / study / f"attempt-{job}.json"
+                    details = json.loads(attempt.read_text()) if attempt.is_file() else {}
+                    category = details.get("failure_category") or (
+                        "scheduler_interrupt"
+                        if scheduler in {"PREEMPTED", "NODE_FAIL", "BOOT_FAIL"}
+                        else "application"
+                    )
+                    state.update(
+                        state="failed",
+                        failure_category=category,
+                        evidence=str(attempt),
+                        next_action=f"Inspect hpc logs {run_id} and hpc status {run_id}; repair before retry",
+                    )
+        states[gate] = state
+    return states
+
+
 def study_state(payload: dict) -> dict:
     base = workspace(payload)
     study = payload["study_id"]
@@ -1006,6 +1091,22 @@ def study_state(payload: dict) -> dict:
         "freeze": read(runs / study / "study_frozen.json"),
         "methods": {m: read(evidence / "method-smokes" / f"{m}.json") for m in "ABC"},
     }
+    allocation_checks = {}
+    for key, profile, count in (
+        ("single", "single_gpu_80gb", 1),
+        ("target", payload.get("profile", "dual_gpu_80gb"), payload.get("profile_gpu_count", 2)),
+    ):
+        proof = read(evidence / f"allocation-{profile}.json")
+        allocation_checks[key] = bool(
+            proof.get("ready")
+            and proof.get("ownership_verified")
+            and proof.get("image_sha256") == images["trainer"].get("sha256")
+            and proof.get("allocation_code_hash")
+            == payload.get("backend_identity", {}).get("allocation_code_hash")
+            and proof.get("gpu_count") == count
+            and proof.get("gpu_type")
+            == ("h100" if key == "single" else payload.get("gpu_type", "h100"))
+        )
     worker = reports["worker"]
     gates = {
         "worker": bool(
@@ -1105,6 +1206,8 @@ def study_state(payload: dict) -> dict:
         "h100_memory_fit_failure": memory_fit_failure,
         "images": images,
         "gates": gates,
+        "allocation_checks": allocation_checks,
+        "stage_status": stage_status(base, study, gates, reports),
         "reports": reports,
         "eligible_to_submit_main": eligible,
         "readiness": readiness,
@@ -1132,6 +1235,8 @@ def precheck(payload: dict):
         "image-build",
         "method-smoke",
         "backend-check",
+        "allocation-check",
+        "worker-diagnose",
         "worker-check",
         "runtime-check",
         "train",
@@ -1156,13 +1261,25 @@ def precheck(payload: dict):
         ):
             raise ValueError("Image archive missing")
         return
-    if operation == "backend-check":
+    if operation == "worker-diagnose":
+        if payload.get("gpu_count") != 0:
+            raise ValueError("Worker diagnostics must be CPU-only")
+        return
+    if operation in {"backend-check", "allocation-check"}:
         # This entry point only scores trusted synthetic fixtures. Worker state,
         # including stale optional worker paths, must not couple this diagnostic.
         if not Path(payload.get("image", "")).is_file() or not DIGEST.fullmatch(
             payload.get("image_sha256", "")
         ):
             raise ValueError("Pinned trainer SIF missing")
+        if operation == "allocation-check" and (
+            payload.get("gpu_count") not in {1, 2}
+            or payload.get("gpu_type") != "h100"
+            or payload.get("time") != "00:05:00"
+            or payload.get("account") != "cpsc4880"
+            or payload.get("readiness_budget") != 24
+        ):
+            raise ValueError("Allocation diagnostics require bounded cpsc4880 H100 readiness")
         return
     uses_worker = operation in {
         "worker-check",
@@ -1180,6 +1297,19 @@ def precheck(payload: dict):
             payload.get("worker_sha256", "")
         ):
             raise ValueError("Pinned worker SIF missing")
+    if operation == "worker-check":
+        prior_path = paths(payload)["runs"] / "readiness" / payload["study_id"] / "worker.json"
+        if prior_path.is_file():
+            prior = json.loads(prior_path.read_text())
+            detail = json.dumps(prior.get("details", {})).lower()
+            if (
+                not prior.get("ready")
+                and ("dbus_session_bus_address" in detail or "delegat" in detail)
+                and payload.get("worker_setup_id", "") == prior.get("worker_setup_id", "")
+            ):
+                raise ValueError(
+                    "Worker site setup is unchanged; obtain YCRC-supported setup and supply a new worker setup ID"
+                )
     if operation in {"train", "pilot", "method-smoke", "evaluate", "diagnose", "freeze-study"}:
         state = study_state(payload)
         if not state["gates"]["worker"] or not state["gates"]["runtime"]:
