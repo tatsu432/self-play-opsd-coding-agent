@@ -9,25 +9,42 @@ from __future__ import annotations
 import argparse
 import hmac
 import json
+import math
 import os
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 
-from selfplay_opsd.config import SandboxConfig
-from selfplay_opsd.core import canonical
-from selfplay_opsd.sandbox import SandboxBackend
+from selfplay_opsd.worker_runtime import LocalRuntime, RuntimeConfig, canonical
 
 
-def serve(config: SandboxConfig, host: str = "127.0.0.1", port: int = 8765, concurrency: int = 4):
+def serve(
+    config,
+    host: str = "127.0.0.1",
+    port: int = 8765,
+    concurrency: int = 4,
+    *,
+    ready_file: Path | None = None,
+    report: Path | None = None,
+    check_only: bool = False,
+):
+    config = RuntimeConfig.from_values(config.model_dump())
     token = os.getenv(config.remote_token_env)
     if not token or len(token) < 24:
         raise ValueError(
             "Worker token must be supplied through environment and contain >=24 characters"
         )
-    if config.backend != "docker":
-        raise ValueError("Remote service executes only its configured Docker sandbox")
-    sandbox = SandboxBackend(config)
+    if host not in {"127.0.0.1", "localhost"} or not 1 <= concurrency <= 32:
+        raise ValueError("Worker must bind loopback with concurrency 1 through 32")
+    sandbox = LocalRuntime(config)
     attestation = sandbox.preflight()
+    if report:
+        report.parent.mkdir(parents=True, exist_ok=True)
+        report.write_text(canonical(attestation) + "\n")
+    if not attestation["ready"]:
+        raise ValueError("Worker isolation failed: " + canonical(attestation))
+    if check_only:
+        return attestation
     semaphore = threading.BoundedSemaphore(concurrency)
 
     class Handler(BaseHTTPRequestHandler):
@@ -78,7 +95,7 @@ def serve(config: SandboxConfig, host: str = "127.0.0.1", port: int = 8765, conc
                 self.connection.settimeout(10)
                 body = json.loads(self.rfile.read(length))
                 seconds = float(body["seconds"])
-                if not 0 < seconds <= config.verifier_seconds:
+                if not math.isfinite(seconds) or not 0 < seconds <= config.verifier_seconds:
                     raise ValueError("Worker time limit exceeded")
                 request = body["request"]
                 if set(request) != {"source", "entry_point", "inputs"}:
@@ -87,10 +104,10 @@ def serve(config: SandboxConfig, host: str = "127.0.0.1", port: int = 8765, conc
                 self.respond(
                     200,
                     {
-                        "status": result.status.value,
-                        "results": result.results,
-                        "seconds": result.seconds,
-                        "detail": result.detail,
+                        "status": result["status"],
+                        "results": result["results"],
+                        "seconds": result["seconds"],
+                        "detail": result["detail"],
                     },
                 )
             except (ValueError, KeyError, TypeError) as exc:
@@ -99,6 +116,11 @@ def serve(config: SandboxConfig, host: str = "127.0.0.1", port: int = 8765, conc
                 semaphore.release()
 
     with ThreadingHTTPServer((host, port), Handler) as server:
+        if ready_file:
+            ready_file.parent.mkdir(parents=True, exist_ok=True)
+            ready_file.write_text(
+                canonical({"url": f"http://127.0.0.1:{server.server_port}", "ready": True}) + "\n"
+            )
         server.daemon_threads = True
         server.serve_forever(poll_interval=0.5)
 
@@ -109,8 +131,26 @@ def main():
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--concurrency", type=int, default=4)
     parser.add_argument("--image", default="selfplay-worker:local")
+    parser.add_argument("--config-json", default="{}")
+    parser.add_argument("--backend", choices=("docker", "apptainer"), default="docker")
+    parser.add_argument("--runtime", default=None)
+    parser.add_argument("--report", type=Path)
+    parser.add_argument("--ready-file", type=Path)
+    parser.add_argument("--check-only", action="store_true")
     args = parser.parse_args()
-    serve(SandboxConfig(image=args.image), args.host, args.port, args.concurrency)
+    config = RuntimeConfig.from_values(
+        json.loads(args.config_json)
+        | {"image": args.image, "backend": args.backend, "runtime": args.runtime or args.backend}
+    )
+    serve(
+        config,
+        args.host,
+        args.port,
+        args.concurrency,
+        report=args.report,
+        ready_file=args.ready_file,
+        check_only=args.check_only,
+    )
 
 
 if __name__ == "__main__":

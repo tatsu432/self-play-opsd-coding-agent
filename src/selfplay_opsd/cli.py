@@ -139,7 +139,9 @@ def prepare(settings: ConfigOption, allow_reduced: bool = False, inventory_only:
 
 @app.command("validate-data")
 def validate(
-    settings: ConfigOption, execute: bool = typer.Option(True, "--execute/--structural-only")
+    settings: ConfigOption,
+    execute: bool = typer.Option(True, "--execute/--structural-only"),
+    output: Path | None = None,
 ):
     from selfplay_opsd.evaluation import validate_data
 
@@ -147,7 +149,11 @@ def validate(
     sandbox = SandboxBackend(cfg.sandbox)
     if execute:
         sandbox.preflight()
-    typer.echo(canonical(validate_data(TaskRepository(cfg.data_root), sandbox, execute=execute)))
+    typer.echo(
+        canonical(
+            validate_data(TaskRepository(cfg.data_root), sandbox, execute=execute, output=output)
+        )
+    )
 
 
 @app.command()
@@ -215,18 +221,22 @@ def pilot(
     cfg = load_config(
         settings, method=config, **({"hardware_profile": hardware} if hardware else {})
     )
-    cfg.study_id += "-pilot"
+    cfg.study_id += os.getenv("SELFPLAY_PILOT_SUFFIX", "-pilot")
     cfg.iterations = iterations
     report = checked_preflight(cfg)
     if not report["ready_for_pilot"]:
         raise ExperimentError("Pilot preflight blocked: " + "; ".join(report["blockers"]))
     if cfg.method not in {"C", "D"}:
         raise ExperimentError("Calibration pilot must include C/D scoring; choose method D")
+    import time
+
+    startup_started = time.monotonic()
     policy = make_policy(cfg)
     try:
         trainer = SelfPlayTrainer(
             cfg, policy, TaskRepository(cfg.data_root), SandboxBackend(cfg.sandbox), resume=resume
         )
+        startup_seconds = time.monotonic() - startup_started
         from selfplay_opsd.pilot import training_reference_proxies
 
         with trainer.phase("pilot_reference_preparation"):
@@ -248,12 +258,20 @@ def pilot(
             alignment_count = sum(r["metrics"]["alignment"]["scored_count"] for r in commits)
             student_steps = sum(r["student_steps"] for r in commits)
             proposer_steps = sum(r["proposer_steps"] for r in commits)
+            if trainer.iteration < cfg.iterations:
+                typer.echo(canonical({"stopped": True, "iteration": trainer.iteration}))
+                return
             if alignment_count == 0 or student_steps == 0 or proposer_steps == 0:
                 raise ExperimentError(
                     "Pilot did not exercise alignment and both real updates; inspect curriculum validity/difficulty"
                 )
+            from selfplay_opsd.observability import system_metrics
+            from selfplay_opsd.readiness import execution_identity
+
             pilot_report = {
                 "iterations": trainer.iteration,
+                "resumed_from_iteration": trainer.resume_iteration,
+                "resume_history": trainer.resume_history,
                 "includes_alignment": True,
                 "target_hardware_verified": True,
                 "hardware": cfg.hardware.model_dump(),
@@ -275,6 +293,14 @@ def pilot(
                 "proposer_steps": proposer_steps,
                 "calibration": "retained configured common lambda; automatic rescaling disabled",
                 "provenance": provenance(),
+                "runtime_identity": execution_identity(cfg),
+                "resources": system_metrics(cfg.output_root),
+                "startup_seconds_this_segment": startup_seconds,
+                "iteration_commits": len(commits),
+                "actual_exposures": {
+                    "episodes": trainer.total_episodes,
+                    "tokens": trainer.total_tokens,
+                },
             }
             atomic_json(cfg.run_dir / "pilot_report.json", pilot_report)
             typer.echo(canonical(pilot_report))
@@ -366,6 +392,9 @@ def evaluate(
                 },
             )
             store.iteration = iteration
+            from selfplay_opsd.readiness import execution_identity
+
+            atomic_json(root / "runtime_identity.json", execution_identity(cfg))
             atomic_json(root / "provenance.json", provenance())
             atomic_json(
                 root / "resolved_config.json",
@@ -396,6 +425,18 @@ def evaluate(
             )
         if store:
             store.materialize()
+            if base and split == "dev_monitor":
+                from selfplay_opsd.readiness import execution_identity
+
+                atomic_json(
+                    root / "evaluation_complete.json",
+                    {
+                        "ready": True,
+                        "split": split,
+                        "tasks": len(rows),
+                        "runtime_identity": execution_identity(cfg),
+                    },
+                )
             typer.echo(
                 canonical(
                     {
@@ -458,6 +499,23 @@ def backend_check(
 
     cfg = load_config(settings, **({"hardware_profile": hardware} if hardware else {}))
     typer.echo(canonical(check_backend(cfg, output, reference=reference)))
+
+
+@app.command("runtime-check")
+def runtime_check(settings: ConfigOption):
+    from selfplay_opsd.readiness import validate_runtime
+
+    typer.echo(canonical(validate_runtime(load_config(settings))))
+
+
+@app.command("readiness-check")
+def readiness_check(settings: ConfigOption, hardware: str | None = None):
+    from selfplay_opsd.readiness import readiness_report
+
+    cfg = load_config(settings, **({"hardware_profile": hardware} if hardware else {}))
+    report = readiness_report(cfg)
+    atomic_json(cfg.output_root / cfg.study_id / "readiness.json", report)
+    typer.echo(canonical(report))
 
 
 @app.command("wandb-sync")

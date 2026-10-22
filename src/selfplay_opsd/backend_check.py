@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import os
 from pathlib import Path
 
 import torch
@@ -10,8 +11,17 @@ import torch
 from selfplay_opsd.config import RunConfig
 from selfplay_opsd.core import ExperimentError
 from selfplay_opsd.diagnostics import _optimizer_digest
+from selfplay_opsd.objectives import alignment, sd_coefficients
 from selfplay_opsd.policy import LossExample
-from selfplay_opsd.storage import CheckpointManager, atomic_json, code_hash, provenance
+from selfplay_opsd.readiness import execution_identity
+from selfplay_opsd.storage import (
+    CheckpointManager,
+    atomic_json,
+    code_hash,
+    file_hash,
+    provenance,
+    read_json,
+)
 
 
 def check_backend(config: RunConfig, output: Path, *, reference: Path | None = None) -> dict:
@@ -30,34 +40,93 @@ def check_backend(config: RunConfig, output: Path, *, reference: Path | None = N
         targets = policy.tokenizer.encode("42", add_special_tokens=False)
         example = LossExample(prompt, targets, [], 0.0, [], 1 / len(targets), "ce")
         gradients, _ = policy.gradients([example])
-        full = {}
-        if policy.config.model.backend == "verl":
-            from torch.distributed.tensor import DTensor
 
-            for (name, parameter), gradient in zip(
-                policy.named_parameters("student"), gradients, strict=True
-            ):
-                full[name] = (
-                    DTensor.from_local(
-                        gradient,
-                        parameter.device_mesh,
-                        parameter.placements,
-                        run_check=False,
-                        shape=parameter.shape,
-                        stride=parameter.stride(),
-                    )
-                    .full_tensor()
-                    .cpu()
-                )
-        else:
-            full = {
-                name: gradient.cpu()
-                for (name, _), gradient in zip(
+        def gather(gradients):
+            full = {}
+            if policy.config.model.backend == "verl":
+                from torch.distributed.tensor import DTensor
+
+                for (name, parameter), gradient in zip(
                     policy.named_parameters("student"), gradients, strict=True
+                ):
+                    full[name] = (
+                        DTensor.from_local(
+                            gradient,
+                            parameter.device_mesh,
+                            parameter.placements,
+                            run_check=False,
+                            shape=parameter.shape,
+                            stride=parameter.stride(),
+                        )
+                        .full_tensor()
+                        .cpu()
+                    )
+            else:
+                full = {
+                    name: gradient.cpu()
+                    for (name, _), gradient in zip(
+                        policy.named_parameters("student"), gradients, strict=True
+                    )
+                }
+            return full
+
+        full = {"CE/" + name: tensor for name, tensor in gather(gradients).items()}
+        with policy.active("student"):
+            old = policy.score(prompt, targets).detach().float()
+            for method in "ABCD":
+                _, _, coefficients = sd_coefficients(
+                    old + 0.5,
+                    old,
+                    method != "A",
+                    config.objective.gate_beta,
+                    config.objective.gap_clip,
                 )
-            }
+                combined = LossExample(
+                    prompt,
+                    targets,
+                    old.tolist(),
+                    1.0,
+                    coefficients.tolist(),
+                    1 / len(targets),
+                    "combined",
+                )
+                student_gradients, _ = policy.gradients([combined])
+                for name, tensor in gather(student_gradients).items():
+                    full[f"{method}/student/{name}"] = tensor
+                if method in "CD":
+                    candidate = LossExample(
+                        prompt,
+                        targets,
+                        old.tolist(),
+                        1.0,
+                        coefficients.tolist(),
+                        1 / len(targets),
+                        "rl" if method == "C" else "combined",
+                    )
+                    candidate_gradients, _ = policy.gradients([candidate])
+                    score = alignment(
+                        candidate_gradients,
+                        gradients,
+                        config.objective.near_zero,
+                        policy.distributed,
+                    )
+                    if score.near_zero or score.cosine is None:
+                        raise ExperimentError(
+                            "Controlled objective alignment probe has zero gradient"
+                        )
+                    for name, tensor in gather(candidate_gradients).items():
+                        full[f"{method}/alignment/{name}"] = tensor
+        if not full or any(not torch.isfinite(t).all() for t in full.values()):
+            raise ExperimentError("Nonfinite objective probe gradients")
         compared = False
         if reference:
+            reference_report = read_json(reference.parent / "backend_report.json")
+            if (
+                reference_report.get("runtime_identity") != execution_identity(config)
+                or reference_report.get("gpu_count") != 1
+                or reference_report.get("reference_sha256") != file_hash(reference)
+            ):
+                raise ExperimentError("Single-GPU gradient reference is stale or corrupt")
             expected = torch.load(reference, map_location="cpu", weights_only=True)
             if set(expected) != set(full):
                 raise ExperimentError("Reference gradient coordinates differ")
@@ -101,7 +170,12 @@ def check_backend(config: RunConfig, output: Path, *, reference: Path | None = N
             raise ExperimentError("Initial adapter restoration failed")
         report = {
             "ready": True,
+            "objective_probes": list("ABCD"),
+            "probe_label": "controlled synthetic gradient fixtures; not performance evidence",
+            "runtime_identity": execution_identity(config),
+            "devices": [torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())],
             "gpu_count": config.hardware.gpu_count,
+            "gpu_type": os.getenv("SELFPLAY_GPU_TYPE", "h100"),
             "hardware_profile": config.hardware.profile,
             "model_revision": config.model.revision,
             "tokenizer_revision": config.model.tokenizer_revision,
@@ -115,6 +189,7 @@ def check_backend(config: RunConfig, output: Path, *, reference: Path | None = N
         }
         if policy.is_coordinator:
             torch.save(full, output / "reference_gradients.pt")
+            report["reference_sha256"] = file_hash(output / "reference_gradients.pt")
             atomic_json(output / "backend_report.json", report)
             atomic_json(
                 config.output_root / "compatibility" / f"{config.hardware.profile}.json", report

@@ -29,13 +29,21 @@ documents are historical. Read `README.md`, `docs/methods.md` and
 
 ## Yale operations
 
-The current task is `docs/task/02-yale-hpc-use-spec.md`; its implementation plan
-is `docs/plan/02-yale-hpc-use-plan.md`. The local controller is
+The current task is `docs/task/03-experiment-readiness-spec.md`; its plan is
+`docs/plan/03-experiment-readiness-plan.md`. Task 02 established basic operations.
+The local controller is
 `uv run selfplay hpc --help`. Its standard-library remote endpoint is
 `scripts/hpc_remote.py`; `scripts/yale.slurm` runs allocated jobs. The default
 alias is `yale-hpc-cpsc4880`. The `cpsc4710` and `sds6190` aliases are inspection
 only until each account's authorization, course policy and shared limits are
 verified. All three reach Bouchet, so never assume independent GPU pools.
+
+Task 03 authorizes CPU setup and a total of 24 allocated GPU-hours for readiness
+on `cpsc4880`, starting with H100. It ends before main A–D training. The old
+AWS hosts are unavailable: use Yale only and stop if its required worker
+isolation cannot be enforced. Use `hpc images build --kind worker`, then
+`hpc prepare-study --watch`. The preparation command identifies the next missing
+image or failed evidence gate. Never treat a passed CPU test as target readiness.
 
 1. Start with `uv run selfplay hpc doctor` and `uv run selfplay hpc inspect`.
    The commands are read-only and do not allocate resources. Inspect the live

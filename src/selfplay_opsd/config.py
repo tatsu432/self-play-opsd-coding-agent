@@ -185,8 +185,7 @@ class RunConfig(Strict):
     def candidate_objective(self) -> str | None:
         return {"C": "rl_only", "D": "rl_plus_gated_sd"}.get(self.method)
 
-    @property
-    def scientific_hash(self) -> str:
+    def scientific_settings(self, *, common: bool = False, calibration: bool = False) -> dict:
         values = self.model_dump(
             mode="json",
             exclude={
@@ -213,7 +212,16 @@ class RunConfig(Strict):
                 "verifier_seconds",
             )
         }
-        return digest(values)
+        if common:
+            values.pop("method")
+        if calibration:
+            values.pop("study_id")
+            values.pop("iterations")
+        return values
+
+    @property
+    def scientific_hash(self) -> str:
+        return digest(self.scientific_settings())
 
     @property
     def run_dir(self) -> Path:
@@ -279,6 +287,9 @@ def load_config(path: Path | None = None, **overrides) -> RunConfig:
             if not value.is_absolute():
                 raise ValueError(f"{environment} must be an absolute path")
             values[field] = value
+    if os.getenv("SELFPLAY_WORKER_URL"):
+        values.setdefault("sandbox", {})["remote_url"] = os.environ["SELFPLAY_WORKER_URL"]
+        values["sandbox"]["backend"] = "remote"
     values.update({k: v for k, v in overrides.items() if v is not None})
     if profile == "cpu_debug":
         debug_defaults = {"backend": "hf", "dtype": "float32", "tiny": True, "rank": 4, "alpha": 8}

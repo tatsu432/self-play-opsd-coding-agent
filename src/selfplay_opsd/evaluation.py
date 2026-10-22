@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from pathlib import Path
 
 from selfplay_opsd.config import EpisodeConfig
 from selfplay_opsd.core import EvaluationRecord, ExperimentError, Status, digest, keyed_seed
@@ -48,7 +49,11 @@ def finalize_data(
 
 
 def validate_data(
-    repository: TaskRepository, sandbox: SandboxBackend, *, execute: bool = True
+    repository: TaskRepository,
+    sandbox: SandboxBackend,
+    *,
+    execute: bool = True,
+    output: Path | None = None,
 ) -> dict:
     manifest, root = repository.manifest, repository.root
     if file_hash(root / "private/parents.json") != manifest["parents_hash"]:
@@ -119,7 +124,7 @@ def validate_data(
             mode="json", exclude={"backend", "image", "runtime", "remote_url", "remote_token_env"}
         ),
     }
-    atomic_json(root / "validation_report.json", report)
+    atomic_json(output or root / "validation_report.json", report)
     return report
 
 

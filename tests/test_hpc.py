@@ -6,6 +6,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import shutil
 import signal
 import subprocess
 import time
@@ -117,6 +118,7 @@ def test_unknown_sbatch_response_is_not_submitted_twice(tmp_path, monkeypatch):
     monkeypatch.setattr(remote, "paths", lambda _: paths)
     monkeypatch.setattr(remote, "workspace", lambda _: tmp_path)
     monkeypatch.setattr(remote, "allowed", lambda _: {"authorized": True})
+    monkeypatch.setattr(remote, "precheck", lambda _: None)
     monkeypatch.setattr(remote, "reconcile_intent", lambda ledger, _: ledger)
     calls = []
 
@@ -211,6 +213,8 @@ def test_recovery_uses_verified_joint_checkpoint_once(tmp_path, monkeypatch):
         "method": "B",
         "seed": 2026,
         "operation": "train",
+        "target_iterations": 200,
+        "time": "01:00:00",
         "scientific_hash": "science",
         "manifests_hash": "data",
     }
@@ -241,8 +245,10 @@ def test_slurm_wrapper_runs_the_pinned_image_without_host_venv(tmp_path):
     subprocess.run(
         ["git", "-C", str(origin), "config", "user.email", "fixture@example.com"], check=True
     )
+    (origin / "scripts").mkdir()
+    shutil.copyfile("scripts/hpc_job.py", origin / "scripts/hpc_job.py")
     (origin / "README").write_text("fixture\n")
-    subprocess.run(["git", "-C", str(origin), "add", "README"], check=True)
+    subprocess.run(["git", "-C", str(origin), "add", "README", "scripts/hpc_job.py"], check=True)
     subprocess.run(["git", "-C", str(origin), "commit", "-qm", "fixture"], check=True)
     commit = subprocess.run(
         ["git", "-C", str(origin), "rev-parse", "HEAD"], check=True, capture_output=True, text=True
@@ -308,4 +314,4 @@ def test_slurm_wrapper_runs_the_pinned_image_without_host_venv(tmp_path):
     process.send_signal(signal.SIGUSR1)
     _, stderr = process.communicate(timeout=5)
     assert process.returncode == 0, stderr
-    assert (runs / "fixture/D-seed2026/state/stop_requested").is_file()
+    assert (runs / "fixture/D-seed2026/state/stop_requested.123").is_file()

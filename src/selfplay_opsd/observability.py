@@ -240,6 +240,8 @@ def system_metrics(output_root: Path) -> dict:
                 "allocated_bytes": torch.cuda.memory_allocated(i),
                 "reserved_bytes": torch.cuda.memory_reserved(i),
                 "peak_bytes": torch.cuda.max_memory_allocated(i),
+                "device_used_bytes_at_sample": torch.cuda.mem_get_info(i)[1]
+                - torch.cuda.mem_get_info(i)[0],
             }
             for i in range(torch.cuda.device_count())
         }

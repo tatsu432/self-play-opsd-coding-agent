@@ -178,6 +178,8 @@ class SelfPlayTrainer:
         self._detail_times: dict[str, float] = defaultdict(float)
         self.root = config.run_dir
         self.checkpoints = CheckpointManager(self.root) if policy.is_coordinator else None
+        from selfplay_opsd.readiness import execution_identity
+
         if resume:
             state, metadata = CheckpointManager.load(resume)
             if (
@@ -189,6 +191,10 @@ class SelfPlayTrainer:
                 raise ExperimentError(
                     "Resume scientific/model/data/prompt compatibility check failed"
                 )
+            if config.hardware.gpu_count and metadata.get("runtime_identity") != execution_identity(
+                config
+            ):
+                raise ExperimentError("Resume runtime identity differs")
             policy.load_state_dict(state["policy"])
             restore_rng(state["rng"])
             self.iteration = state["iteration"]
@@ -236,12 +242,20 @@ class SelfPlayTrainer:
             }
 
             def check_initialization():
+                import fcntl
+
                 path = config.output_root / config.study_id / "initial_adapters.json"
-                if path.exists() and read_json(path) != initialization:
-                    raise ExperimentError("A-D initial adapter tensors/model/seed differ")
-                atomic_json(path, initialization)
+                with path.with_suffix(".lock").open("a+") as lock:
+                    fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+                    if path.exists() and read_json(path) != initialization:
+                        raise ExperimentError("A-D initial adapter tensors/model/seed differ")
+                    atomic_json(path, initialization)
 
             policy.coordinator_call(check_initialization)
+        self.resume_history = (
+            list(state.get("resume_history", [])) + [self.iteration] if resume else []
+        )
+        self.resume_iteration = self.iteration
         self.parents = repository.parents("train")
         self.reference_anchors = repository.anchors() if config.candidate_objective else []
         if resume and "reference_anchors" in state:
@@ -257,6 +271,8 @@ class SelfPlayTrainer:
     def phase(self, name: str):
         self.policy.barrier()
         start = time.monotonic()
+        if torch.cuda.is_available():
+            torch.cuda.reset_peak_memory_stats(torch.cuda.current_device())
         if self.store:
             self.store.health(name)
         try:
@@ -272,6 +288,7 @@ class SelfPlayTrainer:
                     "phase_time",
                     {
                         "seconds": seconds,
+                        "resources": system_metrics(self.config.output_root),
                         "allocated_gpu_hours": seconds * self.config.charged_gpu_count / 3600,
                         "allocated_cpu_hours": seconds * self.config.hardware.cpu_workers / 3600,
                     },
@@ -292,10 +309,14 @@ class SelfPlayTrainer:
                 "best": self.best,
                 "total_tokens": self.total_tokens,
                 "total_episodes": self.total_episodes,
+                "resume_history": self.resume_history,
                 "elapsed": self.elapsed,
                 "allocated_gpu_hours": self.allocated_gpu_hours,
             }
+            from selfplay_opsd.readiness import execution_identity
+
             metadata = {
+                "runtime_identity": execution_identity(self.config),
                 "schema_version": 1,
                 "iteration": self.iteration,
                 "scientific_hash": self.config.scientific_hash,
@@ -838,6 +859,8 @@ class SelfPlayTrainer:
                     os.environ.get("SELFPLAY_STOP_FILE", str(self.root / "state/stop_requested"))
                 )
                 self.stop_requested = self.stop_requested or stop_file.exists()
+                stop_after = int(os.environ.get("SELFPLAY_STOP_AFTER_ITERATION", "0"))
+                self.stop_requested = self.stop_requested or bool(stop_after and k >= stop_after)
                 exhausted = (
                     self.config.max_active_hours is not None
                     and self.elapsed / 3600 >= self.config.max_active_hours

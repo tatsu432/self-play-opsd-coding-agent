@@ -42,3 +42,12 @@ def test_example_extraction_and_family_partition():
     roles = assign_splits([a, b, h], families, 2026)
     assert roles["a"] == roles["b"] == "excluded_external_overlap"
     assert roles["human"] == "external"
+
+
+def test_target_validation_can_preserve_frozen_data(repository, sandbox, tmp_path):
+    existing = repository.root / "validation_report.json"
+    before = existing.read_bytes() if existing.exists() else None
+    output = tmp_path / "readiness/validation.json"
+    report = validate_data(repository, sandbox, execute=False, output=output)
+    assert output.is_file() and report["manifest_hash"] == repository.hash
+    assert (existing.read_bytes() if existing.exists() else None) == before

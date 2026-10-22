@@ -17,7 +17,7 @@ from selfplay_opsd.core import ExperimentError, digest
 from selfplay_opsd.data import TaskRepository
 from selfplay_opsd.protocol import PROMPT_HASH
 from selfplay_opsd.sandbox import SandboxBackend
-from selfplay_opsd.storage import active_events, atomic_json, code_hash, provenance, read_json
+from selfplay_opsd.storage import atomic_json, code_hash, provenance, read_json
 
 
 def doctor(config: RunConfig, *, isolation: bool = False) -> dict:
@@ -88,13 +88,16 @@ def doctor(config: RunConfig, *, isolation: bool = False) -> dict:
         if repo.manifest.get("episode_limits_hash") != digest(cfg.episode.model_dump()):
             blockers.append("Prepared episode budget mismatch")
         if cfg.hardware.gpu_count:
-            validation_path = cfg.data_root / "validation_report.json"
+            from selfplay_opsd.readiness import validation_path as target_validation
+
+            validation_path = target_validation(cfg)
             if not validation_path.exists():
                 blockers.append("Target sandbox data validation missing")
             else:
                 validated = read_json(validation_path)
                 if (
-                    not validated.get("executed")
+                    not validated.get("ready")
+                    or not validated.get("executed")
                     or validated.get("manifest_hash") != repo.hash
                     or validated.get("execution_limits")
                     != cfg.sandbox.model_dump(
@@ -116,8 +119,12 @@ def doctor(config: RunConfig, *, isolation: bool = False) -> dict:
             blockers.append("Target backend acceptance probe missing; run backend-check")
         else:
             proof = read_json(proof_path)
+            from selfplay_opsd.readiness import execution_identity
+
             valid = (
-                proof.get("ready")
+                proof.get("runtime_identity") == execution_identity(cfg)
+                and proof.get("objective_probes") == ["A", "B", "C", "D"]
+                and proof.get("ready")
                 and proof.get("code_hash") == code_hash()
                 and proof.get("model_revision") == cfg.model.revision
                 and proof.get("gpu_count") == cfg.hardware.gpu_count
@@ -134,110 +141,79 @@ def doctor(config: RunConfig, *, isolation: bool = False) -> dict:
         "measured_training_peak": None,
         "feasibility": "unmeasured until pilot",
     }
+    from selfplay_opsd.readiness import readiness_report
+
+    full_ready = not blockers and readiness_report(cfg)["eligible_to_submit_main"]
     return {
         "checks": checks,
         "blockers": blockers,
         "ready_for_smoke": not any("Sandbox" in b for b in blockers),
         "ready_for_pilot": not blockers,
-        "ready_for_full_runs": not blockers
-        and (cfg.output_root / cfg.study_id / "study_frozen.json").exists(),
+        "ready_for_full_runs": full_ready,
         "full_run_gate": "requires measured target-hardware pilot and frozen study config",
         "provenance": provenance(),
     }
 
 
 def freeze_study(config: RunConfig, pilot: Path) -> dict:
+    import fcntl
+
+    from selfplay_opsd.readiness import execution_identity, readiness_report
+
+    expected_pilot = (
+        config.output_root
+        / f"{config.study_id}{os.getenv('SELFPLAY_PILOT_SUFFIX', '-pilot')}/D-seed{config.seed}/pilot_report.json"
+    )
+    if pilot.resolve() != expected_pilot.resolve():
+        raise ExperimentError("Freeze must use this study's measured D pilot")
+    readiness = readiness_report(config, require_freeze=False)
+    if not readiness["eligible_to_submit_main"]:
+        raise ExperimentError("Study readiness gates failed: " + "; ".join(readiness["blockers"]))
     report = read_json(pilot)
-    if "pilot_config" not in report:
-        raise ExperimentError("Pilot report lacks resolved scientific settings")
-    excluded = {
-        "study_id",
-        "method",
-        "iterations",
-        "hardware",
-        "logging",
-        "output_root",
-        "data_root",
-        "max_active_hours",
-        "max_gpu_hours",
-    }
-    pilot_common = {k: v for k, v in report["pilot_config"].items() if k not in excluded}
-    common = {k: v for k, v in config.model_dump(mode="json").items() if k not in excluded}
-    if pilot_common != common:
-        raise ExperimentError(
-            "Pilot common settings differ from the main study; reset/recalibrate explicitly"
-        )
-    if (
-        report.get("iterations", 0) < 10
-        or not report.get("target_hardware_verified")
-        or not report.get("includes_alignment")
-    ):
-        raise ExperimentError(
-            "Freeze requires >=10 measured target-hardware iterations including C/D alignment"
-        )
     root = config.output_root / config.study_id
-    base_events = active_events(root / "base") if (root / "base/events").exists() else []
-    if not any(
-        e["kind"] == "evaluation_complete" and e["payload"]["split"] == "dev_monitor"
-        for e in base_events
-    ):
-        raise ExperimentError(
-            "Evaluate the shared untrained base on monitoring development tasks before freezing the main study"
-        )
-    path = root / "study_frozen.json"
-    if path.exists():
-        raise ExperimentError(
-            "Study config already frozen; create a new study ID for scientific changes"
-        )
-    repository = TaskRepository(config.data_root)
-    if report.get("manifest_hash") != repository.hash:
-        raise ExperimentError("Pilot dataset differs from the main study")
+    root.mkdir(parents=True, exist_ok=True)
     payload = {
+        "schema_version": 2,
         "study_id": config.study_id,
-        "common_config": config.model_dump(
-            mode="json",
-            exclude={
-                "method",
-                "hardware",
-                "logging",
-                "output_root",
-                "data_root",
-                "max_active_hours",
-                "max_gpu_hours",
-            },
-        ),
-        "manifest_hash": repository.hash,
+        "gpu_type": os.getenv("SELFPLAY_GPU_TYPE", "h100"),
+        "pilot_suffix": os.getenv("SELFPLAY_PILOT_SUFFIX", "-pilot"),
+        "common_config": config.scientific_settings(common=True),
+        "manifest_hash": TaskRepository(config.data_root).hash,
         "prompt_hash": PROMPT_HASH,
+        "runtime_identity": execution_identity(config),
         "pilot_hash": digest(report),
         "pilot": report,
+        "readiness": readiness,
+        "execution_commit": provenance()["git_commit"],
         "requires_fresh_initialization": True,
     }
-    atomic_json(path, payload)
+    path = root / "study_frozen.json"
+    with (root / ".freeze.lock").open("a+") as lock:
+        fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+        if path.exists():
+            if read_json(path) != payload:
+                raise ExperimentError("Conflicting study freeze; use a new study ID")
+        else:
+            atomic_json(path, payload)
     return payload
 
 
 def check_frozen(config: RunConfig, repository: TaskRepository) -> None:
+    from selfplay_opsd.readiness import execution_identity, readiness_report
+
     path = config.output_root / config.study_id / "study_frozen.json"
     if not path.exists():
         raise ExperimentError(
-            "Study not frozen: complete backend acceptance, shared base evaluation and target-hardware pilot, then freeze-study"
+            "Study not frozen: complete runtime, backend, base evaluation and D pilot"
         )
     frozen = read_json(path)
-    common = config.model_dump(
-        mode="json",
-        exclude={
-            "method",
-            "hardware",
-            "logging",
-            "output_root",
-            "data_root",
-            "max_active_hours",
-            "max_gpu_hours",
-        },
-    )
     if (
-        frozen["common_config"] != common
-        or frozen["manifest_hash"] != repository.hash
-        or frozen["prompt_hash"] != PROMPT_HASH
+        frozen.get("common_config") != config.scientific_settings(common=True)
+        or frozen.get("manifest_hash") != repository.hash
+        or frozen.get("prompt_hash") != PROMPT_HASH
+        or frozen.get("runtime_identity") != execution_identity(config)
     ):
-        raise ExperimentError("Main study differs from frozen common config/data/prompts")
+        raise ExperimentError("Main study differs from frozen science/data/prompts/runtime")
+    report = readiness_report(config)
+    if not report["eligible_to_submit_main"]:
+        raise ExperimentError("Frozen study evidence is stale: " + "; ".join(report["blockers"]))

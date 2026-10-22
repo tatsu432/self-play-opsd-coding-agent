@@ -223,7 +223,7 @@ request is checked against live Slurm associations and node advertisements.
 The pre-timeout signal creates a shared stop request for checkpointing at a safe
 iteration boundary. Never run model or generated-code work on a login node.
 
-Use `selfplay hpc watch RUN_ID --image ... --image-sha256 ...` for bounded
+Use `selfplay hpc watch RUN_ID` for bounded
 automatic recovery of a prior training submission, or `selfplay hpc resume` for
 one check. At most two PREEMPTED/NODE_FAIL/BOOT_FAIL attempts may resume from a
 verified joint checkpoint. A missing job ID, ambiguous `sbatch` response, OOM,
@@ -236,6 +236,70 @@ comparing GPU options.
 An optional `--secrets-file` points to a mode-600 file on the compute-visible
 filesystem for a worker token or W&B key. The controller passes only its path
 to Slurm and never writes the secret into the repository or scheduler arguments.
+
+## Prepare the Yale A–D study
+
+Task 03 authorizes Yale `cpsc4880` only and at most **24 allocated GPU-hours**
+for readiness. It stops before main training. The old AWS hosts are unavailable.
+Run from a clean committed checkout:
+
+```bash
+uv run selfplay hpc images build --kind worker
+uv run selfplay hpc prepare-study --gpu-hours-limit 24 --watch
+```
+
+Image building explicitly targets Linux AMD64, even on an ARM64 workstation.
+Docker archives are checksummed, transferred and converted to SIF in a CPU
+allocation. Large trainer builds require at least 60 GiB free locally; worker
+builds require 2 GiB. Inspect the reported conversion job with `hpc status` and
+`hpc logs`. The preparation command reports `hpc images build --kind trainer`
+when the worker has passed and the trainer is needed. Resume preparation after
+conversion. Cached completed archives and image manifests are reused.
+
+The worker is a loopback authenticated service started on the allocated host.
+It launches isolated Apptainer processes with the shared standard-library
+supervisor, without a host training virtual environment. Its ephemeral token
+is injected only into the trusted trainer. Every allocation probes isolation;
+site restrictions stop readiness before model work. No Docker socket, external
+worker host, privilege workaround or weaker execution contract is used.
+
+Readiness advances through worker isolation, target execution validation,
+single-H100 reference, two-H100 gradient comparison, base monitoring evaluation,
+a ten-iteration D pilot, and study freeze. The pilot stops at iteration 2 and
+resumes its joint checkpoint to demonstrate real continuation. Main runs keep
+200 iterations, seed 2026 and fresh initialization. Runtime evidence includes
+code, model/tokenizer, dataset, prompts, trainer/worker images and execution
+limits. Data stays read-only; target validation writes into readiness outputs.
+
+The initial GPU allocation limits are 1 hour on one GPU for the reference,
+1 hour on two GPUs for comparison, 2 hours on two GPUs for base evaluation,
+and 6 hours total on two GPUs for the pilot. The remaining 5 GPU-hours allow
+bounded retries. Reservations count their entire requested wall time until
+Slurm accounting confirms actual use; uncertain submissions/accounting retain
+their reservation. A failed stage is reported with its ledger/evidence instead
+of being skipped. Hardware or science changes require compatible new evidence.
+
+`hpc resume RUN_ID --continue-stopped` explicitly permits the recorded number
+of clean continuations (one for the readiness pilot). Transient retries retain
+the separate limit of two. Resume and watch use the original committed
+specification, even after local documentation commits. Slurm COMPLETED is not
+scientific completion; the target iteration and expected reports must exist.
+Each attempt uses a distinct stop marker.
+
+Freeze executes on a CPU node against the artifacts already on Yale and is
+idempotent for identical evidence. A conflicting freeze requires a new study.
+Preparation then produces four main-run dry runs; it never submits them.
+`hpc doctor` reports `eligible_to_submit_main`, while each actual allocation
+still performs runtime preflight. To retrieve the complete report layout:
+
+```bash
+uv run selfplay hpc fetch-study repair-selfplay-2026
+uv run selfplay analyze runs/hpc/yale-hpc-cpsc4880/studies/repair-selfplay-2026/repair-selfplay-2026
+```
+
+`hpc fetch RUN_ID` now follows each operation's real output directory, including
+base and backend outputs. `--full` opts into checkpoint/trajectory/W&B files.
+W&B remains offline; local events and checkpoints are authoritative.
 
 ## Recovery and artifacts
 

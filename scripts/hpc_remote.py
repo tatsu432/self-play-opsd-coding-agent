@@ -149,6 +149,27 @@ def inspect(payload: dict) -> dict:
     }
 
 
+def context(_: dict) -> dict:
+    user = run(["id", "-un"]).stdout.strip()
+    return {
+        "user": user,
+        "storage": roots(),
+        "slurm": {
+            "associations": capture(
+                [
+                    "sacctmgr",
+                    "-n",
+                    "-P",
+                    "show",
+                    "associations",
+                    f"user={user}",
+                    "format=Account,Partition,QOS,DefaultQOS",
+                ]
+            )
+        },
+    }
+
+
 def workspace(payload: dict) -> Path:
     storage = Path(payload["storage_root"]).resolve()
     if str(storage) not in roots()["project"].values():
@@ -345,6 +366,7 @@ def reconcile_intent(ledger: dict, path: Path) -> dict:
                 "operation": ledger["operation"],
             }
         )
+        bind_budget_job(ledger.get("specification", {}), intent, job_id)
         ledger.pop("pending_intent")
         ledger.pop("pending_resume", None)
         write_json(path, ledger)
@@ -369,7 +391,9 @@ def logs(payload: dict) -> dict:
 
 def verified_checkpoint(payload: dict) -> str:
     p = paths(payload)
-    study = payload["study_id"] + ("-pilot" if payload["operation"] == "pilot" else "")
+    study = payload["study_id"] + (
+        payload.get("pilot_suffix", "-pilot") if payload["operation"] == "pilot" else ""
+    )
     run_dir = p["runs"] / study / f"{payload['method']}-seed{payload['seed']}"
     latest = json.loads((run_dir / "checkpoints/latest.json").read_text())
     name = latest["path"]
@@ -388,6 +412,11 @@ def check_checkpoint(checkpoint: Path, payload: dict) -> dict:
         if Path(filename).name != filename or sha256(checkpoint / filename) != expected:
             raise ValueError("Latest checkpoint verification failed")
     metadata = json.loads((checkpoint / "metadata.json").read_text())
+    if (
+        payload.get("runtime_identity")
+        and metadata.get("runtime_identity") != payload["runtime_identity"]
+    ):
+        raise ValueError("Checkpoint runtime identity mismatch")
     if metadata.get("scientific_hash") != payload.get("scientific_hash") or metadata.get(
         "manifests_hash"
     ) != payload.get("manifests_hash"):
@@ -396,8 +425,13 @@ def check_checkpoint(checkpoint: Path, payload: dict) -> dict:
 
 
 def recover(payload: dict) -> dict:
+    request = payload
     path = ledger_path(payload)
     ledger = read_ledger(path)
+    if ledger.get("specification"):
+        payload = ledger["specification"] | {
+            "explicit_continue": bool(request.get("explicit_continue"))
+        }
     if ledger.get("identity") != payload["identity"] or not ledger["attempts"]:
         raise ValueError("Run identity or initial submission missing")
     if ledger.get("pending_intent"):
@@ -405,11 +439,12 @@ def recover(payload: dict) -> dict:
     state = job_state(ledger["attempts"][-1]["job_id"])["state"]
     if state in ACTIVE or state == "UNKNOWN":
         return {"submitted": False, "state": state}
-    if state == "COMPLETED":
-        return {"submitted": False, "state": state}
-    if state not in {"PREEMPTED", "NODE_FAIL", "BOOT_FAIL"}:
+    planned = bool(payload.get("explicit_continue")) and state in {"COMPLETED", "TIMEOUT"}
+    if state == "COMPLETED" and not planned:
+        return {"submitted": False, "state": state, "reason": "inspect_scientific_completion"}
+    if not planned and state not in {"PREEMPTED", "NODE_FAIL", "BOOT_FAIL"}:
         return {"submitted": False, "state": state, "reason": "not_transient"}
-    if ledger.get("retries", 0) >= 2:
+    if not planned and ledger.get("retries", 0) >= 2:
         return {"submitted": False, "state": state, "reason": "retry_limit"}
     health_path = Path(ledger.get("run_dir", "")) / "state/health.json"
     if health_path.is_file() and json.loads(health_path.read_text()).get("phase") == "failed":
@@ -418,21 +453,44 @@ def recover(payload: dict) -> dict:
         checkpoint = verified_checkpoint(payload)
     except (OSError, KeyError, ValueError) as exc:
         return {"submitted": False, "state": state, "reason": f"checkpoint_unavailable: {exc}"}
+    metadata = check_checkpoint(Path(checkpoint), payload)
+    if metadata.get("iteration", 0) >= payload.get(
+        "target_iterations", payload.get("iterations", 0)
+    ):
+        return {"submitted": False, "state": state, "reason": "scientifically_complete"}
+    if planned and (
+        not health_path.is_file() or json.loads(health_path.read_text()).get("phase") != "stopped"
+    ):
+        return {"submitted": False, "state": state, "reason": "not_a_clean_stop"}
+    if planned and ledger.get("continuations", 0) >= payload.get("max_continuations", 0):
+        return {"submitted": False, "state": state, "reason": "continuation_limit"}
     # Reserve a retry under the same lock as submission; a failed reservation is
     # left auditable and cannot cause an unbounded scheduler loop.
     with locked(path.with_suffix(".lock")):
         current = read_ledger(path)
         previous_job = ledger["attempts"][-1]["job_id"]
         if (
-            current.get("retries", 0) >= 2
+            (not planned and current.get("retries", 0) >= 2)
             or current["attempts"][-1]["job_id"] != previous_job
             or current.get("recovery_from_job") == previous_job
         ):
             return {"submitted": False, "state": state, "reason": "concurrent_recovery"}
-        current["retries"] = current.get("retries", 0) + 1
+        counter = "continuations" if planned else "retries"
+        if planned and current.get(counter, 0) >= payload.get("max_continuations", 0):
+            return {"submitted": False, "state": state, "reason": "continuation_limit"}
+        current[counter] = current.get(counter, 0) + 1
         current["recovery_from_job"] = previous_job
         write_json(path, current)
-    result = submit({**payload, "resume": checkpoint})
+    result = submit(
+        {
+            **payload,
+            "resume": checkpoint,
+            "stop_after_iteration": 0
+            if metadata["iteration"] >= payload.get("stop_after_iteration", 0)
+            else payload.get("stop_after_iteration", 0),
+            "time": payload.get("continuation_time", payload["time"]),
+        }
+    )
     return {**result, "state": state, "resume": checkpoint}
 
 
@@ -443,7 +501,7 @@ def allowed(payload: dict) -> dict:
     gpu_count = payload["gpu_count"]
     if not all(SAFE_NAME.fullmatch(x) for x in (account, partition, gpu_type)):
         raise ValueError("Unsafe Slurm resource name")
-    if gpu_type not in GPU_VRAM_GB or gpu_count not in (1, 2, 4, 8):
+    if gpu_count not in (0, 1, 2, 4, 8) or (gpu_count and gpu_type not in GPU_VRAM_GB):
         raise ValueError("GPU type or count is unsupported")
     user = run(["id", "-un"]).stdout.strip()
     assoc = run(
@@ -476,7 +534,7 @@ def allowed(payload: dict) -> dict:
     available_counts = [
         int(m.group(1)) for m in re.finditer(rf"(?:^|[,\n])gpu:{re.escape(gpu_type)}:(\d+)", gres)
     ]
-    if not available_counts or max(available_counts) < gpu_count:
+    if gpu_count and (not available_counts or max(available_counts) < gpu_count):
         raise ValueError("Requested GPU type/count is not shown on a single partition node")
     if not (1 <= int(payload["cpus"]) <= 128 and 1 <= int(payload["memory_gib"]) <= 512):
         raise ValueError("CPU or memory request exceeds controller bounds")
@@ -495,8 +553,7 @@ def allowed(payload: dict) -> dict:
         if len(fields) == 3 and fields[0].isdigit() and fields[1].isdigit():
             match = re.search(rf"(?:^|,)gpu:{re.escape(gpu_type)}:(\d+)", fields[2])
             if (
-                match
-                and int(match[1]) >= gpu_count
+                (not gpu_count or (match and int(match[1]) >= gpu_count))
                 and int(fields[0]) >= payload["cpus"]
                 and int(fields[1]) >= payload["memory_gib"] * 1024
             ):
@@ -507,7 +564,7 @@ def allowed(payload: dict) -> dict:
         "association": matches,
         "partition": partition,
         "gpu_type": gpu_type,
-        "max_gpus_per_node": max(available_counts),
+        "max_gpus_per_node": max(available_counts, default=0),
     }
 
 
@@ -517,8 +574,10 @@ def submit(payload: dict) -> dict:
     sync = json.loads((p["state"] / f"sync-{payload['commit']}.json").read_text())
     if sync != {"commit": payload["commit"], "manifest_sha256": payload["manifest_sha256"]}:
         raise ValueError("Remote snapshot identity mismatch")
-    if not Path(payload["image"]).is_file() or not DIGEST.fullmatch(payload["image_sha256"]):
-        raise ValueError("Pinned trainer SIF missing")
+    if payload["operation"] not in {"image-convert", "worker-check"}:
+        if not Path(payload["image"]).is_file() or not DIGEST.fullmatch(payload["image_sha256"]):
+            raise ValueError("Pinned trainer SIF missing")
+    precheck(payload)
     if payload.get("secrets_file"):
         secret_path = Path(payload["secrets_file"])
         if not secret_path.is_file() or secret_path.stat().st_mode & 0o077:
@@ -537,13 +596,13 @@ def submit(payload: dict) -> dict:
             raise ValueError("Checkpoint must be a numbered state in this run")
         host_checkpoint = p["runs"] / checkpoint.removeprefix("/runs/")
         check_checkpoint(host_checkpoint, payload)
-    if (
+    if payload["gpu_count"] and (
         payload["gpu_count"] != payload["profile_gpu_count"]
         or GPU_VRAM_GB[payload["gpu_type"]] < payload["min_vram_gib"]
     ):
         raise ValueError("GPU request does not satisfy the selected hardware profile")
     resources = allowed(payload)
-    with locked(path.with_suffix(".lock")):
+    with locked(p["state"] / ".submit.lock"):
         ledger = read_ledger(path)
         ledger = reconcile_intent(ledger, path)
         if ledger.get("identity") and ledger["identity"] != payload["identity"]:
@@ -566,6 +625,12 @@ def submit(payload: dict) -> dict:
                     "job_id": latest["job_id"],
                     "scheduler": state,
                 }
+            if state["state"] == "COMPLETED" and payload["operation"] not in {"pilot", "train"}:
+                return {
+                    "submitted": False,
+                    "reason": "already_completed",
+                    "job_id": latest["job_id"],
+                }
             if not payload.get("resume"):
                 raise ValueError("Existing run requires explicit checkpoint resume")
             if state["state"] not in {
@@ -575,6 +640,7 @@ def submit(payload: dict) -> dict:
                 "TIMEOUT",
                 "FAILED",
                 "CANCELLED",
+                "COMPLETED",
             }:
                 raise ValueError("Previous job state does not permit resume")
         elif payload.get("resume"):
@@ -592,16 +658,66 @@ def submit(payload: dict) -> dict:
         token = "selfplay-" + uuid.uuid4().hex[:20]
         ledger["identity"] = payload["identity"]
         ledger["operation"] = payload["operation"]
-        ledger["run_dir"] = str(
-            p["runs"]
-            / (payload["study_id"] + ("-pilot" if payload["operation"] == "pilot" else ""))
-            / f"{payload['method']}-seed{payload['seed']}"
+        artifact = artifact_dir(payload)
+        slot = (
+            p["state"]
+            / "slots"
+            / (
+                hashlib.sha256(
+                    (
+                        "image-" + payload["image_metadata"]["kind"]
+                        if payload["operation"] == "image-convert"
+                        else str(artifact)
+                    ).encode()
+                ).hexdigest()
+                + ".json"
+            )
         )
+        if slot.exists():
+            owner = json.loads(slot.read_text())
+            if owner["run_id"] != payload["run_id"]:
+                prior = status({**payload, "run_id": owner["run_id"]})
+                states = [a["scheduler"]["state"] for a in prior["attempts"]]
+                if (
+                    prior["ledger"].get("pending_intent")
+                    or not states
+                    or states[-1] in ACTIVE | {"UNKNOWN"}
+                ):
+                    return {
+                        "submitted": False,
+                        "reason": "slot_busy",
+                        "state": states[-1] if states else "UNKNOWN",
+                        "run_id": owner["run_id"],
+                    }
+                if payload["operation"] in {"train", "pilot"}:
+                    raise ValueError(
+                        "Existing scientific run belongs to a different immutable identity"
+                    )
+        reserve_budget(payload, token)
+        write_json(slot, {"run_id": payload["run_id"], "identity": payload["identity"]})
+        ledger.setdefault(
+            "specification",
+            {k: v for k, v in payload.items() if k not in {"resume", "explicit_continue"}},
+        )
+        ledger["run_dir"] = str(artifact)
         ledger["pending_intent"] = token
         ledger["pending_resume"] = payload.get("resume")
         write_json(path, ledger)
         exports = {
             "SELFPLAY_PROJECT": str(p["checkout"]),
+            "SELFPLAY_WORKER_SIF": payload.get("worker_image", ""),
+            "SELFPLAY_WORKER_SHA256": payload.get("worker_sha256", ""),
+            "SELFPLAY_WORKER_CONFIG": base64.b64encode(
+                json.dumps(payload.get("worker_config", {})).encode()
+            ).decode(),
+            "SELFPLAY_STOP_AFTER_ITERATION": str(payload.get("stop_after_iteration", 0)),
+            "SELFPLAY_ARCHIVE": payload.get("archive", ""),
+            "SELFPLAY_ARCHIVE_SHA256": payload.get("archive_sha256", ""),
+            "SELFPLAY_IMAGE_TARGET": payload.get("image_target", ""),
+            "SELFPLAY_IMAGE_MANIFEST": payload.get("image_manifest", ""),
+            "SELFPLAY_IMAGE_METADATA": base64.b64encode(
+                json.dumps(payload.get("image_metadata", {})).encode()
+            ).decode(),
             "SELFPLAY_TRAINER_SIF": payload["image"],
             "SELFPLAY_TRAINER_SHA256": payload["image_sha256"],
             "SELFPLAY_DATA": str(p["dataset"]),
@@ -612,8 +728,11 @@ def submit(payload: dict) -> dict:
             "SELFPLAY_HARDWARE": payload["profile"],
             "SELFPLAY_GPU_COUNT": str(payload["gpu_count"]),
             "SELFPLAY_SETTINGS": payload["settings"],
+            "SELFPLAY_MAIN_STUDY": payload["study_id"],
+            "SELFPLAY_PILOT_SUFFIX": payload.get("pilot_suffix", "-pilot"),
+            "SELFPLAY_GPU_TYPE": payload["gpu_type"],
             "SELFPLAY_STUDY": payload["study_id"]
-            + ("-pilot" if payload["operation"] == "pilot" else ""),
+            + (payload.get("pilot_suffix", "-pilot") if payload["operation"] == "pilot" else ""),
             "SELFPLAY_SEED": str(payload["seed"]),
             "SELFPLAY_RUN_ID": payload["run_id"],
             "SELFPLAY_RESUME": (payload.get("resume") or "").replace(str(p["runs"]), "/runs", 1),
@@ -635,20 +754,23 @@ def submit(payload: dict) -> dict:
             "--parsable",
             f"--account={payload['account']}",
             f"--partition={payload['partition']}",
-            f"--gpus={payload['gpu_type']}:{payload['gpu_count']}",
             f"--cpus-per-task={payload['cpus']}",
             f"--mem={payload['memory_gib']}G",
             f"--time={payload['time']}",
             f"--comment={token}",
+            f"--signal=B:USR1@{payload.get('signal_seconds', 300)}",
             f"--output={p['state']}/{payload['run_id']}-%j.out",
         ]
+        if payload["gpu_count"]:
+            args.append(f"--gpus={payload['gpu_type']}:{payload['gpu_count']}")
         if payload.get("qos"):
             args.append(f"--qos={payload['qos']}")
-        args += ["--export=NONE," + ",".join(f"{k}={v}" for k, v in exports.items()), str(script)]
+        args += ["--export=" + ",".join(f"{k}={v}" for k, v in exports.items()), str(script)]
         result = run(args, check=False)
         if result.returncode:
             ledger.pop("pending_intent")
             ledger.pop("pending_resume", None)
+            release_budget(payload, token)
             ledger["last_rejection"] = result.stderr[-2000:]
             write_json(path, ledger)
             return {
@@ -666,6 +788,7 @@ def submit(payload: dict) -> dict:
                 "stderr": result.stderr[-2000:],
             }
         job_id = result.stdout.strip().split(";", 1)[0]
+        bind_budget_job(payload, token, job_id)
         ledger.pop("pending_intent", None)
         ledger.pop("pending_resume", None)
         ledger["attempts"].append(
@@ -686,8 +809,314 @@ def submit(payload: dict) -> dict:
         }
 
 
+def artifact_dir(payload: dict) -> Path:
+    runs = paths(payload)["runs"]
+    study = payload["study_id"]
+    if not SAFE_NAME.fullmatch(study):
+        raise ValueError("Unsafe study ID")
+    operation = payload["operation"]
+    if operation == "image-convert":
+        return (
+            workspace(payload)
+            / "images"
+            / payload["image_metadata"]["kind"]
+            / payload["archive_sha256"]
+        )
+    if operation in {"worker-check", "runtime-check", "readiness-check"}:
+        return runs / "readiness" / study
+    if operation == "backend-check":
+        return runs / "compatibility" / payload["profile"]
+    if operation == "freeze-study":
+        return runs / study
+    if operation == "evaluate" and payload.get("base"):
+        return runs / study / "base"
+    if operation == "diagnose":
+        return runs / study / "diagnostics" / Path(payload["checkpoint"]).name
+    return (
+        runs
+        / (study + (payload.get("pilot_suffix", "-pilot") if operation == "pilot" else ""))
+        / f"{payload['method']}-seed{payload['seed']}"
+    )
+
+
+def budget_path(payload: dict) -> Path:
+    if not SAFE_NAME.fullmatch(payload["study_id"]):
+        raise ValueError("Unsafe study ID")
+    return workspace(payload) / "state" / f"budget-{payload['study_id']}.json"
+
+
+def refreshed_budget(payload: dict) -> dict:
+    path = budget_path(payload)
+    budget = json.loads(path.read_text()) if path.exists() else {"limit": 24.0, "reservations": {}}
+    for item in budget["reservations"].values():
+        if not item.get("job_id") or item.get("charged") is not None:
+            continue
+        result = capture(
+            [
+                "sacct",
+                "-n",
+                "-P",
+                "-j",
+                item["job_id"],
+                "--format",
+                "JobIDRaw,State,ElapsedRaw,AllocTRES",
+            ]
+        )
+        if result["exit_code"] != 0:
+            continue
+        for row in result["stdout"].splitlines():
+            parts = row.split("|")
+            if (
+                len(parts) < 4
+                or parts[0] != item["job_id"]
+                or parts[1].split()[0].rstrip("+") in ACTIVE
+            ):
+                continue
+            if not parts[2].isdigit():
+                continue
+            gpu = re.search(r"(?:^|,)gres/gpu=(\d+)(?:,|$)", parts[3])
+            # Keep the reservation unless the actual allocation can be verified.
+            if gpu:
+                item["charged"] = int(parts[2]) * int(gpu[1]) / 3600
+    budget["committed_gpu_hours"] = sum(
+        i["reserved"] if i.get("charged") is None else i["charged"]
+        for i in budget["reservations"].values()
+    )
+    return budget
+
+
+def reserve_budget(payload: dict, token: str):
+    with locked(workspace(payload) / "state" / ".budget.lock"):
+        if not payload.get("readiness_budget") or not payload["gpu_count"]:
+            return
+        limit = float(payload["readiness_budget"])
+        if not 0 < limit <= 24:
+            raise ValueError("Readiness budget must be positive and at most 24 GPU-hours")
+        budget = refreshed_budget(payload)
+        if budget["reservations"] and budget["limit"] != limit:
+            raise ValueError("Cannot change the recorded readiness budget")
+        hours, minutes, seconds = map(int, payload["time"].split(":"))
+        reserved = payload["gpu_count"] * (hours + minutes / 60 + seconds / 3600)
+        if budget["committed_gpu_hours"] + reserved > limit + 1e-9:
+            raise ValueError("Readiness GPU-hour budget exhausted; no job submitted")
+        if payload["operation"] == "pilot":
+            spent = sum(
+                i["reserved"] if i.get("charged") is None else i["charged"]
+                for i in budget["reservations"].values()
+                if i.get("operation") == "pilot"
+            )
+            if spent + reserved > 12 + 1e-9:
+                raise ValueError("Pilot allocation budget exhausted")
+        budget["limit"] = limit
+        budget["reservations"][token] = {
+            "reserved": reserved,
+            "charged": None,
+            "run_id": payload["run_id"],
+            "operation": payload["operation"],
+        }
+        write_json(budget_path(payload), budget)
+
+
+def bind_budget_job(payload: dict, token: str, job_id: str):
+    if not payload.get("study_id"):
+        return
+    with locked(workspace(payload) / "state" / ".budget.lock"):
+        path = budget_path(payload) if payload.get("study_id") else None
+        if not path or not path.exists():
+            return
+        budget = json.loads(path.read_text())
+        if token in budget["reservations"]:
+            budget["reservations"][token]["job_id"] = job_id
+            write_json(path, budget)
+
+
+def release_budget(payload: dict, token: str):
+    if not payload.get("study_id"):
+        return
+    with locked(workspace(payload) / "state" / ".budget.lock"):
+        path = budget_path(payload) if payload.get("study_id") else None
+        if path and path.exists():
+            budget = json.loads(path.read_text())
+            budget["reservations"].pop(token, None)
+            write_json(path, budget)
+
+
+def study_state(payload: dict) -> dict:
+    base = workspace(payload)
+    study = payload["study_id"]
+    if not SAFE_NAME.fullmatch(study):
+        raise ValueError("Unsafe study ID")
+    runs = base / "runs"
+
+    def read(path):
+        return json.loads(path.read_text()) if path.is_file() else {}
+
+    images = {kind: read(base / "images" / f"{kind}.json") for kind in ("worker", "trainer")}
+    evidence = runs / "readiness" / study
+    identity = payload.get("runtime_identity")
+    reports = {
+        "worker": read(evidence / "worker.json"),
+        "runtime": read(evidence / "runtime.json"),
+        "single": read(runs / "compatibility/single_gpu_80gb.json"),
+        "target": read(
+            runs / "compatibility" / (payload.get("profile", "dual_gpu_80gb") + ".json")
+        ),
+        "base": read(runs / study / "base/evaluation_complete.json"),
+        "pilot": read(
+            runs
+            / f"{study}{payload.get('pilot_suffix', '-pilot')}/D-seed{payload.get('seed', 2026)}/pilot_report.json"
+        ),
+        "freeze": read(runs / study / "study_frozen.json"),
+    }
+    worker = reports["worker"]
+    gates = {
+        "worker": bool(
+            worker.get("ready")
+            and images["worker"].get("sha256")
+            and worker.get("image_digest") == "sha256:" + images["worker"]["sha256"]
+            and worker.get("supervisor_hash")
+            == payload.get("supervisor_hash", worker.get("supervisor_hash"))
+        )
+    }
+    for name in ("runtime", "single", "target", "base", "pilot", "freeze"):
+        report = reports[name]
+        gates[name] = bool(report and identity and report.get("runtime_identity") == identity)
+        if name in {"runtime", "single", "target", "base"}:
+            gates[name] = gates[name] and bool(report.get("ready"))
+        if name == "target":
+            gates[name] = gates[name] and report.get("gpu_type") == payload.get("gpu_type", "h100")
+    readiness = read(runs / study / "readiness.json")
+    eligible = bool(
+        readiness.get("eligible_to_submit_main")
+        and identity
+        and readiness.get("runtime_identity") == identity
+        and readiness.get("evidence_files")
+    )
+    if eligible:
+        for relative, expected in readiness["evidence_files"].items():
+            path = runs / relative
+            if (
+                not path.resolve().is_relative_to(runs.resolve())
+                or not path.is_file()
+                or sha256(path) != expected
+            ):
+                eligible = False
+                break
+    memory_fit_failure = False
+    for ledger_file in (base / "state").glob("*.json"):
+        ledger = read(ledger_file)
+        spec = ledger.get("specification", {})
+        if (
+            spec.get("study_id") != study
+            or spec.get("gpu_type") != "h100"
+            or not ledger.get("attempts")
+        ):
+            continue
+        health = read(Path(ledger.get("run_dir", "")) / "state/health.json")
+        error = str(health.get("error", "")).lower()
+        if spec.get("operation") == "backend-check":
+            log = base / "state" / f"{spec['run_id']}-{ledger['attempts'][-1]['job_id']}.out"
+            if log.is_file():
+                with log.open("rb") as stream:
+                    stream.seek(max(0, log.stat().st_size - 64000))
+                    error = stream.read().decode(errors="replace").lower()
+        if (
+            "out of memory" in error
+            and "cuda" in error
+            and job_state(ledger["attempts"][-1]["job_id"])["state"] == "FAILED"
+        ):
+            memory_fit_failure = True
+    return {
+        "study_id": study,
+        "h100_memory_fit_failure": memory_fit_failure,
+        "images": images,
+        "gates": gates,
+        "reports": reports,
+        "eligible_to_submit_main": eligible,
+        "readiness": readiness,
+        "budget": refreshed_budget(payload),
+        "base": str(base),
+        "artifact_directories": {
+            name: str(path)
+            for name, path in {
+                study: runs / study,
+                study + "-pilot": runs / (study + "-pilot"),
+                study + "-pilot-h200": runs / (study + "-pilot-h200"),
+                "compatibility": runs / "compatibility",
+                "readiness": evidence,
+            }.items()
+            if path.is_dir()
+        },
+    }
+
+
+def precheck(payload: dict):
+    operation = payload["operation"]
+    if operation == "image-convert":
+        if not Path(payload["archive"]).is_file() or not DIGEST.fullmatch(
+            payload["archive_sha256"]
+        ):
+            raise ValueError("Image archive missing")
+        return
+    if payload.get("worker_image"):
+        if not Path(payload["worker_image"]).is_file() or not DIGEST.fullmatch(
+            payload.get("worker_sha256", "")
+        ):
+            raise ValueError("Pinned worker SIF missing")
+    if payload["gpu_count"] or operation == "freeze-study":
+        if not payload.get("worker_image"):
+            raise ValueError("Yale jobs require the verified allocation worker")
+        state = study_state(payload)
+        if not state["gates"]["worker"] or not state["gates"]["runtime"]:
+            raise ValueError("Runtime isolation and target data validation have not passed")
+        if operation == "train" or (
+            operation == "evaluate" and payload.get("split") in {"final_id", "external"}
+        ):
+            if (
+                not state["eligible_to_submit_main"]
+                or state["readiness"].get("common_config") != payload.get("common_config")
+                or state["reports"]["freeze"].get("execution_commit") != payload.get("commit")
+                or state["readiness"].get("gpu_type") != payload.get("gpu_type")
+            ):
+                raise ValueError("Study is not eligible for main submission")
+
+
+def preview(payload: dict) -> dict:
+    precheck(payload)
+    return {
+        "dry_run": True,
+        "submitted": False,
+        "resources": allowed(payload),
+        "specification": payload,
+        "artifact_directory": str(artifact_dir(payload)),
+    }
+
+
+def prepare_image(payload: dict) -> dict:
+    base = workspace(payload)
+    kind, archive_hash = payload["kind"], payload["archive_sha256"]
+    if kind not in {"worker", "trainer"} or not DIGEST.fullmatch(archive_hash):
+        raise ValueError("Invalid image identity")
+    target = base / "images" / kind / archive_hash
+    incoming = base / "incoming" / f"{archive_hash}.tar"
+    for directory in (target, incoming.parent, base / "state"):
+        directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+    size = int(payload["archive_bytes"])
+    if size <= 0 or shutil.disk_usage(base).free < size * 2:
+        raise ValueError("Insufficient project capacity for archive and SIF")
+    return {
+        "archive": str(incoming),
+        "image_target": str(target / f"{kind}.sif"),
+        "image_manifest": str(base / "images" / f"{kind}.json"),
+    }
+
+
 COMMANDS = {
     "inspect": inspect,
+    "context": context,
+    "study": study_state,
+    "preview": preview,
+    "prepare_image": prepare_image,
     "resources": allowed,
     "prepare": prepare,
     "finalize": finalize,

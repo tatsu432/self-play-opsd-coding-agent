@@ -182,6 +182,7 @@ class EvaluationRecord(Record):
 
 
 class CheckpointMetadata(Record):
+    runtime_identity: dict[str, Any] | None = None
     iteration: int
     scientific_hash: str
     manifests_hash: str

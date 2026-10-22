@@ -23,6 +23,7 @@ import typer
 
 from selfplay_opsd.config import PROFILES, load_config
 from selfplay_opsd.core import digest
+from selfplay_opsd.worker_runtime import supervisor_hash
 
 app = typer.Typer(no_args_is_help=True, help="Inspect and operate approved Yale Slurm jobs")
 ROOT = Path(__file__).resolve().parents[2]
@@ -107,6 +108,10 @@ class YaleSSH:
     def call(self, command: str, payload: dict | None = None) -> dict:
         if command not in {
             "inspect",
+            "context",
+            "study",
+            "preview",
+            "prepare_image",
             "resources",
             "prepare",
             "finalize",
@@ -166,7 +171,13 @@ class YaleSSH:
         excludes = (
             []
             if full
-            else ["--exclude=checkpoints/", "--exclude=trajectories/", "--exclude=wandb/"]
+            else [
+                "--exclude=checkpoints/",
+                "--exclude=trajectories/",
+                "--exclude=wandb/",
+                "--exclude=*.sif",
+                "--exclude=*.tar",
+            ]
         )
         result = subprocess.run(
             [
@@ -247,7 +258,7 @@ def choose_scratch(report: dict, alias: str) -> str:
 
 
 def remote_context(remote: Scheduler, alias: str) -> dict:
-    report = remote.call("inspect")
+    report = remote.call("context")
     return {"storage_root": choose_storage(report, alias), "inspection": report}
 
 
@@ -312,7 +323,18 @@ def run_payload(
     endpoint: str = "primary",
     secrets_file: str | None = None,
 ) -> dict:
-    if operation not in {"backend-check", "pilot", "train", "evaluate", "diagnose"}:
+    if operation not in {
+        "backend-check",
+        "pilot",
+        "train",
+        "evaluate",
+        "diagnose",
+        "image-convert",
+        "worker-check",
+        "runtime-check",
+        "freeze-study",
+        "readiness-check",
+    }:
         raise HpcError("Unsupported submission operation")
     if method not in "ABCD" or len(method) != 1:
         raise HpcError("Method must be A, B, C, or D")
@@ -320,9 +342,9 @@ def run_payload(
         raise HpcError("Choose a production hardware profile")
     if operation == "pilot" and method != "D":
         raise HpcError("The calibration pilot must use method D")
-    if not re.fullmatch(r"/[A-Za-z0-9_./-]+", image):
+    if image and not re.fullmatch(r"/[A-Za-z0-9_./-]+", image):
         raise HpcError("Trainer SIF must be an absolute remote path")
-    if not re.fullmatch(r"[0-9a-f]{64}", image_sha256):
+    if image_sha256 and not re.fullmatch(r"[0-9a-f]{64}", image_sha256):
         raise HpcError("Trainer SIF requires its SHA-256 digest")
     if iterations < 1 or iterations > 200:
         raise HpcError("Pilot iteration count must be between 1 and 200")
@@ -340,7 +362,7 @@ def run_payload(
     if secrets_file and not re.fullmatch(r"/[A-Za-z0-9_./-]+", secrets_file):
         raise HpcError("Secrets file must be an absolute remote path")
     snap = snapshot()
-    inspection = remote.call("inspect")
+    inspection = remote.call("context")
     storage = choose_storage(inspection, alias)
     scratch = choose_scratch(inspection, alias)
     chosen_gpu = gpu_type or ("h200" if profile == "dual_gpu_141gb" else "h100")
@@ -348,6 +370,28 @@ def run_payload(
         raise HpcError("Unsupported GPU type")
     partition = GPU_PARTITIONS[chosen_gpu]
     cfg = load_config(settings, method=method, hardware_profile=profile)
+    state = remote.call("study", {"storage_root": storage, "study_id": cfg.study_id})
+    if operation == "train" or (operation == "evaluate" and split in {"final_id", "external"}):
+        pinned_commit = state["reports"]["freeze"].get("execution_commit")
+        if pinned_commit:
+            snap["commit"] = pinned_commit
+    trainer = state["images"]["trainer"]
+    worker = state["images"]["worker"]
+    image = image or trainer.get("path", "")
+    image_sha256 = image_sha256 or trainer.get("sha256", "")
+    if operation not in {"image-convert", "worker-check"} and (not image or not image_sha256):
+        raise HpcError("Build and convert the trainer image first: hpc images build --kind trainer")
+    from selfplay_opsd.readiness import execution_identity
+
+    runtime_identity = execution_identity(cfg) | {
+        "trainer_sha256": image_sha256 or None,
+        "worker_sha256": worker.get("sha256"),
+    }
+    pilot_suffix = "-pilot" if chosen_gpu == "h100" else "-pilot-" + chosen_gpu
+    checkpoint_cfg = cfg.model_copy(deep=True)
+    if operation == "pilot":
+        checkpoint_cfg.study_id += pilot_suffix
+        checkpoint_cfg.iterations = iterations
     if checkpoint_iteration is not None and not 0 <= checkpoint_iteration <= cfg.iterations:
         raise HpcError("Checkpoint iteration is outside the study budget")
     if cfg.hardware.min_vram_gib > GPU_VRAM[chosen_gpu]:
@@ -356,13 +400,14 @@ def run_payload(
     relative_settings = settings.resolve().relative_to(ROOT)
     if not re.fullmatch(r"[A-Za-z0-9_./-]+", str(relative_settings)):
         raise HpcError("Settings path has unsafe characters")
-    study = cfg.study_id + ("-pilot" if operation == "pilot" else "")
+    study = cfg.study_id + (pilot_suffix if operation == "pilot" else "")
     logical = {
         "commit": snap["commit"],
         "manifest_sha256": snap["manifest_sha256"],
         "settings_sha256": sha256(settings),
-        "scientific_hash": cfg.scientific_hash,
+        "scientific_hash": checkpoint_cfg.scientific_hash,
         "image_sha256": image_sha256,
+        "worker_sha256": worker.get("sha256"),
         "operation": operation,
         "method": method,
         "profile": profile,
@@ -376,30 +421,74 @@ def run_payload(
         "endpoint": endpoint if operation == "evaluate" else None,
     }
     identity = hashlib.sha256(json.dumps(logical, sort_keys=True).encode()).hexdigest()
-    count = cfg.hardware.gpu_count
+    gpu_operation = operation in {"backend-check", "pilot", "train", "evaluate", "diagnose"}
+    count = cfg.hardware.gpu_count if gpu_operation else 0
+    if not gpu_operation:
+        partition = "day"
+        selected_account = account or choose_account(inspection, partition)
     payload = {
         **snap,
         "storage_root": storage,
         "scratch_root": scratch,
         "identity": identity,
+        "runtime_identity": runtime_identity,
+        "common_config": cfg.scientific_settings(common=True),
+        "signal_seconds": max(
+            300,
+            min(
+                3600,
+                int(state["reports"]["freeze"].get("pilot", {}).get("p90_iteration_seconds", 0))
+                + 120,
+            ),
+        )
+        if operation == "train"
+        else 300,
+        "worker_image": worker.get("path", ""),
+        "worker_sha256": worker.get("sha256", ""),
+        "worker_config": cfg.sandbox.model_dump(mode="json"),
+        "supervisor_hash": supervisor_hash(),
+        "pilot_suffix": pilot_suffix,
+        "target_iterations": iterations if operation == "pilot" else cfg.iterations,
+        "max_continuations": 1 if operation == "pilot" else 0,
+        "readiness_budget": 24
+        if operation in {"backend-check", "pilot"} or (operation == "evaluate" and base)
+        else None,
         "run_id": identity[:24],
-        "scientific_hash": cfg.scientific_hash,
+        "scientific_hash": checkpoint_cfg.scientific_hash,
         "manifests_hash": digest(json.loads((ROOT / "data/prepared/manifest.json").read_text())),
         "operation": operation,
         "method": method,
         "profile": profile,
-        "profile_gpu_count": count,
+        "profile_gpu_count": cfg.hardware.gpu_count,
         "gpu_count": count,
         "min_vram_gib": cfg.hardware.min_vram_gib,
         "gpu_type": chosen_gpu,
         "partition": partition,
         "account": selected_account,
-        "cpus": cfg.hardware.cpu_workers,
-        "memory_gib": cfg.hardware.host_ram_gib,
+        "cpus": cfg.hardware.cpu_workers
+        if gpu_operation
+        else 8
+        if operation in {"image-convert", "runtime-check"}
+        else 2,
+        "memory_gib": cfg.hardware.host_ram_gib
+        if gpu_operation
+        else 64
+        if operation == "image-convert"
+        else 16
+        if operation == "runtime-check"
+        else 4
+        if operation == "worker-check"
+        else 8,
         "time": "01:00:00"
         if operation == "backend-check"
         else "06:00:00"
         if operation == "pilot"
+        else "02:00:00"
+        if operation == "evaluate" and base
+        else "00:15:00"
+        if operation in {"worker-check", "freeze-study", "readiness-check"}
+        else "01:00:00"
+        if not gpu_operation
         else "23:00:00",
         "image": image,
         "image_sha256": image_sha256,
@@ -438,7 +527,9 @@ def login_command(alias: Annotated[str, typer.Option()] = ALIASES[0]):
 
 
 @app.command("doctor")
-def doctor(alias: Annotated[str, typer.Option()] = ALIASES[0]):
+def doctor(
+    alias: Annotated[str, typer.Option()] = ALIASES[0], settings: Path = Path("configs/yale.yaml")
+):
     """Report local prerequisites and lightweight remote state without allocation."""
     manifest_path = ROOT / "data/prepared/manifest.json"
     validation_path = ROOT / "data/prepared/validation_report.json"
@@ -472,20 +563,38 @@ def doctor(alias: Annotated[str, typer.Option()] = ALIASES[0]):
             result["blockers"].append("Slurm associations unavailable")
         if not remote["workspace"].get("current_snapshot"):
             result["blockers"].append("Current immutable Yale checkout and data not synchronized")
-        if not remote["workspace"].get("backend_proofs"):
-            result["blockers"].append("Target GPU backend acceptance not established")
-        result["unverified"] = [
-            "Pinned trainer SIF",
-            "isolated code worker",
-            "target pilot",
-            "frozen study",
+        from selfplay_opsd.readiness import execution_identity
+
+        cfg = load_config(settings)
+        target = YaleSSH(alias)
+        context = {
+            "storage_root": choose_storage(remote, alias),
+            "study_id": cfg.study_id,
+            "profile": cfg.hardware.profile,
+            "supervisor_hash": supervisor_hash(),
+            "seed": cfg.seed,
+        }
+        state = target.call("study", context)
+        context["gpu_type"] = state["reports"]["freeze"].get("gpu_type", "h100")
+        context["pilot_suffix"] = state["reports"]["freeze"].get("pilot_suffix", "-pilot")
+        identity = execution_identity(cfg) | {
+            "trainer_sha256": state["images"]["trainer"].get("sha256"),
+            "worker_sha256": state["images"]["worker"].get("sha256"),
+        }
+        state = target.call("study", context | {"runtime_identity": identity})
+        result["study"] = state
+        result["eligible_to_submit_main"] = (
+            state["eligible_to_submit_main"] and not result["blockers"]
+        )
+        result["blockers"] += [
+            "Readiness gate missing or stale: " + name
+            for name, ready in state["gates"].items()
+            if not ready
         ]
+        if not result["eligible_to_submit_main"] and not result["blockers"]:
+            result["blockers"].append("Frozen readiness evidence missing or stale")
         result["next_action"] = (
-            "Commit the implementation and run hpc sync"
-            if not local["git_clean"]
-            else "Run hpc sync"
-            if not remote["workspace"].get("current_snapshot")
-            else "Verify the trainer SIF and isolated code worker, then run target GPU backend acceptance"
+            "Run hpc prepare-study; inspect its next action or failed-stage evidence"
         )
     except HpcError as exc:
         result = {
@@ -537,10 +646,10 @@ def sync_command(alias: Annotated[str, typer.Option()] = ALIASES[0]):
 @app.command("submit")
 def submit_command(
     operation: Annotated[
-        str, typer.Option(help="backend-check, pilot, train, evaluate or diagnose")
+        str, typer.Option(help="GPU operation or CPU runtime-check/freeze-study/worker-check")
     ],
-    image: Annotated[str, typer.Option(help="Absolute trainer SIF path on Yale")],
-    image_sha256: Annotated[str, typer.Option(help="SHA-256 of the Yale trainer SIF")],
+    image: Annotated[str, typer.Option(help="Absolute trainer SIF path on Yale")] = "",
+    image_sha256: Annotated[str, typer.Option(help="SHA-256 of the Yale trainer SIF")] = "",
     method: str = "D",
     profile: str = "dual_gpu_80gb",
     gpu_type: str | None = None,
@@ -552,6 +661,7 @@ def submit_command(
     checkpoint_iteration: int | None = None,
     endpoint: str = "primary",
     secrets_file: str | None = None,
+    dry_run: bool = False,
     alias: str = ALIASES[0],
 ):
     """Submit one immutable run after live Slurm authorization checks."""
@@ -574,7 +684,7 @@ def submit_command(
         endpoint=endpoint,
         secrets_file=secrets_file,
     )
-    output(remote.call("submit", payload))
+    output(remote.call("preview" if dry_run else "submit", payload))
 
 
 @app.command("status")
@@ -607,7 +717,9 @@ def fetch_command(run_id: str, full: bool = False, alias: str = ALIASES[0]):
     allowed_root = (
         Path(context["storage_root"]) / f"selfplay-opsd-{context['inspection']['user']}/runs"
     )
-    if not run_dir.is_relative_to(allowed_root):
+    if not run_dir.is_relative_to(allowed_root) and not run_dir.is_relative_to(
+        allowed_root.parent / "images"
+    ):
         raise HpcError("Ledger run directory lies outside managed runs")
     target = ROOT / "runs/hpc" / alias / run_id
     remote.fetch(str(run_dir), target, full=full)
@@ -615,82 +727,48 @@ def fetch_command(run_id: str, full: bool = False, alias: str = ALIASES[0]):
 
 
 @app.command("resume")
-def resume_command(
-    run_id: str,
-    image: str,
-    image_sha256: str,
-    operation: str = "train",
-    method: str = "D",
-    profile: str = "dual_gpu_80gb",
-    gpu_type: str | None = None,
-    account: str | None = None,
-    settings: Path = Path("configs/yale.yaml"),
-    iterations: int = 10,
-    secrets_file: str | None = None,
-    alias: str = ALIASES[0],
-):
-    """Recover a transiently failed run from its latest verified checkpoint."""
+def resume_command(run_id: str, continue_stopped: bool = False, alias: str = ALIASES[0]):
+    """Use the persisted immutable specification; opt in to bounded clean continuation."""
     remote = YaleSSH(alias)
-    if operation not in {"train", "pilot"}:
-        raise HpcError("Only training and pilot runs can be resumed")
-    payload = run_payload(
-        remote,
-        alias,
-        operation=operation,
-        method=method,
-        profile=profile,
-        gpu_type=gpu_type,
-        account=account,
-        image=image,
-        image_sha256=image_sha256,
-        settings=settings,
-        iterations=iterations,
-        secrets_file=secrets_file,
+    context = remote_context(remote, alias)
+    output(
+        remote.call(
+            "recover",
+            {
+                "storage_root": context["storage_root"],
+                "run_id": run_id,
+                "explicit_continue": continue_stopped,
+            },
+        )
     )
-    if payload["run_id"] != run_id:
-        raise HpcError("Run ID does not match the current immutable identity")
-    output(remote.call("recover", payload))
 
 
 @app.command("watch")
 def watch_command(
-    run_id: str,
-    image: str,
-    image_sha256: str,
-    operation: str = "train",
-    method: str = "D",
-    profile: str = "dual_gpu_80gb",
-    gpu_type: str | None = None,
-    account: str | None = None,
-    settings: Path = Path("configs/yale.yaml"),
-    interval: int = 60,
-    secrets_file: str | None = None,
-    alias: str = ALIASES[0],
+    run_id: str, interval: int = 60, continue_stopped: bool = False, alias: str = ALIASES[0]
 ):
-    """Monitor a training run and apply at most two authorized recovery attempts."""
+    """Monitor persisted state; only authorized transient retries/continuations run."""
     if interval < 30:
         raise HpcError("Poll interval must be at least 30 seconds")
-    if operation not in {"train", "pilot"}:
-        raise HpcError("Only training and pilot runs can be watched for recovery")
     remote = YaleSSH(alias)
-    payload = run_payload(
-        remote,
-        alias,
-        operation=operation,
-        method=method,
-        profile=profile,
-        gpu_type=gpu_type,
-        account=account,
-        image=image,
-        image_sha256=image_sha256,
-        settings=settings,
-        secrets_file=secrets_file,
-    )
-    if payload["run_id"] != run_id:
-        raise HpcError("Run ID does not match the current immutable identity")
+    context = remote_context(remote, alias)
+    payload = {
+        "storage_root": context["storage_root"],
+        "run_id": run_id,
+        "explicit_continue": continue_stopped,
+    }
     while True:
         result = remote.call("recover", payload)
         output(result)
         if result.get("state") not in ACTIVE and not result.get("submitted"):
             break
         time.sleep(interval)
+
+
+def _register_readiness():
+    from selfplay_opsd.hpc_readiness import register
+
+    register(app)
+
+
+_register_readiness()
