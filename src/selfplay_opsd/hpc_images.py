@@ -7,6 +7,7 @@ import importlib.metadata
 import json
 import re
 import shlex
+import subprocess
 from pathlib import Path, PurePosixPath
 
 from selfplay_opsd.core import digest
@@ -17,13 +18,38 @@ BUILD_CHECK_DOCKERFILE = """FROM python:3.12.12-slim-bookworm@sha256:593bd06efe9
 USER root
 WORKDIR /opt/selfplay
 COPY README.md ./
-RUN test -s README.md && printf 'build-ok' > /opt/selfplay/witness
+RUN test -s README.md && test "$PYTHON_VERSION" = 3.12.12 && printf 'build-ok' > /opt/selfplay/witness
 ENV SELFPLAY_BUILD_WITNESS=verified
 ENTRYPOINT ["python", "-c", "import os,pathlib; assert os.environ['SELFPLAY_BUILD_WITNESS']=='verified'; assert pathlib.Path('/opt/selfplay/witness').read_text()=='build-ok'; assert pathlib.Path('/opt/selfplay/README.md').is_file()"]
 """
 
 
-def source_build(root: Path, dockerfile: Path, commit: str, *, check: bool = False) -> dict:
+def base_environment(dockerfile: Path) -> list[str]:
+    """Read immutable registry configuration only; never pull large image layers."""
+    base = next(
+        line.split(maxsplit=1)[1]
+        for line in dockerfile.read_text().splitlines()
+        if line.startswith("FROM ")
+    )
+    if "@sha256:" not in base:
+        raise ValueError("Base image must be digest pinned")
+    result = subprocess.run(
+        ["docker", "buildx", "imagetools", "inspect", base, "--format", "{{json .Image}}"],
+        text=True,
+        capture_output=True,
+        check=True,
+        timeout=180,
+    )
+    configuration = json.loads(result.stdout)
+    configuration = configuration.get("linux/amd64", configuration)
+    if configuration.get("architecture") != "amd64" or configuration.get("os") != "linux":
+        raise ValueError("Base registry configuration is not Linux AMD64")
+    return configuration["config"]["Env"]
+
+
+def source_build(
+    root: Path, dockerfile: Path, commit: str, *, base_env: list[str], check: bool = False
+) -> dict:
     from spython.main.parse.parsers import DockerParser
     from spython.main.parse.writers import SingularityWriter
 
@@ -116,7 +142,15 @@ def source_build(root: Path, dockerfile: Path, commit: str, *, check: bool = Fal
     recipe.install = [step for step in recipe.install if not step.startswith("USER ")]
     definition = SingularityWriter(parser.recipe).convert()
     # A failure in an early RUN must never be hidden by a successful later RUN.
-    definition = definition.replace("%post\n", "%post\nset -eu\n", 1)
+    environment = []
+    for assignment in base_env:
+        name, separator, value = assignment.partition("=")
+        if not separator or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
+            raise ValueError("Invalid base environment assignment")
+        environment.append(f"export {name}={shlex.quote(value)}")
+    definition = definition.replace(
+        "%post\n", "%post\nset -eu\n" + "\n".join(environment) + "\n", 1
+    )
     metadata = {
         "schema_version": 2,
         "kind": "build-check" if check else "trainer",
@@ -128,6 +162,7 @@ def source_build(root: Path, dockerfile: Path, commit: str, *, check: bool = Fal
         "converter": {"name": "spython", "version": CONVERTER_VERSION},
         "base_image": base,
         "bootstrap_reference": recipe.fromHeader,
+        "base_environment": base_env,
         "context_files": context,
         "definition_sha256": hashlib.sha256(definition.encode()).hexdigest(),
     }

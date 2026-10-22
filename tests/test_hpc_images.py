@@ -22,11 +22,11 @@ def script(name):
 
 
 def test_conversion_resolves_copy_paths_and_uses_root_build_without_su():
-    result = source_build(Path.cwd(), Path("docker/trainer.Dockerfile"), "a" * 40)
+    result = source_build(Path.cwd(), Path("docker/trainer.Dockerfile"), "a" * 40, base_env=[])
     definition = result["definition"]
     assert "docs/methods.md /opt/selfplay/methods.md" in definition
     assert "src /opt/selfplay/src" in definition
-    assert "%post\nset -eu\nmkdir -p /opt/selfplay\ncd /opt/selfplay" in definition
+    assert "%post\nset -eu\n\nmkdir -p /opt/selfplay\ncd /opt/selfplay" in definition
     assert "su -" not in definition
     assert 'exec selfplay "$@"' in definition
     assert "From: vllm/vllm-openai@sha256:" in definition
@@ -53,7 +53,7 @@ def test_conversion_rejects_unsupported_or_escaping_instructions(tmp_path, old, 
     recipe = tmp_path / "Dockerfile"
     recipe.write_text(BUILD_CHECK_DOCKERFILE.replace(old, new))
     with pytest.raises(ValueError):
-        source_build(Path.cwd(), recipe, "a" * 40, check=True)
+        source_build(Path.cwd(), recipe, "a" * 40, base_env=[], check=True)
 
 
 def inputs(tmp_path):
@@ -63,7 +63,13 @@ def inputs(tmp_path):
     (root / "uv.lock").write_text("lock\n")
     dockerfile = tmp_path / "check.Dockerfile"
     dockerfile.write_text(BUILD_CHECK_DOCKERFILE)
-    result = source_build(root, dockerfile, "a" * 40, check=True)
+    result = source_build(
+        root,
+        dockerfile,
+        "a" * 40,
+        base_env=["PYTHON_VERSION=3.12.12", "WITNESS=literal $value; text"],
+        check=True,
+    )
     target = tmp_path / "images/check.sif"
     target.parent.mkdir()
     definition = target.with_suffix(".def")
@@ -91,6 +97,34 @@ def test_exec_form_entrypoint_retains_argument_boundaries(tmp_path):
     assert args[3].startswith("import os,pathlib; assert ")
     assert args[-1] == "$@"
     assert len(args) == 5
+    assert "export PYTHON_VERSION=3.12.12" in data["definition"]
+    assert "export WITNESS='literal $value; text'" in data["definition"]
+
+
+def test_base_environment_inspection_reads_only_amd64_registry_metadata(monkeypatch):
+    from selfplay_opsd.hpc_images import base_environment
+
+    captured = []
+
+    def run(args, **kwargs):
+        captured.append(args)
+        return subprocess.CompletedProcess(
+            args,
+            0,
+            json.dumps(
+                {
+                    "linux/amd64": {
+                        "architecture": "amd64",
+                        "os": "linux",
+                        "config": {"Env": ["PATH=/usr/bin"]},
+                    }
+                }
+            ),
+        )
+
+    monkeypatch.setattr(subprocess, "run", run)
+    assert base_environment(Path("docker/trainer.Dockerfile")) == ["PATH=/usr/bin"]
+    assert captured[0][:4] == ["docker", "buildx", "imagetools", "inspect"]
 
 
 @pytest.mark.parametrize("failure", [False, True])

@@ -193,14 +193,24 @@ def register(app: typer.Typer):
         remote = YaleSSH(alias)
         snap = sync(remote)
         if build_mode == "yale":
-            from selfplay_opsd.hpc_images import BUILD_CHECK_DOCKERFILE, source_build
+            from selfplay_opsd.hpc_images import (
+                BUILD_CHECK_DOCKERFILE,
+                base_environment,
+                source_build,
+            )
 
             with tempfile.TemporaryDirectory() as temporary:
                 dockerfile = ROOT / "docker/trainer.Dockerfile"
                 if check_only:
                     dockerfile = Path(temporary) / "check.Dockerfile"
                     dockerfile.write_text(BUILD_CHECK_DOCKERFILE)
-                inputs = source_build(ROOT, dockerfile, snap["commit"], check=check_only)
+                inputs = source_build(
+                    ROOT,
+                    dockerfile,
+                    snap["commit"],
+                    base_env=base_environment(dockerfile),
+                    check=check_only,
+                )
             payload = payload_for(remote, "image-build", settings)
             payload.update(inputs)
             payload.update(
