@@ -18,6 +18,7 @@ import sys
 import tempfile
 import threading
 import time
+import xml.etree.ElementTree as ET
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -62,18 +63,30 @@ def allocated_gpus(env: dict) -> list[dict]:
     inventory = subprocess.check_output(
         [
             "nvidia-smi",
-            "--query-gpu=index,minor_number,uuid,pci.bus_id",
+            "--query-gpu=index,uuid,pci.bus_id",
             "--format=csv,noheader,nounits",
         ],
         text=True,
         env=env,
         timeout=30,
     )
+    # Minor Number is available in the full XML query, not --query-gpu on
+    # the Yale driver. Join by UUID instead of relying on XML element order.
+    xml_inventory = ET.fromstring(
+        subprocess.check_output(["nvidia-smi", "-q", "-x"], text=True, env=env, timeout=30)
+    )
+    minors = {}
+    for gpu in xml_inventory.findall("gpu"):
+        uuid = gpu.findtext("uuid", "").strip()
+        if uuid in minors:
+            raise ValueError("Duplicate NVIDIA GPU UUID in XML inventory")
+        minors[uuid] = gpu.findtext("minor_number", "").strip()
     devices = []
     for fields in csv.reader(inventory.splitlines(), skipinitialspace=True):
-        if len(fields) != 4:
+        if len(fields) != 3:
             raise ValueError("Invalid NVIDIA GPU inventory")
-        index, minor, uuid, bus = [field.strip() for field in fields]
+        index, uuid, bus = [field.strip() for field in fields]
+        minor = minors.get(uuid, "")
         if not re.fullmatch(r"GPU-[0-9a-fA-F-]{36}", uuid):
             raise ValueError("Invalid NVIDIA GPU UUID")
         devices.append({"index": index, "minor": minor, "uuid": uuid, "pci_bus_id": bus})

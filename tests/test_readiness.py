@@ -387,6 +387,22 @@ def allocation_env(tmp_path):
     }
 
 
+def gpu_inventory(args):
+    if "-x" in args:
+        return (
+            "<nvidia_smi_log>"
+            "<gpu><uuid>GPU-11111111-1111-1111-1111-111111111111</uuid>"
+            "<minor_number>1</minor_number></gpu>"
+            "<gpu><uuid>GPU-00000000-0000-0000-0000-000000000000</uuid>"
+            "<minor_number>0</minor_number></gpu></nvidia_smi_log>"
+        )
+    assert args[1] == "--query-gpu=index,uuid,pci.bus_id"
+    return (
+        "0, GPU-00000000-0000-0000-0000-000000000000, 0000:01:00.0\n"
+        "1, GPU-11111111-1111-1111-1111-111111111111, 0000:02:00.0\n"
+    )
+
+
 def test_backend_allocation_ignores_broken_worker_and_needs_no_data(tmp_path, monkeypatch):
     job = allocation_module()
     env = allocation_env(tmp_path) | {
@@ -400,8 +416,7 @@ def test_backend_allocation_ignores_broken_worker_and_needs_no_data(tmp_path, mo
         job.subprocess,
         "check_output",
         lambda args, **kw: (
-            "0, 0, GPU-00000000-0000-0000-0000-000000000000, 0000:01:00.0\n"
-            "1, 1, GPU-11111111-1111-1111-1111-111111111111, 0000:02:00.0\n"
+            gpu_inventory(args)
             if args[0] == "nvidia-smi"
             else json.dumps(
                 [
@@ -447,7 +462,7 @@ def test_gpu_selection_rejects_ambiguous_nvidia_numbering(tmp_path, monkeypatch)
     monkeypatch.setattr(
         job.subprocess,
         "check_output",
-        lambda *a, **kw: "1, 0, GPU-11111111-1111-1111-1111-111111111111, 0000:02:00.0\n",
+        lambda args, **kw: gpu_inventory(args).replace("<minor_number>1", "<minor_number>0"),
     )
     with pytest.raises(ValueError, match="Ambiguous Slurm/NVIDIA"):
         job.allocated_gpus(allocation_env(tmp_path))

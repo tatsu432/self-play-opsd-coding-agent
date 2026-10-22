@@ -351,7 +351,10 @@ def test_slurm_wrapper_runs_the_pinned_image_without_host_venv(tmp_path):
     stub.chmod(0o755)
     gpu_stub = binary / "nvidia-smi"
     gpu_stub.write_text(
-        '#!/bin/sh\nprintf "1, 1, GPU-11111111-1111-1111-1111-111111111111, 0000:02:00.0\\n"\n'
+        '#!/bin/sh\nif [ "$1" = "-q" ]; then\n'
+        "printf '<nvidia_smi_log><gpu><uuid>GPU-11111111-1111-1111-1111-111111111111</uuid>"
+        "<minor_number>1</minor_number></gpu></nvidia_smi_log>\\n'\n"
+        'else\nprintf "1, GPU-11111111-1111-1111-1111-111111111111, 0000:02:00.0\\n"\nfi\n'
     )
     gpu_stub.chmod(0o755)
     env = {
