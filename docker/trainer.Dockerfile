@@ -6,6 +6,6 @@ RUN python3 -m pip install --no-cache-dir uv==0.8.15
 COPY pyproject.toml uv.lock README.md docs/methods.md LICENSE THIRD_PARTY_NOTICES.md ./
 COPY src ./src
 COPY configs ./configs
-RUN uv sync --frozen --group gpu --no-dev --python 3.12.12
+RUN uv sync --frozen --group gpu --no-dev --python /usr/bin/python3
 ENV PATH="/opt/selfplay/.venv/bin:$PATH" PYTHONDONTWRITEBYTECODE=1 TOKENIZERS_PARALLELISM=false PYTHONPATH=/workspace/src
 ENTRYPOINT ["selfplay"]

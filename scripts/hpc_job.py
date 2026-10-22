@@ -155,6 +155,7 @@ def source_image(env: dict):
     staged = target.with_name(f".{env['SLURM_JOB_ID']}.pending.sif")
     version = subprocess.check_output(["apptainer", "version"], text=True).strip()
     initial_free = shutil.disk_usage(cache).free
+    python_version = None
     try:
         with tempfile.TemporaryDirectory(prefix=f"{key[:12]}-", dir=cache) as temporary:
             build = Path(temporary)
@@ -225,6 +226,19 @@ def source_image(env: dict):
                     timeout=60,
                 )
             else:
+                python_version = subprocess.check_output(
+                    command
+                    + [
+                        "/opt/selfplay/.venv/bin/python",
+                        "-c",
+                        "import platform; print(platform.python_version())",
+                    ],
+                    env=process_env,
+                    text=True,
+                    timeout=30,
+                ).strip()
+                if python_version.split(".")[:2] != ["3", "12"]:
+                    raise ValueError("Trainer requires the pinned base's Python 3.12 interpreter")
                 validation = (
                     "import importlib.metadata as m, torch, transformers, peft, verl, vllm; "
                     + "; ".join(
@@ -270,6 +284,7 @@ def source_image(env: dict):
         "build_key": key,
         "architecture": platform.machine(),
         "apptainer_version": version,
+        "python_version": python_version,
         "elapsed_seconds": time.monotonic() - started,
         "scratch_retained_bytes": scratch_bytes,
         "scratch_free_delta_bytes": free_delta,

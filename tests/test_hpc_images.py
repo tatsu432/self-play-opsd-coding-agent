@@ -238,6 +238,8 @@ def test_trainer_validation_accepts_uv_build_metadata_but_rejects_version_change
     def output(args, **kwargs):
         if args[0] == "git":
             return "a" * 40
+        if args[-1] == "import platform; print(platform.python_version())":
+            return "3.12.11"
         return version if args[-2:] == ["uv", "--version"] else "1.5.3"
 
     def run(args, **kwargs):
@@ -250,6 +252,10 @@ def test_trainer_validation_accepts_uv_build_metadata_but_rejects_version_change
     if "0.8.15" in version:
         job.source_image(env)
         assert json.loads(Path(env["SELFPLAY_IMAGE_MANIFEST"]).read_text())["ready"]
+        assert (
+            json.loads(Path(env["SELFPLAY_IMAGE_MANIFEST"]).read_text())["python_version"]
+            == "3.12.11"
+        )
     else:
         with pytest.raises(ValueError, match="uv version"):
             job.source_image(env)
