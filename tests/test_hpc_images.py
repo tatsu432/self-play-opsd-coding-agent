@@ -174,3 +174,13 @@ def test_controller_transport_allows_source_preparation_without_docker(monkeypat
     monkeypatch.setattr(subprocess, "run", run)
     assert YaleSSH().call("prepare_source_image", {}) == {"definition_path": "/project/image.def"}
     assert "prepare_source_image" in captured[0]
+
+
+def test_scratch_sampling_tolerates_disappearing_extraction_directories(tmp_path, monkeypatch):
+    job = script("hpc_job")
+    (tmp_path / "stable").write_bytes(b"123")
+    # A completed extraction directory can disappear between listing and stat.
+    monkeypatch.setattr(job.os, "walk", lambda _: iter([(str(tmp_path), [], ["stable", "gone"])]))
+    with job.sampled_scratch_usage(tmp_path) as usage:
+        pass
+    assert usage["sampled_peak_logical_bytes"] == 3

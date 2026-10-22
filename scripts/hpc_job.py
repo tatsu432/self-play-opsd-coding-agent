@@ -51,12 +51,16 @@ def sampled_scratch_usage(path: Path):
 
     def sample():
         total = 0
-        for item in path.rglob("*"):
-            try:
-                if not item.is_symlink() and item.is_file():
-                    total += item.stat().st_size
-            except FileNotFoundError:
-                continue
+        # os.walk tolerates directories removed by Apptainer between scans;
+        # pathlib.rglob on the site's Python 3.9 can raise during iteration.
+        for directory, _, filenames in os.walk(path):
+            for filename in filenames:
+                item = Path(directory) / filename
+                try:
+                    if not item.is_symlink() and item.is_file():
+                        total += item.stat().st_size
+                except FileNotFoundError:
+                    continue
         usage["sampled_peak_logical_bytes"] = max(usage["sampled_peak_logical_bytes"], total)
 
     def monitor():
@@ -194,10 +198,28 @@ def source_image(env: dict):
                     check=True,
                     timeout=780 if check else 13800,
                 )
-            command = ["apptainer", "exec", "--containall", "--cleanenv", "--no-home", str(staged)]
+            command = [
+                "apptainer",
+                "exec",
+                "--containall",
+                "--cleanenv",
+                "--no-home",
+                "--pwd",
+                "/opt/selfplay",
+                str(staged),
+            ]
             if check:
                 subprocess.run(
-                    ["apptainer", "run", "--containall", "--cleanenv", "--no-home", str(staged)],
+                    [
+                        "apptainer",
+                        "run",
+                        "--containall",
+                        "--cleanenv",
+                        "--no-home",
+                        "--pwd",
+                        "/opt/selfplay",
+                        str(staged),
+                    ],
                     env=process_env,
                     check=True,
                     timeout=60,
