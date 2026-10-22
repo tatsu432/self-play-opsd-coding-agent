@@ -265,12 +265,16 @@ def register(app: typer.Typer):
         gpu_type: str = "h100",
         stage: str = "all",
         worker_setup_id: str = "",
+        diagnostic_partition: str | None = None,
+        exclude_node: list[str] | None = None,
     ):
         """Advance readiness one allocation at a time; stop before main training."""
         if gpu_type not in {"h100", "h200"}:
             raise HpcError("Readiness supports H100, or H200 after verified H100 memory failure")
         if stage not in {"all", "backend"}:
             raise HpcError("Stage must be all or backend")
+        if diagnostic_partition not in {None, "scavenge_gpu"}:
+            raise HpcError("Diagnostic partition override must be scavenge_gpu")
         if alias != ALIASES[0]:
             raise HpcError("Readiness authorization is restricted to cpsc4880")
         if not 0 < gpu_hours_limit <= 24:
@@ -336,6 +340,10 @@ def register(app: typer.Typer):
                 )
                 return
             name, operation, options = next_stage
+            if operation in {"allocation-check", "backend-check"} and diagnostic_partition:
+                options["partition"] = diagnostic_partition
+            if operation in {"allocation-check", "backend-check"} and exclude_node:
+                options["exclude_nodes"] = exclude_node
             if operation == "worker-check":
                 options["worker_setup_id"] = worker_setup_id
                 prior = state["reports"].get("worker", {})
@@ -429,7 +437,15 @@ def register(app: typer.Typer):
                         return
                 if gpu_type == "h100" and state["h100_memory_fit_failure"]:
                     return prepare_study(
-                        settings, gpu_hours_limit, watch, alias, "h200", stage, worker_setup_id
+                        settings,
+                        gpu_hours_limit,
+                        watch,
+                        alias,
+                        "h200",
+                        stage,
+                        worker_setup_id,
+                        diagnostic_partition,
+                        exclude_node,
                     )
                 output(
                     {

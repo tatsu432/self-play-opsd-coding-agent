@@ -199,8 +199,11 @@ def test_stage_diagnostics_classify_legacy_failure_logs(tmp_path, monkeypatch, m
     assert stage["evidence"] == str(log)
 
 
+@pytest.mark.parametrize("partition", [None, "scavenge_gpu"])
 @pytest.mark.parametrize("operation", ["allocation-check", "worker-diagnose"])
-def test_short_diagnostics_do_not_signal_at_start_or_require_worker_data(monkeypatch, operation):
+def test_short_diagnostics_do_not_signal_at_start_or_require_worker_data(
+    monkeypatch, operation, partition
+):
     from selfplay_opsd import hpc
 
     class Remote:
@@ -226,6 +229,22 @@ def test_short_diagnostics_do_not_signal_at_start_or_require_worker_data(monkeyp
         "selfplay_opsd.readiness.execution_identity",
         lambda *a, **kw: pytest.fail("Diagnostics must not construct data/worker identity"),
     )
+    if partition and operation == "worker-diagnose":
+        with pytest.raises(hpc.HpcError, match="restricted to trusted diagnostics"):
+            hpc.run_payload(
+                Remote(),
+                "yale-hpc-cpsc4880",
+                operation=operation,
+                method="D",
+                profile="single_gpu_80gb",
+                gpu_type="h100",
+                account=None,
+                image="",
+                image_sha256="",
+                settings=Path("configs/yale.yaml"),
+                partition=partition,
+            )
+        return
     payload = hpc.run_payload(
         Remote(),
         "yale-hpc-cpsc4880",
@@ -237,10 +256,14 @@ def test_short_diagnostics_do_not_signal_at_start_or_require_worker_data(monkeyp
         image="",
         image_sha256="",
         settings=Path("configs/yale.yaml"),
+        partition=partition,
     )
     assert payload["time"] == "00:05:00" and payload["signal_seconds"] == 30
     assert payload["cpus"] == 2 and payload["memory_gib"] == 8
     assert not payload["worker_image"] and payload["runtime_identity"] is None
+    assert payload["partition"] == (
+        partition or ("day" if operation == "worker-diagnose" else "gpu_h100")
+    )
 
 
 @pytest.mark.parametrize(

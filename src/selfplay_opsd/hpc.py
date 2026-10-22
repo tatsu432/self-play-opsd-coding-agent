@@ -328,6 +328,8 @@ def run_payload(
     endpoint: str = "primary",
     secrets_file: str | None = None,
     worker_setup_id: str = "",
+    partition: str | None = None,
+    exclude_nodes: list[str] | None = None,
 ) -> dict:
     if operation not in {
         "backend-check",
@@ -378,7 +380,21 @@ def run_payload(
     chosen_gpu = gpu_type or ("h200" if profile == "dual_gpu_141gb" else "h100")
     if chosen_gpu not in GPU_PARTITIONS:
         raise HpcError("Unsupported GPU type")
-    partition = GPU_PARTITIONS[chosen_gpu]
+    if partition is not None and (
+        operation not in {"allocation-check", "backend-check"}
+        or partition not in {GPU_PARTITIONS[chosen_gpu], "scavenge_gpu"}
+    ):
+        raise HpcError(
+            "Partition override is restricted to trusted diagnostics on their normal or scavenge_gpu partition"
+        )
+    excluded = sorted(set(exclude_nodes or []))
+    if excluded and (
+        operation not in {"allocation-check", "backend-check"}
+        or len(excluded) > 16
+        or any(not re.fullmatch(r"[A-Za-z][A-Za-z0-9-]{0,63}", node) for node in excluded)
+    ):
+        raise HpcError("Node exclusions require trusted diagnostics and explicit node names")
+    partition = partition or GPU_PARTITIONS[chosen_gpu]
     cfg = load_config(settings, method=method, hardware_profile=profile)
     state = remote.call("study", {"storage_root": storage, "study_id": cfg.study_id})
     if operation == "train" or (operation == "evaluate" and split in {"final_id", "external"}):
@@ -416,6 +432,18 @@ def run_payload(
         raise HpcError("Checkpoint iteration is outside the study budget")
     if cfg.hardware.min_vram_gib > GPU_VRAM[chosen_gpu]:
         raise HpcError("GPU VRAM is below the selected hardware profile")
+    gpu_operation = operation in {
+        "backend-check",
+        "allocation-check",
+        "pilot",
+        "method-smoke",
+        "train",
+        "evaluate",
+        "diagnose",
+    }
+    count = cfg.hardware.gpu_count if gpu_operation else 0
+    if not gpu_operation:
+        partition = "day"
     selected_account = account or choose_account(inspection, partition)
     relative_settings = settings.resolve().relative_to(ROOT)
     if not re.fullmatch(r"[A-Za-z0-9_./-]+", str(relative_settings)):
@@ -434,6 +462,8 @@ def run_payload(
         "method": method,
         "profile": profile,
         "gpu_type": chosen_gpu,
+        "partition": partition,
+        "exclude_nodes": excluded,
         "study": study,
         "seed": cfg.seed,
         "iterations": iterations if operation == "pilot" else cfg.iterations,
@@ -443,19 +473,6 @@ def run_payload(
         "endpoint": endpoint if operation == "evaluate" else None,
     }
     identity = hashlib.sha256(json.dumps(logical, sort_keys=True).encode()).hexdigest()
-    gpu_operation = operation in {
-        "backend-check",
-        "allocation-check",
-        "pilot",
-        "method-smoke",
-        "train",
-        "evaluate",
-        "diagnose",
-    }
-    count = cfg.hardware.gpu_count if gpu_operation else 0
-    if not gpu_operation:
-        partition = "day"
-        selected_account = account or choose_account(inspection, partition)
     payload = {
         **snap,
         "storage_root": storage,
@@ -516,6 +533,7 @@ def run_payload(
         "gpu_type": chosen_gpu,
         "partition": partition,
         "account": selected_account,
+        "exclude_nodes": excluded,
         "cpus": 2
         if operation == "allocation-check"
         else cfg.hardware.cpu_workers
@@ -580,6 +598,8 @@ def allocation_check(
     settings: Path = Path("configs/yale.yaml"),
     dry_run: bool = False,
     alias: str = ALIASES[0],
+    partition: str | None = None,
+    exclude_node: list[str] | None = None,
 ):
     """Prove physical GPU ownership and container UUIDs without loading a model."""
     if (
@@ -600,6 +620,8 @@ def allocation_check(
         account=None,
         image="",
         image_sha256="",
+        partition=partition,
+        exclude_nodes=exclude_node,
     )
     output(remote.call("preview" if dry_run else "submit", payload))
 

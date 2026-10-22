@@ -31,6 +31,17 @@ Full report: `runs/readiness/repair-selfplay-2026/worker-diagnostics-30293989.js
 on Yale; fetched under the corresponding local study readiness directory.
 These diagnostics do not establish isolation or approval.
 
+The second technical update, Gmail message `1a16502dcb82984a` in the same
+thread, reports H100 job **30296835** on `a1127u05n01` (15:01:57–15:02:17).
+Kernel device access and container CUDA UUID agreed on
+`GPU-7efaae82-a239-015f-6df6-953485fc78f8`, minor 3, bus `00000000:DC:00.0`.
+NVIDIA already listed `VLLM::Worker_TP3`, PID 572771, using 73,814 MiB before
+model loading. The occupancy guard stopped the job. The update asks YCRC to
+inspect process ownership/allocation/cleanup; no foreign process was stopped.
+The report is `gpu-allocation-30296835.json` under the managed readiness path.
+This is not H100 model-memory failure. Future diagnostics exclude this node
+pending inspection; each new allocation must still pass ownership/occupancy.
+
 ## Support request draft
 
 Subject: Bouchet — supported per-worker resource isolation inside Slurm

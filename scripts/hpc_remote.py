@@ -802,6 +802,10 @@ def submit(payload: dict) -> dict:
         ]
         if payload["gpu_count"]:
             args.append(f"--gpus={payload['gpu_type']}:{payload['gpu_count']}")
+        if payload["operation"] in {"allocation-check", "backend-check"}:
+            args.append("--no-requeue")
+        if payload.get("exclude_nodes"):
+            args.append("--exclude=" + ",".join(payload["exclude_nodes"]))
         if payload.get("qos"):
             args.append(f"--qos={payload['qos']}")
         args += ["--export=" + ",".join(f"{k}={v}" for k, v in exports.items()), str(script)]
@@ -1267,6 +1271,22 @@ def study_state(payload: dict) -> dict:
 
 def precheck(payload: dict):
     operation = payload["operation"]
+    excluded = payload.get("exclude_nodes", [])
+    if excluded and (
+        operation not in {"allocation-check", "backend-check"}
+        or not isinstance(excluded, list)
+        or len(excluded) > 16
+        or any(
+            not isinstance(node, str) or not re.fullmatch(r"[A-Za-z][A-Za-z0-9-]{0,63}", node)
+            for node in excluded
+        )
+    ):
+        raise ValueError("Invalid diagnostic node exclusions")
+    if payload.get("partition") == "scavenge_gpu" and operation not in {
+        "allocation-check",
+        "backend-check",
+    }:
+        raise ValueError("scavenge_gpu is enabled only for trusted stateless diagnostics")
     if operation not in {
         "image-convert",
         "image-build",

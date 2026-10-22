@@ -96,6 +96,30 @@ uv run selfplay hpc sync
 uv run selfplay hpc prepare-study --stage backend --gpu-hours-limit 24 --watch
 ```
 
+When the normal H100 queue cannot start short trusted checks, the same account
+may use the live-validated preemptible diagnostic route:
+
+```bash
+uv run selfplay hpc prepare-study --stage backend --diagnostic-partition scavenge_gpu --gpu-hours-limit 24 --watch
+```
+
+This routes only allocation/backend diagnostics. It preserves typed GPUs and
+the full allocated GPU-hour budget, uses a distinct immutable submission identity,
+and disables automatic Slurm requeue so every attempt is accounted separately.
+At most two confirmed transient interruptions may restart a diagnostic. Inspect
+and reconcile an existing normal-queue attempt before switching; never duplicate
+an active or uncertain job. Main, pilot and generated-code jobs keep their normal
+partition. Yale documents this queue for restartable work:
+[scavenge guidance](https://docs.ycrc.yale.edu/clusters-at-yale/job-scheduling/scavenge/).
+
+After inspecting a recorded occupied allocation, diagnostic requests may exclude
+that explicit node using `--exclude-node NODE` (repeat for additional nodes).
+This changes the submission identity and still requires full physical ownership
+and occupancy proof. It never selects a GPU by apparent idleness. Task 06 job
+30296835 proved UUID ownership on `a1127u05n01`, then rejected its assigned GPU:
+an existing `VLLM::Worker_TP3` PID 572771 held 73,814 MiB (about 72.1 GiB) before model
+loading. The next diagnostic route excludes that node pending site inspection.
+
 Synchronize again after any new source commit before preparing evidence. A
 successful build does not synchronize later changes automatically.
 

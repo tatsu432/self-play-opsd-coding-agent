@@ -173,7 +173,8 @@ def test_finalized_checkout_ignores_only_managed_output_links(tmp_path, monkeypa
     assert "README" in subprocess.run(status, check=True, capture_output=True, text=True).stdout
 
 
-def test_unknown_sbatch_response_is_not_submitted_twice(tmp_path, monkeypatch):
+@pytest.mark.parametrize("operation", ["train", "backend-check"])
+def test_unknown_sbatch_response_is_not_submitted_twice(tmp_path, monkeypatch, operation):
     remote = remote_module()
     checkout = tmp_path / "checkout"
     state = tmp_path / "state"
@@ -217,7 +218,7 @@ def test_unknown_sbatch_response_is_not_submitted_twice(tmp_path, monkeypatch):
         "profile_gpu_count": 2,
         "gpu_type": "h100",
         "min_vram_gib": 79,
-        "operation": "train",
+        "operation": operation,
         "method": "B",
         "profile": "dual_gpu_80gb",
         "study_id": "fixture",
@@ -227,11 +228,14 @@ def test_unknown_sbatch_response_is_not_submitted_twice(tmp_path, monkeypatch):
         "cpus": 8,
         "memory_gib": 128,
         "time": "23:00:00",
+        "exclude_nodes": ["a1127u05n01"] if operation == "backend-check" else [],
     }
     first = remote.submit(payload)
     second = remote.submit(payload)
     assert first["reason"] == second["reason"] == "unreconciled_submission"
     assert len(calls) == 1
+    assert ("--no-requeue" in calls[0]) == (operation == "backend-check")
+    assert ("--exclude=a1127u05n01" in calls[0]) == (operation == "backend-check")
 
 
 def test_recovery_limit_stops_before_checkpoint_load(tmp_path, monkeypatch):

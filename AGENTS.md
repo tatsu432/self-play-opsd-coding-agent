@@ -177,3 +177,18 @@ code and documented worker setup identity. See the launch runbook for commands.
 Continue through all eight gates and four valid previews before recording Task 06
 as complete. Existing approved Yale services are the only worker fallback;
 new infrastructure, main training and exceeding 24 GPU-hours remain unauthorized.
+
+Task 06 live checkpoint: commit `8bb364b` passed hosted CI (169 tests).
+CPU diagnostic 30293989 proved missing user bus, non-writable cgroup controls and
+no `pids` delegation below slurmstepd.scope; YCRC updates are recorded in the
+support document. Normal-queue diagnostic 30295248 was cancelled before start
+(zero GPU time). Corrected diagnostic 30296835 ran for 20 seconds and proved
+kernel/container UUID ownership, then rejected an already occupied GPU on
+`a1127u05n01` (VLLM worker PID 572771, 73,814 MiB). Reconciled GPU cost is
+0.035556 hours. No model was loaded and no H100 memory-fit failure is established.
+No controller is currently watching that failed run. The next code revision
+adds an optional `scavenge_gpu` route for stateless trusted diagnostics only,
+explicit node exclusions and `--no-requeue`; verify its CI before GPU use.
+Continue with `hpc prepare-study --stage backend --diagnostic-partition scavenge_gpu
+--exclude-node a1127u05n01 --gpu-hours-limit 24 --watch`. Inspect existing ledgers
+first. Main jobs retain normal partitions and remain unauthorized.

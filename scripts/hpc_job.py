@@ -143,6 +143,28 @@ def resolve_gpus(env: dict, result: dict, report: Path | None) -> list[dict]:
     # Minor Number is available in the full XML query, not --query-gpu on
     # the Yale driver. Join by UUID instead of relying on XML element order.
     xml_inventory = ET.fromstring(result["xml_inventory"]["stdout"])
+    result["gpu_processes"] = []
+    for gpu in xml_inventory.findall("gpu"):
+        for process in gpu.findall("processes/process_info"):
+            pid = process.findtext("pid", "").strip()
+            if not pid.isdigit():
+                continue
+            info = {
+                "pid": int(pid),
+                "uuid": gpu.findtext("uuid"),
+                "name": process.findtext("process_name"),
+                "used_memory": process.findtext("used_memory"),
+            }
+            try:
+                info["cgroup_membership"] = (Path("/proc") / pid / "cgroup").read_text()
+                info["status"] = [
+                    line
+                    for line in (Path("/proc") / pid / "status").read_text().splitlines()
+                    if line.startswith(("Name:", "Uid:", "PPid:"))
+                ]
+            except OSError as error:
+                info["inspection_error"] = str(error)
+            result["gpu_processes"].append(info)
     minors = {}
     for gpu in xml_inventory.findall("gpu"):
         uuid = gpu.findtext("uuid", "").strip()
