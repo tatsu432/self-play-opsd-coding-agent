@@ -1143,6 +1143,9 @@ def allocation_compatible(proof: dict, expected: str | None, base: Path) -> bool
         "verify_container_gpus",
     }
     tree = ast.parse(source.read_text())
+    for node in ast.walk(tree):
+        if hasattr(node, "type_params") and not node.type_params:
+            node._fields = tuple(name for name in node._fields if name != "type_params")
     definitions = {
         n.name: ast.dump(n, include_attributes=False)
         for n in tree.body
@@ -1413,6 +1416,7 @@ def precheck(payload: dict):
                 not prior.get("ready")
                 and ("dbus_session_bus_address" in detail or "delegat" in detail)
                 and payload.get("worker_setup_id", "") == prior.get("worker_setup_id", "")
+                and payload.get("supervisor_hash") == prior.get("supervisor_hash")
             ):
                 raise ValueError(
                     "Worker site setup is unchanged; obtain YCRC-supported setup and supply a new worker setup ID"
