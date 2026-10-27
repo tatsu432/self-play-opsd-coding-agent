@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 import platform
+import pwd
 import re
 import secrets
 import shutil
@@ -592,6 +593,18 @@ def worker_diagnostics(env: dict) -> dict:
             for line in nsswitch.read_text().splitlines()
             if line.split("#", 1)[0].strip().startswith("subid:")
         ]
+    username = pwd.getpwuid(os.getuid()).pw_name
+
+    def subid_file_entries(filename: str) -> list[str]:
+        path = Path(filename)
+        if not path.is_file():
+            return []
+        return [
+            line.strip()
+            for line in path.read_text().splitlines()
+            if line.split(":", 1)[0] in {username, str(os.getuid())}
+        ]
+
     bus = Path(f"/run/user/{os.getuid()}/bus")
     return {
         "diagnostic_only": True,
@@ -606,6 +619,8 @@ def worker_diagnostics(env: dict) -> dict:
         "configuration": configuration,
         "subid": {
             "nsswitch": subid_source,
+            "uid_file_entries": subid_file_entries("/etc/subuid"),
+            "gid_file_entries": subid_file_entries("/etc/subgid"),
             "uid_mappings": diagnostic_command(["getent", "subuid", str(os.getuid())], env),
             "gid_mappings": diagnostic_command(["getent", "subgid", str(os.getgid())], env),
         },
