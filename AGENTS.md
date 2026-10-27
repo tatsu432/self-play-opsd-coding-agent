@@ -87,11 +87,12 @@ image or failed evidence gate. Never treat a passed CPU test as target readiness
    Use `hpc resources --profile ...` to validate a proposed request without an
    allocation. Choose GPUs using measured pilot memory, phase time and allocated
    GPU-hours, not a transient `sinfo` snapshot.
-4. An approved isolated code worker is still required. The current Yale config
-   points to an authenticated loopback remote worker. The tunnel must originate
-   on the allocated compute host and the worker must pass real isolation
-   preflight; alternatively validate a local Apptainer worker. Keep worker
-   credentials in a user-owned mode-600 file outside Git if needed.
+4. The current Yale worker is an authenticated loopback broker on the allocated
+   compute host, inside an independently limited no-GRES Slurm step. Fresh
+   Apptainer payloads install the single-process seccomp policy before candidate
+   compilation/imports. No external worker host or SSH tunnel is needed. Require
+   real containment, OOM recovery and scheduler-termination acceptance. Keep any
+   optional persistent credentials in a user-owned mode-600 file outside Git.
 5. Use `hpc status`, `hpc logs` and `hpc fetch` to inspect a submitted run.
    `hpc watch` can resume a previously authorized training run after a confirmed
    PREEMPTED, NODE_FAIL or BOOT_FAIL state, at most twice, from the latest

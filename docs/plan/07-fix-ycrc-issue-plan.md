@@ -65,3 +65,16 @@ mechanism requirements and H200 policy.
 - Reconciled consumption before this backend run was 0.0475 allocated GPU-hours;
   its one-hour reservation counts until accounting establishes actual usage.
   No main runs have been submitted. Task 07 is not complete.
+
+### Backend initialization repair
+
+Job 31033410 loaded the real pinned 4B model and stopped at student/proposer
+initial-version equality. CPU BF16 reproduction showed equal values represented
+as FP32 student masters versus BF16 proposer tensors. `e21e04d` promotes the
+proposer to the student master dtype before copying, with exact version and
+independent-storage regression coverage. No hash check was weakened and no
+scientific objective, sampling budget, seed or dataset changed. New backend
+acceptance is required; cumulative accounted GPU time is 0.071388889 hours.
+Runtime job 31035577 / `f1bd1e3f13671d50990efe81` refreshes the matching source
+identity. Image preparation was exercised and reused both old pinned SIFs with
+full original provenance; no local Docker daemon or rebuild was needed.

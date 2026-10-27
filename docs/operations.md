@@ -117,8 +117,10 @@ The worker has no egress, capabilities, credentials, host/home mounts, Docker
 socket or GPU. Root is read-only; CPU, RAM, PID, disk, output and wall time are
 bounded. Preflight tests actual enforcement. A local Apptainer worker backend is
 also implemented: configure `backend: apptainer`, `runtime: apptainer`, and its
-SIF path. If site namespaces/cgroups cannot enforce isolation, use the remote
-worker. Apptainer availability for the trainer is insufficient evidence.
+SIF path. On Yale, use the verified Slurm-step resource backend and single-process policy;
+user cgroup delegation is unnecessary. Apptainer availability alone remains
+insufficient evidence. An existing approved external worker is a fallback only
+when the simpler supported path proves unsuitable.
 
 The four-tool workspace is a trusted virtual file map. Public `run_tests` invokes
 the public function cases through the supervisor rather than model-controlled
@@ -132,7 +134,7 @@ This is OS isolation, not cryptographic test secrecy.
 |---|---:|---|
 | `cpu_debug` | 0 | Tiny FP32 correctness backend |
 | `single_gpu_80gb` | 1 | BF16 LoRA, streaming episodes |
-| `dual_gpu_80gb` | 2 | Preferred Yale baseline |
+| `dual_gpu_80gb` | 2 | Optional distributed target |
 | `dual_gpu_141gb` | 2 | Same mathematical batches on H200-class devices |
 | `multi_gpu_single_node_4` | 4 | Sharded coordinates, global reductions |
 | `multi_gpu_single_node_8` | 8 | Same strategy across eight GPUs |
@@ -283,17 +285,19 @@ isolation; site restrictions stop those operations before model work. No Docker 
 worker host, privilege workaround or weaker execution contract is used.
 
 Readiness advances through worker isolation, target execution validation,
-single-H100 reference, two-H100 gradient comparison, base monitoring evaluation,
+selected one-GPU backend, distributed gradient comparison only for multi-GPU
+targets, base monitoring evaluation,
 a ten-iteration D pilot, and study freeze. The pilot stops at iteration 2 and
 resumes its joint checkpoint to demonstrate real continuation. Main runs keep
 200 iterations, seed 2026 and fresh initialization. Runtime evidence includes
 code, model/tokenizer, dataset, prompts, trainer/worker images and execution
 limits. Data stays read-only; target validation writes into readiness outputs.
 
-The initial GPU allocation limits are 1 hour on one GPU for the reference,
-1 hour on two GPUs for comparison, 2 hours on two GPUs for base evaluation,
-and 6 hours total on two GPUs for the pilot. The remaining 5 GPU-hours allow
-bounded retries. Reservations count their entire requested wall time until
+Initial one-GPU ceilings are one hour for backend acceptance, two hours for
+base evaluation, six total hours for the D stop/resume pilot, and two hours for
+A/B/C acceptance. Reconcile actual consumption and all reservations against the
+cumulative 24 GPU-hour cap before each request. Multi-GPU profiles multiply
+allocated cost and require additional gradient-agreement evidence. Reservations count their entire requested wall time until
 Slurm accounting confirms actual use; uncertain submissions/accounting retain
 their reservation. A failed stage is reported with its ledger/evidence instead
 of being skipped. Hardware or science changes require compatible new evidence.
@@ -329,7 +333,8 @@ following backend preparation command requires later GPU authorization:
 uv run selfplay hpc prepare-study --stage backend --gpu-hours-limit 24 --watch
 ```
 
-It runs the one-H100 reference and target comparison without a worker image,
+It runs the selected trusted backend (adding a one-GPU reference and distributed
+comparison only for multiple GPUs) without a worker image,
 worker broker or target execution-validation report. It checks trusted synthetic
 gradient fixtures, model loading, verl/vLLM adapter synchronization and checkpoint
 roundtrips; generated model output is never executed. `--stage all` remains the

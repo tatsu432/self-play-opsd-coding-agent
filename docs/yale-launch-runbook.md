@@ -86,6 +86,31 @@ it does not establish model load or memory fit. Backend **31033410** / run
 Consumption before this backend attempt was 0.0475 GPU-hours, plus its one-hour
 reservation. Inspect current jobs/ledgers before more submissions.
 
+Image preparation now reuses compatible verified SIFs by their pinned base,
+dependency lock and installation inputs while preserving each image's original
+source commit. Worker entry code is mounted as the three explicit read-only
+files; trainer code is mounted from the immutable checkout. Documentation and
+controller commits do not force image rebuilds. `--force`, `--builder` or an
+explicit build root requests a real build/export instead of this reuse path.
+The normal command was verified to reuse both existing SIFs without allocation:
+
+```bash
+uv run selfplay hpc images build --kind all
+```
+
+Backend job 31033410 loaded the actual pinned 4B model, then failed strict
+student/proposer initialization equality. A CPU BF16 reproduction proved that
+PEFT's first adapter had FP32 masters while `add_adapter` retained BF16 for the
+second. Source **e21e04d** matches proposer master precision to the student
+before copying, preserving independent storage and the configured BF16 model
+compute. The regression checks exact initial version equality and isolation;
+the scientific objectives, seeds and mathematical budgets are unchanged.
+Reconciled GPU consumption after that attempt is **0.071388889 hours**.
+
+Current runtime validation is job **31035577** / run
+`f1bd1e3f13671d50990efe81`, using this corrected scientific source identity.
+Inspect it and the current backend ledger before another preparation request.
+
 The sections below describe available operations and historical checkpoints.
 Where their mechanism or hardware restrictions conflict, this Task 07 section
 and its specification take precedence.
