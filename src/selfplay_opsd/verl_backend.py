@@ -147,9 +147,19 @@ class VerlPolicy(HFPolicy):
                     line = self._rpc_stream.readline(16 * 1024 * 1024)
                 finally:
                     selector.close()
+                if not line:
+                    raise ExperimentError(
+                        "vLLM RPC closed before a response; see "
+                        f"{self.config.run_dir / 'state/vllm.log'} "
+                        f"(child exit status {self._rollout.poll()})"
+                    )
                 result = json.loads(line)
                 if not result.get("ok"):
-                    raise ExperimentError(result.get("error", "vLLM worker failed"))
+                    raise ExperimentError(
+                        result.get("error", "vLLM worker failed")
+                        + "\n"
+                        + result.get("traceback", "")[-4000:]
+                    )
             except Exception as exc:
                 error = str(exc)
         if collective:

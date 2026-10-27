@@ -78,3 +78,23 @@ acceptance is required; cumulative accounted GPU time is 0.071388889 hours.
 Runtime job 31035577 / `f1bd1e3f13671d50990efe81` refreshes the matching source
 identity. Image preparation was exercised and reused both old pinned SIFs with
 full original provenance; no local Docker daemon or rebuild was needed.
+
+### Rollout startup repair
+
+Backend job 31036051 (`b47b43d30e33fe3089e969f8`) passed identical initialization,
+objective-gradient probes and the first optimizer update, then failed at vLLM
+architecture inspection: pinned vLLM 0.11.0 interprets CUDA_VISIBLE_DEVICES as
+integer indices, while the launcher supplied UUIDs. The launcher now uses the
+allocated NVIDIA indices only after an actual container CUDA UUID and occupancy
+probe verifies that mask against kernel-proven Slurm ownership. A mismatch still
+fails before model loading; no index/minor equality is assumed. Startup exceptions
+now travel over the bounded RPC channel, and EOF names the child log.
+The failed attempt consumed 73 GPU-seconds; cumulative accounted cost is
+0.091666667 GPU-hours. No active GPU job or successful backend proof remains.
+CPU runtime job 31035577 completed successfully but needs refresh after this
+backend source change. Main A–D remain unauthorized and unsubmitted.
+
+Hardware evidence comparison now normalizes only the default allocated GPU count
+(None means used count), allowing CPU freeze to verify GPU-produced reports.
+It continues checking the full effective hardware settings, including CPU and
+rollout memory configuration, rather than merely the profile name.

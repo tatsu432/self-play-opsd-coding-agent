@@ -10,15 +10,29 @@ from typing import Any
 
 
 def main():
-    from vllm import LLM, SamplingParams
-    from vllm.inputs import TokensPrompt
-    from vllm.lora.request import LoRARequest
-
-    request = json.loads(sys.stdin.readline())
     # vLLM logging goes to stderr; stdout is exclusively the bounded RPC stream.
     rpc = os.fdopen(int(os.environ["SELFPLAY_RPC_FD"]), "w", buffering=1)
     sys.stdout = sys.stderr
-    engine = LLM(**request["engine"])
+    try:
+        from vllm import LLM, SamplingParams
+        from vllm.inputs import TokensPrompt
+        from vllm.lora.request import LoRARequest
+
+        request = json.loads(sys.stdin.readline())
+        engine = LLM(**request["engine"])
+    except Exception as exc:
+        rpc.write(
+            json.dumps(
+                {
+                    "ok": False,
+                    "error": f"{type(exc).__name__}: {exc}",
+                    "traceback": traceback.format_exc()[-4000:],
+                }
+            )
+            + "\n"
+        )
+        rpc.flush()
+        return
     rpc.write(json.dumps({"ok": True, "ready": True}) + "\n")
     rpc.flush()
     try:

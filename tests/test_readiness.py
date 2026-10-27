@@ -426,7 +426,7 @@ def test_backend_allocation_ignores_broken_worker_and_needs_no_data(tmp_path, mo
     monkeypatch.setattr(
         job,
         "allocated_gpus",
-        lambda env, report: [{"uuid": "GPU-11111111-1111-1111-1111-111111111111"}],
+        lambda env, report: [{"index": "1", "uuid": "GPU-11111111-1111-1111-1111-111111111111"}],
     )
     monkeypatch.setattr(
         job.subprocess,
@@ -457,9 +457,7 @@ def test_backend_allocation_ignores_broken_worker_and_needs_no_data(tmp_path, mo
     assert not any(":/data/prepared" in arg for arg in args)
     assert "SELFPLAY_WORKER_TOKEN" not in options["env"]
     assert "APPTAINERENV_SELFPLAY_WORKER_URL" not in options["env"]
-    assert options["env"]["APPTAINERENV_CUDA_VISIBLE_DEVICES"] == (
-        "GPU-11111111-1111-1111-1111-111111111111"
-    )
+    assert options["env"]["APPTAINERENV_CUDA_VISIBLE_DEVICES"] == "1"
     assert options["env"]["APPTAINERENV_CUDA_DEVICE_ORDER"] == "PCI_BUS_ID"
     proof = json.loads((tmp_path / "runs/readiness/study/gpu-allocation-123.json").read_text())
     assert proof["ready"] and proof["slurm_cuda_visible_devices"] == "0"
@@ -521,7 +519,7 @@ def test_container_gpu_preflight_rejects_wrong_or_occupied_device(
         job.verify_container_gpus(
             ["apptainer", "exec", "trainer.sif"],
             env,
-            [{"uuid": "GPU-11111111-1111-1111-1111-111111111111"}],
+            [{"index": "1", "uuid": "GPU-11111111-1111-1111-1111-111111111111"}],
             report,
         )
     assert not json.loads(report.read_text())["ready"]
@@ -921,3 +919,20 @@ def test_effective_single_process_limits_do_not_claim_legacy_pid_cap():
     assert config.matches_execution_limits(legacy)
     assert not config.matches_execution_limits(legacy | {"memory_mib": 2048})
     assert not SandboxConfig().matches_execution_limits(legacy)
+
+
+def test_hardware_evidence_normalizes_default_allocation_without_ignoring_real_changes():
+    from selfplay_opsd.readiness import hardware_settings
+
+    values = {
+        "gpu_count": 1,
+        "allocated_gpu_count": None,
+        "cpu_workers": 8,
+        "rollout_memory_fraction": 0.5,
+    }
+    assert hardware_settings(values) == hardware_settings(values | {"allocated_gpu_count": 1})
+    assert hardware_settings(values) != hardware_settings(values | {"allocated_gpu_count": 2})
+    assert hardware_settings(values) != hardware_settings(values | {"cpu_workers": 4})
+    assert hardware_settings(values) != hardware_settings(
+        values | {"rollout_memory_fraction": 0.25}
+    )

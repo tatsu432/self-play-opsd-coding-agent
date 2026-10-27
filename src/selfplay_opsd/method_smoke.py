@@ -48,7 +48,8 @@ def verify_smoke(config: RunConfig, method: str) -> dict:
         or report.get("runtime_identity") != readiness.execution_identity(config)
         or report.get("common_settings")
         != config.scientific_settings(common=True, calibration=True)
-        or report.get("hardware") != config.hardware.model_dump(mode="json")
+        or readiness.hardware_settings(report.get("hardware"))
+        != readiness.hardware_settings(config.hardware.model_dump(mode="json"))
         or report.get("gpu_type") != os.getenv("SELFPLAY_GPU_TYPE", "h100")
         or set(report.get("checks", {})) != SMOKE_CHECKS
         or not all(report["checks"].values())

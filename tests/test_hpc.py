@@ -354,7 +354,7 @@ def test_slurm_wrapper_runs_the_pinned_image_without_host_venv(tmp_path):
         f"#!{sys.executable}\nimport runpy,sys\n"
         "ns=runpy.run_path(sys.argv[1])\n"
         "ns['execute'].__globals__['allocated_gpus']=lambda env,report: "
-        "[dict(uuid='GPU-11111111-1111-1111-1111-111111111111')]\n"
+        "[dict(index='1', uuid='GPU-11111111-1111-1111-1111-111111111111')]\n"
         "ns['main']()\n"
     )
     python_stub.chmod(0o755)

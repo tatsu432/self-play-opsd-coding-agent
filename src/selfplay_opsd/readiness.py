@@ -24,6 +24,14 @@ from selfplay_opsd.worker_runtime import allocation_fingerprint, supervisor_hash
 BACKEND_EVIDENCE_DIRECTORY = "compatibility/backend-v2"
 
 
+def hardware_settings(values: dict | None) -> dict:
+    """None means used GPU count; CPU freeze and GPU jobs share this meaning."""
+    result = dict(values or {})
+    if result.get("allocated_gpu_count") is None:
+        result["allocated_gpu_count"] = result.get("gpu_count")
+    return result
+
+
 def backend_environment(*, gpu: bool) -> dict:
     """Actual allocated-host ABI; checked again before generated GPU work."""
     import torch
@@ -237,7 +245,8 @@ def readiness_report(config: RunConfig, *, require_freeze: bool = True) -> dict:
             and 2 in report.get("resume_history", [report.get("resumed_from_iteration")])
             and pilot_config.scientific_settings(common=True, calibration=True)
             == config.scientific_settings(common=True, calibration=True)
-            and report["hardware"]["profile"] == config.hardware.profile
+            and hardware_settings(report.get("hardware"))
+            == hardware_settings(config.hardware.model_dump(mode="json"))
         )
 
     gate(

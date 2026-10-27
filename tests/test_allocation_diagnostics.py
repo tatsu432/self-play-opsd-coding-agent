@@ -138,6 +138,26 @@ def test_container_uuid_mismatch_and_occupancy_never_pass(allocation, tmp_path, 
         assert not json.loads(report.read_text())["ready"]
 
 
+def test_numeric_vllm_mask_is_verified_against_allocated_uuid(allocation, tmp_path, monkeypatch):
+    report = tmp_path / "allocation.json"
+    env = environment()
+    devices = allocation.allocated_gpus(env, report)
+
+    def probe(*args, **kwargs):
+        # Slurm's original ordinal and the NVIDIA index deliberately differ.
+        assert kwargs["env"]["APPTAINERENV_CUDA_VISIBLE_DEVICES"] == "1"
+        return json.dumps(
+            [{"uuid": devices[0]["uuid"], "total_bytes": 80 * 1024**3, "free_bytes": 80 * 1024**3}]
+        )
+
+    monkeypatch.setattr(allocation.subprocess, "check_output", probe)
+    allocation.verify_container_gpus([], env, devices, report)
+    assert env["CUDA_VISIBLE_DEVICES"] == "0"
+    assert env["APPTAINERENV_CUDA_VISIBLE_DEVICES"] == "1"
+    proof = json.loads(report.read_text())
+    assert proof["ready"] and proof["container_cuda_visible_devices"] == "1"
+
+
 def test_cgroup_probe_reads_nested_effective_limits_and_rejects_writable_parent(monkeypatch):
     from selfplay_opsd.worker_runtime import RuntimeConfig, isolation_probes
 

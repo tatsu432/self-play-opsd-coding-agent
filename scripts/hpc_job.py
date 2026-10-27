@@ -215,6 +215,14 @@ def verify_container_gpus(command: list[str], env: dict, devices: list[dict], re
         "ready": False,
     }
     try:
+        # vLLM 0.11 parses this mask as integer NVML indices. Never assume
+        # those indices equal CUDA ordinals: prove the resulting CUDA UUIDs
+        # below, before model loading, and retain this exact mask for training.
+        mask = ",".join(device["index"] for device in devices)
+        if not devices or any(not device["index"].isdigit() for device in devices):
+            raise ValueError("Allocated GPU indices are missing or invalid")
+        env["APPTAINERENV_CUDA_VISIBLE_DEVICES"] = mask
+        result["container_cuda_visible_devices"] = mask
         probe = (
             "import json, torch; "
             "print(json.dumps([dict(uuid=str(torch.cuda.get_device_properties(i).uuid), "
@@ -951,9 +959,6 @@ def execute(env: dict) -> int:
         devices = allocated_gpus(process_env, allocation_report) if gpu_count else []
         if gpu_count:
             process_env["APPTAINERENV_CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-            process_env["APPTAINERENV_CUDA_VISIBLE_DEVICES"] = ",".join(
-                device["uuid"] for device in devices
-            )
         args = (
             ["torchrun", "--standalone", "--nnodes=1", f"--nproc-per-node={gpu_count}", "-m"]
             if gpu_count
