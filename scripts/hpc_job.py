@@ -700,6 +700,31 @@ def execute(env: dict) -> int:
     )
     if operation == "worker-diagnose":
         write(readiness / f"worker-diagnostics-{attempt}.json", worker_diagnostics(process_env))
+        # Fixed trusted CPU fixtures only. This does not enable candidate execution
+        # or publish worker readiness. No nested cgroup configuration is attempted.
+        if env.get("SELFPLAY_WORKER_SIF"):
+            checked_image(env["SELFPLAY_WORKER_SIF"], env["SELFPLAY_WORKER_SHA256"])
+            return subprocess.run(
+                [
+                    "srun",
+                    "--exact",
+                    "--exclusive",
+                    "--ntasks=1",
+                    "--cpus-per-task=1",
+                    "--mem=1024M",
+                    "--gres=none",
+                    "--time=00:03:00",
+                    sys.executable,
+                    str(Path(env["SELFPLAY_PROJECT"]) / "scripts/worker_feasibility.py"),
+                    "--image",
+                    env["SELFPLAY_WORKER_SIF"],
+                    "--output",
+                    str(readiness / f"worker-feasibility-{attempt}.json"),
+                ],
+                env=process_env,
+                check=False,
+                timeout=240,
+            ).returncode
         return 0
     if operation == "worker-check":
         return subprocess.run(

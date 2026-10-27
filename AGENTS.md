@@ -29,11 +29,26 @@ documents are historical. Read `README.md`, `docs/methods.md` and
 
 ## Yale operations
 
-The current task is `docs/task/06-close-yale-launch-blockers-spec.md`; its plan is
-`docs/plan/06-close-yale-launch-blockers-plan.md`. Task 06 continues Task 05 and the cumulative
-Task 03 24 GPU-hour readiness allowance on cpsc4880 and authorizes YCRC contact
-and Dockerfile-derived SIF builds on Yale CPU nodes. Task 04's CPU-only repair is
-complete. Main A–D training and additional host provisioning remain unauthorized.
+The current task is `docs/task/07-fix-ycrc-issue-spec.md`; its plan is
+`docs/plan/07-fix-ycrc-issue-plan.md`. Task 07 supersedes conflicting operational
+rules in Tasks 03–06 and the historical checkpoints below. The cumulative
+cpsc4880 readiness allowance remains 24 allocated GPU-hours, including prior
+attempts and outstanding reservations. Main A–D training and new infrastructure
+remain unauthorized.
+
+Worker safety is outcome-based: bound CPU, memory, process/thread creation,
+temporary storage, output and time; isolate trainer/oracles/credentials, network
+and GPUs; verify cleanup. Investigate kernel-enforced single-process execution
+before subordinate UIDs or a service. Nested user cgroups, pids.max and exactly
+32 processes are not requirements when equivalent protection is proven. Never
+execute generated candidates before real Bouchet containment acceptance.
+Trusted CPU fixtures and backend checks remain independent of worker readiness.
+Reuse evidence by relevant dependencies, preserving provenance. Independent
+operations must not share a submission slot merely because their report parent
+is the same. Prefer H100, but entitled H200 is authorized for a documented memory,
+scheduling or runtime reason without first manufacturing an H100 OOM. Preserve
+GPU ownership and initial-occupancy checks. Preserve all scientific settings.
+
 The local controller is
 `uv run selfplay hpc --help`. Its standard-library remote endpoint is
 `scripts/hpc_remote.py`; `scripts/yale.slurm` runs allocated jobs. The default
@@ -84,6 +99,11 @@ image or failed evidence gate. Never treat a passed CPU test as target readiness
    If a submission response or scheduler state is uncertain, stop and inspect;
    never create a duplicate. Scientific failures, OOM, authentication, quota
    and unauthorized resource requests are not automatic retries.
+
+## Historical checkpoints (superseded operational rules; inspect live state)
+
+The Task 07 rules above take precedence over mechanism and hardware restrictions
+in every checkpoint below. Job states and accounting are historical snapshots.
 
 ## Task 03 historical checkpoint (2026-10-22)
 

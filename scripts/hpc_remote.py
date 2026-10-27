@@ -697,7 +697,7 @@ def submit(payload: dict) -> dict:
                     (
                         "image-" + payload["image_metadata"]["kind"]
                         if payload["operation"] in {"image-convert", "image-build"}
-                        else str(artifact)
+                        else str(artifact) + ":" + payload["operation"]
                     ).encode()
                 ).hexdigest()
                 + ".json"

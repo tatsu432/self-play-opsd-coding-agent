@@ -493,8 +493,12 @@ def run_payload(
         else 30
         if operation in {"allocation-check", "worker-diagnose"}
         else 300,
-        "worker_image": worker.get("path", "") if runtime_identity else "",
-        "worker_sha256": worker.get("sha256", "") if runtime_identity else "",
+        "worker_image": worker.get("path", "")
+        if runtime_identity or operation == "worker-diagnose"
+        else "",
+        "worker_sha256": worker.get("sha256", "")
+        if runtime_identity or operation == "worker-diagnose"
+        else "",
         "worker_config": cfg.sandbox.model_dump(mode="json"),
         "worker_setup_id": worker_setup_id,
         "supervisor_hash": supervisor_hash(),

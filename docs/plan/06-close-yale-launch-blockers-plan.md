@@ -1,5 +1,8 @@
 # 06 — Make A–D ready for main submission
 
+Historical Task 06: conflicting isolation mechanism, repeat-check and H200 rules
+are superseded by Task 07 (`docs/task/07-fix-ycrc-issue-spec.md`).
+
 Approved in conversation on 2026-10-22; source:
 `docs/task/06-close-yale-launch-blockers-spec.md`.
 

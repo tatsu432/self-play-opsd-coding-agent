@@ -1,5 +1,8 @@
 # 06 — Close Yale launch blockers
 
+Historical Task 06: conflicting isolation mechanism, repeat-check and H200 rules
+are superseded by Task 07 (`docs/task/07-fix-ycrc-issue-spec.md`).
+
 Implement the user-approved Task 06 plan. Completion requires live
 `eligible_to_submit_main=true`, all eight readiness gates, and four validated
 main submission previews. Main submission itself remains outside this task.
