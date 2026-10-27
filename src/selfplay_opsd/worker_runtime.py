@@ -531,7 +531,7 @@ class LocalRuntime:
         except (ValueError, KeyError, TypeError) as exc:
             return result("student_failure", [], elapsed, f"malformed_candidate_output:{exc}")
 
-    def preflight(self) -> dict:
+    def preflight(self, *, check_oom: bool = False) -> dict:
         outcomes, details = {}, {}
         for name, source in isolation_probes(self.config).items():
             result = self.execute(source, "check", [encode([])], 5, probe=True)
@@ -543,6 +543,33 @@ class LocalRuntime:
             if not outcomes[name]:
                 details[name] = result.get("detail") or str(result.get("results"))[:1000]
         if self.config.resource_backend == "slurm":
+            if check_oom:
+                events = worker_scope().parent / "memory.events"
+
+                def oom_kills():
+                    return int(
+                        dict(line.split() for line in events.read_text().splitlines())["oom_kill"]
+                    )
+
+                before = oom_kills()
+                memory = self.execute(
+                    f"def check():\n bytearray({self.config.memory_mib * 1024**2})\n",
+                    "check",
+                    [encode([])],
+                    5,
+                    probe=True,
+                )
+                restored = self.execute(
+                    "def check():\n return True\n", "check", [encode([])], 5, probe=True
+                )
+                outcomes["oom_candidate_cleanup"] = (
+                    oom_kills() > before
+                    and memory["status"] == "student_failure"
+                    and restored["status"] == "ok"
+                    and restored["results"][0].get("value") is True
+                )
+                if not outcomes["oom_candidate_cleanup"]:
+                    details["oom_candidate_cleanup"] = {"memory": memory, "restored": restored}
             timeout = self.execute(
                 "def check():\n while True: pass\n", "check", [encode([])], 0.1, probe=True
             )

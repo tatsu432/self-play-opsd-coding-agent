@@ -163,7 +163,7 @@ def ready_fixture(tmp_path, monkeypatch):
         {
             "ready": True,
             "supervisor_hash": readiness.supervisor_hash(),
-            "checks": {"allocation_termination_cleanup": True},
+            "checks": {"allocation_termination_cleanup": True, "oom_candidate_cleanup": True},
             "termination_proof": {"ready": True},
         },
     )

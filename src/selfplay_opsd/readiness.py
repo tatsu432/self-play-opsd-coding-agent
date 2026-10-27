@@ -184,6 +184,7 @@ def readiness_report(config: RunConfig, *, require_freeze: bool = True) -> dict:
                 worker.get("ready")
                 and worker.get("supervisor_hash") == supervisor_hash()
                 and worker.get("checks", {}).get("allocation_termination_cleanup")
+                and worker.get("checks", {}).get("oom_candidate_cleanup")
                 and worker.get("termination_proof", {}).get("ready")
             ):
                 return False

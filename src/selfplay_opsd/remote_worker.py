@@ -41,7 +41,7 @@ def serve(
         raise ValueError("Worker must bind loopback with concurrency 1 through 32")
     cancelled = threading.Event()
     sandbox = LocalRuntime(config, cancelled=cancelled)
-    attestation = sandbox.preflight()
+    attestation = sandbox.preflight(check_oom=check_only and config.resource_backend == "slurm")
     if report:
         publish_json(report, attestation)
     if not attestation["ready"]:

@@ -1278,6 +1278,7 @@ def study_state(payload: dict) -> dict:
         gates["worker"] = bool(
             gates["worker"]
             and worker.get("checks", {}).get("allocation_termination_cleanup")
+            and worker.get("checks", {}).get("oom_candidate_cleanup")
             and worker.get("termination_proof", {}).get("ready")
         )
     for name in ("runtime", "single", "target", "base", "pilot", "freeze"):

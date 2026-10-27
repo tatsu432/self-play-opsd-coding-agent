@@ -522,6 +522,7 @@ def broker_args(env: dict, ready: Path, report: Path) -> list[str]:
             f"--cpus-per-task={config['cpus']}",
             f"--mem={config['memory_mib']}M",
             "--gres=none",
+            "--oom-kill-step=0",
             "--kill-on-bad-exit=1",
         ]
     return prefix + [
@@ -849,16 +850,23 @@ def execute(env: dict) -> int:
             return 0
         return 0
     if operation == "worker-check":
+        initial_report = readiness / f"worker-preflight-{attempt}.json"
         status = subprocess.run(
-            broker_args(process_env, ready, readiness / "worker.json") + ["--check-only"],
+            broker_args(process_env, ready, initial_report) + ["--check-only"],
             env=process_env,
             check=False,
         ).returncode
-        if status:
+        preflight = json.loads(initial_report.read_text()) if initial_report.is_file() else {}
+        if status and not (
+            preflight.get("ready") and preflight.get("checks", {}).get("oom_candidate_cleanup")
+        ):
+            if preflight:
+                write(readiness / "worker.json", preflight)
             return status
         proof = worker_termination_probe(process_env)
         write(readiness / f"worker-termination-{attempt}.json", proof)
-        report = json.loads((readiness / "worker.json").read_text())
+        report = preflight
+        report["preflight_srun_exit_code"] = status
         report["termination_proof"] = proof
         report["checks"]["allocation_termination_cleanup"] = proof["ready"]
         report["ready"] = report["ready"] and proof["ready"]
