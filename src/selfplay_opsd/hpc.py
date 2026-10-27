@@ -592,6 +592,13 @@ def run_payload(
     }
     if operation == "diagnose":
         payload["output"] = f"/runs/{cfg.study_id}/diagnostics/{checkpoint_iteration:06d}"
+    if (
+        runtime_identity
+        and cfg.sandbox.resource_backend == "slurm"
+        and operation in {"runtime-check", "train", "pilot", "method-smoke", "evaluate", "diagnose"}
+    ):
+        payload["cpus"] += cfg.sandbox.cpus
+        payload["memory_gib"] += math.ceil(cfg.sandbox.memory_mib / 1024)
     return payload
 
 

@@ -10,6 +10,7 @@ import contextlib
 import io
 import json
 import os
+import resource
 import sys
 import time
 from pathlib import Path
@@ -21,6 +22,14 @@ from codec import decode, encode  # type: ignore[import-not-found]  # noqa: E402
 
 
 def main():
+    if os.environ.get("SELFPLAY_PROCESS_POLICY", "pids") == "single_process":
+        from worker_policy import install  # type: ignore[import-not-found]
+
+        resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+        resource.setrlimit(resource.RLIMIT_NOFILE, (64, 64))
+        disk_bytes = int(os.environ["SELFPLAY_DISK_BYTES"])
+        resource.setrlimit(resource.RLIMIT_FSIZE, (disk_bytes, disk_bytes))
+        install()
     raw = sys.stdin.buffer.read(8 * 1024 * 1024 + 1)
     if len(raw) > 8 * 1024 * 1024:
         raise ValueError("Worker request exceeds 8 MiB")

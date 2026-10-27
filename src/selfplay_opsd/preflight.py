@@ -17,7 +17,7 @@ from selfplay_opsd.core import ExperimentError, digest
 from selfplay_opsd.data import TaskRepository
 from selfplay_opsd.protocol import PROMPT_HASH
 from selfplay_opsd.sandbox import SandboxBackend
-from selfplay_opsd.storage import atomic_json, code_hash, provenance, read_json
+from selfplay_opsd.storage import atomic_json, provenance, read_json
 
 
 def doctor(config: RunConfig, *, isolation: bool = False) -> dict:
@@ -125,7 +125,6 @@ def doctor(config: RunConfig, *, isolation: bool = False) -> dict:
                 proof.get("backend_identity") == backend_identity(cfg)
                 and proof.get("objective_probes") == ["A", "B", "C", "D"]
                 and proof.get("ready")
-                and proof.get("code_hash") == code_hash()
                 and proof.get("model_revision") == cfg.model.revision
                 and proof.get("gpu_count") == cfg.hardware.gpu_count
             )

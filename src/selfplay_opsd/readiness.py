@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import os
 from pathlib import Path
 
@@ -13,17 +14,56 @@ from selfplay_opsd.sandbox import SandboxBackend
 from selfplay_opsd.storage import (
     active_events,
     atomic_json,
-    code_hash,
     file_hash,
     read_json,
     scientific_code_hash,
 )
+from selfplay_opsd.worker_runtime import allocation_fingerprint
 
 BACKEND_EVIDENCE_DIRECTORY = "compatibility/backend-v2"
 
 
 def allocation_code_hash() -> str:
-    return file_hash(Path(__file__).resolve().parents[2] / "scripts/hpc_job.py")
+    return allocation_fingerprint(Path(__file__).resolve().parents[2] / "scripts/hpc_job.py")
+
+
+def implementation_hash(*, backend: bool = False) -> str:
+    """Dependency-scoped compatibility; complete source provenance stays in reports."""
+    package = Path(__file__).parent
+    excluded = {"hpc.py", "hpc_images.py", "hpc_readiness.py"}
+    if backend:
+        included = {
+            "backend_check.py",
+            "core.py",
+            "objectives.py",
+            "policy.py",
+            "verl_backend.py",
+            "vllm_worker.py",
+            "protocol.py",
+            "storage.py",
+            "codec.py",
+        }
+    else:
+        included = {p.name for p in package.glob("*.py")} - excluded
+    project = package.parents[1]
+    selected = {}
+    if backend:
+        for filename, function in (
+            ("cli.py", "make_policy"),
+            ("diagnostics.py", "_optimizer_digest"),
+        ):
+            tree = ast.parse((package / filename).read_text())
+            selected[filename] = ast.dump(
+                next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == function),
+                include_attributes=False,
+            )
+    return digest(
+        {
+            **{name: file_hash(package / name) for name in sorted(included)},
+            **selected,
+            **{name: file_hash(project / name) for name in ("uv.lock", "pyproject.toml")},
+        }
+    )
 
 
 def backend_identity(config: RunConfig) -> dict:
@@ -34,9 +74,10 @@ def backend_identity(config: RunConfig) -> dict:
     """
     return {
         "schema_version": 2,
-        "code_hash": code_hash(),
+        "dependency_schema": 1,
+        "code_hash": implementation_hash(backend=True),
         "allocation_code_hash": allocation_code_hash(),
-        "scientific_code_hash": scientific_code_hash(),
+        "scientific_code_hash": implementation_hash(backend=True),
         "model": config.model.model_dump(mode="json"),
         "objective": config.objective.model_dump(mode="json"),
         "prompt_hash": PROMPT_HASH,
@@ -63,7 +104,7 @@ def execution_identity(config: RunConfig, *, repository: TaskRepository | None =
     if repository.root.resolve() != config.data_root.resolve():
         raise ExperimentError("Repository root differs from configured data_root")
     return {
-        "code_hash": code_hash(),
+        "code_hash": implementation_hash(),
         "allocation_code_hash": allocation_code_hash(),
         "scientific_code_hash": scientific_code_hash(),
         "common_hash": digest(config.scientific_settings(common=True, calibration=True)),

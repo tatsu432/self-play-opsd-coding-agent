@@ -108,6 +108,8 @@ class SandboxConfig(Strict):
     cpus: int = Field(default=1, ge=1)
     memory_mib: int = Field(default=1024, ge=64)
     pids: int = Field(default=32, ge=8)
+    process_policy: Literal["pids", "single_process"] = "pids"
+    resource_backend: Literal["container", "slurm"] = "container"
     output_bytes: int = Field(default=4 * 1024 * 1024 + 4096, ge=1024)
     disk_mib: int = Field(default=64, ge=8)
     retries: int = Field(default=2, ge=0, le=5)
@@ -205,6 +207,8 @@ class RunConfig(Strict):
                 "cpus",
                 "memory_mib",
                 "pids",
+                "process_policy",
+                "resource_backend",
                 "output_bytes",
                 "disk_mib",
                 "retries",

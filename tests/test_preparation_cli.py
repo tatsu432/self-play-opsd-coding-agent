@@ -49,9 +49,7 @@ def test_backend_stage_advances_without_worker_or_runtime(complete, monkeypatch)
     submissions = [payload for operation, payload in calls if operation == "submit"]
     if complete < 2:
         assert len(submissions) == 1
-        assert submissions[0]["profile"] == (
-            "single_gpu_80gb" if complete == 0 else "dual_gpu_80gb"
-        )
+        assert submissions[0]["profile"] == ("single_gpu_80gb")
         assert submissions[0]["readiness_budget"] == 24
     else:
         assert not submissions
@@ -125,6 +123,7 @@ def test_preparation_does_not_repeat_unchanged_site_worker_failure(monkeypatch):
             "worker": {
                 "ready": False,
                 "details": {"cpu_limit": "DBUS_SESSION_BUS_ADDRESS is not set"},
+                "supervisor_hash": hpc_readiness.supervisor_hash(),
             }
         },
         "eligible_to_submit_main": False,

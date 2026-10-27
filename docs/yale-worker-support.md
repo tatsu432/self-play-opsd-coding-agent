@@ -1,5 +1,19 @@
 # Yale worker delegation: support draft and fallback design
 
+## Current direction — Task 07
+
+Task 07 supersedes the historical cgroup-specific and exact 32-process contract
+below. Slurm step CPU/memory enforcement plus kernel-enforced prohibition of
+candidate process/thread creation is the first investigation. CPU job 31027216
+passed 18 trusted fixtures on Bouchet with the seccomp filter and private
+Apptainer namespaces. Full worker containment, storage and cleanup acceptance
+remain required. No subordinate-UID allocator or managed service is being pursued
+while this simpler route is viable. Do not wait for an answer to the historical
+subordinate-ID question before continuing independent readiness work.
+
+The remaining sections preserve the support correspondence and old proposals;
+they do not override Task 07 or establish current readiness.
+
 Task 05: the user authorized contact. The request was sent on 2026-10-22 from
 the connected Yale account to research.computing@yale.edu, subject
 “Bouchet cpsc4880: supported per-worker Apptainer isolation and CPU image builds”.

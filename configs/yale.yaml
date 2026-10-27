@@ -8,9 +8,12 @@ model:
   revision: cdbee75f17c01a7cc42f958dc650907174af0554
   tokenizer_revision: cdbee75f17c01a7cc42f958dc650907174af0554
 hardware:
-  profile: dual_gpu_80gb
+  profile: single_gpu_80gb
+  rollout_concurrency: 1
 sandbox:
   backend: remote
+  process_policy: single_process
+  resource_backend: slurm
   remote_url: http://127.0.0.1:8765
 logging:
   mode: offline

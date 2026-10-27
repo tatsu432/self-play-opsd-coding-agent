@@ -133,7 +133,7 @@ def register(app: typer.Typer):
             remote.alias,
             operation=operation,
             method=options.pop("method", "D"),
-            profile=options.pop("profile", "dual_gpu_80gb"),
+            profile=options.pop("profile", load_config(settings).hardware.profile),
             gpu_type=options.pop("gpu_type", "h100"),
             account=None,
             image="",
@@ -270,7 +270,7 @@ def register(app: typer.Typer):
     ):
         """Advance readiness one allocation at a time; stop before main training."""
         if gpu_type not in {"h100", "h200"}:
-            raise HpcError("Readiness supports H100, or H200 after verified H100 memory failure")
+            raise HpcError("Readiness supports authorized H100 or H200 resources")
         if stage not in {"all", "backend"}:
             raise HpcError("Stage must be all or backend")
         if diagnostic_partition not in {None, "scavenge_gpu"}:
@@ -283,10 +283,6 @@ def register(app: typer.Typer):
         remote = YaleSSH(alias)
         while True:
             state, request = study(remote, settings, gpu_type, backend_only=stage == "backend")
-            if gpu_type == "h200" and not state["h100_memory_fit_failure"]:
-                raise HpcError(
-                    "H200 fallback requires a recorded managed H100 CUDA out-of-memory failure"
-                )
             if stage == "all" and not state["images"]["worker"].get("ready"):
                 output(
                     {
@@ -306,13 +302,19 @@ def register(app: typer.Typer):
                 ("methods", "method-smoke", {}),
                 ("freeze", "freeze-study", {}),
             ]
+            cfg = load_config(settings)
+            if cfg.hardware.gpu_count == 1:
+                # The target backend proof is already a single-process reference.
+                stages = [entry for entry in stages if entry[0] != "single"]
             if stage == "backend":
                 stages = [entry for entry in stages if entry[0] in {"single", "target"}]
-            if "allocation_checks" in state and gpu_type == "h100":
+            if "allocation_checks" in state:
                 stages = [
                     ("allocation_single", "allocation-check", {"profile": "single_gpu_80gb"}),
                     ("allocation_target", "allocation-check", {}),
                 ] + stages
+                if cfg.hardware.gpu_count == 1:
+                    stages = [entry for entry in stages if entry[0] != "allocation_single"]
                 for key, ready in state["allocation_checks"].items():
                     state["gates"]["allocation_" + key] = ready
             next_stage = next((entry for entry in stages if not state["gates"][entry[0]]), None)
@@ -352,6 +354,7 @@ def register(app: typer.Typer):
                     not prior.get("ready")
                     and ("dbus_session_bus_address" in detail or "delegat" in detail)
                     and worker_setup_id == prior.get("worker_setup_id", "")
+                    and prior.get("supervisor_hash") == supervisor_hash()
                 ):
                     output(
                         {
@@ -377,7 +380,7 @@ def register(app: typer.Typer):
                 remote,
                 operation,
                 settings,
-                gpu_type="h100" if name == "single" else gpu_type,
+                gpu_type=gpu_type,
                 **options,
             )
             payload["readiness_budget"] = gpu_hours_limit

@@ -71,6 +71,20 @@ changes; do not rerun `--inventory-only` inside frozen data. Private oracles and
 canonical answers are under `data/prepared/private`, never in student requests
 or worker mounts. Public tests expose original public examples only.
 
+## Current Yale execution contract (Task 07)
+
+Follow the [Yale launch runbook](yale-launch-runbook.md). The initial target is one
+H100, with H200 permitted for a documented practical reason within the same
+cumulative 24 GPU-hour readiness cap. Main A–D remain unauthorized.
+
+The Yale worker uses a separately limited no-GRES Slurm step, fresh Apptainer
+payloads, and a trusted kernel seccomp policy prohibiting candidate-created
+processes and threads. CPU/cpuset and memory limits come from Slurm; candidate
+filesystem/network/GPU containment, temporary storage, output/time and cleanup
+must pass real preflight. Nested user cgroups and a precise 32-process limit are
+not prerequisites. Trusted allocation/backend checks do not require this worker.
+Historical mechanism and H100-OOM restrictions elsewhere are superseded by Task 07.
+
 ## Containers and safe execution workers
 
 The uv lock pins torch 2.8.0, Transformers 4.57.1, PEFT 0.17.1, verl v0.7.1 at

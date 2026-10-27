@@ -7,6 +7,7 @@ submission. All model and sandbox work belongs to allocated compute nodes.
 
 from __future__ import annotations
 
+import ast
 import base64
 import hashlib
 import json
@@ -703,10 +704,22 @@ def submit(payload: dict) -> dict:
                 + ".json"
             )
         )
-        if slot.exists():
-            owner = json.loads(slot.read_text())
+        legacy_slot = (
+            p["state"] / "slots" / (hashlib.sha256(str(artifact).encode()).hexdigest() + ".json")
+        )
+        for candidate_slot in dict.fromkeys([slot, legacy_slot]):
+            if not candidate_slot.exists():
+                continue
+            owner = json.loads(candidate_slot.read_text())
             if owner["run_id"] != payload["run_id"]:
                 prior = status({**payload, "run_id": owner["run_id"]})
+                if (
+                    candidate_slot == legacy_slot
+                    and prior["ledger"].get("operation") != payload["operation"]
+                ):
+                    # An old shared directory slot cannot serialize unrelated
+                    # work. Equivalent old/uncertain submissions still block.
+                    continue
                 states = [a["scheduler"]["state"] for a in prior["attempts"]]
                 if (
                     prior["ledger"].get("pending_intent")
@@ -760,6 +773,8 @@ def submit(payload: dict) -> dict:
             "SELFPLAY_METHOD": payload["method"],
             "SELFPLAY_HARDWARE": payload["profile"],
             "SELFPLAY_GPU_COUNT": str(payload["gpu_count"]),
+            "SELFPLAY_ALLOCATION_CPUS": str(payload["cpus"]),
+            "SELFPLAY_ALLOCATION_MEMORY_MIB": str(payload["memory_gib"] * 1024),
             "SELFPLAY_SETTINGS": payload["settings"],
             "SELFPLAY_MAIN_STUDY": payload["study_id"],
             "SELFPLAY_PILOT_SUFFIX": payload.get("pilot_suffix", "-pilot"),
@@ -1104,6 +1119,41 @@ def stage_status(base: Path, study: str, gates: dict, reports: dict) -> dict:
     return states
 
 
+def allocation_compatible(proof: dict, expected: str | None, base: Path) -> bool:
+    if not expected:
+        return False
+    if proof.get("allocation_code_hash") == expected:
+        return True
+    # Legacy proofs hashed the whole job launcher. Reuse only after checking its
+    # immutable source checksum and the exact verifier function ASTs. No report
+    # is rewritten and unrelated launcher changes do not invalidate device proof.
+    commit = proof.get("execution_commit", "")
+    if not SHA.fullmatch(commit):
+        return False
+    source = base / "checkouts" / commit / "scripts/hpc_job.py"
+    if not source.is_file() or sha256(source) != proof.get("allocation_code_hash"):
+        return False
+    names = {
+        "sha256",
+        "write",
+        "diagnostic_command",
+        "device_access",
+        "allocated_gpus",
+        "resolve_gpus",
+        "verify_container_gpus",
+    }
+    tree = ast.parse(source.read_text())
+    definitions = {
+        n.name: ast.dump(n, include_attributes=False)
+        for n in tree.body
+        if isinstance(n, ast.FunctionDef) and n.name in names
+    }
+    actual = hashlib.sha256(
+        json.dumps(definitions, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    return set(definitions) == names and actual == expected
+
+
 def study_state(payload: dict) -> dict:
     base = workspace(payload)
     study = payload["study_id"]
@@ -1142,11 +1192,11 @@ def study_state(payload: dict) -> dict:
             proof.get("ready")
             and proof.get("ownership_verified")
             and proof.get("image_sha256") == images["trainer"].get("sha256")
-            and proof.get("allocation_code_hash")
-            == payload.get("backend_identity", {}).get("allocation_code_hash")
+            and allocation_compatible(
+                proof, payload.get("backend_identity", {}).get("allocation_code_hash"), base
+            )
             and proof.get("gpu_count") == count
-            and proof.get("gpu_type")
-            == ("h100" if key == "single" else payload.get("gpu_type", "h100"))
+            and proof.get("gpu_type") == payload.get("gpu_type", "h100")
         )
     worker = reports["worker"]
     gates = {
@@ -1331,12 +1381,12 @@ def precheck(payload: dict):
             raise ValueError("Pinned trainer SIF missing")
         if operation == "allocation-check" and (
             payload.get("gpu_count") not in {1, 2}
-            or payload.get("gpu_type") != "h100"
+            or payload.get("gpu_type") not in {"h100", "h200"}
             or payload.get("time") != "00:05:00"
             or payload.get("account") != "cpsc4880"
             or payload.get("readiness_budget") != 24
         ):
-            raise ValueError("Allocation diagnostics require bounded cpsc4880 H100 readiness")
+            raise ValueError("Allocation diagnostics require bounded cpsc4880 H100/H200 readiness")
         return
     uses_worker = operation in {
         "worker-check",

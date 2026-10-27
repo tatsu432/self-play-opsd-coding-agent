@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 import math
@@ -20,6 +21,28 @@ from pathlib import Path
 
 from selfplay_opsd.codec import decode, encode
 
+ALLOCATION_FUNCTIONS = (
+    "sha256",
+    "write",
+    "diagnostic_command",
+    "device_access",
+    "allocated_gpus",
+    "resolve_gpus",
+    "verify_container_gpus",
+)
+
+
+def allocation_fingerprint(path: Path) -> str:
+    tree = ast.parse(path.read_text())
+    definitions = {
+        n.name: ast.dump(n, include_attributes=False)
+        for n in tree.body
+        if isinstance(n, ast.FunctionDef) and n.name in ALLOCATION_FUNCTIONS
+    }
+    if set(definitions) != set(ALLOCATION_FUNCTIONS):
+        raise ValueError("Allocation verification implementation missing")
+    return digest(definitions)
+
 
 def canonical(value) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
@@ -30,7 +53,13 @@ def supervisor_hash() -> str:
     return digest(
         {
             name: hashlib.sha256((package / name).read_bytes()).hexdigest()
-            for name in ("worker_runtime.py", "remote_worker.py", "codec.py")
+            for name in (
+                "worker_runtime.py",
+                "remote_worker.py",
+                "codec.py",
+                "worker.py",
+                "worker_policy.py",
+            )
         }
     )
 
@@ -61,6 +90,8 @@ class RuntimeConfig:
     cpus: int = 1
     memory_mib: int = 1024
     pids: int = 32
+    process_policy: str = "pids"
+    resource_backend: str = "container"
     output_bytes: int = 4198400
     disk_mib: int = 64
     retries: int = 2
@@ -74,6 +105,15 @@ class RuntimeConfig:
         config = cls(**{k: v for k, v in values.items() if k in names})
         if config.backend not in {"docker", "apptainer"}:
             raise ValueError("Worker service requires Docker or Apptainer isolation")
+        if config.process_policy not in {
+            "pids",
+            "single_process",
+        } or config.resource_backend not in {"container", "slurm"}:
+            raise ValueError("Invalid worker execution contract")
+        if config.resource_backend == "slurm" and (
+            config.backend != "apptainer" or config.process_policy != "single_process"
+        ):
+            raise ValueError("Slurm worker requires Apptainer and single-process enforcement")
         for name in ("cpus", "memory_mib", "pids", "output_bytes", "disk_mib"):
             if type(getattr(config, name)) is not int or getattr(config, name) <= 0:
                 raise ValueError(f"Invalid worker limit: {name}")
@@ -94,6 +134,7 @@ def bounded_process(
     timeout: float,
     limit: int,
     cancelled: threading.Event | None = None,
+    env: dict | None = None,
 ) -> tuple[int, bytes, bytes, str]:
     """Drain both pipes concurrently, kill at a bound, and always reap the process."""
     with tempfile.TemporaryFile() as request:
@@ -105,6 +146,7 @@ def bounded_process(
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             start_new_session=True,
+            env=env,
         )
         selector = selectors.DefaultSelector()
         assert process.stdout is not None and process.stderr is not None
@@ -177,13 +219,15 @@ def cgroup_probe(expression: str) -> str:
         "   current=os.path.dirname(current)\n"
         "  def values(name):\n"
         "   return [open(group+'/'+name).read().strip() for group in groups if os.path.isfile(group+'/'+name)]\n"
+        "  def cpuset_size(value):\n"
+        "   return sum(int(x.split('-')[-1])-int(x.split('-')[0])+1 for x in value.split(',') if x)\n"
         f"  return {expression}\n"
         " except (OSError,ValueError,StopIteration): return False\n"
     )
 
 
 def isolation_probes(config) -> dict[str, str]:
-    return {
+    probes = {
         "network_namespace": "import socket,fcntl,struct\ndef check():\n s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM)\n try:\n  return all(name=='lo' or not (struct.unpack('H',fcntl.ioctl(s.fileno(),0x8913,struct.pack('256s',name.encode()))[16:18])[0]&1) for _,name in socket.if_nameindex())\n finally: s.close()\n",
         "no_network": "import socket\ndef check():\n try:\n  socket.create_connection(('169.254.169.254',80),timeout=0.2); return False\n except OSError: return True\n",
         "no_host_credentials": "import os\ndef check():\n return not any(os.path.exists(p) for p in ['/root/.aws/credentials','/root/.ssh','/home/trainer','/var/run/docker.sock']) and not any(k in os.environ for k in ['AWS_ACCESS_KEY_ID','WANDB_API_KEY','HF_TOKEN','SELFPLAY_WORKER_TOKEN'])\n",
@@ -197,13 +241,32 @@ def isolation_probes(config) -> dict[str, str]:
             f"any(v!='max' and int(v)<={config.memory_mib * 1024**2} for v in values('memory.max'))"
         ),
         "cpu_limit": cgroup_probe(
-            f"any(v.split()[0]!='max' and int(v.split()[0])/int(v.split()[1])<={config.cpus} for v in values('cpu.max'))"
+            f"any(v.split()[0]!='max' and int(v.split()[0])/int(v.split()[1])<={config.cpus} for v in values('cpu.max')) or (any(0<cpuset_size(v)<={config.cpus} for v in values('cpuset.cpus.effective')) and not any(os.access(group+'/cgroup.procs',os.W_OK) for group in groups))"
         ),
         "cgroup_readonly": cgroup_probe(
             "not any(os.access(group+'/cgroup.procs',os.W_OK) for group in groups)"
         ),
         "disk_limit": f"import os\ndef check():\n v=os.statvfs('/tmp'); return v.f_blocks*v.f_frsize<={config.disk_mib * 1024**2}\n",
     }
+    if config.process_policy == "single_process":
+        probes.pop("pids_limit")
+        probes["network_namespace"] = (
+            "def check():\n return all(line.split(':')[0].strip()=='lo' for line in open('/proc/net/dev').readlines()[2:])\n"
+        )
+        probes["single_process"] = (
+            "import ctypes,errno,os\ndef check():\n"
+            " c=ctypes.CDLL(None,use_errno=True); c.syscall.restype=ctypes.c_long\n"
+            " for n in [56,57,435,59,101,157,272,308,310,311,317,425,426,427]:\n"
+            "  r=c.syscall(n,ctypes.c_ulong(-1),0,0,0,0,0)\n"
+            "  if n==57 and r==0: os._exit(0)\n"
+            "  if n==57 and r>0: os.waitpid(r,0)\n"
+            "  if r!=-1 or ctypes.get_errno()!=errno.EPERM: return False\n"
+            " return True\n"
+        )
+        probes["readonly_devices"] = (
+            "import os\ndef check():\n try:\n  f=open('/dev/selfplay-escape','w'); f.close(); return False\n except OSError: return True\n"
+        )
+    return probes
 
 
 class LocalRuntime:
@@ -269,26 +332,53 @@ class LocalRuntime:
         if c.backend == "apptainer":
             # User/network namespaces and cgroups must actually be permitted by
             # the site. No --nv: execution workers never receive GPU devices.
-            return [
+            command = [
                 c.runtime,
                 "exec",
                 "--containall",
                 "--cleanenv",
                 "--no-home",
                 "--no-mount",
-                "hostfs,bind-paths",
+                "hostfs,bind-paths,dev" if c.resource_backend == "slurm" else "hostfs,bind-paths",
                 "--net",
                 "--network",
                 "none",
                 "--userns",
                 "--drop-caps",
                 "all",
-                "--memory",
-                str(c.memory_mib * 1024 * 1024),
-                "--cpus",
-                str(c.cpus),
-                "--pids-limit",
-                str(c.pids),
+                "--pwd",
+                "/tmp",
+            ]
+            if c.resource_backend == "slurm":
+                package = Path(__file__).resolve().parent
+                # Bind only immutable trusted entry scripts, never the checkout,
+                # trainer, dataset or a writable host directory. This permits
+                # reuse of the pinned stdlib-only SIF when entry code changes.
+                command += [
+                    "--bind",
+                    ",".join(
+                        f"{package / filename}:/opt/{filename}:ro"
+                        for filename in ("worker.py", "codec.py", "worker_policy.py")
+                    ),
+                ]
+                command += [
+                    "--env",
+                    "SELFPLAY_PROCESS_POLICY=single_process",
+                    "--env",
+                    f"SELFPLAY_OUTPUT_BYTES={c.output_bytes}",
+                    "--env",
+                    f"SELFPLAY_DISK_BYTES={c.disk_mib * 1024**2}",
+                ]
+            else:
+                command += [
+                    "--memory",
+                    str(c.memory_mib * 1024 * 1024),
+                    "--cpus",
+                    str(c.cpus),
+                    "--pids-limit",
+                    str(c.pids),
+                ]
+            return command + [
                 c.image,
                 "python",
                 "-I",
@@ -319,7 +409,16 @@ class LocalRuntime:
                 raw,
                 seconds + 5,
                 self.config.output_bytes,
-                **({"cancelled": self.cancelled} if self.cancelled is not None else {}),
+                cancelled=self.cancelled,
+                env=(
+                    {
+                        k: v
+                        for k, v in os.environ.items()
+                        if k in {"PATH", "LANG", "LC_ALL", "APPTAINER_CACHEDIR", "APPTAINER_TMPDIR"}
+                    }
+                    if self.config.resource_backend == "slurm"
+                    else None
+                ),
             )
         except OSError as exc:
             return result("missing_dependency", [], time.monotonic() - started, str(exc))
@@ -397,5 +496,9 @@ class LocalRuntime:
             "worker_setup_id": os.getenv("SELFPLAY_WORKER_SETUP_ID", ""),
             "timestamp": time.time(),
             "limits": self.config.model_dump(),
+            "execution_contract": {
+                "process": self.config.process_policy,
+                "resources": self.config.resource_backend,
+            },
         }
         return report

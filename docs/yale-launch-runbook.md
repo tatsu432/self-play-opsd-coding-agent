@@ -1,5 +1,53 @@
 # Yale A–D readiness and launch
 
+Task 07 is authoritative. Main A–D training remains unauthorized; finish with
+live readiness and four successful previews. The cumulative readiness cap is
+24 allocated GPU-hours, including all earlier attempts and unresolved reservations.
+
+The selected initial target is one H100 (`configs/yale.yaml`). Use entitled H200
+when a documented memory, scheduling or runtime reason makes it practical; H100
+OOM is not a prerequisite. Add GPUs only when measurements justify them, and
+then require single-process/distributed gradient agreement.
+
+The new worker path uses a persistent one-CPU/1-GiB no-GRES Slurm step at
+concurrency one and a fresh Apptainer payload per request. The trusted payload
+installs an AMD64 seccomp allowlist before candidate compilation/imports and
+prohibits process/thread creation. It does not claim a pids.max or 32-process cap.
+No nested user cgroup configuration, subordinate UID allocator or external
+service is required if this complete path passes real acceptance. Three trusted
+entry scripts are mounted individually read-only over the existing checksummed
+stdlib-only SIF; image and entry-source provenance are recorded separately.
+
+CPU-only job 31027216 (commit db61aa0) passed 18 trusted feasibility fixtures,
+including native process/thread restrictions and compatibility ABI rejection.
+Apptainer exposed a private 64-MiB /tmp. This is feasibility evidence, not worker
+or data readiness. The production containment and cleanup checks must still pass.
+
+Start with doctor/inspect and reconcile the existing pending allocation check
+30988667 (run 95db439761558f8764a42f00). Do not duplicate it. At the Task 07
+initial reconciliation, 0.0425 GPU-hours were charged and 0.083333 reserved.
+Use the live ledger, not these historical totals, before another allocation.
+
+```bash
+uv run selfplay hpc doctor
+uv run selfplay hpc inspect
+uv run selfplay hpc sync
+uv run selfplay hpc submit --operation worker-check --method D --profile single_gpu_80gb
+uv run selfplay hpc prepare-study --stage backend --gpu-hours-limit 24 --watch
+uv run selfplay hpc prepare-study --gpu-hours-limit 24 --watch
+```
+
+Trusted backend preparation is independent of worker acceptance. Operation slots
+are separate, including compatibility with old equivalent/uncertain submissions.
+Reports publish atomically. Numerical compatibility excludes unrelated controller
+and worker changes; allocation proof reuse checks verifier functions against its
+immutable source. Full source provenance remains in the original reports.
+
+The sections below describe available operations and historical checkpoints.
+Where their mechanism or hardware restrictions conflict, this Task 07 section
+and its specification take precedence.
+
+
 Task 05 is preparing this study. **Do not launch main runs until the live doctor
 and all four previews pass and main training is separately authorized.** CPU CI
 does not prove GPU compatibility or generated-code isolation.
@@ -130,9 +178,8 @@ YCRC's 2026-10-27 reply in ticket 79403 confirms that per-worker cgroup
 configuration and a Slurm process-count limit are unavailable to users. Slurm
 job steps can bound per-task CPU/memory, and Apptainer can provide filesystem
 and network isolation, but these alone do not meet the required 32-process
-limit. Keep candidate execution blocked until a kernel-enforced per-worker
-limit and descendant cleanup are demonstrated under the supported Apptainer
-setup, or YCRC supplies an approved complete service. A shared per-user
+limit. Candidate execution remains blocked until the complete Task 07 single-process
+contract and cleanup pass on Bouchet; the old numeric PID requirement is superseded. A shared per-user
 `RLIMIT_NPROC` does not count as a per-worker limit.
 
 One candidate mechanism is under review with YCRC: a unique subordinate UID per
@@ -159,9 +206,8 @@ is a failure to establish evidence, not permission to alter generated data.
 Initial reservation ceilings are reference 1, target 2, base 4, D pilot 12 and
 combined A/B/C smoke 4 allocated GPU-hours. One additional GPU-hour remains;
 unused reservations are released only after actual Slurm accounting. All
-attempts share the cumulative 24-hour cap. H200 requires a recorded H100 CUDA OOM
-on a correctly mapped, initially unoccupied allocation and fresh target proof,
-within that same cap. Preparation never launches main.
+attempts share the cumulative 24-hour cap. H200 is permitted for a documented practical reason after live entitlement
+checks and requires fresh matching target proof within the same cumulative cap. Preparation never launches main.
 
 GPU jobs resolve Slurm's physical allocation to UUIDs and verify the container's
 actual CUDA UUIDs before loading models. Allocation proofs are retained as

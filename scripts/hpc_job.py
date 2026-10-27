@@ -509,7 +509,20 @@ def source_image(env: dict):
 
 def broker_args(env: dict, ready: Path, report: Path) -> list[str]:
     checked_image(env["SELFPLAY_WORKER_SIF"], env["SELFPLAY_WORKER_SHA256"])
-    return [
+    config = json.loads(base64.b64decode(env["SELFPLAY_WORKER_CONFIG"]))
+    prefix = []
+    if config.get("resource_backend") == "slurm":
+        prefix = [
+            "srun",
+            "--exact",
+            "--exclusive",
+            "--ntasks=1",
+            f"--cpus-per-task={config['cpus']}",
+            f"--mem={config['memory_mib']}M",
+            "--gres=none",
+            "--kill-on-bad-exit=1",
+        ]
+    return prefix + [
         sys.executable,
         "-m",
         "selfplay_opsd.remote_worker",
@@ -523,6 +536,8 @@ def broker_args(env: dict, ready: Path, report: Path) -> list[str]:
         base64.b64decode(env["SELFPLAY_WORKER_CONFIG"]).decode(),
         "--port",
         "0",
+        "--concurrency",
+        "1",
         "--ready-file",
         str(ready),
         "--report",
@@ -780,6 +795,12 @@ def execute(env: dict) -> int:
             "SELFPLAY_ALLOCATED_GPU_COUNT": env["SELFPLAY_GPU_COUNT"],
             "SELFPLAY_STOP_AFTER_ITERATION": env.get("SELFPLAY_STOP_AFTER_ITERATION", "0"),
         }
+        worker_config = json.loads(base64.b64decode(env.get("SELFPLAY_WORKER_CONFIG", "e30=")))
+        scoped_worker = uses_worker and worker_config.get("resource_backend") == "slurm"
+        if scoped_worker:
+            overrides["SLURM_CPUS_PER_TASK"] = str(
+                int(env["SELFPLAY_ALLOCATION_CPUS"]) - worker_config["cpus"]
+            )
         for key in (
             "SELFPLAY_WORKER_TOKEN",
             "SELFPLAY_WORKER_URL",
@@ -792,7 +813,7 @@ def execute(env: dict) -> int:
             "SLURM_JOB_GPUS",
             "SLURM_JOB_ACCOUNT",
         ):
-            if key in process_env:
+            if key in process_env and key not in overrides:
                 overrides[key] = process_env[key]
         process_env.update({"APPTAINERENV_" + k: v for k, v in overrides.items()})
         gpu_count = int(env["SELFPLAY_GPU_COUNT"])
@@ -865,15 +886,30 @@ def execute(env: dict) -> int:
         ]
         if operation not in {"backend-check", "allocation-check"}:
             command[2:2] = ["--bind", env["SELFPLAY_DATA"] + ":/data/prepared:ro"]
+        if scoped_worker:
+            # Reserve the worker step independently; never let the trainer step
+            # consume the CPUs/memory needed by its broker or future candidates.
+            command = [
+                "srun",
+                "--exact",
+                "--exclusive",
+                "--ntasks=1",
+                f"--cpus-per-task={overrides['SLURM_CPUS_PER_TASK']}",
+                f"--mem={int(env['SELFPLAY_ALLOCATION_MEMORY_MIB']) - worker_config['memory_mib']}M",
+                f"--gpus={env['SELFPLAY_GPU_TYPE']}:{gpu_count}" if gpu_count else "--gres=none",
+                "--kill-on-bad-exit=1",
+            ] + command
         if gpu_count:
             verify_container_gpus(command, process_env, devices, allocation_report)
         if operation == "allocation-check":
+            from selfplay_opsd.worker_runtime import allocation_fingerprint
+
             write(
                 readiness / f"allocation-{env['SELFPLAY_HARDWARE']}.json",
                 json.loads(allocation_report.read_text())
                 | {
                     "execution_commit": Path(env["SELFPLAY_PROJECT"]).name,
-                    "allocation_code_hash": sha256(Path(__file__)),
+                    "allocation_code_hash": allocation_fingerprint(Path(__file__)),
                     "gpu_type": env["SELFPLAY_GPU_TYPE"],
                     "gpu_count": gpu_count,
                 },

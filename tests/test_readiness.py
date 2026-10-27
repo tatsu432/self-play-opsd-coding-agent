@@ -717,3 +717,114 @@ def test_live_readers_never_observe_partial_worker_reports(tmp_path):
             assert 0 <= value["attempt"] <= 9 and len(value["detail"]) == 65536
         future.result()
     assert json.loads(report.read_text())["attempt"] == 9
+
+
+def test_independent_slots_preserve_legacy_duplicate_exclusion(tmp_path, monkeypatch):
+    remote = endpoint()
+    checkout = tmp_path / "checkout"
+    (checkout / "configs").mkdir(parents=True)
+    (checkout / "configs/yale.yaml").write_text("study_id: study\n")
+    image = tmp_path / "trainer.sif"
+    image.write_bytes(b"fixture")
+    paths = {
+        "checkout": checkout,
+        "state": tmp_path / "state",
+        "runs": tmp_path / "runs",
+        "dataset": tmp_path / "data",
+        "cache": tmp_path / "cache",
+    }
+    snapshot = {"commit": "a" * 40, "manifest_sha256": "b" * 64}
+    atomic_json(paths["state"] / f"sync-{snapshot['commit']}.json", snapshot)
+    monkeypatch.setattr(remote, "workspace", lambda _: tmp_path)
+    monkeypatch.setattr(remote, "paths", lambda _: paths)
+    monkeypatch.setattr(remote, "allowed", lambda _: {"authorized": True})
+    monkeypatch.setattr(remote, "precheck", lambda _: None)
+    monkeypatch.setattr(remote, "job_state", lambda _: {"state": "PENDING"})
+    calls = []
+
+    def sbatch(args, **_):
+        calls.append(args)
+        return subprocess.CompletedProcess(args, 0, str(120 + len(calls)), "")
+
+    monkeypatch.setattr(remote, "run", sbatch)
+    payload = snapshot | {
+        "run_id": "gpu",
+        "identity": "gpu-id",
+        "operation": "allocation-check",
+        "image": str(image),
+        "image_sha256": "c" * 64,
+        "settings": "configs/yale.yaml",
+        "study_id": "study",
+        "method": "D",
+        "seed": 2026,
+        "gpu_count": 1,
+        "profile_gpu_count": 1,
+        "profile": "single_gpu_80gb",
+        "gpu_type": "h100",
+        "min_vram_gib": 79,
+        "account": "course",
+        "partition": "gpu_h100",
+        "cpus": 2,
+        "memory_gib": 8,
+        "time": "00:05:00",
+        "readiness_budget": 24,
+    }
+    assert remote.submit(payload)["submitted"]
+    # Simulate a pre-Task-07 submission occupying the historical shared slot.
+    for path in (paths["state"] / "slots").glob("*.json"):
+        path.unlink()
+    legacy = (
+        paths["state"]
+        / "slots"
+        / (hashlib.sha256(str(remote.artifact_dir(payload)).encode()).hexdigest() + ".json")
+    )
+    atomic_json(legacy, {"run_id": "gpu", "identity": "gpu-id"})
+    cpu = payload | {
+        "run_id": "cpu",
+        "identity": "cpu-id",
+        "operation": "worker-diagnose",
+        "gpu_count": 0,
+        "partition": "day",
+    }
+    assert remote.submit(cpu)["submitted"]
+    equivalent = remote.submit(payload | {"run_id": "gpu2", "identity": "gpu-id2"})
+    assert equivalent["reason"] == "slot_busy" and equivalent["run_id"] == "gpu"
+    assert len(calls) == 2
+
+
+def test_allocation_proof_reuse_checks_immutable_legacy_source(tmp_path):
+    from selfplay_opsd.readiness import allocation_code_hash
+
+    remote = endpoint()
+    commit = "a" * 40
+    source = tmp_path / "checkouts" / commit / "scripts/hpc_job.py"
+    source.parent.mkdir(parents=True)
+    content = Path("scripts/hpc_job.py").read_text()
+    source.write_text(content + "\n# irrelevant operational annotation\n")
+    proof = {"execution_commit": commit, "allocation_code_hash": remote.sha256(source)}
+    assert remote.allocation_compatible(proof, allocation_code_hash(), tmp_path)
+    source.write_text(
+        source.read_text().replace("def device_access(", "def changed_device_access(")
+    )
+    proof["allocation_code_hash"] = remote.sha256(source)
+    assert not remote.allocation_compatible(proof, allocation_code_hash(), tmp_path)
+
+
+def test_backend_compatibility_ignores_controller_and_worker_changes(monkeypatch):
+    import selfplay_opsd.readiness as readiness
+
+    cfg = load_config(Path("configs/yale.yaml"))
+    before = readiness.backend_identity(cfg)
+    real_hash = readiness.file_hash
+    monkeypatch.setattr(
+        readiness,
+        "file_hash",
+        lambda path: "changed" if path.name in {"hpc.py", "worker_policy.py"} else real_hash(path),
+    )
+    assert readiness.backend_identity(cfg) == before
+    monkeypatch.setattr(
+        readiness,
+        "file_hash",
+        lambda path: "changed" if path.name == "objectives.py" else real_hash(path),
+    )
+    assert readiness.backend_identity(cfg) != before
