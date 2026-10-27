@@ -514,6 +514,7 @@ def broker_args(env: dict, ready: Path, report: Path) -> list[str]:
     if config.get("resource_backend") == "slurm":
         prefix = [
             "srun",
+            "--export=ALL",
             "--exact",
             "--exclusive",
             "--ntasks=1",
@@ -891,6 +892,7 @@ def execute(env: dict) -> int:
             # consume the CPUs/memory needed by its broker or future candidates.
             command = [
                 "srun",
+                "--export=ALL",
                 "--exact",
                 "--exclusive",
                 "--ntasks=1",

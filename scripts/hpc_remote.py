@@ -1145,7 +1145,7 @@ def allocation_compatible(proof: dict, expected: str | None, base: Path) -> bool
     tree = ast.parse(source.read_text())
     for node in ast.walk(tree):
         if hasattr(node, "type_params") and not node.type_params:
-            node._fields = tuple(name for name in node._fields if name != "type_params")
+            node.__dict__["_fields"] = tuple(name for name in node._fields if name != "type_params")
     definitions = {
         n.name: ast.dump(n, include_attributes=False)
         for n in tree.body
