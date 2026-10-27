@@ -192,3 +192,23 @@ explicit node exclusions and `--no-requeue`; verify its CI before GPU use.
 Continue with `hpc prepare-study --stage backend --diagnostic-partition scavenge_gpu
 --exclude-node a1127u05n01 --gpu-hours-limit 24 --watch`. Inspect existing ledgers
 first. Main jobs retain normal partitions and remain unauthorized.
+
+Task 06 update 2026-10-27: YCRC replied to ticket 79403 (thread
+`1a1640b41863817b`, message `1a17e27e17b5f49f`). Users cannot configure cgroups
+on Bouchet; YCRC recommends Slurm job arrays/steps for per-task CPU/memory and
+Apptainer for filesystem/network isolation. Slurm has no process-count limit,
+so this guidance alone does not satisfy the existing per-worker 32-process
+contract. Do not execute candidate code yet. A concise follow-up asks whether
+Apptainer subordinate UID/GID mappings are available and allowed, to evaluate a
+unique mapped UID plus kernel-enforced `RLIMIT_NPROC=32` inside a no-GRES Slurm
+step. See `docs/yale-worker-support.md` and the updated Task 06 plan. This path
+requires adversarial escape/cleanup checks and real Bouchet acceptance; it is
+only a proposal.
+
+Normal SSH now requires interactive Duo MFA. The previous `scavenge_gpu`
+watcher exited when its SSH control connection failed; job 30299146 has not
+been reconciled since then. Reauthenticate with `uv run selfplay hpc login`,
+inspect that job and accounting, then resume monitoring without duplicating it.
+The existing 24 GPU-hour cap and H100-first/OOM-only H200 rule still apply.
+The user has not answered the separate H200 exception question. No main A–D
+jobs have been submitted; Task 06 remains incomplete.

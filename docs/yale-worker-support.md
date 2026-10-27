@@ -31,6 +31,43 @@ Full report: `runs/readiness/repair-selfplay-2026/worker-diagnostics-30293989.js
 on Yale; fetched under the corresponding local study readiness directory.
 These diagnostics do not establish isolation or approval.
 
+## YCRC response — 2026-10-27
+
+YCRC replied in Gmail message `1a17e27e17b5f49f` (ticket 79403). They confirmed
+that users cannot configure cgroups on Bouchet. Their supported direction is to
+request per-task CPU and memory through Slurm job arrays or job steps, with
+Apptainer for filesystem and network isolation. They explicitly stated that
+Slurm does not provide a per-task 32-process limit; that requirement would need
+cgroup configuration.
+
+This is useful guidance but does not satisfy the current worker contract. Do
+not run generated code under Slurm CPU/memory steps alone, and do not reduce or
+remove the process limit. The response did not identify an existing Yale
+managed execution service. The remaining work is to prove a non-cgroup,
+kernel-enforced per-worker process bound that cannot be escaped by changing
+UIDs, limits or namespaces, or obtain a complete approved service/setup. A
+per-user `RLIMIT_NPROC` is not sufficient unless isolation from other workers
+and host processes is demonstrated. The response also did not address the
+reported GPU allocation/cleanup observation.
+
+Slurm's official `srun` documentation describes per-step resource requests:
+<https://slurm.schedmd.com/srun.html>. Apptainer's resource-limit guide says
+container `--pids-limit` depends on cgroup v2 delegation:
+<https://apptainer.org/user-docs/master/cgroups.html>. These references do not
+establish that the current account can satisfy the missing limit.
+
+On 2026-10-27, a concise follow-up (message `1a17e39dc4e11cbf`) asked whether
+standard Apptainer `--fakeroot` subordinate UID/GID mappings are available and
+allowed on compute nodes. The proposed avenue is a unique mapped UID per worker,
+kernel-enforced `RLIMIT_NPROC=32`, and a CPU/memory-limited Slurm step with no
+GRES. Candidate code remains blocked until YCRC replies and the complete
+enforcement, escape-resistance and cleanup contract is demonstrated. The
+proposal alone is not evidence of a safe worker.
+
+An additional follow-up should be sent only if a concrete proposed enforcement
+mechanism needs YCRC policy confirmation or after new targeted diagnostic
+evidence is available. Keep the question concise, as YCRC requested.
+
 The second technical update, Gmail message `1a16502dcb82984a` in the same
 thread, reports H100 job **30296835** on `a1127u05n01` (15:01:57–15:02:17).
 Kernel device access and container CUDA UUID agreed on

@@ -82,6 +82,30 @@ def test_extra_device_access_rejects_and_preserves_raw_evidence(allocation, tmp_
     assert proof["inventory"]["stdout"] and proof["xml_inventory"]["stdout"]
 
 
+def test_worker_diagnostics_report_only_current_uid_subid_mappings(allocation, monkeypatch):
+    calls = []
+
+    def diagnostic(args, env):
+        calls.append(args)
+        if args[:2] == ["getent", "subuid"]:
+            return {"exit_code": 0, "stdout": "35094:100000:65536\n", "stderr": ""}
+        if args[:2] == ["getent", "subgid"]:
+            return {"exit_code": 0, "stdout": "35094:100000:65536\n", "stderr": ""}
+        return {"exit_code": 0, "stdout": "version\n", "stderr": ""}
+
+    monkeypatch.setattr(allocation, "diagnostic_command", diagnostic)
+    report = allocation.worker_diagnostics(environment())
+    assert report["diagnostic_only"] and not report["ready"]
+    assert report["subid"]["uid_mappings"]["stdout"] == "35094:100000:65536\n"
+    assert report["subid"]["gid_mappings"]["stdout"] == "35094:100000:65536\n"
+    assert [call for call in calls if call[:2] == ["getent", "subuid"]] == [
+        ["getent", "subuid", str(os.getuid())]
+    ]
+    assert [call for call in calls if call[:2] == ["getent", "subgid"]] == [
+        ["getent", "subgid", str(os.getgid())]
+    ]
+
+
 def test_uuid_disagreement_rejects_ordinal_guess(allocation, tmp_path):
     env = environment() | {"SLURM_JOB_GPUS": "GPU-11111111-1111-1111-1111-111111111111"}
     with pytest.raises(ValueError, match="UUIDs disagree"):

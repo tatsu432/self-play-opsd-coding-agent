@@ -584,6 +584,14 @@ def worker_diagnostics(env: dict) -> dict:
                 for line in path.read_text().splitlines()
                 if line.strip() and not line.lstrip().startswith("#")
             ]
+    nsswitch = Path("/etc/nsswitch.conf")
+    subid_source = []
+    if nsswitch.is_file():
+        subid_source = [
+            line.strip()
+            for line in nsswitch.read_text().splitlines()
+            if line.split("#", 1)[0].strip().startswith("subid:")
+        ]
     bus = Path(f"/run/user/{os.getuid()}/bus")
     return {
         "diagnostic_only": True,
@@ -596,6 +604,11 @@ def worker_diagnostics(env: dict) -> dict:
         "cgroup_membership": membership,
         "cgroup_ancestry": groups,
         "configuration": configuration,
+        "subid": {
+            "nsswitch": subid_source,
+            "uid_mappings": diagnostic_command(["getent", "subuid", str(os.getuid())], env),
+            "gid_mappings": diagnostic_command(["getent", "subgid", str(os.getgid())], env),
+        },
         "versions": {
             name: diagnostic_command(args, env)
             for name, args in {

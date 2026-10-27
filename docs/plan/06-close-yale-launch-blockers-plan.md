@@ -37,3 +37,51 @@ H200 only after proven managed CUDA OOM. No new infrastructure. If neither local
 delegation nor an existing approved Yale service is available, retain an explicit
 incomplete external dependency and continue support resolution without rerunning
 equivalent failed probes or declaring completion.
+
+## 2026-10-27 continuation after YCRC response
+
+YCRC ticket 79403 now confirms that users cannot configure cgroups on Bouchet
+and that Slurm does not currently provide a process-count limit. YCRC recommends
+Slurm job arrays or job steps for per-task CPU/memory limits and Apptainer for
+filesystem/network isolation. This does **not** satisfy the existing per-worker
+32-process requirement by itself. Do not run candidate code under this partial
+contract, silently remove the limit, or treat a per-user `RLIMIT_NPROC` as a
+per-worker cap.
+
+1. Record the response in the runbook and operational checkpoint. Keep
+   generated-code execution blocked pending full enforcement.
+2. Evaluate this no-cgroup path, contingent on YCRC confirming standard
+   Apptainer subordinate UID/GID mappings are available and allowed: start each
+   worker in a distinct `--fakeroot` mapped UID, launch it as a one-CPU/1-GiB
+   Slurm job step with `--gres=none`, set a hard and soft `RLIMIT_NPROC=32`,
+   drop all capabilities and set `no_new_privs`, and use seccomp to deny
+   namespace/UID changes that could raise or evade the limit. The UID allocator
+   must prevent simultaneous workers from sharing a mapped UID. Validate
+   fork/vfork/clone/clone3 and thread limits, attempts to raise limits or change
+   IDs/create namespaces, network/filesystem/GPU isolation, and
+   timeout/cancellation cleanup. Reject per-user limits shared across workers
+   or host processes. Require adversarial local validation and a trusted
+   allocation preflight on Bouchet before generated-code use. If any prerequisite
+   fails, reject this route and keep the worker gate blocked.
+3. If a compliant mechanism cannot be proven, ask YCRC concisely whether any
+   existing approved service or site-supported mechanism provides the missing
+   per-worker process bound. Keep the current isolation contract until YCRC or
+   the user supplies an approved complete solution.
+4. In parallel, reauthenticate through normal Duo MFA, reconcile the existing
+   H100 diagnostic job and restart its watcher only after confirming job state.
+   Continue trusted backend checks within the cumulative 24 GPU-hour cap. Do not
+   use H200 without the explicit exception or a genuine H100 CUDA OOM after
+   ownership and initial-free-memory checks.
+5. Once GPU acceptance and a fully compliant worker path both pass, proceed
+   through runtime/data validation, base evaluation, D stop/resume pilot, A/B/C
+   acceptance, freeze and four main submission previews. Main training remains
+   a separate authorization gate.
+
+YCRC source response: ticket 79403, email thread `1a1640b41863817b`, message
+`1a17e27e17b5f49f`, dated 2026-10-27. Slurm documents job-step resource
+requests at <https://slurm.schedmd.com/srun.html>; Apptainer documents that
+per-container `--pids-limit` relies on cgroup delegation at
+<https://apptainer.org/user-docs/master/cgroups.html>. These sources support
+the investigation; they do not establish that the process-limit gate passes.
+The concise mapping/policy question is in the same thread, message
+`1a17e39dc4e11cbf`; it has not yet received a response.

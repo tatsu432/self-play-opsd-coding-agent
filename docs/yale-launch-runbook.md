@@ -126,6 +126,22 @@ successful build does not synchronize later changes automatically.
 The full workflow requires a YCRC-supported worker setup and fresh successful
 isolation evidence. After that setup change:
 
+YCRC's 2026-10-27 reply in ticket 79403 confirms that per-worker cgroup
+configuration and a Slurm process-count limit are unavailable to users. Slurm
+job steps can bound per-task CPU/memory, and Apptainer can provide filesystem
+and network isolation, but these alone do not meet the required 32-process
+limit. Keep candidate execution blocked until a kernel-enforced per-worker
+limit and descendant cleanup are demonstrated under the supported Apptainer
+setup, or YCRC supplies an approved complete service. A shared per-user
+`RLIMIT_NPROC` does not count as a per-worker limit.
+
+One candidate mechanism is under review with YCRC: a unique subordinate UID per
+worker via Apptainer `--fakeroot`, a kernel hard limit of 32 tasks for that UID,
+and a Slurm step requesting one CPU/1 GiB with `--gres=none`. This only proceeds
+if the mapping is available and allowed, the UID allocator prevents concurrent
+reuse, and adversarial probes show candidates cannot change IDs/limits or create
+a new user namespace. It is not yet implemented or accepted.
+
 ```bash
 uv run selfplay hpc prepare-study --gpu-hours-limit 24 --watch
 uv run selfplay hpc doctor
