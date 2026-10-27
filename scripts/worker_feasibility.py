@@ -32,6 +32,8 @@ CASES = (
     "x32",
     "compat_abi",
     "resources",
+    "tkill",
+    "memfd",
 )
 
 
@@ -100,6 +102,8 @@ def fixture(name):
         "seccomp": 317,
         "network": 41,
         "x32": 0x40000027,
+        "tkill": 200,
+        "memfd": 319,
     }[name]
     # Invalid arguments prevent dangerous side effects even without a filter.
     # fork is the sole argument-free creation call: reap its one bounded child.

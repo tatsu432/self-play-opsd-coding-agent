@@ -40,6 +40,8 @@ def test_policy_rejects_unsupported_host():
         "network",
         "x32",
         "compat_abi",
+        "tkill",
+        "memfd",
     ],
 )
 def test_kernel_single_process_policy(case):

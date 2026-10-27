@@ -296,7 +296,7 @@ def isolation_probes(config) -> dict[str, str]:
         probes["single_process"] = (
             "import ctypes,errno,os\ndef check():\n"
             " c=ctypes.CDLL(None,use_errno=True); c.syscall.restype=ctypes.c_long\n"
-            " for n in [56,57,435,59,101,157,272,308,310,311,317,425,426,427]:\n"
+            " for n in [56,57,435,59,101,157,200,272,308,310,311,317,319,425,426,427]:\n"
             "  r=c.syscall(n,ctypes.c_ulong(-1),0,0,0,0,0)\n"
             "  if n==57 and r==0: os._exit(0)\n"
             "  if n==57 and r>0: os.waitpid(r,0)\n"
