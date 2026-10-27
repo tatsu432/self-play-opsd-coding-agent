@@ -33,7 +33,7 @@ uv run selfplay hpc doctor
 uv run selfplay hpc inspect
 uv run selfplay hpc sync
 uv run selfplay hpc submit --operation worker-check --method D --profile single_gpu_80gb
-uv run selfplay hpc prepare-study --stage backend --gpu-type h200 --diagnostic-partition scavenge_gpu --gpu-hours-limit 24 --watch
+uv run selfplay hpc prepare-study --stage backend --gpu-type h200 --gpu-hours-limit 24 --watch
 uv run selfplay hpc prepare-study --gpu-type h200 --gpu-hours-limit 24 --watch
 ```
 
@@ -61,6 +61,30 @@ with fresh UUID ownership and occupancy checks and the same cumulative budget.
 No H100 OOM or measured model memory fit is claimed. Cancellation decisions are
 recorded durably in `state/task07-cancel-30988667.json` and
 `state/task07-cancel-31029051.json`. Reconcile live ledgers before continuing.
+
+The latest worker acceptance is **31033392** / run
+`639345f9a3d7a5c3953ece55` from `fa29cd9`: all 19 checks passed, including a
+candidate OOM followed by a correct request, and an actual Slurm KILL of a live
+contained step with no observed processes left running. The broker step uses
+`--oom-kill-step=0`; memory remains kernel-bounded at 1 GiB. Only CPU worker
+acceptance triggers the deliberate OOM witness. Ordinary GPU preflight checks
+enforcement without deliberately marking the job OOM.
+
+The normal H200 allocation check **31030407** completed its real checks but
+failed while publishing the summary. Recovery uses the original checksummed raw
+proof and immutable verifier source, does not change failed Slurm accounting,
+and allocates no GPUs:
+
+```bash
+uv run selfplay hpc recover-allocation fdbf5a3060dc5a0b1a858bff
+```
+
+The recovered ownership proof authorizes proceeding to backend acceptance;
+it does not establish model load or memory fit. Backend **31033410** / run
+`439186dc49ffec5d599f8356` is active. Use the canonical `gpu_h200` route (omit
+`--diagnostic-partition scavenge_gpu`); scavenge's estimate was seven hours away.
+Consumption before this backend attempt was 0.0475 GPU-hours, plus its one-hour
+reservation. Inspect current jobs/ledgers before more submissions.
 
 The sections below describe available operations and historical checkpoints.
 Where their mechanism or hardware restrictions conflict, this Task 07 section
