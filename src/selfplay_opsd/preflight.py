@@ -99,10 +99,8 @@ def doctor(config: RunConfig, *, isolation: bool = False) -> dict:
                     not validated.get("ready")
                     or not validated.get("executed")
                     or validated.get("manifest_hash") != repo.hash
-                    or validated.get("execution_limits")
-                    != cfg.sandbox.model_dump(
-                        mode="json",
-                        exclude={"backend", "image", "runtime", "remote_url", "remote_token_env"},
+                    or not cfg.sandbox.matches_execution_limits(
+                        validated.get("execution_limits", {})
                     )
                 ):
                     blockers.append("Data validation does not match the actual execution contract")

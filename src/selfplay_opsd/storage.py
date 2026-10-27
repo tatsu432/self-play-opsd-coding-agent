@@ -68,6 +68,7 @@ def scientific_code_hash() -> str:
         "policy.py",
         "verl_backend.py",
         "data.py",
+        "evaluation.py",
         "mutations.py",
         "trainer.py",
         "rollout.py",

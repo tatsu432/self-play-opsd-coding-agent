@@ -120,6 +120,7 @@ class YaleSSH:
             "status",
             "submit",
             "recover",
+            "recover_allocation",
             "logs",
         }:
             raise HpcError("Unsupported remote operation")
@@ -660,6 +661,29 @@ def worker_diagnose(
         image_sha256="",
     )
     output(remote.call("preview" if dry_run else "submit", payload))
+
+
+@app.command("recover-allocation")
+def recover_allocation_command(run_id: str, alias: str = ALIASES[0]):
+    """Publish a verified raw allocation report after a publication-only failure."""
+    from selfplay_opsd.readiness import allocation_code_hash
+
+    if alias != ALIASES[0]:
+        raise HpcError("Allocation recovery is authorized only on cpsc4880")
+    remote = YaleSSH(alias)
+    context = remote_context(remote, alias)
+    publisher = snapshot()["commit"]
+    output(
+        remote.call(
+            "recover_allocation",
+            context
+            | {
+                "run_id": run_id,
+                "commit": publisher,
+                "allocation_code_hash": allocation_code_hash(),
+            },
+        )
+    )
 
 
 @app.command("inspect")

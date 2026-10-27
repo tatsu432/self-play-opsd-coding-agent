@@ -120,9 +120,7 @@ def validate_data(
         "family_audit": "pass",
         "workspace_boundary": "explicit_allowlist",
         "sandbox_image_digest": sandbox.identity() if execute else None,
-        "execution_limits": sandbox.config.model_dump(
-            mode="json", exclude={"backend", "image", "runtime", "remote_url", "remote_token_env"}
-        ),
+        "execution_limits": sandbox.config.execution_limits(),
     }
     atomic_json(output or root / "validation_report.json", report)
     return report

@@ -12,6 +12,7 @@ import platform
 import pwd
 import re
 import secrets
+import selectors
 import shutil
 import signal
 import stat
@@ -653,6 +654,74 @@ def worker_diagnostics(env: dict) -> dict:
     }
 
 
+def worker_termination_probe(env: dict) -> dict:
+    """Cancel one dedicated CPU step with a live, fixed contained payload."""
+    command = [
+        "srun",
+        "--export=ALL",
+        "--exact",
+        "--exclusive",
+        "--ntasks=1",
+        "--cpus-per-task=1",
+        "--mem=1024M",
+        "--gres=none",
+        sys.executable,
+        str(Path(env["SELFPLAY_PROJECT"]) / "scripts/worker_feasibility.py"),
+        "--hold-worker",
+        "--image",
+        env["SELFPLAY_WORKER_SIF"],
+    ]
+    result = {"ready": False, "job_id": env["SLURM_JOB_ID"], "kernel": platform.release()}
+    with subprocess.Popen(
+        command,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        start_new_session=True,
+    ) as process:
+        selector = selectors.DefaultSelector()
+        assert process.stdout is not None
+        selector.register(process.stdout, selectors.EVENT_READ)
+        try:
+            if not selector.select(timeout=30):
+                raise ValueError("Termination fixture did not become ready")
+            witness = json.loads(process.stdout.readline())
+            step = witness["step_id"]
+            if (
+                not str(step).isdigit()
+                or witness["job_id"] != env["SLURM_JOB_ID"]
+                or not witness["holding"]
+                or len(witness["members"]) < 2
+            ):
+                raise ValueError("Invalid isolated termination witness")
+            result["witness"] = witness
+            subprocess.run(
+                ["scancel", "--signal=KILL", env["SLURM_JOB_ID"] + "." + step],
+                check=True,
+                timeout=15,
+            )
+            _, stderr = process.communicate(timeout=45)
+            result["scheduler_stderr"] = stderr[-2000:]
+            remaining = []
+            for pid, started in witness["members"].items():
+                try:
+                    fields = Path("/proc", pid, "stat").read_text().rsplit(")", 1)[1].split()
+                    if fields[19] == started and fields[0] != "Z":
+                        remaining.append(pid)
+                except FileNotFoundError:
+                    pass
+            result["remaining_running"] = remaining
+            result["ready"] = not remaining and process.returncode != 0
+        except (ValueError, OSError, KeyError, subprocess.TimeoutExpired) as error:
+            result["error"] = str(error)
+            process.kill()
+            process.wait(timeout=15)
+        finally:
+            selector.close()
+    return result
+
+
 def execute(env: dict) -> int:
     operation = env["SELFPLAY_OPERATION"]
     if operation not in {
@@ -780,11 +849,21 @@ def execute(env: dict) -> int:
             return 0
         return 0
     if operation == "worker-check":
-        return subprocess.run(
+        status = subprocess.run(
             broker_args(process_env, ready, readiness / "worker.json") + ["--check-only"],
             env=process_env,
             check=False,
         ).returncode
+        if status:
+            return status
+        proof = worker_termination_probe(process_env)
+        write(readiness / f"worker-termination-{attempt}.json", proof)
+        report = json.loads((readiness / "worker.json").read_text())
+        report["termination_proof"] = proof
+        report["checks"]["allocation_termination_cleanup"] = proof["ready"]
+        report["ready"] = report["ready"] and proof["ready"]
+        write(readiness / "worker.json", report)
+        return 0 if report["ready"] else 1
     checked_image(env["SELFPLAY_TRAINER_SIF"], env["SELFPLAY_TRAINER_SHA256"])
     broker = None
     try:
@@ -946,6 +1025,7 @@ def execute(env: dict) -> int:
         if gpu_count:
             verify_container_gpus(command, process_env, devices, allocation_report)
         if operation == "allocation-check":
+            sys.path.insert(0, str(Path(env["SELFPLAY_PROJECT"]) / "src"))
             from selfplay_opsd.worker_runtime import allocation_fingerprint
 
             write(

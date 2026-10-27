@@ -116,6 +116,20 @@ class SandboxConfig(Strict):
     public_seconds: float = Field(default=10.0, gt=0)
     verifier_seconds: float = Field(default=30.0, gt=0)
 
+    def execution_limits(self) -> dict:
+        values = self.model_dump(
+            mode="json", exclude={"backend", "image", "runtime", "remote_url", "remote_token_env"}
+        )
+        if self.process_policy == "single_process":
+            values.pop("pids")
+        return values
+
+    def matches_execution_limits(self, values: dict) -> bool:
+        values = dict(values)
+        if values.get("process_policy") == "single_process":
+            values.pop("pids", None)  # Legacy unused field; never a claimed cap.
+        return values == self.execution_limits()
+
     @model_validator(mode="after")
     def remote_transport(self):
         if self.remote_url:
@@ -201,23 +215,7 @@ class RunConfig(Strict):
             },
         )
         values["model"].pop("backend")
-        values["sandbox"] = {
-            k: values["sandbox"][k]
-            for k in (
-                "cpus",
-                "memory_mib",
-                "pids",
-                "process_policy",
-                "resource_backend",
-                "output_bytes",
-                "disk_mib",
-                "retries",
-                "public_seconds",
-                "verifier_seconds",
-            )
-        }
-        if self.sandbox.process_policy == "single_process":
-            values["sandbox"].pop("pids")
+        values["sandbox"] = self.sandbox.execution_limits()
         if common:
             values.pop("method")
         if calibration:

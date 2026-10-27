@@ -158,6 +158,15 @@ def ready_fixture(tmp_path, monkeypatch):
     )
     monkeypatch.setattr(preflight, "TaskRepository", lambda _: SimpleNamespace(hash="data"))
     root = tmp_path / "readiness/test-ready"
+    atomic_json(
+        root / "worker.json",
+        {
+            "ready": True,
+            "supervisor_hash": readiness.supervisor_hash(),
+            "checks": {"allocation_termination_cleanup": True},
+            "termination_proof": {"ready": True},
+        },
+    )
     validation = {
         "ready": True,
         "executed": True,
@@ -846,3 +855,69 @@ def test_cpu_freeze_preserves_target_profile_without_claiming_gpu_allocation(tmp
     monkeypatch.setattr(job.subprocess, "run", command)
     assert job.execute(env) == 0
     assert calls and all("APPTAINERENV_SELFPLAY_ALLOCATED_GPU_COUNT" not in e for e in calls)
+
+
+@pytest.mark.parametrize("state", ["FAILED", "RUNNING", "UNKNOWN"])
+def test_publication_recovery_uses_only_verified_terminal_raw_evidence(
+    tmp_path, monkeypatch, state
+):
+    from selfplay_opsd.readiness import allocation_code_hash
+
+    remote = endpoint()
+    monkeypatch.setattr(remote, "workspace", lambda _: tmp_path)
+    monkeypatch.setattr(remote, "job_state", lambda _: {"state": state})
+    commit = "a" * 40
+    source = tmp_path / "checkouts" / commit / "scripts/hpc_job.py"
+    source.parent.mkdir(parents=True)
+    source.write_text(Path("scripts/hpc_job.py").read_text())
+    atomic_json(
+        tmp_path / "state/run.json",
+        {
+            "operation": "allocation-check",
+            "attempts": [{"job_id": "123"}],
+            "specification": {
+                "operation": "allocation-check",
+                "account": "cpsc4880",
+                "study_id": "study",
+                "profile": "single_gpu_80gb",
+                "commit": commit,
+                "gpu_type": "h200",
+                "gpu_count": 1,
+                "image_sha256": "b" * 64,
+            },
+        },
+    )
+    raw = {
+        "job_id": "123",
+        "ready": True,
+        "ownership_verified": True,
+        "image_sha256": "b" * 64,
+        "allocated": [{"uuid": "GPU-fixture"}],
+        "visible": [{"uuid": "fixture", "free_bytes": 140 * 1024**3, "total_bytes": 141 * 1024**3}],
+    }
+    raw_path = tmp_path / "runs/readiness/study/gpu-allocation-123.json"
+    atomic_json(raw_path, raw)
+    payload = {"run_id": "run", "commit": "c" * 40, "allocation_code_hash": allocation_code_hash()}
+    if state != "FAILED":
+        with pytest.raises(ValueError, match="active or uncertain"):
+            remote.recover_allocation(payload)
+        return
+    result = remote.recover_allocation(payload)
+    assert result["recovered"] and result["recovery_gpu_hours"] == 0
+    proof = json.loads(Path(result["evidence"]).read_text())
+    assert proof["publication_recovery"]["source_report_sha256"] == remote.sha256(raw_path)
+    raw["ownership_verified"] = False
+    atomic_json(raw_path, raw)
+    with pytest.raises(ValueError, match="incomplete"):
+        remote.recover_allocation(payload)
+
+
+def test_effective_single_process_limits_do_not_claim_legacy_pid_cap():
+    from selfplay_opsd.config import SandboxConfig
+
+    config = SandboxConfig(process_policy="single_process")
+    assert "pids" not in config.execution_limits()
+    legacy = config.execution_limits() | {"pids": 32}
+    assert config.matches_execution_limits(legacy)
+    assert not config.matches_execution_limits(legacy | {"memory_mib": 2048})
+    assert not SandboxConfig().matches_execution_limits(legacy)

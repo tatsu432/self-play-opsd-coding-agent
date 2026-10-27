@@ -1157,6 +1157,69 @@ def allocation_compatible(proof: dict, expected: str | None, base: Path) -> bool
     return set(definitions) == names and actual == expected
 
 
+def recover_allocation(payload: dict) -> dict:
+    """Publish completed raw ownership proof; never rerun a GPU probe on login."""
+    base = workspace(payload)
+    run_id = payload["run_id"]
+    if not SAFE_NAME.fullmatch(run_id):
+        raise ValueError("Unsafe run ID")
+    ledger = read_ledger(base / "state" / f"{run_id}.json")
+    spec = ledger.get("specification", {})
+    if (
+        spec.get("operation") != "allocation-check"
+        or spec.get("account") != "cpsc4880"
+        or ledger.get("pending_intent")
+        or not ledger.get("attempts")
+    ):
+        raise ValueError("Recovery requires a reconciled cpsc4880 allocation diagnostic")
+    job = ledger["attempts"][-1]["job_id"]
+    if job_state(job)["state"] not in {"COMPLETED", "FAILED"}:
+        raise ValueError("Allocation diagnostic is active or uncertain")
+    study, profile, commit = spec["study_id"], spec["profile"], spec["commit"]
+    if (
+        not SAFE_NAME.fullmatch(study)
+        or not SAFE_NAME.fullmatch(profile)
+        or not SHA.fullmatch(commit)
+    ):
+        raise ValueError("Invalid diagnostic identity")
+    raw_path = base / "runs/readiness" / study / f"gpu-allocation-{job}.json"
+    raw = json.loads(raw_path.read_text())
+    source = base / "checkouts" / commit / "scripts/hpc_job.py"
+    proof = raw | {
+        "execution_commit": commit,
+        "allocation_code_hash": sha256(source),
+        "gpu_type": spec["gpu_type"],
+        "gpu_count": spec["gpu_count"],
+    }
+    visible = raw.get("visible", [])
+    if not (
+        raw.get("ready")
+        and raw.get("ownership_verified")
+        and raw.get("job_id") == job
+        and raw.get("image_sha256") == spec["image_sha256"]
+        and len(raw.get("allocated", [])) == spec["gpu_count"]
+        and len(visible) == spec["gpu_count"]
+        and [d["uuid"].removeprefix("GPU-").lower() for d in raw["allocated"]]
+        == [d["uuid"].removeprefix("GPU-").lower() for d in visible]
+        and all(
+            0 < d["free_bytes"] <= d["total_bytes"]
+            and d["total_bytes"] - d["free_bytes"] <= 2 * 1024**3
+            for d in visible
+        )
+        and allocation_compatible(proof, payload["allocation_code_hash"], base)
+    ):
+        raise ValueError("Raw allocation proof is incomplete, incompatible or occupied")
+    proof["publication_recovery"] = {
+        "run_id": run_id,
+        "source_report_sha256": sha256(raw_path),
+        "publisher_commit": payload["commit"],
+    }
+    target = raw_path.parent / f"allocation-{profile}.json"
+    with locked(base / "state/.allocation-publication.lock"):
+        write_json(target, proof)
+    return {"recovered": True, "job_id": job, "evidence": str(target), "recovery_gpu_hours": 0}
+
+
 def study_state(payload: dict) -> dict:
     base = workspace(payload)
     study = payload["study_id"]
@@ -1211,6 +1274,12 @@ def study_state(payload: dict) -> dict:
             == payload.get("supervisor_hash", worker.get("supervisor_hash"))
         )
     }
+    if worker.get("execution_contract", {}).get("process") == "single_process":
+        gates["worker"] = bool(
+            gates["worker"]
+            and worker.get("checks", {}).get("allocation_termination_cleanup")
+            and worker.get("termination_proof", {}).get("ready")
+        )
     for name in ("runtime", "single", "target", "base", "pilot", "freeze"):
         report = reports[name]
         backend = name in {"single", "target"}
@@ -1521,6 +1590,7 @@ COMMANDS = {
     "logs": logs,
     "submit": submit,
     "recover": recover,
+    "recover_allocation": recover_allocation,
 }
 
 

@@ -136,7 +136,60 @@ def main():
     parser.add_argument("--image")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--resource-oom", action="store_true")
+    parser.add_argument("--hold-worker", action="store_true")
     args = parser.parse_args()
+    if args.hold_worker:
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+        from selfplay_opsd.codec import encode
+        from selfplay_opsd.worker_runtime import LocalRuntime, RuntimeConfig, worker_scope
+
+        config = RuntimeConfig(
+            backend="apptainer",
+            image=args.image,
+            runtime="apptainer",
+            resource_backend="slurm",
+            process_policy="single_process",
+        )
+        child_env = {
+            k: v
+            for k, v in os.environ.items()
+            if k in {"PATH", "LANG", "LC_ALL", "APPTAINER_CACHEDIR", "APPTAINER_TMPDIR"}
+        }
+        process = subprocess.Popen(
+            LocalRuntime(config).command("termination-witness"),
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            env=child_env,
+        )
+        assert process.stdin and process.stdout
+        process.stdin.write(
+            json.dumps(
+                {
+                    "source": 'import os,time\ndef hold():\n os.write(1,b"holding\\n"); time.sleep(60)\n',
+                    "entry_point": "hold",
+                    "inputs": [encode([])],
+                }
+            ).encode()
+        )
+        process.stdin.close()
+        assert process.stdout.readline() == b"holding\n"
+        members = {}
+        for pid in worker_scope().read_text().split():
+            fields = Path("/proc", pid, "stat").read_text().rsplit(")", 1)[1].split()
+            members[pid] = fields[19]  # starttime, to distinguish PID reuse
+        print(
+            json.dumps(
+                {
+                    "holding": True,
+                    "step_id": os.environ["SLURM_STEP_ID"],
+                    "job_id": os.environ["SLURM_JOB_ID"],
+                    "members": members,
+                }
+            ),
+            flush=True,
+        )
+        process.wait(timeout=70)
+        raise SystemExit("Termination witness was not cancelled")
     if args.resource_oom:
         membership = next(
             line.split(":", 2)[2].strip()

@@ -19,7 +19,7 @@ from selfplay_opsd.storage import (
     read_json,
     scientific_code_hash,
 )
-from selfplay_opsd.worker_runtime import allocation_fingerprint
+from selfplay_opsd.worker_runtime import allocation_fingerprint, supervisor_hash
 
 BACKEND_EVIDENCE_DIRECTORY = "compatibility/backend-v2"
 
@@ -178,6 +178,15 @@ def readiness_report(config: RunConfig, *, require_freeze: bool = True) -> dict:
     def runtime():
         report = report_matches(root / "runtime.json")
         validation = read_json(root / "validation.json")
+        if config.sandbox.resource_backend == "slurm":
+            worker = read_json(root / "worker.json")
+            if not (
+                worker.get("ready")
+                and worker.get("supervisor_hash") == supervisor_hash()
+                and worker.get("checks", {}).get("allocation_termination_cleanup")
+                and worker.get("termination_proof", {}).get("ready")
+            ):
+                return False
         return bool(
             report.get("ready")
             and report["isolation"].get("ready")
@@ -186,7 +195,7 @@ def readiness_report(config: RunConfig, *, require_freeze: bool = True) -> dict:
             and validation.get("ready")
             and validation.get("manifest_hash") == identity["manifest_hash"]
             and validation.get("sandbox_image_digest") == "sha256:" + str(identity["worker_sha256"])
-            and validation.get("execution_limits") == config.scientific_settings()["sandbox"]
+            and config.sandbox.matches_execution_limits(validation.get("execution_limits", {}))
         )
 
     def backend(profile: str):
