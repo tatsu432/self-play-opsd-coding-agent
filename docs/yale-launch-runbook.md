@@ -4,7 +4,7 @@ Task 07 is authoritative. Main A–D training remains unauthorized; finish with
 live readiness and four successful previews. The cumulative readiness cap is
 24 allocated GPU-hours, including all earlier attempts and unresolved reservations.
 
-The selected initial target is one H100 (`configs/yale.yaml`). Use entitled H200
+The selected initial profile is one GPU (`configs/yale.yaml`). Prefer H100; use entitled H200
 when a documented memory, scheduling or runtime reason makes it practical; H100
 OOM is not a prerequisite. Add GPUs only when measurements justify them, and
 then require single-process/distributed gradient agreement.
@@ -33,8 +33,8 @@ uv run selfplay hpc doctor
 uv run selfplay hpc inspect
 uv run selfplay hpc sync
 uv run selfplay hpc submit --operation worker-check --method D --profile single_gpu_80gb
-uv run selfplay hpc prepare-study --stage backend --gpu-hours-limit 24 --watch
-uv run selfplay hpc prepare-study --gpu-hours-limit 24 --watch
+uv run selfplay hpc prepare-study --stage backend --gpu-type h200 --diagnostic-partition scavenge_gpu --gpu-hours-limit 24 --watch
+uv run selfplay hpc prepare-study --gpu-type h200 --gpu-hours-limit 24 --watch
 ```
 
 Trusted backend preparation is independent of worker acceptance. Operation slots
@@ -42,6 +42,25 @@ are separate, including compatibility with old equivalent/uncertain submissions.
 Reports publish atomically. Numerical compatibility excludes unrelated controller
 and worker changes; allocation proof reuse checks verifier functions against its
 immutable source. Full source provenance remains in the original reports.
+
+Task 07 live acceptance checkpoint (2026-10-27): source `dd5a06e` passed the
+expanded worker check in job **31029044**: single-process restriction, namespace,
+credential/GPU denial, 64-MiB temporary-storage exhaustion and timeout/output/
+cancellation cleanup all passed. CPU diagnostic **31029045** observed Slurm's
+actual OOM kill at **1,073,741,824 bytes** in its independently scoped step;
+affinity remained one CPU after an expansion attempt. This intentional CPU OOM
+is an enforcement witness, not a GPU memory-fit failure. Reports are under
+`runs/readiness/repair-selfplay-2026` on Yale and fetched by their run IDs.
+
+Deployed-data validation job **31029058** / run `584a6958010d8f4f6f05cfa0`
+is active; inspect before replacement. H100 backend **31029051** was cancelled
+while pending, after live scheduler inspection showed available H100 GPUs only
+on PLANNED nodes and an unplanned H200 node with a free GPU/eight CPUs fitting
+the diagnostic. Task 07 therefore selects one H200 for this scheduling reason,
+with fresh UUID ownership and occupancy checks and the same cumulative budget.
+No H100 OOM or measured model memory fit is claimed. Cancellation decisions are
+recorded durably in `state/task07-cancel-30988667.json` and
+`state/task07-cancel-31029051.json`. Reconcile live ledgers before continuing.
 
 The sections below describe available operations and historical checkpoints.
 Where their mechanism or hardware restrictions conflict, this Task 07 section
@@ -171,8 +190,8 @@ loading. The next diagnostic route excludes that node pending site inspection.
 Synchronize again after any new source commit before preparing evidence. A
 successful build does not synchronize later changes automatically.
 
-The full workflow requires a YCRC-supported worker setup and fresh successful
-isolation evidence. After that setup change:
+The following Task 06 setup discussion is historical; Task 07 has established
+the supported Slurm-step plus single-process route described above:
 
 YCRC's 2026-10-27 reply in ticket 79403 confirms that per-worker cgroup
 configuration and a Slurm process-count limit are unavailable to users. Slurm
@@ -195,7 +214,8 @@ uv run selfplay hpc doctor
 uv run selfplay hpc fetch-study repair-selfplay-2026
 ```
 
-Preparation validates deployed data, backend reference/comparison, base
+Preparation validates deployed data, the selected backend (distributed gradient
+comparison only for multiple GPUs), base
 monitoring evaluation, a ten-iteration D pilot with stop/resume at 2, and
 one full iteration each of A/B/C in separate fresh processes. Method smoke
 states live in `repair-selfplay-2026-method-smoke`; their proofs live under

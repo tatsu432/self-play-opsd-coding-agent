@@ -361,10 +361,9 @@ image using its settings before building. The controller does not prune caches
 or change daemon settings. See [Buildx cache storage](https://docs.docker.com/build/builders/drivers/docker-container/)
 and [Docker Desktop storage settings](https://docs.docker.com/desktop/settings-and-maintenance/settings/).
 
-The observed Yale delegation failure and unsent support request are documented
-in [Yale worker support](yale-worker-support.md). A YCRC managed Yale worker
-service is the proposed fallback; site approval, integration and fresh isolation
-evidence are still required before using it.
+The observed Yale delegation failure and support correspondence are documented
+in [Yale worker support](yale-worker-support.md). Task 07 first uses Slurm steps and kernel-enforced single-process payloads.
+An existing approved Yale service is a fallback only if this simpler route fails.
 
 ## Recovery and artifacts
 
