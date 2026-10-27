@@ -141,7 +141,13 @@ class HFPolicy:
             with torch.no_grad():
                 for name, parameter in params.items():
                     if ".student." in name:
-                        params[name.replace(".student.", ".proposer.")].copy_(parameter)
+                        destination = params[name.replace(".student.", ".proposer.")]
+                        # PEFT upcasts the first adapter to FP32, but add_adapter
+                        # may retain the BF16 base dtype. Match master precision
+                        # before copying; otherwise raw versions and optimizer
+                        # precision differ despite initially equal values.
+                        destination.data = destination.data.to(dtype=parameter.dtype)
+                        destination.copy_(parameter)
         for module in self.model.modules():
             if isinstance(module, torch.nn.Dropout):
                 module.p = 0.0

@@ -214,3 +214,27 @@ def test_multiturn_teacher_exact_targets_and_masks(repository, sandbox):
     assert report["rl_gradient_norm"] == 0
     assert report["combined_gradient_norm"] > 0
     assert report["c"]["reward"] == 0.5
+
+
+def test_bfloat16_base_keeps_identical_independent_adapter_master_weights(monkeypatch):
+    import selfplay_opsd.policy as module
+
+    factory = module.Qwen3ForCausalLM
+    monkeypatch.setattr(
+        module, "Qwen3ForCausalLM", lambda config: factory(config).to(torch.bfloat16)
+    )
+    policy = HFPolicy(
+        load_config(study_id="mixed-precision-init", hardware_profile="cpu_debug"), device="cpu"
+    )
+    initial = policy.version("student")
+    assert initial == policy.version("proposer")
+    proposer = dict(policy.named_parameters("proposer"))
+    for name, student in policy.named_parameters("student"):
+        other = proposer[name.replace(".student.", ".proposer.")]
+        assert student.dtype == other.dtype == torch.float32
+        assert student.data_ptr() != other.data_ptr()
+        assert torch.equal(student, other)
+    with torch.no_grad():
+        policy.parameters("student")[0].add_(1)
+    assert policy.version("proposer") == initial
+    assert policy.version("student") != initial
