@@ -24,6 +24,65 @@ ENTRYPOINT ["python", "-c", "import os,pathlib; assert os.environ['SELFPLAY_BUIL
 """
 
 
+def reusable_yale_image(kind: str, root: Path, manifest: dict) -> bool:
+    """Yale mounts committed runtime code; source-only changes need no new SIF.
+
+    Keep the image's original provenance. Verify its immutable Dockerfile inputs
+    from Git, not a guessed mapping from commit age to environment compatibility.
+    Large SIF checksums remain a compute-node prerequisite, never a login task.
+    """
+    if not (
+        manifest.get("ready")
+        and re.fullmatch(r"[0-9a-f]{64}", manifest.get("sha256", ""))
+        and Path(manifest.get("path", "")).is_absolute()
+        and re.fullmatch(r"[0-9a-f]{40}", manifest.get("source_commit", ""))
+    ):
+        return False
+
+    def original(filename):
+        return subprocess.check_output(
+            ["git", "-C", str(root), "show", manifest["source_commit"] + ":" + filename]
+        )
+
+    try:
+        previous = original(f"docker/{kind}.Dockerfile")
+        if hashlib.sha256(previous).hexdigest() != manifest.get("dockerfile_sha256"):
+            return False
+        current = (root / f"docker/{kind}.Dockerfile").read_bytes()
+        if kind == "trainer":
+            return (
+                previous == current
+                and manifest.get("lock_sha256") == file_hash(root / "uv.lock")
+                and original("pyproject.toml") == (root / "pyproject.toml").read_bytes()
+            )
+        if kind == "worker":
+            sources = set()
+            for line in current.decode().splitlines():
+                if line.strip().startswith("COPY "):
+                    parts = shlex.split(line.strip())[1:]
+                    if not parts or parts[-1] != "/opt/":
+                        return False
+                    sources.update(parts[:-1])
+            if sources != {
+                "src/selfplay_opsd/worker.py",
+                "src/selfplay_opsd/codec.py",
+                "src/selfplay_opsd/worker_policy.py",
+            }:
+                return False
+
+            def environment(content):
+                return [
+                    line.strip()
+                    for line in content.decode().splitlines()
+                    if line.strip() and not line.lstrip().startswith(("#", "COPY "))
+                ]
+
+            return environment(previous) == environment(current)
+    except (OSError, subprocess.CalledProcessError):
+        return False
+    return False
+
+
 def base_environment(dockerfile: Path) -> list[str]:
     """Read immutable registry configuration only; never pull large image layers."""
     base = next(

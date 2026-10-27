@@ -262,3 +262,62 @@ def test_trainer_validation_accepts_uv_build_metadata_but_rejects_version_change
         with pytest.raises(ValueError, match="uv version"):
             job.source_image(env)
         assert not Path(env["SELFPLAY_IMAGE_MANIFEST"]).exists()
+
+
+def test_environment_reuse_preserves_original_image_provenance(tmp_path, monkeypatch):
+    import hashlib
+
+    from selfplay_opsd.hpc_images import reusable_yale_image
+
+    root = tmp_path / "repo"
+    (root / "docker").mkdir(parents=True)
+    old = (
+        Path("docker/worker.Dockerfile")
+        .read_text()
+        .replace(" src/selfplay_opsd/worker_policy.py", "")
+    )
+    current = Path("docker/worker.Dockerfile").read_text()
+    (root / "docker/worker.Dockerfile").write_text(current)
+    monkeypatch.setattr(subprocess, "check_output", lambda *a, **k: old.encode())
+    manifest = {
+        "ready": True,
+        "source_commit": "a" * 40,
+        "path": "/existing/worker.sif",
+        "sha256": "b" * 64,
+        "dockerfile_sha256": hashlib.sha256(old.encode()).hexdigest(),
+    }
+    assert reusable_yale_image("worker", root, manifest)
+    assert manifest["source_commit"] == "a" * 40
+    (root / "docker/worker.Dockerfile").write_text(current + "\nRUN apt-get update\n")
+    assert not reusable_yale_image("worker", root, manifest)
+    (root / "docker/worker.Dockerfile").write_text(current.replace(" /opt/", " src/extra.py /opt/"))
+    assert not reusable_yale_image("worker", root, manifest)
+
+
+def test_trainer_reuse_depends_on_environment_not_controller_source(tmp_path, monkeypatch):
+    import hashlib
+
+    from selfplay_opsd.hpc_images import reusable_yale_image
+
+    root = tmp_path / "repo"
+    (root / "docker").mkdir(parents=True)
+    old = Path("docker/trainer.Dockerfile").read_bytes()
+    (root / "docker/trainer.Dockerfile").write_bytes(old)
+    (root / "uv.lock").write_bytes(b"lock")
+    (root / "pyproject.toml").write_bytes(b"project")
+    monkeypatch.setattr(
+        subprocess,
+        "check_output",
+        lambda args: old if args[-1].endswith("Dockerfile") else b"project",
+    )
+    manifest = {
+        "ready": True,
+        "source_commit": "a" * 40,
+        "path": "/existing/trainer.sif",
+        "sha256": "b" * 64,
+        "dockerfile_sha256": hashlib.sha256(old).hexdigest(),
+        "lock_sha256": hashlib.sha256(b"lock").hexdigest(),
+    }
+    assert reusable_yale_image("trainer", root, manifest)
+    (root / "uv.lock").write_bytes(b"new dependency")
+    assert not reusable_yale_image("trainer", root, manifest)

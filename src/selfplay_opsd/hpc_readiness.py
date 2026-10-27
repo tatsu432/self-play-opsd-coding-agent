@@ -179,6 +179,7 @@ def register(app: typer.Typer):
         builder: Annotated[str | None, typer.Option(help="Existing Buildx builder name")] = None,
         build_mode: str = "docker",
         check_only: bool = False,
+        force: bool = False,
     ):
         """Build worker first; --kind all also attempts the much larger trainer."""
         if kind not in {"worker", "trainer", "all"}:
@@ -193,6 +194,36 @@ def register(app: typer.Typer):
             raise HpcError("Yale builds use cpsc4880 scratch; local build options do not apply")
         remote = YaleSSH(alias)
         snap = sync(remote)
+        cfg = load_config(settings)
+        if (
+            alias == ALIASES[0]
+            and cfg.sandbox.resource_backend == "slurm"
+            and not force
+            and build_root is None
+            and builder is None
+        ):
+            from selfplay_opsd.hpc_images import reusable_yale_image
+
+            existing = remote.call(
+                "study", {"storage_root": snap["storage_root"], "study_id": cfg.study_id}
+            )["images"]
+            requested = ["worker", "trainer"] if kind == "all" else [kind]
+            if all(reusable_yale_image(item, ROOT, existing[item]) for item in requested):
+                output(
+                    {
+                        "reused": True,
+                        "runtime_source_commit": snap["commit"],
+                        "images": {
+                            item: {
+                                key: existing[item].get(key)
+                                for key in ("path", "sha256", "source_commit")
+                            }
+                            for item in requested
+                        },
+                        "reason": "Verified pinned environments are unchanged; Yale mounts immutable runtime sources",
+                    }
+                )
+                return
         if build_mode == "yale":
             from selfplay_opsd.hpc_images import (
                 BUILD_CHECK_DOCKERFILE,
