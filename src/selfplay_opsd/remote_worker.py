@@ -30,6 +30,8 @@ def serve(
     check_only: bool = False,
 ):
     config = RuntimeConfig.from_values(config.model_dump())
+    if config.resource_backend == "slurm" and concurrency != 1:
+        raise ValueError("A Slurm worker step must have concurrency one")
     token = os.getenv(config.remote_token_env)
     if not token or len(token) < 24:
         raise ValueError(
@@ -73,8 +75,7 @@ def serve(
             elif self.path == "/capabilities":
                 self.respond(
                     200,
-                    attestation
-                    | {"limits": config.model_dump(mode="json"), "concurrency": concurrency},
+                    attestation | {"concurrency": concurrency},
                 )
             else:
                 self.respond(404, {"error": "not_found"})

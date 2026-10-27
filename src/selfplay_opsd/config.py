@@ -216,6 +216,8 @@ class RunConfig(Strict):
                 "verifier_seconds",
             )
         }
+        if self.sandbox.process_policy == "single_process":
+            values["sandbox"].pop("pids")
         if common:
             values.pop("method")
         if calibration:

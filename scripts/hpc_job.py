@@ -720,7 +720,7 @@ def execute(env: dict) -> int:
         # or publish worker readiness. No nested cgroup configuration is attempted.
         if env.get("SELFPLAY_WORKER_SIF"):
             checked_image(env["SELFPLAY_WORKER_SIF"], env["SELFPLAY_WORKER_SHA256"])
-            return subprocess.run(
+            result = subprocess.run(
                 [
                     "srun",
                     "--exact",
@@ -740,7 +740,44 @@ def execute(env: dict) -> int:
                 env=process_env,
                 check=False,
                 timeout=240,
-            ).returncode
+            )
+            if result.returncode:
+                return result.returncode
+            memory = subprocess.run(
+                [
+                    "srun",
+                    "--export=ALL",
+                    "--exact",
+                    "--exclusive",
+                    "--ntasks=1",
+                    "--cpus-per-task=1",
+                    "--mem=1024M",
+                    "--gres=none",
+                    "--time=00:01:00",
+                    sys.executable,
+                    str(Path(env["SELFPLAY_PROJECT"]) / "scripts/worker_feasibility.py"),
+                    "--resource-oom",
+                ],
+                env=process_env,
+                capture_output=True,
+                text=True,
+                timeout=90,
+                check=False,
+            )
+            write(
+                readiness / f"worker-memory-{attempt}.json",
+                {
+                    "diagnostic_only": True,
+                    "ready": False,
+                    "exit_code": memory.returncode,
+                    "stdout": memory.stdout,
+                    "stderr": memory.stderr,
+                    "memory_enforcement_observed": memory.returncode != 0
+                    and "oom_kill" in memory.stderr.lower()
+                    and "bounded OOM witness" in memory.stdout,
+                },
+            )
+            return 0
         return 0
     if operation == "worker-check":
         return subprocess.run(

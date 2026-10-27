@@ -8,6 +8,7 @@ import json
 import math
 import os
 import platform
+import re
 import selectors
 import signal
 import socket
@@ -140,8 +141,10 @@ def bounded_process(
     limit: int,
     cancelled: threading.Event | None = None,
     env: dict | None = None,
+    cleanup_scope: Path | None = None,
 ) -> tuple[int, bytes, bytes, str]:
     """Drain both pipes concurrently, kill at a bound, and always reap the process."""
+    baseline = set(cleanup_scope.read_text().split()) if cleanup_scope else set()
     with tempfile.TemporaryFile() as request:
         request.write(data)
         request.seek(0)
@@ -201,7 +204,39 @@ def bounded_process(
             process.wait()
             process.stdout.close()
             process.stderr.close()
+            if cleanup_scope:
+                deadline = time.monotonic() + 2
+                remaining = set(cleanup_scope.read_text().split()) - baseline
+                while remaining and time.monotonic() < deadline:
+                    time.sleep(0.05)
+                    remaining = set(cleanup_scope.read_text().split()) - baseline
+                if remaining:
+                    for pid in remaining:
+                        try:
+                            os.kill(int(pid), signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+                    deadline = time.monotonic() + 2
+                    while remaining and time.monotonic() < deadline:
+                        time.sleep(0.05)
+                        remaining = set(cleanup_scope.read_text().split()) - baseline
+                    if remaining:
+                        reason = "cleanup_failure"
         return process.returncode, bytes(chunks[0][:limit]), bytes(chunks[1][:limit]), reason
+
+
+def worker_scope() -> Path:
+    membership = next(
+        line.split(":", 2)[2].strip()
+        for line in Path("/proc/self/cgroup").read_text().splitlines()
+        if line.startswith("0::")
+    )
+    if not re.search(r"/step_[0-9]+/", membership):
+        raise OSError("Worker must run in a dedicated Slurm step")
+    path = Path("/sys/fs/cgroup") / membership.lstrip("/") / "cgroup.procs"
+    if str(os.getpid()) not in path.read_text().split():
+        raise OSError("Worker cgroup membership cannot be verified")
+    return path
 
 
 def cgroup_probe(expression: str) -> str:
@@ -270,6 +305,22 @@ def isolation_probes(config) -> dict[str, str]:
         )
         probes["readonly_devices"] = (
             "import os\ndef check():\n try:\n  f=open('/dev/selfplay-escape','w'); f.close(); return False\n except OSError: return True\n"
+        )
+        probes["temporary_storage_enforced"] = (
+            "import os,errno\ndef check():\n files=[]\n"
+            " try:\n"
+            "  for directory in ['/tmp','/var/tmp']:\n"
+            "   f=open(directory+'/selfplay-disk-probe','wb',buffering=0); files.append(f)\n"
+            f"  for i in range({config.disk_mib + 1}): files[i%2].write(bytes(1024*1024))\n"
+            "  return False\n"
+            " except OSError as e: return e.errno==errno.ENOSPC\n"
+            " finally:\n"
+            "  for f in files:\n"
+            "   f.close(); os.unlink(f.name)\n"
+        )
+        probes["ordinary_imports"] = (
+            "import math,cmath,collections,itertools,functools,operator,heapq,bisect,statistics,string,re,typing,fractions,decimal,array,copy,enum,numbers\n"
+            "def check():\n return math.factorial(5)==120 and fractions.Fraction(2,4)==fractions.Fraction(1,2)\n"
         )
     return probes
 
@@ -424,6 +475,7 @@ class LocalRuntime:
                     if self.config.resource_backend == "slurm"
                     else None
                 ),
+                cleanup_scope=worker_scope() if self.config.resource_backend == "slurm" else None,
             )
         except OSError as exc:
             return result("missing_dependency", [], time.monotonic() - started, str(exc))
@@ -439,6 +491,8 @@ class LocalRuntime:
         elapsed = time.monotonic() - started
         if reason in {"timeout", "output_limit", "cancelled"}:
             return result("student_failure", [], elapsed, reason)
+        if reason == "cleanup_failure":
+            return result("sandbox_infrastructure_error", [], elapsed, reason)
         if (
             (
                 code != 0
@@ -488,6 +542,35 @@ class LocalRuntime:
             )
             if not outcomes[name]:
                 details[name] = result.get("detail") or str(result.get("results"))[:1000]
+        if self.config.resource_backend == "slurm":
+            timeout = self.execute(
+                "def check():\n while True: pass\n", "check", [encode([])], 0.1, probe=True
+            )
+            outcomes["timeout_cleanup"] = timeout["detail"] == "timeout"
+            if not outcomes["timeout_cleanup"]:
+                details["timeout_cleanup"] = timeout["detail"]
+            output = self.execute(
+                f"import os\ndef check():\n os.write(1, b'x'*{self.config.output_bytes + 1})\n",
+                "check",
+                [encode([])],
+                5,
+                probe=True,
+            )
+            outcomes["output_limit_cleanup"] = output["detail"] == "output_limit"
+            if not outcomes["output_limit_cleanup"]:
+                details["output_limit_cleanup"] = output["detail"]
+            cancelled = threading.Event()
+            timer = threading.Timer(0.5, cancelled.set)
+            timer.start()
+            try:
+                cancellation = LocalRuntime(self.config, cancelled=cancelled).execute(
+                    "def check():\n while True: pass\n", "check", [encode([])], 5, probe=True
+                )
+            finally:
+                timer.cancel()
+            outcomes["cancellation_cleanup"] = cancellation["detail"] == "cancelled"
+            if not outcomes["cancellation_cleanup"]:
+                details["cancellation_cleanup"] = cancellation["detail"]
         report = {
             "ready": all(outcomes.values()),
             "host": socket.gethostname(),
@@ -504,6 +587,12 @@ class LocalRuntime:
             "execution_contract": {
                 "process": self.config.process_policy,
                 "resources": self.config.resource_backend,
+                "candidate_processes": 1
+                if self.config.process_policy == "single_process"
+                else None,
+                "candidate_threads": 1 if self.config.process_policy == "single_process" else None,
             },
         }
+        if self.config.process_policy == "single_process":
+            report["limits"].pop("pids")
         return report

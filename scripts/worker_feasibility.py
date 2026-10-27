@@ -131,7 +131,44 @@ def main():
     parser.add_argument("--case", choices=CASES)
     parser.add_argument("--image")
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--resource-oom", action="store_true")
     args = parser.parse_args()
+    if args.resource_oom:
+        membership = next(
+            line.split(":", 2)[2].strip()
+            for line in Path("/proc/self/cgroup").read_text().splitlines()
+            if line.startswith("0::")
+        )
+        group = Path("/sys/fs/cgroup") / membership.lstrip("/")
+        groups = [group, *group.parents]
+        limits = [
+            int((p / "memory.max").read_text())
+            for p in groups
+            if (p / "memory.max").is_file() and (p / "memory.max").read_text().strip() != "max"
+        ]
+        limit = min(limits)
+        assert 0 < limit <= 1024**3, "No independent worker-sized memory bound"
+        before = sorted(os.sched_getaffinity(0))
+        os.sched_setaffinity(0, set(range(os.cpu_count())))
+        after = sorted(os.sched_getaffinity(0))
+        assert len(after) == 1 and after == before, "Affinity escaped the Slurm cpuset"
+        print(
+            json.dumps(
+                {
+                    "memory_limit_bytes": limit,
+                    "cpuset_before": before,
+                    "cpuset_after_expansion": after,
+                    "cgroup": membership,
+                    "next": "bounded OOM witness",
+                }
+            ),
+            flush=True,
+        )
+        # At most 1.0625 GiB even if site enforcement is unexpectedly broken.
+        # This fixture runs only in a dedicated 1-GiB step of an 8-GiB CPU job.
+        witness = bytearray(limit + 64 * 1024**2)
+        print(json.dumps({"enforced": False, "allocated": len(witness)}), flush=True)
+        raise SystemExit(1)
     if args.case:
         fixture(args.case)
         return
