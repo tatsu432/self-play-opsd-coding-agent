@@ -13,7 +13,11 @@ from selfplay_opsd.core import ExperimentError
 from selfplay_opsd.diagnostics import _optimizer_digest
 from selfplay_opsd.objectives import alignment, sd_coefficients
 from selfplay_opsd.policy import LossExample
-from selfplay_opsd.readiness import BACKEND_EVIDENCE_DIRECTORY, backend_identity
+from selfplay_opsd.readiness import (
+    BACKEND_EVIDENCE_DIRECTORY,
+    backend_environment,
+    backend_identity,
+)
 from selfplay_opsd.storage import (
     CheckpointManager,
     atomic_json,
@@ -30,6 +34,7 @@ def check_backend(config: RunConfig, output: Path, *, reference: Path | None = N
     config = config.model_copy(deep=True)
     config.study_id += "-backend-check"
     identity = backend_identity(config)
+    environment = backend_environment(gpu=bool(config.hardware.gpu_count))
     if config.hardware.gpu_count and config.model.backend != "verl":
         raise ExperimentError("Production backend checks require verl")
     policy = make_policy(config)
@@ -128,6 +133,7 @@ def check_backend(config: RunConfig, output: Path, *, reference: Path | None = N
                 reference_report.get("backend_identity") != identity
                 or reference_report.get("gpu_count") != 1
                 or reference_report.get("reference_sha256") != file_hash(reference)
+                or reference_report.get("environment") != environment
             ):
                 raise ExperimentError("Single-GPU gradient reference is stale or corrupt")
             expected = torch.load(reference, map_location="cpu", weights_only=True)
@@ -176,6 +182,7 @@ def check_backend(config: RunConfig, output: Path, *, reference: Path | None = N
             "objective_probes": list("ABCD"),
             "probe_label": "controlled synthetic gradient fixtures; not performance evidence",
             "backend_identity": identity,
+            "environment": environment,
             "devices": [torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())],
             "gpu_count": config.hardware.gpu_count,
             "gpu_type": os.getenv("SELFPLAY_GPU_TYPE", "h100"),

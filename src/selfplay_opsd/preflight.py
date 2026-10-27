@@ -114,7 +114,11 @@ def doctor(config: RunConfig, *, isolation: bool = False) -> dict:
         checks["data"] = {"ready": False, "error": str(exc)}
         blockers.append("Frozen dataset unavailable")
     if cfg.hardware.gpu_count:
-        from selfplay_opsd.readiness import BACKEND_EVIDENCE_DIRECTORY, backend_identity
+        from selfplay_opsd.readiness import (
+            BACKEND_EVIDENCE_DIRECTORY,
+            backend_environment,
+            backend_identity,
+        )
 
         proof_path = cfg.output_root / BACKEND_EVIDENCE_DIRECTORY / f"{cfg.hardware.profile}.json"
         if not proof_path.exists():
@@ -130,6 +134,12 @@ def doctor(config: RunConfig, *, isolation: bool = False) -> dict:
             )
             if cfg.hardware.gpu_count > 1:
                 valid = valid and proof.get("single_process_reference_compared")
+            try:
+                valid = valid and proof.get("environment") == backend_environment(gpu=True)
+            except OSError:
+                valid = False
+            if os.getenv("SELFPLAY_GPU_TYPE"):
+                valid = valid and proof.get("gpu_type") == os.environ["SELFPLAY_GPU_TYPE"]
             checks["backend_acceptance"] = {"valid": bool(valid), "proof": str(proof_path)}
             if not valid:
                 blockers.append(

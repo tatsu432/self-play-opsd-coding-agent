@@ -828,3 +828,21 @@ def test_backend_compatibility_ignores_controller_and_worker_changes(monkeypatch
         lambda path: "changed" if path.name == "objectives.py" else real_hash(path),
     )
     assert readiness.backend_identity(cfg) != before
+
+
+def test_cpu_freeze_preserves_target_profile_without_claiming_gpu_allocation(tmp_path, monkeypatch):
+    job = allocation_module()
+    env = allocation_env(tmp_path) | {
+        "SELFPLAY_OPERATION": "freeze-study",
+        "SELFPLAY_GPU_COUNT": "0",
+        "SELFPLAY_DATA": str(tmp_path / "data"),
+    }
+    calls = []
+
+    def command(args, **kwargs):
+        calls.append(kwargs["env"])
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(job.subprocess, "run", command)
+    assert job.execute(env) == 0
+    assert calls and all("APPTAINERENV_SELFPLAY_ALLOCATED_GPU_COUNT" not in e for e in calls)

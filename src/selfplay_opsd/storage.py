@@ -75,6 +75,7 @@ def scientific_code_hash() -> str:
         "worker.py",
         "remote_worker.py",
         "worker_runtime.py",
+        "worker_policy.py",
         "vllm_worker.py",
         "pilot.py",
     )

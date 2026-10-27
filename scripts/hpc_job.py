@@ -833,6 +833,11 @@ def execute(env: dict) -> int:
             "SELFPLAY_ALLOCATED_GPU_COUNT": env["SELFPLAY_GPU_COUNT"],
             "SELFPLAY_STOP_AFTER_ITERATION": env.get("SELFPLAY_STOP_AFTER_ITERATION", "0"),
         }
+        if int(env["SELFPLAY_GPU_COUNT"]) == 0:
+            # CPU validation/freeze read the target experiment configuration;
+            # they do not instantiate a GPU policy. Do not claim that the target
+            # hardware profile itself has been allocated zero GPUs.
+            overrides.pop("SELFPLAY_ALLOCATED_GPU_COUNT")
         worker_config = json.loads(base64.b64decode(env.get("SELFPLAY_WORKER_CONFIG", "e30=")))
         scoped_worker = uses_worker and worker_config.get("resource_backend") == "slurm"
         if scoped_worker:

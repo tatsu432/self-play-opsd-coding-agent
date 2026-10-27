@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 import os
+import platform
 from pathlib import Path
 
 from selfplay_opsd.config import RunConfig
@@ -21,6 +22,18 @@ from selfplay_opsd.storage import (
 from selfplay_opsd.worker_runtime import allocation_fingerprint
 
 BACKEND_EVIDENCE_DIRECTORY = "compatibility/backend-v2"
+
+
+def backend_environment(*, gpu: bool) -> dict:
+    """Actual allocated-host ABI; checked again before generated GPU work."""
+    import torch
+
+    return {
+        "kernel": platform.release(),
+        "nvidia_driver": Path("/proc/driver/nvidia/version").read_text().strip() if gpu else None,
+        "torch": torch.__version__,
+        "cuda": torch.version.cuda,
+    }
 
 
 def allocation_code_hash() -> str:
@@ -104,7 +117,7 @@ def execution_identity(config: RunConfig, *, repository: TaskRepository | None =
     if repository.root.resolve() != config.data_root.resolve():
         raise ExperimentError("Repository root differs from configured data_root")
     return {
-        "code_hash": implementation_hash(),
+        "code_hash": scientific_code_hash(),
         "allocation_code_hash": allocation_code_hash(),
         "scientific_code_hash": scientific_code_hash(),
         "common_hash": digest(config.scientific_settings(common=True, calibration=True)),
@@ -120,6 +133,7 @@ def execution_identity(config: RunConfig, *, repository: TaskRepository | None =
 
 def validate_runtime(config: RunConfig) -> dict:
     from selfplay_opsd.evaluation import validate_data
+    from selfplay_opsd.storage import provenance
 
     root = evidence_root(config)
     sandbox = SandboxBackend(config.sandbox)
@@ -131,6 +145,7 @@ def validate_runtime(config: RunConfig) -> dict:
         "isolation": isolation,
         "validation": validation,
         "runtime_identity": execution_identity(config, repository=repository),
+        "provenance": provenance(),
     }
     atomic_json(root / "runtime.json", report)
     return report
@@ -182,7 +197,7 @@ def readiness_report(config: RunConfig, *, require_freeze: bool = True) -> dict:
             and report.get("backend_identity") == backend_expected
             and report.get("gpu_count") == count
             and report.get("hardware_profile") == profile
-            and (count == 1 or report.get("gpu_type") == gpu_type)
+            and (profile != config.hardware.profile or report.get("gpu_type") == gpu_type)
             and report.get("objective_probes") == ["A", "B", "C", "D"]
             and (count == 1 or report.get("single_process_reference_compared"))
         )
