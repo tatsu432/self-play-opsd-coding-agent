@@ -16,6 +16,17 @@ a correctly frozen study. Optional optimization benchmarks remain outstanding.
 The shared ledger reported 5.052777778/24 GPU-hours committed, with no active
 GPU reservation at this checkpoint. Reconcile live state before further work.
 
+The new measured conditional planning estimates are A 75.84, B 72.90, C 75.08,
+and D 88.65 GPU-hours; observed-yield estimates are 16.31, 15.94, 16.39, and
+15.20 hours. These are scenarios, not guarantees, and exclude final evaluations.
+The corresponding stop leads are 4349/4243/4322/4812 seconds and clean
+continuation allowances 5/5/5/6. `scripts/analyze_task09_workload.py` reproduces
+them from fetched events and reconciled accounting. The A/B/C suite used one
+2683-second allocation: event-to-fixture intervals are attributed to each
+method and remaining shared time is split equally, without charging the same
+allocation three times. This is an estimate, with limited samples and lower-bound
+memory observations. It is not attached to the premature immutable freeze.
+
 ## Current blocker
 
 Task 09 cannot be declared ready for the main experiment until its changed

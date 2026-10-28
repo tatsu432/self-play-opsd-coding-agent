@@ -98,6 +98,39 @@ def test_backend_stage_advances_without_worker_or_runtime(complete, monkeypatch)
         assert '"eligible_to_submit_main": false' in result.output
 
 
+def test_preparation_rechecks_gate_after_terminal_job(monkeypatch):
+    class Remote:
+        def __init__(self, alias):
+            self.alias = alias
+            self.study_calls = 0
+
+        def call(self, operation, payload):
+            if operation == "study":
+                self.study_calls += 1
+                return {
+                    "images": {"worker": {}, "trainer": {"ready": True, "sha256": "a" * 64}},
+                    "gates": {"single": True, "target": self.study_calls >= 3},
+                    "eligible_to_submit_main": False,
+                    "budget": {},
+                }
+            if operation == "status":
+                return {"ledger": {}, "attempts": [{"scheduler": {"state": "COMPLETED"}}]}
+            pytest.fail(f"Unexpected {operation} after completed gate")
+
+    monkeypatch.setattr(hpc, "YaleSSH", Remote)
+    monkeypatch.setattr(hpc, "snapshot", lambda *a: {})
+    monkeypatch.setattr(hpc, "remote_context", lambda *a: {"storage_root": "/project"})
+    monkeypatch.setattr(
+        hpc, "run_payload", lambda *a, **kw: {**kw, "run_id": "probe", "gpu_count": 1}
+    )
+    app = typer.Typer()
+    hpc_readiness.register(app)
+    result = CliRunner().invoke(app, ["prepare-study", "--stage", "backend", "--watch"])
+    assert result.exit_code == 0, result.exception
+    assert '"backend_ready": true' in result.output
+    assert '"blocked"' not in result.output
+
+
 @pytest.mark.parametrize("selection", ["default", "environment", "flag"])
 def test_image_build_root_precedence_and_builder(selection, tmp_path, monkeypatch):
     recorded = []
