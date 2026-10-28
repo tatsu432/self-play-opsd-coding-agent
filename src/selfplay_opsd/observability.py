@@ -56,172 +56,216 @@ def flatten(value: dict, prefix: str = "") -> dict:
 
 
 class WandbSink:
+    """Network work stays on one bounded daemon; local events are the spool.
+
+    Notifications coalesce rather than queueing copies of trajectories/metrics.
+    Checkpoint callbacks are the publication boundary, independent of optional
+    artifact uploads. No model/RNG/optimizer code runs in the delivery thread.
+    """
+
     def __init__(self, config: RunConfig, store: EventStore):
         self.config, self.store = config, store
-        self.queue: queue.Queue = queue.Queue(maxsize=128)
         self.errors: queue.Queue = queue.Queue(maxsize=32)
         self.thread: threading.Thread | None = None
+        self.wake = threading.Event()
+        self.stopping = threading.Event()
         self.dropped = 0
+        self.last_revision = None
+        self.status: dict = {
+            "sdk_delivered_iteration": -1,
+            "cloud_verified_iteration": None,
+            "delivery_errors": 0,
+            "local_data_preserved": True,
+        }
         if config.logging.mode != "disabled":
             self.thread = threading.Thread(target=self._worker, name="wandb-delivery", daemon=True)
             self.thread.start()
 
-    def _worker(self):
-        run = None
+    def _warning(self, exc):
+        # Exception text/URLs may contain credentials or model context.
+        self.status["delivery_errors"] += 1
         try:
-            import wandb
-
-            run = wandb.init(
-                project=self.config.logging.project,
-                entity=self.config.logging.entity,
-                group=self.config.study_id,
-                name=f"{self.config.study_id}-{self.config.method}-seed{self.config.seed}-{self.store.segment[:8]}",
-                id=self.store.identity["logical_run_id"]
-                if self.config.logging.mode == "online"
-                else self.store.segment,
-                resume="allow" if self.config.logging.mode == "online" else None,
-                mode=self.config.logging.mode,
-                dir=str(self.config.run_dir),
-                config=self.config.resolved(),
-                tags=[
-                    self.config.method,
-                    self.config.hardware.profile,
-                    self.config.model.revision,
-                    f"logical:{self.store.identity['logical_run_id']}",
-                ],
-                settings=wandb.Settings(init_timeout=15),
-            )
-            run.define_metric("train/outer_iteration")
-            run.define_metric("compute/allocated_gpu_hours")
-            for group in (
-                "student/*",
-                "proposer/*",
-                "distill/*",
-                "alignment/*",
-                "perf/*",
-                "system/*",
-            ):
-                run.define_metric(group, step_metric="train/outer_iteration")
-            run.define_metric("eval_by_iteration/*", step_metric="train/outer_iteration")
-            run.define_metric("eval_by_gpu_hours/*", step_metric="compute/allocated_gpu_hours")
-            run.log(
-                {
-                    "run/segment_id": self.store.segment,
-                    "run/rollback_to": self.store.rollback_to,
-                    "run/logical_run_id": self.store.identity["logical_run_id"],
-                }
-            )
-            while True:
-                item = self.queue.get()
-                try:
-                    if item is None:
-                        break
-                    if "__artifact__" in item:
-                        entry = item["__artifact__"]
-                        artifact = wandb.Artifact(
-                            entry["name"], type="adapter-checkpoint", metadata=entry["metadata"]
-                        )
-                        artifact.add_file(entry["path"])
-                        run.log_artifact(artifact)
-                        continue
-                    if "__table__" in item:
-                        table = item.pop("__table__")
-                        item[table["name"]] = wandb.Table(
-                            columns=table["columns"], data=table["rows"]
-                        )
-                    run.log(item)
-                finally:
-                    self.queue.task_done()
-        except Exception as exc:
-            try:
-                self.errors.put_nowait(f"{type(exc).__name__}: {exc}")
-            except queue.Full:
-                self.dropped += 1
-        finally:
-            if run is not None:
-                try:
-                    run.finish()
-                except Exception as exc:
-                    self.dropped += 1
-                    try:
-                        self.errors.put_nowait(str(exc))
-                    except queue.Full:
-                        self.dropped += 1
-
-    def log(self, metrics: dict):
-        if self.thread is not None and self.thread.is_alive():
-            try:
-                self.queue.put_nowait(
-                    flatten(metrics)
-                    | {
-                        "run/segment_id": self.store.segment,
-                        "run/local_event_index": self.store.index,
-                        "run/committed": True,
-                    }
-                )
-            except queue.Full:
-                self.dropped += 1
-        while not self.errors.empty():
-            self.store.emit(
-                "logging_warning",
-                {"error": self.errors.get_nowait(), "local_data_preserved": True},
-                committed=True,
-            )
-
-    def finish(self):
-        if self.thread is not None and self.thread.is_alive():
-            try:
-                self.queue.put(None, timeout=1)
-            except queue.Full:
-                self.dropped += 1
-            self.thread.join(timeout=15)
-        while not self.errors.empty():
-            self.store.emit(
-                "logging_warning",
-                {"error": self.errors.get_nowait(), "local_data_preserved": True},
-                committed=True,
-            )
-        if self.dropped:
-            self.store.emit(
-                "logging_warning",
-                {"dropped_remote_events": self.dropped, "local_data_preserved": True},
-                committed=True,
-            )
-
-    def checkpoint(self, path: Path, iteration: int):
-        if not self.config.logging.upload_checkpoints or self.thread is None:
-            return
-        try:
-            self.queue.put_nowait(
-                {
-                    "__artifact__": {
-                        "name": f"adapters-{self.store.identity['logical_run_id']}",
-                        "path": str(path / "inference_adapters.pt"),
-                        "metadata": {
-                            "iteration": iteration,
-                            "model_revision": self.config.model.revision,
-                        },
-                    }
-                }
-            )
+            self.errors.put_nowait(type(exc).__name__)
         except queue.Full:
             self.dropped += 1
 
-    def table(self, name: str, columns: list[str], rows: list[list]):
-        bounded = rows[: self.config.logging.table_rows]
-        self.store.emit(
-            "sample_table", {"name": name, "columns": columns, "rows": bounded}, committed=True
+    def _write_status(self):
+        from selfplay_opsd.storage import atomic_json
+
+        atomic_json(self.store.root / "state/telemetry.json", self.status)
+
+    def _worker(self):
+        import fcntl
+
+        try:
+            with (self.store.root / "state/telemetry-writer.lock").open("a+") as lock:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                self._deliver()
+        except Exception as exc:
+            self._warning(exc)
+
+    def _deliver(self):
+        from selfplay_opsd.telemetry import (
+            METHOD_NAMES,
+            canonical_snapshot,
+            dashboard_charts,
+            table_data,
         )
-        if self.thread is not None and self.thread.is_alive():
+
+        backoff = 5
+        while True:
+            run = None
             try:
-                self.queue.put_nowait(
-                    {
-                        "__table__": {"name": name, "columns": columns, "rows": bounded},
-                        "train/outer_iteration": self.store.iteration,
-                    }
+                import wandb
+
+                run = wandb.init(
+                    project=self.config.logging.project,
+                    entity=self.config.logging.entity,
+                    group=self.config.study_id,
+                    name=METHOD_NAMES.get(self.config.method, self.config.method),
+                    id=self.store.identity["logical_run_id"]
+                    if self.config.logging.mode == "online"
+                    else self.store.segment,
+                    resume="allow" if self.config.logging.mode == "online" else None,
+                    mode=self.config.logging.mode,
+                    dir=str(self.store.root),
+                    config={
+                        "study_id": self.config.study_id,
+                        "method": self.config.method,
+                        "seed": self.config.seed,
+                        "iterations": self.config.iterations,
+                        "scientific_hash": self.config.scientific_hash,
+                        "model_revision": self.config.model.revision,
+                        "history_semantics": "append_only_audit; canonical tables are authoritative",
+                    },
+                    tags=[self.config.method, self.config.hardware.profile],
+                    settings=wandb.Settings(
+                        init_timeout=15,
+                        disable_code=True,
+                        disable_git=True,
+                        console="off",
+                        x_disable_stats=True,
+                    ),
                 )
-            except queue.Full:
-                self.dropped += 1
+                run.define_metric("train/outer_iteration")
+                run.define_metric("compute/allocated_gpu_hours")
+                for group in (
+                    "student/*",
+                    "proposer/*",
+                    "distill/*",
+                    "alignment/*",
+                    "perf/*",
+                    "system/*",
+                    "telemetry/*",
+                    "eval_by_iteration/*",
+                ):
+                    run.define_metric(group, step_metric="train/outer_iteration")
+                run.define_metric("eval_by_gpu_hours/*", step_metric="compute/allocated_gpu_hours")
+                self.status["url"] = run.url
+                # Rebuild canonical tables after every init, including uncertain
+                # delivery. The append-only scalar audit may repeat; tables do not.
+                self.last_revision = None
+                while True:
+                    self.wake.clear()
+                    snapshot = canonical_snapshot(self.store.root, self.config)
+                    if snapshot["revision"] != self.last_revision:
+                        payload = dict(snapshot["summary"])
+                        tables = {}
+                        for key, rows in (
+                            ("canonical/training", snapshot["rows"]),
+                            ("canonical/development", snapshot["evaluations"]),
+                        ):
+                            if rows:
+                                columns, data = table_data(rows)
+                                payload[key] = wandb.Table(columns=columns, data=data)
+                            else:
+                                payload[key] = wandb.Table(
+                                    columns=["train/outer_iteration"], data=[]
+                                )
+                        if hasattr(wandb, "plot"):
+                            tables = {
+                                name: payload[f"canonical/{name}"]
+                                for name in ("training", "development")
+                            }
+                            payload.update(dashboard_charts(wandb, tables))
+                        payload.update(
+                            {
+                                "run/canonical_revision": snapshot["revision"],
+                                "run/logical_run_id": self.store.identity["logical_run_id"],
+                                "run/current_segment_id": self.store.segment,
+                                "telemetry/sdk_enqueue_timestamp": time.time(),
+                                "telemetry/delivery_errors": self.status["delivery_errors"],
+                            }
+                        )
+                        run.log(payload)
+                        # Summary tables give a replaceable authoritative view.
+                        run.summary.update(payload)
+                        self.last_revision = snapshot["revision"]
+                        self.status.update(
+                            sdk_delivered_iteration=snapshot["summary"]["run/checkpoint_iteration"],
+                            sdk_enqueue_timestamp=time.time(),
+                            canonical_revision=snapshot["revision"],
+                        )
+                    self._write_status()
+                    backoff = 5
+                    if self.stopping.is_set():
+                        break
+                    self.wake.wait(30)
+                break
+            except Exception as exc:
+                self._warning(exc)
+                try:
+                    self._write_status()
+                except OSError:
+                    pass
+            finally:
+                if run is not None:
+                    try:
+                        run.finish()
+                    except Exception as exc:
+                        self._warning(exc)
+            if self.stopping.wait(backoff):
+                break
+            backoff = min(60, backoff * 2)
+
+    def _drain_warnings(self):
+        while not self.errors.empty():
+            self.store.emit(
+                "logging_warning",
+                {
+                    "error_type": self.errors.get_nowait(),
+                    "local_data_preserved": True,
+                    "sdk_delivered_iteration": self.status["sdk_delivered_iteration"],
+                    "cloud_verified_iteration": self.status["cloud_verified_iteration"],
+                    "latest_local_iteration": self.store.iteration,
+                    "recovery": "selfplay wandb-reconcile --run-dir RUN_DIR",
+                },
+                committed=True,
+            )
+
+    def log(self, metrics: dict):
+        # The caller's metrics may precede a durable checkpoint. Only reconstruct
+        # checkpoint-backed aggregate events; never send this dictionary directly.
+        self.wake.set()
+        self._drain_warnings()
+
+    def finish(self):
+        self.stopping.set()
+        self.wake.set()
+        if self.thread is not None:
+            self.thread.join(timeout=15)
+        self._drain_warnings()
+
+    def checkpoint(self, path: Path, iteration: int):
+        self.wake.set()
+
+    def table(self, name: str, columns: list[str], rows: list[list]):
+        # Raw examples remain local even if logging.upload_checkpoints is true.
+        self.store.emit(
+            "sample_table",
+            {"name": name, "columns": columns, "rows": rows[: self.config.logging.table_rows]},
+            committed=True,
+        )
 
 
 def system_metrics(output_root: Path) -> dict:

@@ -122,6 +122,7 @@ class YaleSSH:
             "recover",
             "recover_allocation",
             "reuse_worker",
+            "reuse_study",
             "publish_resource_plan",
             "logs",
         }:
@@ -340,6 +341,8 @@ def run_payload(
     if operation not in {
         "backend-check",
         "rollout-parity",
+        "numerical-audit",
+        "wandb-verify",
         "allocation-check",
         "worker-diagnose",
         "pilot",
@@ -431,7 +434,14 @@ def run_payload(
     backend_expected = backend_identity(cfg) | {"trainer_sha256": image_sha256 or None}
     runtime_identity = (
         None
-        if operation in {"backend-check", "allocation-check", "worker-diagnose"}
+        if operation
+        in {
+            "backend-check",
+            "allocation-check",
+            "worker-diagnose",
+            "wandb-verify",
+            "numerical-audit",
+        }
         else execution_identity(cfg)
         | {
             "trainer_sha256": image_sha256 or None,
@@ -451,6 +461,7 @@ def run_payload(
     gpu_operation = operation in {
         "backend-check",
         "rollout-parity",
+        "numerical-audit",
         "allocation-check",
         "pilot",
         "method-smoke",
@@ -555,6 +566,7 @@ def run_payload(
         in {
             "backend-check",
             "rollout-parity",
+            "numerical-audit",
             "allocation-check",
             "pilot",
             "method-smoke",
@@ -596,13 +608,13 @@ def run_payload(
         "time": "00:05:00"
         if operation in {"allocation-check", "worker-diagnose"}
         else "01:00:00"
-        if operation in {"backend-check", "rollout-parity"}
+        if operation in {"backend-check", "rollout-parity", "numerical-audit"}
         else "06:00:00"
         if operation == "pilot"
         else "02:00:00"
         if (operation == "evaluate" and base) or operation in {"method-smoke", "protocol-check"}
         else "00:15:00"
-        if operation in {"worker-check", "freeze-study", "readiness-check"}
+        if operation in {"worker-check", "freeze-study", "readiness-check", "wandb-verify"}
         else "01:00:00"
         if not gpu_operation
         else "23:00:00",
@@ -613,8 +625,8 @@ def run_payload(
         "seed": cfg.seed,
         "iterations": cfg.iterations if operation == "train" else iterations,
         "resume": resume,
-        "output": f"/runs/readiness/{cfg.study_id}/rollout-parity/{identity[:24]}"
-        if operation == "rollout-parity"
+        "output": f"/runs/readiness/{cfg.study_id}/{operation}/{identity[:24]}"
+        if operation in {"rollout-parity", "numerical-audit", "wandb-verify"}
         else f"/runs/compatibility/backend-v2/{profile}"
         if operation == "backend-check"
         else f"/runs/compatibility/{profile}",
@@ -628,6 +640,7 @@ def run_payload(
         if checkpoint_iteration is not None
         else "",
         "secrets_file": secrets_file or "",
+        "logging_mode": cfg.logging.mode,
     }
     if operation == "diagnose":
         payload["output"] = f"/runs/{cfg.study_id}/diagnostics/{checkpoint_iteration:06d}"
@@ -930,6 +943,49 @@ def reuse_worker_command(
             },
         )
     )
+
+
+@app.command("reuse-study")
+def reuse_study_command(
+    source_study: str,
+    settings: Path = Path("configs/task10-online.yaml"),
+    alias: str = ALIASES[0],
+    gpu_type: str = "h200",
+):
+    """Dependency-checked evidence reuse; never allocates or rewrites a freeze."""
+    from selfplay_opsd.readiness import backend_identity, execution_identity, hardware_settings
+
+    if alias != ALIASES[0]:
+        raise HpcError("Study reuse is restricted to authorized cpsc4880 storage")
+    remote = YaleSSH(alias)
+    cfg = load_config(settings)
+    context = remote.call("context")
+    request = {
+        "storage_root": choose_storage(context, alias),
+        "study_id": cfg.study_id,
+        "source_study": source_study,
+        "gpu_type": gpu_type,
+        "profile": cfg.hardware.profile,
+        "profile_gpu_count": cfg.hardware.gpu_count,
+        "pilot_suffix": "-pilot-h200",
+        "seed": cfg.seed,
+        "supervisor_hash": supervisor_hash(),
+    }
+    state = remote.call("study", request | {"study_id": source_study})
+    trainer = state["images"]["trainer"]["sha256"]
+    request.update(
+        runtime_identity=execution_identity(cfg)
+        | {
+            "trainer_sha256": trainer,
+            "worker_sha256": state["images"]["worker"]["sha256"],
+            "worker_setup_id": state["reports"]["worker"].get("worker_setup_id", ""),
+        },
+        backend_identity=backend_identity(cfg) | {"trainer_sha256": trainer},
+        common_config=cfg.scientific_settings(common=True),
+        hardware=hardware_settings(cfg.hardware.model_dump(mode="json")),
+        checkpoint_every=cfg.checkpoint_every,
+    )
+    typer.echo(json.dumps(remote.call("reuse_study", request), indent=2))
 
 
 @app.command("sync")

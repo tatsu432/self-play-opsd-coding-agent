@@ -927,8 +927,10 @@ def artifact_dir(payload: dict) -> Path:
         )
     if operation == "method-smoke":
         return runs / "readiness" / study / "method-smokes"
-    if operation == "rollout-parity":
-        return runs / "readiness" / study / "rollout-parity" / payload["run_id"]
+    if operation in {"rollout-parity", "numerical-audit"}:
+        return runs / "readiness" / study / operation / payload["run_id"]
+    if operation == "wandb-verify":
+        return runs / "readiness" / study / operation / payload["run_id"]
     if operation in {
         "worker-check",
         "runtime-check",
@@ -1330,6 +1332,7 @@ def study_state(payload: dict) -> dict:
         ),
         "freeze": read(runs / study / "study_frozen.json"),
         "methods": {m: read(evidence / "method-smokes" / f"{m}.json") for m in "ABC"},
+        "telemetry": read(evidence / "wandb-verification.json"),
     }
     allocation_checks = {}
     for key, profile, count in (
@@ -1501,6 +1504,8 @@ def precheck(payload: dict):
         "protocol-revision",
         "backend-check",
         "rollout-parity",
+        "numerical-audit",
+        "wandb-verify",
         "allocation-check",
         "worker-diagnose",
         "worker-check",
@@ -1527,6 +1532,14 @@ def precheck(payload: dict):
         ):
             raise ValueError("Image archive missing")
         return
+    if operation == "wandb-verify":
+        if (
+            payload.get("gpu_count") != 0
+            or payload.get("time") != "00:15:00"
+            or payload.get("account") != "cpsc4880"
+        ):
+            raise ValueError("W&B verification requires bounded CPU-only cpsc4880 allocation")
+        return
     if operation == "worker-diagnose":
         if payload.get("gpu_count") != 0:
             raise ValueError("Worker diagnostics must be CPU-only")
@@ -1547,7 +1560,7 @@ def precheck(payload: dict):
         ):
             raise ValueError("Allocation diagnostics require bounded cpsc4880 H100/H200 readiness")
         return
-    if operation == "rollout-parity":
+    if operation in {"rollout-parity", "numerical-audit"}:
         if (
             payload.get("account") != "cpsc4880"
             or payload.get("gpu_count") != 1
@@ -1601,6 +1614,18 @@ def precheck(payload: dict):
             or payload.get("readiness_budget") != 24
         ):
             raise ValueError("Protocol probe requires its fixed two-GPU-hour ceiling")
+    if operation == "train" and payload.get("logging_mode") == "online":
+        telemetry = study_state(payload)["reports"]["telemetry"]
+        if (
+            not telemetry.get("ready")
+            or not telemetry.get("cloud_verified")
+            or telemetry.get("sequence") != 2
+        ):
+            raise ValueError(
+                "Online main launch requires allocated-node cloud metric and resume verification"
+            )
+        if not payload.get("secrets_file"):
+            raise ValueError("Online main launch requires a persistent private secrets file")
     if operation in {"train", "pilot", "method-smoke", "evaluate", "diagnose", "freeze-study"}:
         state = study_state(payload)
         if not state["gates"]["worker"] or not state["gates"]["runtime"]:
@@ -1791,6 +1816,121 @@ def publish_resource_plan(payload: dict) -> dict:
     return {"ready": True, "path": str(path), "sha256": sha256(path)}
 
 
+def reuse_study(payload: dict) -> dict:
+    """Reuse a frozen study only when all scientific/runtime dependencies match.
+
+    Historical checkpoints are verified in place. No hash inside an original
+    report or checkpoint is rewritten to pretend it belongs to a new study.
+    """
+    source_study, study = payload["source_study"], payload["study_id"]
+    if (
+        not SAFE_NAME.fullmatch(source_study)
+        or not SAFE_NAME.fullmatch(study)
+        or source_study == study
+    ):
+        raise ValueError("Distinct safe study names required")
+    state = study_state(payload | {"study_id": source_study})
+    frozen = state["reports"]["freeze"]
+    plan = frozen.get("resource_plan", {})
+
+    def common(value):
+        return {k: v for k, v in value.items() if k != "study_id"}
+
+    if (
+        not state["eligible_to_submit_main"]
+        or not plan
+        or frozen.get("runtime_identity") != payload["runtime_identity"]
+        or common(frozen["common_config"]) != common(payload["common_config"])
+        or plan.get("hardware") != payload["hardware"]
+        or plan.get("checkpoint_every") != payload["checkpoint_every"]
+        or frozen.get("gpu_type") != payload["gpu_type"]
+    ):
+        raise ValueError("Source study is not frozen, ready or dependency-equivalent")
+    base = workspace(payload)
+    runs = base / "runs"
+    source = runs / source_study
+    target = runs / study
+    evidence = runs / "readiness" / study
+    original_evidence = runs / "readiness" / source_study
+    if (target / "study_frozen.json").exists():
+        raise ValueError("Target study already frozen")
+    files = {}
+    for name in (
+        "worker.json",
+        "runtime.json",
+        "validation.json",
+        "allocation-single_gpu_80gb.json",
+    ):
+        path = original_evidence / name
+        if path.is_file():
+            files[evidence / name] = json.loads(path.read_text())
+    for name in ("evaluation_complete.json", "runtime_identity.json"):
+        files[target / "base" / name] = json.loads((source / "base" / name).read_text())
+    for path in (source / "base/events").glob("*.jsonl"):
+        # Copy exact event bytes separately below; only trusted baseline records.
+        files[target / "base/events" / path.name] = path
+    pilot_relative = f"{payload['pilot_suffix']}/D-seed{payload['seed']}/pilot_report.json"
+    pilot_source = runs / (source_study + pilot_relative)
+    files[runs / (study + pilot_relative)] = json.loads(pilot_source.read_text())
+    for method in "ABC":
+        path = original_evidence / "method-smokes" / f"{method}.json"
+        original = json.loads(path.read_text())
+        if original.get("reuse_provenance"):
+            raise ValueError("Reuse must point directly to original method evidence")
+        files[evidence / "method-smokes" / f"{method}.json"] = original | {
+            "reuse_provenance": {"source_study": source_study, "sha256": sha256(path)}
+        }
+
+    def digest_json(value):
+        return hashlib.sha256(
+            json.dumps(
+                value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False
+            ).encode()
+        ).hexdigest()
+
+    new_plan = dict(plan)
+    new_plan["common_config"] = payload["common_config"]
+    new_plan["method_hashes"] = {
+        m: digest_json(files[evidence / "method-smokes" / f"{m}.json"]) for m in "ABC"
+    }
+    new_plan["reuse_provenance"] = {
+        "source_study": source_study,
+        "freeze_sha256": sha256(source / "study_frozen.json"),
+        "resource_plan_sha256": sha256(source / "resource_plan.json"),
+    }
+    files[target / "resource_plan.json"] = new_plan
+    manifest = {
+        "source_study": source_study,
+        "target_study": study,
+        "runtime_identity": payload["runtime_identity"],
+        "source_freeze_sha256": sha256(source / "study_frozen.json"),
+        "note": "Scientific dependencies identical; historical checkpoints retained in place.",
+    }
+    files[evidence / "reuse.json"] = manifest
+    with locked(base / "state/.study-reuse.lock"):
+        # Validate all existing destinations before writing any of them.
+        for destination, value in files.items():
+            if destination.exists():
+                matches = (
+                    (destination.read_bytes() == value.read_bytes())
+                    if isinstance(value, Path)
+                    else json.loads(destination.read_text()) == value
+                )
+                if not matches:
+                    raise ValueError("Conflicting destination evidence")
+        for destination, value in files.items():
+            if isinstance(value, Path):
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(value.read_bytes())
+            else:
+                write_json(destination, value)
+    return {
+        "ready": True,
+        "reuse": manifest,
+        "next_action": "CPU freeze-study, then four main previews",
+    }
+
+
 COMMANDS = {
     "inspect": inspect,
     "context": context,
@@ -1807,6 +1947,7 @@ COMMANDS = {
     "recover": recover,
     "recover_allocation": recover_allocation,
     "reuse_worker": reuse_worker,
+    "reuse_study": reuse_study,
     "publish_resource_plan": publish_resource_plan,
 }
 

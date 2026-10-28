@@ -125,6 +125,86 @@ def checked_image(path: str, expected: str):
         raise ValueError("Pinned image SHA-256 mismatch")
 
 
+@contextmanager
+def allocation_telemetry(env: dict):
+    """Sample actual Slurm allocation cost, including startup and prior attempts."""
+    if env["SELFPLAY_OPERATION"] != "train":
+        yield
+        return
+    stop = threading.Event()
+    root = (
+        Path(env["SELFPLAY_RUNS"])
+        / env["SELFPLAY_STUDY"]
+        / f"{env['SELFPLAY_METHOD']}-seed{env['SELFPLAY_SEED']}"
+    )
+    samples = root / "state/allocation-samples.jsonl"
+    ledger_path = Path(env["SELFPLAY_RUNS"]).parent / "state" / f"{env['SELFPLAY_RUN_ID']}.json"
+
+    def sample():
+        while not stop.is_set():
+            try:
+                ledger = json.loads(ledger_path.read_text())
+                jobs = {str(a["job_id"]) for a in ledger.get("attempts", [])}
+                jobs.add(str(env["SLURM_JOB_ID"]))
+                if not all(j.isdigit() for j in jobs):
+                    raise ValueError("Invalid job identity")
+                result = subprocess.run(
+                    [
+                        "sacct",
+                        "-n",
+                        "-P",
+                        "-X",
+                        "-j",
+                        ",".join(sorted(jobs)),
+                        "--format=JobIDRaw,ElapsedRaw,AllocTRES",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                    check=True,
+                )
+                hours = 0.0
+                observed = set()
+                for line in result.stdout.splitlines():
+                    job, seconds, tres, *_ = line.split("|")
+                    if job not in jobs:
+                        continue
+                    resources = dict(part.split("=", 1) for part in tres.split(",") if "=" in part)
+                    count = resources.get("gres/gpu")
+                    if count is None:
+                        count = str(
+                            sum(int(v) for k, v in resources.items() if k.startswith("gres/gpu:"))
+                        )
+                    hours += int(seconds) * int(count) / 3600
+                    observed.add(job)
+                if observed != jobs:
+                    raise ValueError("Accounting incomplete")
+                samples.parent.mkdir(parents=True, exist_ok=True)
+                with samples.open("a") as stream:
+                    stream.write(
+                        json.dumps(
+                            {
+                                "timestamp": time.time(),
+                                "allocated_gpu_hours": hours,
+                                "job_id": env["SLURM_JOB_ID"],
+                            }
+                        )
+                        + "\n"
+                    )
+            except Exception:
+                # Missing/lagged accounting is explicit; never substitute an invented cost.
+                pass
+            stop.wait(60)
+
+    thread = threading.Thread(target=sample, name="slurm-telemetry", daemon=True)
+    thread.start()
+    try:
+        yield
+    finally:
+        stop.set()
+        thread.join(timeout=1)
+
+
 def diagnostic_command(args: list[str], env: dict) -> dict:
     """Bounded, allowlisted commands only; never dump the process environment."""
     try:
@@ -470,6 +550,7 @@ def source_image(env: dict):
                 if name.startswith(("APPTAINERENV_", "SINGULARITYENV_")) or name in {
                     "SELFPLAY_WORKER_TOKEN",
                     "WANDB_API_KEY",
+                    "WANDB_ENTITY",
                     "APPTAINER_BIND",
                     "APPTAINER_BINDPATH",
                 }:
@@ -826,6 +907,8 @@ def execute(env: dict) -> int:
     if operation not in {
         "backend-check",
         "rollout-parity",
+        "numerical-audit",
+        "wandb-verify",
         "allocation-check",
         "worker-diagnose",
         "worker-check",
@@ -1040,6 +1123,7 @@ def execute(env: dict) -> int:
             "SELFPLAY_WORKER_SHA256",
             "SELFPLAY_WORKER_SETUP_ID",
             "WANDB_API_KEY",
+            "WANDB_ENTITY",
             "CUDA_VISIBLE_DEVICES",
             "SLURM_JOB_ID",
             "SLURM_CPUS_PER_TASK",
@@ -1078,9 +1162,15 @@ def execute(env: dict) -> int:
             args += ["--resume", env["SELFPLAY_RESUME"]]
         if operation == "pilot":
             args += ["--iterations", env["SELFPLAY_ITERATIONS"]]
-        if operation in {"backend-check", "rollout-parity", "diagnose"}:
+        if operation in {
+            "backend-check",
+            "rollout-parity",
+            "numerical-audit",
+            "wandb-verify",
+            "diagnose",
+        }:
             args += ["--output", env["SELFPLAY_OUTPUT"]]
-        if operation in {"backend-check", "rollout-parity", "readiness-check"}:
+        if operation in {"backend-check", "rollout-parity", "numerical-audit", "readiness-check"}:
             args += ["--hardware", env["SELFPLAY_HARDWARE"]]
         if operation == "backend-check" and env.get("SELFPLAY_REFERENCE"):
             args += ["--reference", env["SELFPLAY_REFERENCE"]]
@@ -1154,7 +1244,10 @@ def execute(env: dict) -> int:
                 },
             )
             return 0
-        with sampled_device_usage(readiness / f"resource-samples-{attempt}.jsonl", devices):
+        with (
+            sampled_device_usage(readiness / f"resource-samples-{attempt}.jsonl", devices),
+            allocation_telemetry(env),
+        ):
             if operation == "method-smoke":
                 # Separate processes provide fresh model, RNG and optimizer initialization.
                 status = 0
@@ -1166,6 +1259,21 @@ def execute(env: dict) -> int:
                         break
             else:
                 status = subprocess.run(command + args, env=process_env, check=False).returncode
+        if status == 0 and operation == "wandb-verify":
+            verification_path = (
+                runs / env["SELFPLAY_OUTPUT"].removeprefix("/runs/") / "wandb-verification.json"
+            )
+            first = json.loads(verification_path.read_text())
+            # A separate CLI process validates the SDK's cross-process resume.
+            status = subprocess.run(
+                command + args + ["--run-id", first["run_id"], "--sequence", "2"],
+                env=process_env,
+                check=False,
+            ).returncode
+            if status == 0:
+                write(
+                    readiness / "wandb-verification.json", json.loads(verification_path.read_text())
+                )
         if status == 0 and operation == "freeze-study":
             command_report = [
                 "python",

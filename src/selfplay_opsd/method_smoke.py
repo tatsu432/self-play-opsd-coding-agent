@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 from selfplay_opsd import readiness
@@ -47,7 +48,21 @@ def smoke_path(config: RunConfig, method: str) -> Path:
 
 def verify_smoke(config: RunConfig, method: str) -> dict:
     report = read_json(smoke_path(config, method))
-    expected = smoke_config(config, method)
+    source_config = config
+    reuse = report.get("reuse_provenance")
+    if reuse:
+        source_study = reuse["source_study"]
+        if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]*", source_study):
+            raise ExperimentError("Unsafe reused smoke study")
+        source_config = config.model_copy(update={"study_id": source_study}, deep=True)
+        source = smoke_path(source_config, method)
+        original = read_json(source)
+        if (
+            file_hash(source) != reuse["sha256"]
+            or {k: v for k, v in report.items() if k != "reuse_provenance"} != original
+        ):
+            raise ExperimentError("Reused smoke provenance differs from source")
+    expected = smoke_config(source_config, method)
     if (
         not report.get("ready")
         or report.get("method") != method
