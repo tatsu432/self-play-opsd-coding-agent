@@ -31,8 +31,9 @@ documents are historical. Read `README.md`, `docs/methods.md` and
 
 Task 09 optimization is staged on `feat/09-efficiency-learnability` with
 `configs/task09.yaml` and a new study ID. Its CPU changes are not H200 accepted
-or frozen. Do not charge Task 09 profiling to the existing readiness allowance
-without separate authorization. The Task 08 frozen study remains launch ready
+or frozen. The user authorized Task 09 GPU readiness within the existing 24-hour
+allowance. Reconcile existing jobs and reservations before new submissions.
+The Task 08 frozen study remains launch ready
 and main training remains unauthorized. See the Task 09 plan and completion
 record for the pending dependency-scoped checks.
 

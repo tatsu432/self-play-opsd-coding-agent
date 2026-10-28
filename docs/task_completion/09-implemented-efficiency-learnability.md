@@ -2,18 +2,21 @@
 
 Status: implementation staged on `feat/09-efficiency-learnability`; **the new
 study is not launch ready**. Task 08 remains launch ready on its frozen source.
-No Task 09 GPU job or main A–D job was submitted.
+No main A–D job was submitted.
 
 ## Current blocker
 
 Task 09 cannot be declared ready for the main experiment until its changed
 execution path passes H200 numerical, memory, performance and recovery checks,
-followed by the relevant readiness gates, a new freeze and four previews. Task
-09 specification §8.4 requires an authorized GPU budget before profiling; no
-separate Task 09 H200 budget has been granted. The proposed first stage is at
-most four allocated GPU-hours on one H200, with live accounting reconciliation
-before submission. Its results may reveal further required checks or budget;
-four hours is a cap for the initial stage, not a guarantee of full readiness.
+followed by the relevant readiness gates, a new freeze and four previews. The
+user subsequently authorized GPU readiness work within the cumulative 24-hour
+limit. Allocation check 31091793 passed, charging 0.004166667 GPU-hours.
+Backend check 31091980 (run `28ef920a20330d57a75a1f6b`) is PENDING with one
+GPU-hour reserved. The ledger reported 4.238888889 committed GPU-hours including
+that reservation. The local watcher stopped; the Slurm job was not cancelled.
+Inspect `hpc status 28ef920a20330d57a75a1f6b` and reconcile accounting before
+continuing `hpc prepare-study --settings configs/task09.yaml --gpu-type h200
+--gpu-hours-limit 24 --stage backend --watch`. Never duplicate this job.
 
 The local Docker daemon was unavailable, so the new sandbox-backed trainer
 tests and hosted Linux/Docker CI remain unverified. This is an additional
@@ -93,8 +96,7 @@ are inspected, never resubmitted blindly.
 ## Next authorized stages
 
 1. Obtain hosted Linux/Docker CI for the new branch and fix any failures.
-2. Obtain separate authorization for at most four allocated H200 GPU-hours of
-   Task 09 benchmarking, then reconcile live Slurm and shared budget ledgers.
+2. Reconcile the existing backend job and shared budget before profiling.
 3. Benchmark default and candidate settings on fixed representative workloads,
    verify sampled-token/log-probability and optimizer parity, memory and recovery;
    accept only demonstrated end-to-end gains.
