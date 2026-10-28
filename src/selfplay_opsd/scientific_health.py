@@ -121,6 +121,15 @@ def summarize(root: Path, allocated_gpu_hours: float | None = None) -> dict:
                 "valid": c["valid"],
                 "successes": c["metrics"]["student"]["success_numerator"],
                 "student_grad_norm": c["metrics"]["student"]["grad_norm"],
+                "pre_update_logprob_abs_max": c["metrics"]["student"].get(
+                    "pre_update_logprob_abs_max"
+                ),
+                "pre_update_logprob_abs_mean": c["metrics"]["student"].get(
+                    "pre_update_logprob_abs_mean"
+                ),
+                "pre_update_logprob_abs_above_02_fraction": c["metrics"]["student"].get(
+                    "pre_update_logprob_abs_above_02_fraction"
+                ),
                 "alignment_near_zero_fraction": c["metrics"]["alignment"]["near_zero_fraction"],
             }
             for c in commits[-10:]

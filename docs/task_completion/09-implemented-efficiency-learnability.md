@@ -16,6 +16,15 @@ a correctly frozen study. Optional optimization benchmarks remain outstanding.
 The shared ledger reported 5.052777778/24 GPU-hours committed, with no active
 GPU reservation at this checkpoint. Reconcile live state before further work.
 
+The D pilot recorded maximum pre-update rollout/scoring log-probability
+differences up to 2.712; the existing backend probe checks only short synthetic
+sequences. The maxima alone do not establish prevalence or cause. Follow-on
+instrumentation records token-weighted mean absolute difference and fractions
+above 0.05 and 0.2, without changing losses. It changes the scientific code
+identity and uses new study `repair-selfplay-2026-efficiency-v2` in
+`configs/task09-diagnostics.yaml`. It requires target-hardware validation and
+does not make the v1 freeze launch ready.
+
 The new measured conditional planning estimates are A 75.84, B 72.90, C 75.08,
 and D 88.65 GPU-hours; observed-yield estimates are 16.31, 15.94, 16.39, and
 15.20 hours. These are scenarios, not guarantees, and exclude final evaluations.

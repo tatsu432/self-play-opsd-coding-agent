@@ -782,6 +782,24 @@ class SelfPlayTrainer:
                 "pre_update_logprob_abs_max": max(
                     (m["pre_update_logprob_abs_max"] for m in mapping_metrics), default=0
                 ),
+                "pre_update_logprob_abs_mean": (
+                    sum(m["pre_update_logprob_abs_sum"] for m in mapping_metrics)
+                    / sum(m["mapped_tokens"] for m in mapping_metrics)
+                    if sum(m["mapped_tokens"] for m in mapping_metrics)
+                    else None
+                ),
+                "pre_update_logprob_abs_above_005_fraction": (
+                    sum(m["pre_update_logprob_abs_above_005"] for m in mapping_metrics)
+                    / sum(m["mapped_tokens"] for m in mapping_metrics)
+                    if sum(m["mapped_tokens"] for m in mapping_metrics)
+                    else None
+                ),
+                "pre_update_logprob_abs_above_02_fraction": (
+                    sum(m["pre_update_logprob_abs_above_02"] for m in mapping_metrics)
+                    / sum(m["mapped_tokens"] for m in mapping_metrics)
+                    if sum(m["mapped_tokens"] for m in mapping_metrics)
+                    else None
+                ),
                 **student_metrics,
             },
             "distill": {

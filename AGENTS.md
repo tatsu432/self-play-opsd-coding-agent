@@ -43,6 +43,11 @@ continuation. The controller reports eligibility, but do not submit this study
 until a workload-based resource plan is bound to a correctly frozen study and
 the remaining performance validation is complete. Preserve the freeze for audit.
 
+The follow-on mismatch instrumentation uses `configs/task09-diagnostics.yaml`,
+study `repair-selfplay-2026-efficiency-v2`. It changes scientific code identity
+and is not accepted or frozen. Reuse dependency-compatible evidence and do not
+run main training from it before its own validation and measured resource plan.
+
 The last accepted readiness task is `docs/task/08-task-learnability-probe-spec.md`; its plan is
 `docs/plan/08-task-learnability-probe-plan.md`. Task 08 authorizes the common
 patch-format clarification, complete protocol hashing, a new study/data revision,

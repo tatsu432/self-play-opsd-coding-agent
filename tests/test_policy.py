@@ -5,7 +5,7 @@ import pytest
 import torch
 
 from selfplay_opsd.config import load_config
-from selfplay_opsd.core import canonical
+from selfplay_opsd.core import EpisodeRecord, OracleSpec, Status, TokenTurn, canonical
 from selfplay_opsd.diagnostics import _optimizer_digest, update_probe
 from selfplay_opsd.environment import append_context, run_episode, score_teacher
 from selfplay_opsd.policy import Generation, HFPolicy, LossExample
@@ -14,6 +14,52 @@ from selfplay_opsd.trainer import reference_examples, student_examples
 
 def model():
     return HFPolicy(load_config(study_id="unit", hardware_profile="cpu_debug"))
+
+
+def test_score_teacher_reports_logprob_error_counts():
+    policy = model()
+    history = [{"role": "system", "content": "repair"}, {"role": "user", "content": "task"}]
+    prompt = policy.encode_history(history)
+    targets = [7, 8, 9]
+    scores = policy.score(prompt, targets).tolist()
+    turn = TokenTurn(
+        prompt_ids=prompt,
+        target_ids=targets,
+        old_logps=[scores[0], scores[1] + 0.1, scores[2] + 0.3],
+        history=history,
+        raw_text="",
+        action="finish",
+        parse_status="valid",
+    )
+    episode = EpisodeRecord(
+        episode_id="episode",
+        task_id="task",
+        seed=1,
+        policy_version=policy.version("student"),
+        turns=[turn],
+        reward=0,
+        public_pass=False,
+        hidden_pass=False,
+        termination="finish",
+        status=Status.STUDENT_FAILURE,
+        final_source="",
+        final_source_hash="hash",
+        test_calls=0,
+        seconds=0,
+    )
+    oracle = OracleSpec(
+        task_id="task",
+        correct_source="def f(): pass",
+        inverse_patch="",
+        public_cases=[],
+        hidden_cases=[],
+        provenance={},
+    )
+    _, _, stats = score_teacher(policy, episode, oracle, policy.config.episode)
+    assert stats["mapped_tokens"] == 3
+    assert stats["pre_update_logprob_abs_sum"] == pytest.approx(0.4, abs=1e-5)
+    assert stats["pre_update_logprob_abs_above_005"] == 2
+    assert stats["pre_update_logprob_abs_above_02"] == 1
 
 
 def test_real_generation_reproducibility_and_causal_shift():
