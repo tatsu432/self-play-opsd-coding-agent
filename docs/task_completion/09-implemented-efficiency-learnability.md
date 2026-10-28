@@ -8,15 +8,16 @@ No main A–D job was submitted.
 
 The v2 runtime validation 31151547 and base evaluation 31156334 passed. D
 pilot 31158975 reached its verified iteration-two checkpoint; continuation
-31161158 was running when Yale connectivity was lost and its last fetched
-state contained four committed iterations. Mixed-reward gradient diagnostic
+31161158 completed all ten iterations with verified resume at iteration two,
+14 valid proposals, 56 episodes and eight actual steps for each optimizer.
+Mixed-reward gradient diagnostic
 31162121 completed successfully. Its diagnostic-only counterfactual compared
 the actual rollout-log-probability RL gradient against a ratio-one rescoring
 for one mixed-reward group `[0, 1, 0, 0]`: relative gradient L2 difference was
 0.09909 and cosine 0.99853. This single group does not establish the effect on
 learning, and no objective or optimizer step was changed. The pilot watcher
-exited on a lost SSH connection; the existing continuation was confirmed
-running after reconnection. Do not submit duplicates.
+exited on a lost SSH connection and was restarted after reconnection; it
+reported the existing run scientifically complete without another submission.
 
 On 2026-10-28 normal Yale Duo reauthentication restored access after a
 connection interruption. The last observed shared budget
