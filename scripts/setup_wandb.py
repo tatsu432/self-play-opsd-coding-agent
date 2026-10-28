@@ -31,9 +31,31 @@ def main():
         if not entity:
             raise SystemExit("No default entity; specify --entity")
     else:
-        entity = args.entity or input("Authorized W&B entity (account or team): ").strip()
+        entity = (
+            args.entity or input("W&B entity (Enter to discover your authorized default): ").strip()
+        )
         key = getpass.getpass("W&B API key (hidden): ").strip()
-    if not re.fullmatch(r"[A-Za-z0-9_-]+", entity) or not re.fullmatch(r"[A-Za-z0-9_-]+", key):
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", key):
+        raise SystemExit("Invalid key syntax; nothing written")
+    if not entity:
+        import httpx
+
+        try:
+            response = httpx.post(
+                "https://api.wandb.ai/graphql",
+                auth=("api", key),
+                json={"query": "query { viewer { username entity } }"},
+                timeout=20,
+            )
+            response.raise_for_status()
+            viewer = response.json()["data"]["viewer"]
+            entity = viewer["entity"]
+            print(f"Authenticated username: {viewer['username']}; default entity: {entity}")
+        except Exception as error:
+            raise SystemExit(
+                f"Could not discover entity ({type(error).__name__}); nothing written"
+            ) from None
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", entity):
         raise SystemExit("Invalid entity/key syntax; nothing written")
     path = args.path.expanduser().absolute()
     if path.exists():

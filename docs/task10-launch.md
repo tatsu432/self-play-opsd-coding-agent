@@ -9,10 +9,13 @@ for executed jobs, validation, costs and current GO/NO-GO status.
 
 ## Credentials and verified delivery
 
-Run standard login locally in a terminal. Do not paste the key into chat:
+Run the 0.22.3 login tool locally in a terminal. Version 0.22.3 supports
+new-format keys longer than 40 characters; the pinned trainer SDK 0.22.2
+rejects them in the interactive credential-save path. The isolated login tool
+does not modify the trainer lock/image. Do not paste the key into chat:
 
 ```bash
-uv run wandb login
+uv tool run --from wandb==0.22.3 wandb login
 uv run python scripts/setup_wandb.py --from-login "$HOME/.config/selfplay/wandb.env"
 ```
 
