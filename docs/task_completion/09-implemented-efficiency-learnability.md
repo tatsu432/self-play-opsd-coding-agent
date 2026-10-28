@@ -4,6 +4,27 @@ Status: implementation staged on `feat/09-efficiency-learnability`; **the new
 study is not launch ready**. Task 08 remains launch ready on its frozen source.
 No main A–D job was submitted.
 
+### Latest continuation and numerical diagnostic
+
+The v2 runtime validation 31151547 and base evaluation 31156334 passed. D
+pilot 31158975 reached its verified iteration-two checkpoint; continuation
+31161158 was running when Yale connectivity was lost and its last fetched
+state contained four committed iterations. Mixed-reward gradient diagnostic
+31162121 completed successfully. Its diagnostic-only counterfactual compared
+the actual rollout-log-probability RL gradient against a ratio-one rescoring
+for one mixed-reward group `[0, 1, 0, 0]`: relative gradient L2 difference was
+0.09909 and cosine 0.99853. This single group does not establish the effect on
+learning, and no objective or optimizer step was changed. The pilot watcher
+exited on a lost SSH connection; the existing continuation was confirmed
+running after reconnection. Do not submit duplicates.
+
+On 2026-10-28 normal Yale Duo reauthentication restored access after a
+connection interruption. The last observed shared budget
+was approximately 5.83/24 GPU-hours consumed, with reservations for the pilot
+continuation and diagnostic; it is not a reconciled final total. A/B/C v2
+acceptance, measured plan publication, freeze, previews and hosted CI remain
+outstanding. Main training remains unauthorized.
+
 Latest readiness: allocation 31091793 and backend 31091980 passed; runtime
 31092884 and greedy base 31133057 passed. D pilot 31138473/31141205 completed
 ten iterations with a verified resume from two, 15 valid proposals and 60
@@ -47,10 +68,10 @@ eager and 74669 MiB for graph configurations. These short samples do not prove
 long-context memory fit or end-to-end speed. None of these settings is promoted.
 
 The C shortcut was compared with actual backward computation in a tiny CPU
-model and matched exactly. H200 replay job 31155817 is queued to repeat that
-comparison on the checksummed iteration-nine checkpoint and equal-reward
-iteration-ten group. Updated-study allocation check 31155886 is also queued;
-inspect their existing ledgers before further submissions.
+model and matched exactly. H200 replay job 31155817 also matched exactly on
+the checksummed iteration-nine checkpoint and equal-reward iteration-ten group
+(candidate norm zero, reference norm 6.2220, reward 0.5). Updated-study
+allocation check 31155886 passed.
 
 The new measured conditional planning estimates are A 75.84, B 72.90, C 75.08,
 and D 88.65 GPU-hours; observed-yield estimates are 16.31, 15.94, 16.39, and
