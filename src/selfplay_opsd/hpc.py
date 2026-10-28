@@ -501,6 +501,8 @@ def run_payload(
         "checkpoint_iteration": checkpoint_iteration,
         "endpoint": endpoint if operation == "evaluate" else None,
     }
+    from selfplay_opsd.telemetry import telemetry_identity
+
     identity = hashlib.sha256(json.dumps(logical, sort_keys=True).encode()).hexdigest()
     planning = (
         state["reports"]["freeze"].get("resource_plan", {}).get("per_method", {}).get(method, {})
@@ -641,6 +643,7 @@ def run_payload(
         else "",
         "secrets_file": secrets_file or "",
         "logging_mode": cfg.logging.mode,
+        "telemetry_identity": telemetry_identity(),
     }
     if operation == "diagnose":
         payload["output"] = f"/runs/{cfg.study_id}/diagnostics/{checkpoint_iteration:06d}"

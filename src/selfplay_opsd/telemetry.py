@@ -470,3 +470,15 @@ def update_canonical_summary(run, payload: dict):
     summary = {k: None for k in run.summary.keys() if k.startswith(prefixes) and k not in payload}
     summary.update({k: v for k, v in payload.items() if not k.startswith("dashboard/")})
     run.summary.update(summary)
+
+
+def telemetry_identity() -> str:
+    package = Path(__file__).parent
+    project = package.parents[1]
+    return digest(
+        {
+            name: file_hash(package / name)
+            for name in ("observability.py", "telemetry.py", "wandb_tools.py")
+        }
+        | {name: file_hash(project / name) for name in ("uv.lock", "pyproject.toml")}
+    )

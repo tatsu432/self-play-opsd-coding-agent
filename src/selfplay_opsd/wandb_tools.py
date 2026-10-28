@@ -14,6 +14,7 @@ from selfplay_opsd.telemetry import (
     METHOD_NAMES,
     canonical_payload,
     canonical_snapshot,
+    telemetry_identity,
     update_canonical_summary,
 )
 
@@ -49,6 +50,7 @@ def verify(
         "sequence": sequence,
         "allocated_gpu_count": 0,
         "hostname": __import__("socket").gethostname(),
+        "telemetry_identity": telemetry_identity(),
     }
     base_url = os.getenv("WANDB_BASE_URL", "https://api.wandb.ai").rstrip("/")
     if base_url != "https://api.wandb.ai":

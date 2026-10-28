@@ -1620,6 +1620,9 @@ def precheck(payload: dict):
             not telemetry.get("ready")
             or not telemetry.get("cloud_verified")
             or telemetry.get("sequence") != 2
+            or telemetry.get("telemetry_identity") != payload.get("telemetry_identity")
+            or telemetry.get("telemetry_identity")
+            != study_state(payload)["reports"]["freeze"].get("telemetry_identity")
         ):
             raise ValueError(
                 "Online main launch requires allocated-node cloud metric and resume verification"

@@ -173,3 +173,46 @@ def test_allocation_telemetry_counts_all_attempts_once(tmp_path, monkeypatch):
             time.sleep(0.01)
     sample = json.loads(output.read_text())
     assert sample["allocated_gpu_hours"] == 1.5
+
+
+def test_reused_smoke_source_is_not_redirected_by_current_allocation(tmp_path, monkeypatch):
+    from selfplay_opsd.config import load_config
+    from selfplay_opsd.method_smoke import SMOKE_CHECKS, smoke_config, verify_smoke
+    from selfplay_opsd.storage import CheckpointManager
+
+    source_cfg = load_config(study_id="old", hardware_profile="cpu_debug", output_root=tmp_path)
+    cfg = source_cfg.model_copy(update={"study_id": "new"}, deep=True)
+    expected = smoke_config(source_cfg, "A")
+    identity = {"manifest_hash": "manifest"}
+    monkeypatch.setattr("selfplay_opsd.readiness.execution_identity", lambda cfg: identity)
+    monkeypatch.setenv("SELFPLAY_MAIN_STUDY", "new")
+    monkeypatch.setenv("SELFPLAY_GPU_TYPE", "h100")
+    checkpoint = CheckpointManager(expected.run_dir).save(
+        3,
+        {},
+        {
+            "iteration": 3,
+            "scientific_hash": expected.scientific_hash,
+            "runtime_identity": identity,
+            "manifests_hash": "manifest",
+        },
+    )
+    report = {
+        "ready": True,
+        "method": "A",
+        "runtime_identity": identity,
+        "smoke_runtime_identity": identity,
+        "common_settings": cfg.scientific_settings(common=True, calibration=True),
+        "hardware": cfg.hardware.model_dump(mode="json"),
+        "gpu_type": "h100",
+        "checks": dict.fromkeys(SMOKE_CHECKS, True),
+        "checkpoint_marker_sha256": file_hash(checkpoint / "complete.json"),
+    }
+    source = tmp_path / "readiness/old/method-smokes/A.json"
+    atomic_json(source, report)
+    reused = report | {"reuse_provenance": {"source_study": "old", "sha256": file_hash(source)}}
+    atomic_json(tmp_path / "readiness/new/method-smokes/A.json", reused)
+    assert verify_smoke(cfg, "A") == reused
+    atomic_json(source, report | {"ready": False})
+    with pytest.raises(Exception, match="provenance"):
+        verify_smoke(cfg, "A")

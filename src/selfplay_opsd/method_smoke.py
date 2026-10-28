@@ -55,7 +55,11 @@ def verify_smoke(config: RunConfig, method: str) -> dict:
         if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]*", source_study):
             raise ExperimentError("Unsafe reused smoke study")
         source_config = config.model_copy(update={"study_id": source_study}, deep=True)
-        source = smoke_path(source_config, method)
+        # SELFPLAY_MAIN_STUDY redirects this allocation's evidence root. It
+        # must not redirect the historical source being verified.
+        source = (
+            config.output_root / "readiness" / source_study / "method-smokes" / f"{method}.json"
+        )
         original = read_json(source)
         if (
             file_hash(source) != reuse["sha256"]

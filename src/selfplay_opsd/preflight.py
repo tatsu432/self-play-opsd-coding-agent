@@ -179,8 +179,11 @@ def freeze_study(config: RunConfig, pilot: Path) -> dict:
     report = read_json(pilot)
     root = config.output_root / config.study_id
     root.mkdir(parents=True, exist_ok=True)
+    from selfplay_opsd.telemetry import telemetry_identity
+
     payload = {
         "schema_version": 2,
+        "telemetry_identity": telemetry_identity(),
         "study_id": config.study_id,
         "gpu_type": os.getenv("SELFPLAY_GPU_TYPE", "h100"),
         "pilot_suffix": os.getenv("SELFPLAY_PILOT_SUFFIX", "-pilot"),
