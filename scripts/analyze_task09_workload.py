@@ -6,6 +6,9 @@ import argparse
 import json
 from pathlib import Path
 
+from selfplay_opsd.config import load_config
+from selfplay_opsd.core import digest
+from selfplay_opsd.readiness import hardware_settings
 from selfplay_opsd.storage import active_events, all_events, read_json
 from selfplay_opsd.workload import project_method
 
@@ -13,6 +16,7 @@ from selfplay_opsd.workload import project_method
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("study_root", type=Path, help="Fetched fetch-study output directory")
+    parser.add_argument("--settings", type=Path, default=Path("configs/task09.yaml"))
     parser.add_argument("--suite-seconds", type=float, required=True)
     parser.add_argument("--pilot-seconds", type=float, required=True)
     parser.add_argument("--baseline-seconds", type=float, required=True)
@@ -20,7 +24,8 @@ def main() -> None:
     if min(args.suite_seconds, args.pilot_seconds, args.baseline_seconds) <= 0:
         parser.error("Allocated seconds must be positive reconciled Slurm accounting")
     root = args.study_root
-    prefix = "repair-selfplay-2026-efficiency-v1"
+    config = load_config(args.settings)
+    prefix = config.study_id
     readiness = root / "readiness/method-smokes"
     records = {}
     spans = {}
@@ -57,7 +62,29 @@ def main() -> None:
             acceptance_only_seconds=fixtures[method],
             diagnostic_seconds_per_valid=projections["D"]["diagnostic_seconds_per_valid_p90"],
         )
-    print(json.dumps({"suite_allocated_seconds": allocations, "per_method": projections}, indent=2))
+    pilot_report = read_json(pilot / "pilot_report.json")
+    baseline = read_json(root / prefix / "base/evaluation_complete.json")
+    method_reports = {method: read_json(readiness / f"{method}.json") for method in "ABC"}
+    result = {
+        "schema_version": 1,
+        "runtime_identity": pilot_report["runtime_identity"],
+        "common_config": config.scientific_settings(common=True),
+        "pilot_hash": digest(pilot_report),
+        "baseline_hash": digest(baseline),
+        "method_hashes": {method: digest(report) for method, report in method_reports.items()},
+        "checkpoint_every": config.checkpoint_every,
+        "hardware": hardware_settings(config.hardware.model_dump(mode="json")),
+        "gpu_type": "h200",
+        "suite_allocated_seconds": allocations,
+        "suite_shared_seconds": remaining,
+        "pilot_allocated_seconds": args.pilot_seconds,
+        "baseline_allocated_seconds": args.baseline_seconds,
+        "per_method": projections,
+        "total_planning_gpu_hours": sum(
+            row["planning_projection_200_hours"] for row in projections.values()
+        ),
+    }
+    print(json.dumps(result, indent=2))
 
 
 if __name__ == "__main__":

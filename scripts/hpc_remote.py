@@ -1723,6 +1723,74 @@ def reuse_worker(payload: dict) -> dict:
     return {"ready": True, "evidence": str(target), "provenance": reused["reuse_provenance"]}
 
 
+def publish_resource_plan(payload: dict) -> dict:
+    """Publish a measured plan once, before the immutable study freeze."""
+    study = payload["study_id"]
+    if not SAFE_NAME.fullmatch(study):
+        raise ValueError("Unsafe study name")
+    if payload.get("pilot_suffix") not in {"-pilot", "-pilot-h200"}:
+        raise ValueError("Invalid pilot suffix")
+    if type(payload.get("seed")) is not int or payload["seed"] < 0:
+        raise ValueError("Invalid seed")
+
+    def read(path):
+        return json.loads(path.read_text()) if path.is_file() else {}
+
+    base = workspace(payload)
+    root = base / "runs" / study
+    evidence = base / "runs/readiness" / study / "method-smokes"
+    plan = payload["plan"]
+    pilot = read(
+        base
+        / "runs"
+        / (study + payload["pilot_suffix"])
+        / f"D-seed{payload['seed']}/pilot_report.json"
+    )
+    baseline = read(root / "base/evaluation_complete.json")
+    methods = {m: read(evidence / f"{m}.json") for m in "ABC"}
+
+    def digest_json(value):
+        encoded = json.dumps(
+            value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False
+        ).encode()
+        return hashlib.sha256(encoded).hexdigest()
+
+    if (
+        not pilot
+        or not baseline.get("ready")
+        or not all(r.get("ready") for r in methods.values())
+        or plan.get("runtime_identity") != pilot.get("runtime_identity")
+        or baseline.get("runtime_identity") != plan.get("runtime_identity")
+        or any(r.get("runtime_identity") != plan.get("runtime_identity") for r in methods.values())
+        or plan.get("common_config") != payload["common_config"]
+        or plan.get("hardware") != payload["hardware"]
+        or plan.get("checkpoint_every") != payload["checkpoint_every"]
+        or plan.get("gpu_type") != payload["gpu_type"]
+        or plan.get("pilot_hash") != digest_json(pilot)
+        or plan.get("baseline_hash") != digest_json(baseline)
+        or plan.get("method_hashes") != {m: digest_json(r) for m, r in methods.items()}
+    ):
+        raise ValueError("Resource plan does not match measured study evidence")
+    for method in "ABCD":
+        entry = plan["per_method"][method]
+        if not (
+            0 < entry["planning_projection_200_hours"] < float("inf")
+            and type(entry["signal_seconds"]) is int
+            and 300 <= entry["signal_seconds"] <= 65535
+            and type(entry["max_continuations"]) is int
+            and 1 <= entry["max_continuations"] <= 32
+        ):
+            raise ValueError("Invalid resource plan continuation envelope")
+    path = root / "resource_plan.json"
+    with locked(base / "state/.resource-plan.lock"):
+        if (root / "study_frozen.json").exists():
+            raise ValueError("Study is frozen; use a new study ID")
+        if path.exists() and read(path) != plan:
+            raise ValueError("A different resource plan already exists")
+        write_json(path, plan)
+    return {"ready": True, "path": str(path), "sha256": sha256(path)}
+
+
 COMMANDS = {
     "inspect": inspect,
     "context": context,
@@ -1739,6 +1807,7 @@ COMMANDS = {
     "recover": recover,
     "recover_allocation": recover_allocation,
     "reuse_worker": reuse_worker,
+    "publish_resource_plan": publish_resource_plan,
 }
 
 

@@ -739,6 +739,39 @@ def inspect(alias: Annotated[str, typer.Option()] = ALIASES[0]):
     output(YaleSSH(alias).call("inspect"))
 
 
+@app.command("publish-resource-plan")
+def publish_resource_plan_command(
+    settings: Annotated[Path, typer.Option("--settings")],
+    plan: Annotated[Path, typer.Option("--plan")],
+    gpu_type: str = "h200",
+    alias: str = ALIASES[0],
+):
+    """Publish a measured, evidence-bound plan before freezing a study."""
+    from selfplay_opsd.readiness import hardware_settings
+
+    if alias != ALIASES[0] or gpu_type not in {"h100", "h200"}:
+        raise HpcError("Resource plan publication requires an authorized Yale target")
+    config = load_config(settings)
+    remote = YaleSSH(alias)
+    context = remote_context(remote, alias)
+    output(
+        remote.call(
+            "publish_resource_plan",
+            {
+                "storage_root": context["storage_root"],
+                "study_id": config.study_id,
+                "seed": config.seed,
+                "pilot_suffix": "-pilot" if gpu_type == "h100" else "-pilot-h200",
+                "gpu_type": gpu_type,
+                "checkpoint_every": config.checkpoint_every,
+                "common_config": config.scientific_settings(common=True),
+                "hardware": hardware_settings(config.hardware.model_dump(mode="json")),
+                "plan": json.loads(plan.read_text()),
+            },
+        )
+    )
+
+
 @app.command("login")
 def login_command(alias: Annotated[str, typer.Option()] = ALIASES[0]):
     """Establish a normal MFA authenticated SSH master connection."""

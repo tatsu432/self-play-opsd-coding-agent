@@ -30,6 +30,56 @@ def endpoint():
     return module
 
 
+def test_resource_plan_publication_checks_evidence_and_freeze(tmp_path, monkeypatch):
+    from selfplay_opsd.core import digest
+
+    remote = endpoint()
+    monkeypatch.setattr(remote, "workspace", lambda _: tmp_path)
+    runs = tmp_path / "runs"
+    study = "study-v2"
+    identity = {"code_hash": "identity"}
+    pilot = {"runtime_identity": identity}
+    baseline = {"ready": True, "runtime_identity": identity}
+    methods = {m: {"ready": True, "method": m, "runtime_identity": identity} for m in "ABC"}
+    atomic_json(runs / f"{study}-pilot-h200/D-seed2026/pilot_report.json", pilot)
+    atomic_json(runs / study / "base/evaluation_complete.json", baseline)
+    for method, report in methods.items():
+        atomic_json(runs / f"readiness/{study}/method-smokes/{method}.json", report)
+    common = {"study_id": study}
+    hardware = {"gpu_count": 1}
+    plan = {
+        "runtime_identity": identity,
+        "common_config": common,
+        "hardware": hardware,
+        "checkpoint_every": 1,
+        "gpu_type": "h200",
+        "pilot_hash": digest(pilot),
+        "baseline_hash": digest(baseline),
+        "method_hashes": {m: digest(r) for m, r in methods.items()},
+        "per_method": {
+            m: {"planning_projection_200_hours": 40, "signal_seconds": 4000, "max_continuations": 5}
+            for m in "ABCD"
+        },
+    }
+    payload = {
+        "study_id": study,
+        "seed": 2026,
+        "pilot_suffix": "-pilot-h200",
+        "gpu_type": "h200",
+        "checkpoint_every": 1,
+        "common_config": common,
+        "hardware": hardware,
+        "plan": plan,
+    }
+    assert remote.publish_resource_plan(payload)["ready"]
+    assert remote.publish_resource_plan(payload)["ready"]
+    with pytest.raises(ValueError, match="does not match"):
+        remote.publish_resource_plan(payload | {"plan": plan | {"baseline_hash": "stale"}})
+    atomic_json(runs / study / "study_frozen.json", {"frozen": True})
+    with pytest.raises(ValueError, match="frozen"):
+        remote.publish_resource_plan(payload)
+
+
 def test_budget_reserves_atomically_and_keeps_unknown_accounting(tmp_path, monkeypatch):
     remote = endpoint()
     monkeypatch.setattr(remote, "workspace", lambda _: tmp_path)
