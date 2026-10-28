@@ -188,10 +188,9 @@ class YaleSSH:
         result = subprocess.run(
             [
                 "rsync",
-                "-a",
-                "--no-perms",
-                "--no-owner",
-                "--no-group",
+                # Fetch contents/timestamps without replaying remote checkpoint
+                # directory modes (Apple openrsync otherwise fails fchmodat).
+                "-rlt",
                 "--checksum",
                 *excludes,
                 "-e",
