@@ -612,7 +612,7 @@ def run_payload(
         "seed": cfg.seed,
         "iterations": cfg.iterations if operation == "train" else iterations,
         "resume": resume,
-        "output": f"/runs/readiness/{cfg.study_id}/rollout-parity"
+        "output": f"/runs/readiness/{cfg.study_id}/rollout-parity/{identity[:24]}"
         if operation == "rollout-parity"
         else f"/runs/compatibility/backend-v2/{profile}"
         if operation == "backend-check"

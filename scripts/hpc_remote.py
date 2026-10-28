@@ -928,7 +928,7 @@ def artifact_dir(payload: dict) -> Path:
     if operation == "method-smoke":
         return runs / "readiness" / study / "method-smokes"
     if operation == "rollout-parity":
-        return runs / "readiness" / study / "rollout-parity"
+        return runs / "readiness" / study / "rollout-parity" / payload["run_id"]
     if operation in {
         "worker-check",
         "runtime-check",

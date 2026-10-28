@@ -57,6 +57,9 @@ def test_replay_counts_real_token_errors_and_keeps_request_order(tmp_path, monke
         def score(self, prompt, targets):
             return torch.tensor([0.0, 0.0])
 
+        def score_many(self, requests):
+            return [self.score(prompt, targets) for prompt, targets in requests]
+
         def generate(self, prompt, max_tokens, seed):
             return Generation([seed], [-0.1], str(seed))
 
