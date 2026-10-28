@@ -1,6 +1,9 @@
 # Task 10 — online launch and recovery
 
-Main A–D training still requires explicit authorization. Use this workflow with
+**Current recommendation: NO-GO for an unqualified main launch pending the
+measured proposer numerical-sensitivity decision.** Main A–D training still
+requires explicit scientific-risk acceptance or an approved correction, and
+separate GPU-hour authorization. Use this workflow with
 `configs/task10-online.yaml`, study `repair-selfplay-2026-main-online-v1`.
 Frozen execution is `54f087fdc5cf5170800d825bf1ee92b89a43c8ed` (CPU freeze
 31206522). The original Task 09 v2 freeze remains available as a separate offline fallback.
@@ -215,8 +218,14 @@ After stopping the original W&B writer and fetching a full trusted run:
 uv run selfplay wandb-reconcile --run-dir FETCHED_METHOD_DIRECTORY
 # Produce a safe aggregate-only offline recovery segment if disconnected:
 uv run selfplay wandb-reconcile --run-dir FETCHED_METHOD_DIRECTORY --offline
-uv run selfplay wandb-sync --path SAFE_AGGREGATE_OFFLINE_SEGMENT
+uv run wandb sync --entity tatsu432s --project self-play-opsd-coding-agent --id LOGICAL_WANDB_RUN_ID --append --skip-console SAFE_AGGREGATE_OFFLINE_SEGMENT
 ```
+
+Prefer online `wandb-reconcile` after connectivity returns. An offline recovery
+archive has its own local SDK ID: specify the original logical W&B ID with
+`--id --append` when explicitly synchronizing it, or a companion cloud run will
+be created. Scalar appended history remains audit data; rerun online reconciliation
+to verify the final canonical cloud revision.
 
 Do not bulk-sync historical pre-Task-10 offline runs: they may contain raw
 example tables. The reconciler verifies the latest checkpoint, takes a writer

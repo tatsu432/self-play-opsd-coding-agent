@@ -39,12 +39,15 @@ no main training job was submitted, and main training remains unauthorized.
 Use `docs/task10-launch.md` and the Task 10 completion record. Credentials remain
 outside Git in private files. Login uses isolated W&B 0.22.3 for new-format keys;
 the frozen trainer SDK/image/lock remain unchanged and online delivery is proven.
-The bounded numerical replay 31208618 / `ba904652d21c9dfa5205bbda` is active at
-this checkpoint; inspect it before further GPU work. Its 50-minute cap plus the
-92-second failed pre-model launcher attempt stays below one allocated GPU-hour.
-Do not reset the cumulative 24-hour ledger or duplicate that diagnostic. Task 09
-and Task 08 freezes below remain separate preserved baselines.
-
+Task 10's final recommendation is **NO-GO for unqualified main launch pending
+scientific review of material proposer numerical sensitivity**. Student total
+counterfactual gradient cosines were about 0.9986, but the actual-D proposer
+counterfactual Adam-update cosine was 0.58968. No estimator/science correction
+was adopted. Replays 31208618 and 31212941 completed; the shared locked ledger
+is reconciled at **7.79/24 allocated GPU-hours**, zero reservation, no active
+Slurm job/watcher. Do not repeat probes to seek a different outcome or treat
+controller eligibility as scientific risk acceptance. Task 09 and Task 08
+freezes below remain separate preserved baselines.
 
 Task 09 v2 is launch ready with caveats on `feat/09-efficiency-learnability`,
 `configs/task09-diagnostics.yaml`, study `repair-selfplay-2026-efficiency-v2`.

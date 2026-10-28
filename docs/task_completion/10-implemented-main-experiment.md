@@ -1,8 +1,24 @@
 # Task 10 — main launch engineering
 
-Status: online monitoring, freeze and four actual main previews are validated;
-final numerical assessment is running. **Main A–D training has not been submitted
-and remains unauthorized.**
+Status: **NO-GO for an unqualified main launch: numerical scientific review is
+required.** Online monitoring, mechanical readiness, freeze, recovery and four
+actual main previews are validated. Main A–D training remains unauthorized and
+unsubmitted. The numerical investigation is complete within its bounded budget;
+it found material proposer sensitivity, not a proven indexing/serialization bug.
+
+| Decision item | Result |
+|---|---|
+| Numerical issue | Quantified; material proposer gradient/update sensitivity remains |
+| Training/checkpoint/recovery mechanics | Passed existing real evidence and new scoped tests |
+| Frozen scientific design | Preserved exactly; no denominator/objective correction adopted |
+| Live W&B | Verified from allocated compute and four synthetic method fixtures |
+| Compute plan | Bound to freeze; conditional scenarios remain reasonable, not upper bounds |
+| Main launch | Requires a scientific risk decision and separate GPU-hour authorization |
+
+The controller's eligibility flag measures its existing immutable readiness gates;
+it is currently true. It does not supersede this Task 10 scientific recommendation
+or provide spending authorization. No new arbitrary success-rate or automatic
+scientific stopping gate was introduced.
 
 ## Implemented behavior
 
@@ -24,24 +40,31 @@ to the frozen telemetry implementation and a persistent secrets-file path.
 
 Added standard `wandb login` credential provisioning, `wandb-verify`,
 `wandb-reconcile`, CPU-only controller verification, dependency-checked
-`hpc reuse-study`, saved-token `numerical-audit`, and health cutoffs at 5/10/20.
+`hpc reuse-study`, saved-token `numerical-audit`/`proposer-audit`, and health
+cutoffs at 5/10/20.
 Slurm accounting sampling counts all attempts once without double-counting
 GPU TRES. No worker, objective, prompt, sampler or optimizer implementation was
 changed. There is no new automatic scientific-underperformance stop.
 
 ## Validation and operations
 
-Local CPU suite passed 240 tests with 33 environment-dependent skips and three
-deselections; lint and mypy passed. Subsequent controller/rollback checks passed
-39 focused tests.
+Final local CPU suite passed **244 tests**, with 33 environment-dependent skips
+and four deselections; lint, format checks and mypy passed. The separate opt-in
+real cloud test passed. Scoped proposer/CLI/controller tests passed 19 tests,
+and the injected reconnect/SDK test passed.
 Focused tests cover private upload boundaries, checkpoints, rollback, stable IDs,
 SDK failure isolation, pinned SDK table/chart serialization, scientific RNG,
 all A–D numerical counterfactuals without steps, accounting, and exact reuse.
 Frozen-source hosted Linux/Docker CI **40784025848** passed **272 tests**,
 one skipped and three deselected. Controller CI **40784625055** also passed.
+Final diagnostic-source hosted CI **40788699300** and PR CI **40788704401**
+also passed for commit `3798eea`.
 The opt-in cloud sink test passed all four methods with real cloud readback.
-A subsequent injected delivery-interruption test verified reconnect/replay. CPU tests alone do not prove
-online W&B, H200 numerical results or worker readiness.
+Offline aggregate archive creation followed by online reconciliation also passed
+with cloud revision readback ([synthetic recovery run](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/task10recovery-0ba19f4105fe)).
+An injected delivery-interruption test verified reconnect/replay. CPU tests alone
+do not prove online W&B, H200 numerical results or worker readiness; the actual
+cloud and allocated diagnostics supply those dependency-scoped observations.
 
 Dependency-checked evidence reuse from Task 09 succeeded. CPU freeze attempt
 31205612 failed before publishing a freeze because the allocation's
@@ -134,8 +157,8 @@ to correct saved-proposal parsing. Attempt 31207388 failed before model load
 because the new CLI hardware argument was positional while the controller used
 `--hardware`; it charged 92 seconds (0.025555556 GPU-hours). This avoidable
 launcher defect was fixed and has a direct CLI regression. The replacement
-**31208618**, run `ba904652d21c9dfa5205bbda`, has a **50-minute cap**, keeping
-all actual Task 10 diagnostic allocations together below one GPU-hour. It is a
+**31208618**, run `ba904652d21c9dfa5205bbda`, completed in **911 seconds**,
+with a 50-minute cap. It is a
 manual corrected launch after confirmed failure, not an automatic retry or a
 repeat for a different stochastic outcome. The replacement performs no
 sampling, candidate execution or optimizer steps.
@@ -143,8 +166,80 @@ sampling, candidate execution or optimizer steps.
 Initial and later saved-token replay statistics reproduce Task 09 exactly.
 New proposer measurements are mean absolute discrepancy 0.002691/0.002187,
 p99 0.07377/0.04848, maximum 0.4873/0.3087, with 9/1690 and 5/1228 tokens
-outside the ratio clipping interval. Complete RL/OPSD/C/D consequences are
-being measured by the same bounded allocation.
+outside the ratio clipping interval. The same allocation completed the full student/OPSD/alignment assessment.
+All comparisons below use saved D snapshots; method labels denote objective
+counterfactuals at that snapshot, not four separately trained main runs.
+
+| Student objective | RL cosine / relative L2 | OPSD cosine / relative L2 | Total cosine / relative L2 |
+|---|---|---|---|
+| A | 0.99852 / 10.31% | 0.99763 / 7.25% | 0.99835 / 9.63% |
+| B | 0.99853 / 10.13% | 0.95193 / 30.63% | 0.99857 / 10.21% |
+| C | 0.99852 / 10.16% | 0.95189 / 30.65% | 0.99857 / 10.37% |
+| D | 0.99852 / 10.44% | 0.95178 / 30.68% | 0.99858 / 10.01% |
+
+Relative L2 values use the trainer-rescored vector norm as denominator; they
+are counterfactual sensitivities, not errors against a ground-truth gradient.
+
+The mixed snapshot contains 3 tasks, 12 episodes, 93 turns and 5,397 tokens.
+There were 41 tokens outside the ratio clip interval but only **3 actively
+clipped student tokens**, because clipping also depends on advantage sign.
+Mean/max absolute gate change was **0.000556 / 0.16314**; gap-clipping membership
+changed for two tokens. C's maximum reward change was **0.0000271**; D's was
+**0.0078613**. Two equal-reward C candidates remained exactly zero with neutral
+reward. D's two OPSD-only candidates had relative gradient changes about 38–39%,
+although alignment signs and candidate reward ordering were preserved.
+
+Student first-token errors were tiny (max 0.00114/0.00087 at initial/later
+snapshots), with outliers predominantly later. Proposer first-token errors were
+larger in those snapshots (max 0.45065/0.24215), so student boundary agreement
+cannot be generalized to the proposer. These saved contexts were all below
+2,048 tokens; full-budget long-context numerical behavior remains unmeasured.
+No unsupported long-context or bitwise-parity claim is made.
+
+### Proposer consequence and bounded confirmation
+
+The first replay showed a large proposer counterfactual effect even with fixed
+difficulty rewards. This justified **one focused follow-up**, CPU-tested before
+submission, using the same saved proposals and actual stored D rewards.
+Job **31212941**, controller run `3a1da2fa9d3e4e65207a3deb`, completed in
+**120 seconds** with a 30-minute cap. Each hypothetical Adam step restored both
+adapters, optimizer state and RNG from the trusted iteration-one joint checkpoint;
+the original proposer version was verified after restoration. No updated model
+or checkpoint was promoted. Original source optimizer step counts were one.
+
+| Fixed reward case | Behavior / rescored gradient norm | Gradient cosine | Adam delta cosine | Adam delta relative L2 |
+|---|---|---:|---:|---:|
+| Actual saved D rewards | 0.24680 / 0.01609 | **−0.77112** | **0.58968** | **97.38%** |
+| Difficulty counterfactual at the same D checkpoint | 0.25364 / 0.00479 | 0.00819 | 0.67645 | 87.49% |
+
+Eight proposer examples had nonzero advantages, covering 558 active tokens.
+Only **one active token** was clipped with behavior denominators. The
+trainer-rescored denominator gave exactly zero pre-update log-ratio discrepancy
+on these tokens, ruling out a train/eval scoring mismatch in this sample.
+Repeated behavior-denominator gradients were stable (cosines 0.99982/0.99986,
+relative L2 1.89%/1.69%). Rescored gradients were much smaller and cancellation
+sensitive: repeat cosines 0.89938/0.04002, relative L2 45.0%/138.2%.
+
+This is **estimator sensitivity**, not a proof that the behavior-denominator
+implementation is mathematically wrong. The behavior denominator represents the
+actual sampler and must not be replaced merely to force ratios to one. However,
+the measured effect is too large to label the proposer discrepancy harmless.
+The exact BF16/attention/LoRA kernel source was not isolated. Indexing, masks,
+serialization, sampled IDs and snapshot identities passed the scoped audit.
+A scientific decision is needed: explicitly accept the retained estimator's
+measured sensitivity for A-first, or authorize a narrowly scoped scoring
+consistency correction with a new immutable study and affected validation.
+No additional broad readiness cycle is recommended, and no correction was
+silently adopted.
+
+### Final accounting
+
+The existing locked controller reconciler durably updated the shared ledger:
+**7.790000000 / 24 allocated GPU-hours consumed**, zero outstanding reservation,
+no active user Slurm job and no watcher. Task 10 GPU use was **0.311944444 hours**
+(92 + 911 + 120 allocated seconds); the cancelled pending job used zero.
+Authorization remains `cpsc4880-readiness-24h-v1`. No allowance was reset.
+CPU freeze and W&B checks used no GPUs.
 
 ## Runtime scenarios and staged authorization
 
@@ -166,8 +261,41 @@ The [launch/recovery workflow](../task10-launch.md) contains copyable commands,
 the metric mapping, privacy boundaries, interpretation and missing measurements.
 Executed: synchronization, evidence reuse, two CPU freeze attempts, local and
 allocated-node cloud verification, the opt-in four-method cloud sink test,
-four main previews, fetch/status/log inspection, and bounded numerical diagnostics.
+four main previews, fetch/status/log inspection, and bounded numerical diagnostics including restored Adam updates.
 Prepared only: actual main A/B/C/D submissions, their continuation/watch commands,
 and final evaluations. Main spending and final-evaluation spending require
 separate authorization. Branch: `feat/10-main-online`; [draft PR #1](https://github.com/tatsu432/self-play-opsd-coding-agent/pull/1).
 No persistent scheduler service, network tunnel or login-node daemon was added.
+
+
+## Code and validation references
+
+Branch `feat/10-main-online`; draft PR #1 contains the complete diff. Key commits:
+`2fd0d3b` initial telemetry/controller implementation; `54f087f` frozen operational
+execution; `f868b2e` diagnostic CLI/cap correction; `6616306` four-method real cloud
+integration test; `3798eea` proposer repeatability and restored-Adam diagnostic.
+The original frozen source and SIFs remain available.
+
+Changed interfaces: `wandb-verify`, `wandb-reconcile`, `hpc reuse-study`,
+`numerical-audit`, `proposer-audit`, and `scientific_health --through-iteration`.
+Changed subsystems: aggregate telemetry projection/sink, controller/standard-library
+allocation endpoint, evidence reuse verification, CLI, scoped diagnostics,
+regression/integration tests and operational documentation. `trainer.py`,
+`policy.py`, `verl_backend.py`, `vllm_worker.py`, objectives, protocol, model/data,
+`pyproject.toml`, `uv.lock` and container definitions were not changed.
+
+Primary artifacts remain on Yale and were fetched under their controller run IDs.
+Numerical input hashes: episode shard
+`95ebcde968f4007390422dfaebbcb0ef719cdfb16343664a21c642bc204c2ae6`,
+proposal shard `c5af99a252b515a0c8493b56672bcae9f77f245c75d749ce7df1c7896ba67060`,
+joint checkpoint marker `a38386c566e109f19c7f557003d47c74764ed9bea3dea54d1c42cbef825197ac`.
+
+
+Final report file SHA-256 values: `numerical-audit.json`
+`06c5e2e0aca8bb995985cb4e74b4d154190484529de56842e387c6b3e56db458`;
+`proposer-audit.json`
+`a85958f5cb87d51dae9973cfa7206cfbee42f580e2d27e326d97d023e9a91e63`.
+Optional batching, CUDA Graphs, prefix caching and larger scoring microbatches
+remain disabled. Preserved older freezes must not be used to bypass the new
+numerical review; the measured backend sensitivity is not removed by reverting
+operational documentation or logging configuration.
