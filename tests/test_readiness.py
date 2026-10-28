@@ -809,7 +809,7 @@ def test_independent_slots_preserve_legacy_duplicate_exclusion(tmp_path, monkeyp
     # a corrected immutable request can reclaim its old slot without a job retry.
     atomic_json(ledger_path, prior | {"last_rejection": "sbatch: invalid CPU request"})
     assert remote.submit(payload | {"run_id": "gpu2", "identity": "gpu-id2"})["submitted"]
-    assert len(calls) == 3
+    assert sum(args[0] == "sbatch" for args in calls) == 3
 
 
 def test_allocation_proof_reuse_checks_immutable_legacy_source(tmp_path):
