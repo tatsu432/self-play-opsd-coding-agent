@@ -37,10 +37,20 @@ On 16 fixed initial proposer requests, warm sequential and batch generation
 took 52.80 and 6.29 seconds, with identical output IDs, but the maximum difference
 between sampled log-probabilities was 1.229. Scoring microbatches 2 and 4 had
 maximum differences of 1.037 versus size 1. These options are **not accepted for
-main training**. Follow-on jobs 31154488, 31154500, 31154505 and 31154513 compare
-the baseline, prefix cache, CUDA Graphs and their combination; reconcile their
-existing ledgers before further submissions. A diagnostic comparison of C's
-zero-gradient shortcut to the original backward pass is being prepared.
+main training**. Follow-on jobs 31154488, 31154500, 31154505 and 31154513
+completed baseline, prefix cache, CUDA Graphs and combined comparisons. Warm
+sequential/batched times were 54.59/6.55, 55.79/5.80, 11.51/1.66 and 11.48/1.55
+seconds respectively. Batch versus sequential IDs matched for 15/16, 14/16,
+14/16 and 16/16 requests; matching-ID token log-probability differences exceeded
+0.2 on 3, 7, 4 and 11 tokens. Whole-device sampled peaks were 73647 MiB for
+eager and 74669 MiB for graph configurations. These short samples do not prove
+long-context memory fit or end-to-end speed. None of these settings is promoted.
+
+The C shortcut was compared with actual backward computation in a tiny CPU
+model and matched exactly. H200 replay job 31155817 is queued to repeat that
+comparison on the checksummed iteration-nine checkpoint and equal-reward
+iteration-ten group. Updated-study allocation check 31155886 is also queued;
+inspect their existing ledgers before further submissions.
 
 The new measured conditional planning estimates are A 75.84, B 72.90, C 75.08,
 and D 88.65 GPU-hours; observed-yield estimates are 16.31, 15.94, 16.39, and
