@@ -458,3 +458,75 @@ def test_slurm_wrapper_runs_the_pinned_image_without_host_venv(tmp_path):
     _, stderr = process.communicate(timeout=5)
     assert process.returncode == 0, stderr
     assert (runs / "fixture/D-seed2026/state/stop_requested.123").is_file()
+
+
+@pytest.mark.parametrize("operation,expected_iterations", [("train", 200), ("pilot", 7)])
+def test_main_preview_uses_frozen_main_budget_and_resource_plan(
+    monkeypatch, operation, expected_iterations
+):
+    from selfplay_opsd import hpc
+
+    class Remote:
+        def call(self, name, *args):
+            if name == "context":
+                return {
+                    "storage": {
+                        "project": {"project_cpsc4880": "/project/cpsc4880"},
+                        "scratch": {"scratch_cpsc4880": "/scratch/cpsc4880"},
+                    },
+                    "slurm": {
+                        "associations": {"exit_code": 0, "stdout": "cpsc4880||normal|normal\n"}
+                    },
+                }
+            assert name == "study"
+            return {
+                "images": {
+                    "trainer": {"path": "/trainer.sif", "sha256": "a" * 64},
+                    "worker": {"path": "/worker.sif", "sha256": "b" * 64},
+                },
+                "reports": {
+                    "worker": {},
+                    "freeze": {
+                        "execution_commit": "f" * 40,
+                        "resource_plan": {
+                            "per_method": {
+                                "D": {
+                                    "signal_seconds": 5000,
+                                    "max_continuations": 6,
+                                    "planning_projection_200_hours": 85.0,
+                                }
+                            }
+                        },
+                    },
+                },
+            }
+
+    monkeypatch.setattr(
+        hpc, "snapshot", lambda *a: {"commit": "a" * 40, "manifest_sha256": "c" * 64}
+    )
+    monkeypatch.setattr(
+        "selfplay_opsd.readiness.execution_identity", lambda *a: {"manifest_hash": "d" * 64}
+    )
+    payload = hpc.run_payload(
+        Remote(),
+        "yale-hpc-cpsc4880",
+        operation=operation,
+        method="D",
+        profile="single_gpu_80gb",
+        gpu_type="h200",
+        account="cpsc4880",
+        image="",
+        image_sha256="",
+        settings=Path("configs/task08.yaml"),
+        iterations=7,
+    )
+    assert payload["iterations"] == payload["target_iterations"] == expected_iterations
+    if operation == "train":
+        assert payload["commit"] == "f" * 40
+        assert payload["signal_seconds"] == 5000
+        assert payload["max_continuations"] == 6
+        assert payload["estimated_main_hours"] == 85.0
+        assert payload["checkpoint"] == "" and payload["resume"] is None
+    else:
+        assert payload["commit"] == "a" * 40
+        assert payload["signal_seconds"] == 300

@@ -595,7 +595,7 @@ def run_payload(
         "settings": str(relative_settings),
         "study_id": cfg.study_id,
         "seed": cfg.seed,
-        "iterations": iterations,
+        "iterations": cfg.iterations if operation == "train" else iterations,
         "resume": resume,
         "output": f"/runs/compatibility/backend-v2/{profile}"
         if operation == "backend-check"
