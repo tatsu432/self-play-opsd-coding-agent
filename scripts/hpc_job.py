@@ -64,8 +64,16 @@ def sampled_device_usage(path: Path, devices: list, interval: float = 1.0):
                 for uuid, pid, memory in query("gpu_uuid,pid,used_gpu_memory", "compute-apps"):
                     if uuid.removeprefix("GPU-").lower() not in uuids:
                         continue
-                    item = {"uuid": uuid, "pid": int(pid), "gpu_memory_mib": memory}
+                    item = {
+                        "uuid": uuid,
+                        "pid": int(pid),
+                        "gpu_memory_mib": memory,
+                        "process_name": None,
+                    }
                     try:
+                        item["process_name"] = (
+                            (Path("/proc") / pid / "comm").read_text().strip()[:80]
+                        )
                         status = Path("/proc") / pid / "status"
                         item["host_rss_kib"] = next(
                             int(line.split()[1])

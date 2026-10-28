@@ -75,3 +75,10 @@ summing cumulative per-iteration counters. Its simple time extrapolation is
 explicitly labelled conditional on observed workload and excludes unmeasured
 monitoring/continuation overhead; the final cost analysis must account for those
 costs and higher-yield scenarios separately. No optimizer or objective changed.
+
+The final operational configuration checkpoints every iteration. This preserves
+mathematical budgets and bounds loss of committed progress as workload grows;
+pilot/main use the same cadence so its overhead can be measured. GPU process
+samples additionally record `/proc/PID/comm` (not command lines or credentials)
+for trainer/rollout attribution. These changes preserve scientific/data/prompt
+identity and allocation/isolation verification dependencies.

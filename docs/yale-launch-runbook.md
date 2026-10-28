@@ -23,7 +23,11 @@ Runtime/backend checks are independent. Inspect their existing run IDs before
 submission. After compatible evidence passes, run the corrected greedy baseline,
 D stop/resume pilot, A/B/C windows, freeze and actual previews. Historical numerical
 artifacts must be archived before replacing the shared backend output directory.
-Current reconciled cost is 1.241111111/24 GPU-hours, with zero reservations at this
+Final execution settings checkpoint every iteration so interruption cannot lose
+a long interval of committed learning. This operational cadence is excluded from
+scientific identity and applies identically to all four methods. The pilot will
+measure its cost. Memory samples include process names/PIDs for trainer/rollout
+attribution. Current reconciled cost was 1.241111111/24 GPU-hours, with zero reservations at this
 snapshot. Launch readiness remains false; main jobs remain unauthorized.
 
 ## Task 08 continuation
