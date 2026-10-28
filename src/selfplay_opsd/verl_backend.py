@@ -27,6 +27,26 @@ from selfplay_opsd.core import ExperimentError, canonical
 from selfplay_opsd.policy import Generation, HFPolicy, LossExample
 
 
+def rollout_environment(environment: dict[str, str]) -> dict[str, str]:
+    """The rollout engine creates a new process group, independent of torchrun."""
+    rank_keys = {
+        "RANK",
+        "WORLD_SIZE",
+        "LOCAL_RANK",
+        "LOCAL_WORLD_SIZE",
+        "MASTER_ADDR",
+        "MASTER_PORT",
+        "GROUP_RANK",
+        "ROLE_RANK",
+        "ROLE_WORLD_SIZE",
+    }
+    return {
+        key: value
+        for key, value in environment.items()
+        if key not in rank_keys and not key.startswith("TORCHELASTIC_")
+    }
+
+
 class VerlPolicy(HFPolicy):
     def __init__(self, config: RunConfig):
         if not torch.cuda.is_available():
@@ -228,23 +248,7 @@ class VerlPolicy(HFPolicy):
                     path = self.config.run_dir / "state/vllm.log"
                     path.parent.mkdir(parents=True, exist_ok=True)
                     self._log = path.open("a")
-                    environment = {
-                        k: v
-                        for k, v in os.environ.items()
-                        if k
-                        not in {
-                            "RANK",
-                            "WORLD_SIZE",
-                            "LOCAL_RANK",
-                            "LOCAL_WORLD_SIZE",
-                            "MASTER_ADDR",
-                            "MASTER_PORT",
-                            "GROUP_RANK",
-                            "ROLE_RANK",
-                            "ROLE_WORLD_SIZE",
-                            "TORCHELASTIC_RUN_ID",
-                        }
-                    }
+                    environment = rollout_environment(dict(os.environ))
                     read_fd, write_fd = os.pipe()
                     environment["SELFPLAY_RPC_FD"] = str(write_fd)
                     environment["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"

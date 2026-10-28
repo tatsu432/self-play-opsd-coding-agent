@@ -98,3 +98,22 @@ Hardware evidence comparison now normalizes only the default allocated GPU count
 (None means used count), allowing CPU freeze to verify GPU-produced reports.
 It continues checking the full effective hardware settings, including CPU and
 rollout memory configuration, rather than merely the profile name.
+
+### Isolated rollout rendezvous repair
+
+Commit `e0b2336` passed hosted CI 40604870399 (211 passed, one skipped).
+CPU job 31037352 (`3f4c23e8e1d923417e87b1c1`) revalidated all 306 tasks.
+GPU allocation job 31038198 passed the numeric CUDA mask check (actual index 0,
+minor 1, exact allocated UUID and initial occupancy). That proof remains reusable.
+Backend job 31038874 (`2eddfa162616da98b977e779`) passed architecture inspection
+but stalled initializing its independent process group. Its frontend retained
+`TORCHELASTIC_USE_AGENT_STORE=True` from torchrun. A real CPU Gloo reproduction
+fails connecting to a nonexistent agent store with that flag, then passes when
+cleared. The rollout environment now removes all TORCHELASTIC_* state along with
+trainer ranks/rendezvous variables; the GPU mask and cache settings are retained.
+A CPU process-group regression verifies independent rank-zero store creation.
+The stalled trusted diagnostic was stopped after recording its identity/reason in
+`state/task07-stop-31038874.json`; no scientific checkpoint is resumed from it.
+Slurm charged 371 GPU-seconds for that attempt and 65 for the successful allocation
+check. Cumulative consumption is 0.212777778 GPU-hours, with no active GPU job.
+The controller watcher has stopped. Worker evidence is still compatible.
