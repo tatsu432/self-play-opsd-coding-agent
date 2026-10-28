@@ -15,6 +15,21 @@ from selfplay_opsd.sandbox import SandboxBackend
 from selfplay_opsd.storage import EventStore, atomic_json, file_hash, read_json
 
 
+def verify_base_adapter(policy: HFPolicy) -> None:
+    """Require zero LoRA B weights, including coordinates on other FSDP ranks."""
+    import torch
+
+    nonzero = torch.zeros((), dtype=torch.int64, device=policy.device)
+    for name, parameter in policy.named_parameters("student"):
+        if ".lora_B." in name:
+            local = parameter.to_local() if hasattr(parameter, "to_local") else parameter
+            nonzero += torch.count_nonzero(local.detach())
+    if policy.distributed:
+        torch.distributed.all_reduce(nonzero, op=torch.distributed.ReduceOp.SUM)
+    if nonzero.item():
+        raise ExperimentError("Base evaluation adapter is not a no-op")
+
+
 def finalize_data(
     repository: TaskRepository, policy: HFPolicy, sandbox: SandboxBackend, limits: EpisodeConfig
 ) -> dict:

@@ -423,14 +423,9 @@ def evaluate(
         with policy.active("student"):
             if base:
                 # Initial PEFT B matrices are zero: verify the adapter is no-op.
-                import torch
+                from selfplay_opsd.evaluation import verify_base_adapter
 
-                if any(
-                    torch.count_nonzero(p).item()
-                    for n, p in policy.named_parameters("student")
-                    if ".lora_B." in n
-                ):
-                    raise ExperimentError("Base evaluation adapter is not a no-op")
+                verify_base_adapter(policy)
             rows = evaluate_tasks(
                 policy,
                 sandbox,

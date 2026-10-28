@@ -152,3 +152,21 @@ remain blocking; the regression tests distinguish these states. This controller
 repair changes no scientific, backend, worker or deployed-data identity. No GPU
 was allocated by either rejected/blocked request. Consumption remains 0.274444444
 GPU-hours; no main run has been submitted.
+
+### Base no-op guard on sharded weights
+
+Source 43f3a78 passed hosted CI 40609893327 (214 tests). Base job 31044199
+(`9f6166b230d98f01927cecaa`) was accepted with eight CPUs total and passed real
+worker preflight on a GPU compute host, then failed before repair generation:
+PyTorch DTensor has no count_nonzero sharding strategy. Base evaluation now
+counts zero/nonzero LoRA B coordinates on local tensors and all-reduces the
+count for multiple ranks. The no-op requirement is unchanged. A real two-rank
+CPU Gloo/DTensor regression accepts zero weights and makes both ranks reject
+a nonzero B weight present only on rank one; nonzero A weights remain valid.
+The test uses explicit loopback rendezvous for workstation portability.
+Numerical backend identity remains 9a35161e745f6dc007ca4d7761fa096c9af5f21a935fcf6a38f9d9e6cb80fa78;
+reuse the successful H200 backend proof. Refresh runtime evidence for the new
+evaluation source identity, without changing any frozen data or sampling rules.
+The failed base attempt cost 64 GPU-seconds; cumulative cost is 0.292222222
+GPU-hours. No scientific training or main job ran. The failed base had no repair
+rows and no partial optimizer state to resume; the next base starts fresh.
