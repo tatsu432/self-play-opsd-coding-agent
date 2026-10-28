@@ -564,7 +564,11 @@ def backend_check(
 
 
 @app.command("rollout-parity")
-def rollout_parity(settings: ConfigOption, hardware: str, output: Path):
+def rollout_parity(
+    settings: ConfigOption,
+    hardware: Annotated[str, typer.Option("--hardware")],
+    output: Annotated[Path, typer.Option("--output")],
+):
     """Score fixed saved pilot tokens and compare sequential/batched generation."""
     from selfplay_opsd.rollout_parity_probe import run
 

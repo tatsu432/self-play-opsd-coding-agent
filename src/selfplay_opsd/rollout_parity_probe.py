@@ -65,6 +65,9 @@ def run(config: RunConfig, output: Path) -> dict:
                 for p in proposals
             ]
             start = time.monotonic()
+            policy.prepare_rollout()
+            rollout_startup_seconds = time.monotonic() - start
+            start = time.monotonic()
             sequential = [policy.generate(r.prompt, r.max_tokens, r.seed) for r in batch]
             sequential_seconds = time.monotonic() - start
             start = time.monotonic()
@@ -83,6 +86,7 @@ def run(config: RunConfig, output: Path) -> dict:
             "absolute_error_above_02": int((absolute > 0.2).sum()),
             "outside_grpo_clip": int(outside.sum()),
             "proposer_requests": len(batch),
+            "rollout_startup_seconds": rollout_startup_seconds,
             "sequential_seconds": sequential_seconds,
             "batched_seconds": batched_seconds,
             "identical_output_ids": sum(

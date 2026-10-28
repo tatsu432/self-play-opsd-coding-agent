@@ -3,10 +3,31 @@ import json
 
 import pytest
 import torch
+from typer.testing import CliRunner
 
 from selfplay_opsd.config import load_config
 from selfplay_opsd.policy import Generation
 from selfplay_opsd.rollout_parity_probe import run
+
+
+def test_rollout_parity_cli_accepts_scheduler_options(tmp_path, monkeypatch):
+    from selfplay_opsd.cli import app
+
+    monkeypatch.setattr("selfplay_opsd.rollout_parity_probe.run", lambda cfg, output: {"ok": True})
+    result = CliRunner().invoke(
+        app,
+        [
+            "rollout-parity",
+            "--settings",
+            "configs/task09-diagnostics.yaml",
+            "--hardware",
+            "single_gpu_80gb",
+            "--output",
+            str(tmp_path),
+        ],
+    )
+    assert result.exit_code == 0, result.exception
+    assert json.loads(result.output)["ok"]
 
 
 def test_replay_counts_real_token_errors_and_keeps_request_order(tmp_path, monkeypatch):
@@ -38,6 +59,9 @@ def test_replay_counts_real_token_errors_and_keeps_request_order(tmp_path, monke
 
         def generate(self, prompt, max_tokens, seed):
             return Generation([seed], [-0.1], str(seed))
+
+        def prepare_rollout(self):
+            pass
 
         def generate_many(self, requests):
             return [self.generate(r.prompt, r.max_tokens, r.seed) for r in requests]
