@@ -112,6 +112,20 @@ Local closeout evidence is under `runs/task08`, and general fetched runs under
 `readiness/repair-selfplay-2026/backend-v2-archive-31040984`. Original dataset,
 failed runs and sampled baseline remain intact. No main outcome has been measured.
 
+
+## Fresh main-directory audit
+
+The probe/base policy setup left only an unchanged initial-adapter export and
+vLLM log under the prospective main `B-seed2026/state` directory. There were no
+training events or joint checkpoint. These three files were archived, preserving
+inodes, sizes and modification times, at
+`runs/readiness/repair-selfplay-2026-protocol-v2/archived-protocol-probe-policy-B`
+(relative to the managed project workspace). Provenance is in the adjacent
+`protocol-probe-policy-cache-archive.json`, also fetched to `runs/task08`.
+All four prospective main directories and submission ledgers are absent at
+closeout. Probe/base scientific records, all acceptance proofs and the frozen
+study are unchanged.
+
 ## Historical Task 07 checkpoint — 2026-10-27
 
 Everything below records Task 07 or earlier. Its pending authorization and failed

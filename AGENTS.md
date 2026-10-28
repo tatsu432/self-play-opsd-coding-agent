@@ -151,6 +151,9 @@ observed lengths, or 329.45 planning hours. These are scenarios, not
 future guarantees. Final evaluations/diagnostics are additional. Segments are
 23 hours with measured stop lead 4,503–4,874 s and 5/5/6/5 clean continuations.
 No representation/model/sampling/reward/budget change is authorized by readiness.
+Initial probe/base B policy-cache files were archived outside the main namespace;
+all four main directories and submission ledgers are absent. Their scientific
+records and the freeze remain unchanged; see the closeout record for provenance.
 
 ## Task 07 historical checkpoint — 2026-10-27
 

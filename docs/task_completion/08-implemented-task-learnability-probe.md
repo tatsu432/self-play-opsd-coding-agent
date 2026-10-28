@@ -345,3 +345,16 @@ d5ac499033f69789b63df175514a935c846a3fbd Verify frozen resource plans reject sta
 983a6cf57ce5caf5c9aa7ddf53f5ad7f313b4e73 Normalize inherited directory mode bits when fetching readiness reports
 25b07f230ef66a7136c51c6da4668ac6cecf9f4d Report the frozen 200-iteration main budget in submission previews
 ```
+
+## Fresh main-directory audit
+
+The probe/base policy setup left only an unchanged initial-adapter export and
+vLLM log under the prospective main `B-seed2026/state` directory. There were no
+training events or joint checkpoint. These three files were archived, preserving
+inodes, sizes and modification times, at
+`runs/readiness/repair-selfplay-2026-protocol-v2/archived-protocol-probe-policy-B`
+(relative to the managed project workspace). Provenance is in the adjacent
+`protocol-probe-policy-cache-archive.json`, also fetched to `runs/task08`.
+All four prospective main directories and submission ledgers are absent at
+closeout. Probe/base scientific records, all acceptance proofs and the frozen
+study are unchanged.
