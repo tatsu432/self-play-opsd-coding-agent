@@ -103,48 +103,59 @@ image or failed evidence gate. Never treat a passed CPU test as target readiness
    never create a duplicate. Scientific failures, OOM, authentication, quota
    and unauthorized resource requests are not automatic retries.
 
-## Task 08 execution checkpoint — 2026-10-28
+## Task 08 verified launch checkpoint — 2026-10-28
 
-Execution code `e1836a0` passed hosted CI 40627889719 (238 tests, one skipped,
-three deselected). Protocol v2's common strict format clarification is applied;
-model, sampling, rewards and mathematical budgets are unchanged.
+Launch readiness is **true**: all ten gates, immutable freeze 31082462 and four
+actual A–D controller previews passed. **No main job was submitted; main training
+remains unauthorized.** See `docs/task_completion/08-implemented-task-learnability-probe.md`
+and the launch runbook for exact reports, hashes, costs and commands. Do not repeat
+completed probes/pilots to obtain another stochastic outcome.
 
-Fixed probe 31069728 / `7f6319f6b8b125ac11eaa7af` passed: 32 proposals, five
-valid mutations, 20 real student episodes/9,252 tokens, and a valid source-read
-then patch/test action. No optimizer updates/refills occurred. Do not repeat it.
-CPU revision 31069732 / `d4630697f6f230e3021769b7` passed all 306 task admissions
-and target verifications, regenerated anchors, and preserved every original
-parent/task/split/coverage file byte-for-byte. `data/prepared` remains unchanged.
+Use `configs/task08.yaml`, study `repair-selfplay-2026-protocol-v2`, immutable
+`data/protocol-v2`, one H200 (`single_gpu_80gb`), seven trainer CPUs/128 GiB plus
+one worker CPU/1 GiB. Seed 2026, 200 main iterations and all mathematical budgets,
+objectives, rewards and sampling are unchanged. Main payloads pin frozen execution
+`983a6cf57ce5caf5c9aa7ddf53f5ad7f313b4e73`; controller metadata fix `25b07f2`
+reports the correct 200-iteration budget. Final settings checkpoint every iteration.
+Frozen-source CI 40639028520 passed 242 tests; controller CI 40640124480 passed
+244 tests (one skipped, three deselected), including Linux/Docker acceptance.
 
-Use `configs/task08.yaml` for the final study `repair-selfplay-2026-protocol-v2`,
-with immutable data in `data/protocol-v2`. Manifest file SHA-256:
-`934412b2181ead4377d383130a19ad0d58eaab6bb9f74c5d8005416d09412fd2`;
-canonical manifest: `d9140367e20587051b328dda20a7d93916ee5cadc7e72c2564523cf6ab6beade`;
-prompt: `07968cec687ca52d8ce02c4a6d52eaca529f830855690cab1caff71c096f4322`.
-`configs/task08-source.yaml` is historical source/probe setup, not main settings.
+Prompt hash: `07968cec687ca52d8ce02c4a6d52eaca529f830855690cab1caff71c096f4322`.
+Manifest file SHA: `934412b2181ead4377d383130a19ad0d58eaab6bb9f74c5d8005416d09412fd2`;
+canonical manifest: `d9140367e20587051b328dda20a7d93916ee5cadc7e72c2564523cf6ab6beade`.
+Original parents/tasks/oracles/splits/coverage are byte-identical; all 306 revised
+admissions/target validations passed. `data/prepared` remains intact.
+`configs/task08-source.yaml` is historical probe/revision setup, not main settings.
 
-Launch readiness remains false pending fresh runtime/backend evidence, corrected
-greedy baseline, real D continuation/learning coverage, bounded A/B/C acceptance,
-freeze and four previews. Worker proof and SIFs are reused with original provenance.
-The probe cost 0.15 GPU-hours; reconciled cumulative consumption is 1.241111111
-of 24, with no outstanding reservation at this checkpoint. Inspect live state
-before new allocations. Main training remains unauthorized.
+Worker 31033392 (19 checks) and both SIFs were reused with provenance. Probe
+31069728 passed its fixed 32 proposals / five valid tasks / 20 episodes. Revision
+31069732, runtime 31071377 and backend 31071410 passed. Corrected **greedy** base
+31072777 completed 0/41; the older 0/41 remains historical sampled evaluation.
+D jobs 31075857/31077825 completed ten iterations with verified resume at two,
+18 valid tasks, 72 episodes, ten steps per optimizer and 18 alignment scores.
+A/B/C 31080094/31080096/31080097 each completed one three-iteration window,
+six valid tasks, 24 episodes and three actual steps per optimizer. C scored six
+alignments. Fixtures are labelled, state-restored and separate from real yield.
 
-All studies share `state/budget-readiness-cpsc4880.json`, authorization
-`cpsc4880-readiness-24h-v1`. Import all historical ledgers; changed legacy history
-requires reconciliation. The 24-hour total and 12-hour pilot sublimit persist.
-The fixed probe uses two batches, 32 proposals, four episodes per valid task,
-no updates/refills, and at most two allocated GPU-hours. Do not restart for luck.
-A/B/C use one three-iteration window each; clearly labelled optimizer fixtures
-may establish zero-advantage mechanics but cannot replace real workload.
-D retains ten iterations and the iteration-two stop/resume design.
+Shared authorization `cpsc4880-readiness-24h-v1`, ledger
+`state/budget-readiness-cpsc4880.json`: 3.234722222/24 GPU-hours consumed,
+zero outstanding reservation, 31 reconciled records. Shared pilot use is
+1.025000/12 hours. No active job or HPC watcher remains. Reconcile live state
+before future operations; new study IDs never reset either allowance.
 
-The previous 0/41 baseline was sampled due to a lost greedy flag. It remains
-historical sampled evidence and cannot satisfy corrected greedy evaluation.
-The read-only queue inspection found no active user jobs; accounting must still
-be reconciled before allocations. Historical consumption below is not a new grant.
+Whole-device measured peak was about 71.81 GiB of 140.40 GiB; host phase RSS
+reached 28.45 GiB across actor/descendants. Samples are lower-bound peaks and
+include rollout startup. Conditional total main training+monitoring cost is
+70.24 hours at observed yield, 304.85 hours with all proposals valid at
+observed lengths, or 329.45 planning hours. These are scenarios, not
+future guarantees. Final evaluations/diagnostics are additional. Segments are
+23 hours with measured stop lead 4,503–4,874 s and 5/5/6/5 clean continuations.
+No representation/model/sampling/reward/budget change is authorized by readiness.
 
 ## Task 07 historical checkpoint — 2026-10-27
+
+This section records the 2026-10-27 snapshot. Task 08 above supersedes its
+readiness status and pending shared-format authorization.
 
 Execution code `9980c78` passed hosted CI 40617600830 (220 tests). Real worker
 acceptance 31033392 passed all 19 checks; runtime 31045342 validated all 306 tasks;
@@ -171,8 +182,9 @@ launch runbook for exact evidence and the remaining scientific decision.
 
 ## Historical checkpoints (superseded operational rules; inspect live state)
 
-The Task 07 rules above take precedence over mechanism and hardware restrictions
-in every checkpoint below. Job states and accounting are historical snapshots.
+The current Task 08 instructions and retained Task 07 worker/resource rules take
+precedence over mechanism and hardware restrictions below. Job states and
+accounting here are historical snapshots.
 
 ## Task 03 historical checkpoint (2026-10-22)
 

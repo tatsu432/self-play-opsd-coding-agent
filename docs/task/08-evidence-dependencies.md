@@ -13,3 +13,25 @@ Fresh containment/ownership/occupancy preflight still runs in each generated-cod
 allocation. Reuse does not exempt cleanup checks or grant another allowance.
 A failed protocol probe blocks baseline/pilot/method allocations; independent
 CPU data-revision and regression work may finish. No main job is authorized.
+
+## Final compatible evidence — 2026-10-28
+
+Reused worker proof retains its original SHA/provenance; both SIFs were reused
+without rebuilds. New runtime 31071377 and numerical backend 31071410 actually
+validated the revised protocol/data dependencies. Correct greedy base 31072777,
+D 31075857/31077825 and A/B/C 31080094/31080096/31080097 passed. Freeze 31082462
+binds their report hashes plus the conditional resource plan, and all four actual
+main controller previews pass. No main job was submitted.
+
+Scientific hash `d8526f680fbbe3aff938d8688307817bb25ff496cd3d1cc02de3daecb5a5c6e1`
+and allocation verifier `89730a635e803a168ac7285b1261396bda723aaaccdf664bf8a344dce86d6fc9`
+remain unchanged across controller/reporting/documentation followups. Numerical
+compatibility hash is `c819f3b09a746a9c311f8e490cd265746cb1c883ae6a8d3b5cabbcb4abdcfe42`.
+Final controller metadata correction changes an unused preview field to agree
+with the existing frozen 200-iteration training settings; actual training physics
+and the frozen execution source are unchanged. Focused regression and four fresh
+controller previews verify this correction without another GPU allocation.
+
+See the completion record for exact identities, all report paths, sample limits,
+accounting and per-method workload-dependent forecasts. Prior numerical tensors
+and checkpoint bytes are preserved in the documented historical archive.

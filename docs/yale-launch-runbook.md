@@ -1,72 +1,121 @@
 # Yale A–D readiness and launch
 
-Task 08 is authoritative; the Task 07 checkpoint below is historical. Main A–D training remains unauthorized. The cumulative
-readiness cap is 24 allocated GPU-hours, including historical attempts and all
-unresolved reservations. Historical job states live in the Task 03–06 completion
-records and the Task 07 plan; reconcile live Slurm and controller state first.
+Task 08 launch readiness is **verified**, 2026-10-28. All ten gates, freeze job
+31082462 and four actual controller previews pass. **Main A–D training remains
+unauthorized; no main job has been submitted.** The [Task 08 completion record](task_completion/08-implemented-task-learnability-probe.md)
+contains full evidence, identities and measurements. Frozen-source CI 40639028520
+passed 242 tests; final controller CI 40640124480 passed 244 tests. Historical instructions below
+are superseded where they conflict with this section.
 
-## Task 08 verified progress — 2026-10-28
+## Active frozen configuration
 
-Code `e1836a0` passed CI 40627889719: 238 tests. Probe 31069728 passed its fixed
-32-attempt window with five valid tasks, 20 episodes and 9,252 student tokens.
-CPU revision 31069732 passed all 306 tasks and exact frozen-content equality.
-Do not rerun these stages. The source-config commands below are retained as
-history; current continuation uses `configs/task08.yaml` and `data/protocol-v2`.
+Use `configs/task08.yaml`, study `repair-selfplay-2026-protocol-v2`, immutable
+`data/protocol-v2`, model/tokenizer revision `cdbee75f17c01a7cc42f958dc650907174af0554`,
+protocol `repair-json-v2`, seed 2026 and 200 main iterations. Main initializes
+fresh and pins execution commit `983a6cf57ce5caf5c9aa7ddf53f5ad7f313b4e73`.
+Do not use historical `configs/task08-source.yaml` or calibration checkpoints for main.
+
+One H200, profile `single_gpu_80gb`, seven trainer CPUs/128 GiB plus independently
+limited worker CPU/1 GiB: eight CPUs/129 GiB total. Checkpoint every iteration;
+23-hour segments. Method stop leads are A 4503, B 4624, C 4874, D 4848 seconds;
+clean continuation limits are 5/5/6/5. These settings are bound into the freeze.
+Observed whole-device peak was 71.81 GiB, including vLLM startup; phase actor+
+descendant RSS peaked at 28.45 GiB. Samples are lower bounds, not worst-case proofs.
+
+| Method | Observed-yield main hours | All-valid median-rate hours | Planning hours |
+|---|---:|---:|---:|
+| A | 17.16 | 70.26 | 76.56 |
+| B | 17.66 | 77.10 | 79.93 |
+| C | 18.91 | 83.88 | 86.81 |
+| D | 16.51 | 73.61 | 86.14 |
+| Total | 70.24 | 304.85 | 329.45 |
+
+These conditional training+monitoring scenarios retain observed episode lengths
+and reward mix. They include startup/continuation overhead, 11 monitoring passes
+and checkpoint/diagnostic costs. Longer responses, higher yield and main reference
+length differences remain uncertain. Locked final/secondary evaluations and separate
+diagnostics require additional compute. Main training is outside the readiness grant.
+
+## Reconcile before authorized work
 
 ```bash
-uv run selfplay hpc sync --settings configs/task08.yaml
-uv run selfplay hpc submit --settings configs/task08.yaml --operation runtime-check --method D --profile single_gpu_80gb --gpu-type h200
-uv run selfplay hpc submit --settings configs/task08.yaml --operation backend-check --method D --profile single_gpu_80gb --gpu-type h200
-```
-
-Runtime/backend checks are independent. Inspect their existing run IDs before
-submission. After compatible evidence passes, run the corrected greedy baseline,
-D stop/resume pilot, A/B/C windows, freeze and actual previews. Historical numerical
-artifacts must be archived before replacing the shared backend output directory.
-Final execution settings checkpoint every iteration so interruption cannot lose
-a long interval of committed learning. This operational cadence is excluded from
-scientific identity and applies identically to all four methods. The pilot will
-measure its cost. Memory samples include process names/PIDs for trainer/rollout
-attribution. Current reconciled cost was 1.241111111/24 GPU-hours, with zero reservations at this
-snapshot. Launch readiness remains false; main jobs remain unauthorized.
-
-## Task 08 continuation
-
-Task 08 authorizes the common format clarification and prompt-dependent immutable
-revision. Main training remains unauthorized. Current work has no readiness claim.
-Use `configs/task08-source.yaml` only for the fixed training-parent probe and data
-revision, both based on unchanged original parents/tasks. After successful CI:
-
-```bash
-uv run selfplay hpc doctor --settings configs/task08-source.yaml --gpu-type h200
+uv run selfplay hpc doctor --settings configs/task08.yaml --gpu-type h200
 uv run selfplay hpc inspect
-uv run selfplay hpc sync --settings configs/task08-source.yaml
-uv run selfplay hpc reuse-worker repair-selfplay-2026 --settings configs/task08-source.yaml
-uv run selfplay hpc submit --settings configs/task08-source.yaml --operation protocol-check --method B --profile single_gpu_80gb --gpu-type h200
-uv run selfplay hpc submit --settings configs/task08-source.yaml --operation protocol-revision --method B --profile single_gpu_80gb --gpu-type h200
 ```
 
-Reconcile shared accounting and inspect existing operation ledgers before any
-submission. The probe is one fixed 32-proposal/two-batch window, no updates or
-refills, four episodes per valid task, with a two-GPU-hour ceiling. Failed
-clarified outputs stop dependent experiments; do not retry unchanged outputs.
-CPU revision work may complete independently. All allocations retain accepted
-containment and exact GPU ownership/initial occupancy checks.
+Shared readiness accounting: **3.234722222/24 GPU-hours**, zero outstanding
+reservations, no active job/watcher at closeout. Ledger
+`state/budget-readiness-cpsc4880.json`, authorization `cpsc4880-readiness-24h-v1`;
+the 12-hour pilot sublimit persists (1.025000 used). Inspect live state rather
+than treating this snapshot as another grant. Normal MFA uses `hpc login`.
 
-Revision outputs live under `runs/data-revisions/STUDY`. Preserve original data,
-inspect all equality/admission results, fetch the completed revision, and commit
-final settings pointing at its local directory before final synchronization.
-Run only invalidated runtime/backend proofs, corrected greedy monitoring base,
-D's ten-iteration stop/resume pilot, three-iteration A/B/C windows, freeze, then
-four actual previews. Source settings are not final main settings.
+Passed evidence: worker 31033392 reused (19 checks); probe 31069728; revision
+31069732; runtime 31071377; backend 31071410; greedy base 31072777 (0/41);
+D 31075857/31077825 (10 iterations, joint resume at two, 72 episodes/ten real
+steps per optimizer); A/B/C 31080094/31080096/31080097 (three iterations each,
+24 episodes/three steps per optimizer); CPU freeze 31082462. Reuse compatible
+proofs and immutable SIFs. Do not repeat these unchanged windows for luck.
 
-All studies share `state/budget-readiness-cpsc4880.json` under the existing lock.
-Historical charges and unresolved reservations remain binding, including the
-12-hour pilot sublimit. Never use a new study/operation name to bypass a limit.
-GPU allocations record one-second device/process memory samples in readiness
-`resource-samples-JOB.jsonl`; these are sampled lower bounds, not exact peaks.
+## Four verified previews and later main commands
+
+All four commands below were actually run successfully, with `submitted=false`,
+200 iterations, fresh initialization and the frozen per-method resource settings.
+
+```bash
+uv run selfplay hpc submit --settings configs/task08.yaml --operation train --method A --profile single_gpu_80gb --gpu-type h200 --account cpsc4880 --dry-run
+uv run selfplay hpc submit --settings configs/task08.yaml --operation train --method B --profile single_gpu_80gb --gpu-type h200 --account cpsc4880 --dry-run
+uv run selfplay hpc submit --settings configs/task08.yaml --operation train --method C --profile single_gpu_80gb --gpu-type h200 --account cpsc4880 --dry-run
+uv run selfplay hpc submit --settings configs/task08.yaml --operation train --method D --profile single_gpu_80gb --gpu-type h200 --account cpsc4880 --dry-run
+```
+
+Prepared main commands, valid only after separate main authorization:
+
+```bash
+uv run selfplay hpc submit --settings configs/task08.yaml --operation train --method A --profile single_gpu_80gb --gpu-type h200 --account cpsc4880
+uv run selfplay hpc submit --settings configs/task08.yaml --operation train --method B --profile single_gpu_80gb --gpu-type h200 --account cpsc4880
+uv run selfplay hpc submit --settings configs/task08.yaml --operation train --method C --profile single_gpu_80gb --gpu-type h200 --account cpsc4880
+uv run selfplay hpc submit --settings configs/task08.yaml --operation train --method D --profile single_gpu_80gb --gpu-type h200 --account cpsc4880
+```
+
+These commands were not executed during Task 08. They request account `cpsc4880`,
+partition `gpu_h200`, one H200 and the frozen 23-hour segmented configuration. Main command execution is not authorized
+by this runbook. The controller pins frozen execution source even after later
+documentation/controller commits. Keep a clean committed tree and synchronize
+final settings/data with `uv run selfplay hpc sync --settings configs/task08.yaml`.
+
+Preview identities: A `b88cf9bd9980d580bd806dc4`, B `401e3d80a8c36f1cc3c99c2a`,
+C `19f609f5811b66837a8fe630`, D `dae4973178eec16beea07ab0`. They have no main Slurm jobs.
+
+## Monitoring, fetching and recovery
+
+```bash
+uv run selfplay hpc status RUN_ID
+uv run selfplay hpc logs RUN_ID --lines 100
+uv run selfplay hpc fetch RUN_ID
+uv run selfplay hpc watch RUN_ID --continue-stopped
+uv run selfplay hpc resume RUN_ID --continue-stopped
+```
+
+Use watch/resume only within an authorized run's persisted continuation/retry
+limits. Unknown submission/scheduler state requires inspection without duplication.
+Scientific errors, OOM, authentication/quota failures are not automatic retries.
+Resume a checksummed joint checkpoint matching scientific/data/prompt/runtime
+identity; never resume a partial optimizer step. `fetch --full` also retrieves
+weights and full raw trajectories. Default fetch avoids tensor transfers and
+normalizes local directory modes; server checkpoint protections remain intact.
+
+All durable runs live below
+`/nfs/roberts/project/cpsc4880/cpsc4880_ts2236/selfplay-opsd-cpsc4880_ts2236/runs`.
+Local closeout evidence is under `runs/task08`, and general fetched runs under
+`runs/hpc/yale-hpc-cpsc4880`. The D checkpoint at two is archived under its
+`acceptance/iteration-two-checkpoint`; the old numerical proof is preserved in
+`readiness/repair-selfplay-2026/backend-v2-archive-31040984`. Original dataset,
+failed runs and sampled baseline remain intact. No main outcome has been measured.
 
 ## Historical Task 07 checkpoint — 2026-10-27
+
+Everything below records Task 07 or earlier. Its pending authorization and failed
+readiness statements describe that snapshot; use the active Task 08 section above.
 
 **Launch readiness is blocked by zero valid proposal yield.** The accepted Yale
 execution path requires no further YCRC setup. The [Task 07 record](task_completion/07-implemented-yale-execution-blocked-readiness.md)
@@ -114,7 +163,7 @@ prompts. No active prompt/parser, sampling, reward, model or data change has bee
 applied. Keep the failed results intact and do not repeat the unchanged zero-yield
 pilot. A new study identity must not create a fresh readiness allowance.
 
-## Review and authorized continuation
+## Historical guidance — Review and authorized continuation
 
 ```bash
 uv run selfplay hpc doctor --gpu-type h200
@@ -176,7 +225,7 @@ proof passed but publication failed, `hpc recover-allocation RUN_ID` validates i
 immutable verifier and raw checksum without a new GPU allocation; it preserves
 original failed scheduler accounting. This does not prove backend compatibility.
 
-## Main previews and later launch
+## Historical guidance — Main previews and later launch
 
 All four commands below were tested and refused main eligibility (exit 1). They use the
 selected single-GPU profile explicitly; the generic submit command defaults to a
@@ -196,7 +245,7 @@ corresponding method. Begin with one method at a time. Each starts fresh at seed
 because the pilot had no valid tasks. No valid main projection or launch command
 can be certified yet. Main GPU cost requires separate authorization.
 
-## Monitor and recover
+## Historical guidance — Monitor and recover
 
 ```bash
 uv run selfplay hpc status RUN_ID
@@ -215,7 +264,7 @@ W&B is offline by default. Local events/checkpoints are authoritative; retain
 offline segments for later `selfplay wandb-sync`. Fetch uses small reports by
 default; `--full` explicitly includes checkpoints/trajectories/W&B files.
 
-## Build without a large local archive
+## Historical guidance — Build without a large local archive
 
 When image preparation reports an incompatible or missing trainer, use a clean committed checkout:
 

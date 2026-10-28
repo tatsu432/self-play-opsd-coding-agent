@@ -1,7 +1,7 @@
 # Task 08 — Protocol repair and verified launch readiness
 
-Status: execution in progress, 2026-10-28. Launch readiness remains false;
-new allocations require passed CPU/hosted checks and reconciled shared accounting.
+Status: completed through actual launch readiness on 2026-10-28. All ten gates,
+a consistent frozen study and 4/4 actual controller previews pass. No main job was submitted.
 
 Source: [Task 08 specification](../task/08-task-learnability-probe-spec.md).
 Scientific authority: [Task 01](../task/01-experiment-implementation-spec.md).
@@ -35,11 +35,11 @@ Local HEAD is `fc7e4fb8f976898bae0ada4a6b1edcbf3fc2cfdc` on
 preserve it and any subsequent unrelated work. Task 08 is the next task number.
 
 The recorded worker/data/backend successes and 1.091111111 consumed GPU-hours
-are historical evidence, not a live reconciliation. Launch readiness is false:
+were historical evidence, not a live reconciliation. At inspection, launch readiness was false:
 D had 0/160 valid proposals and A/B/C each had 0/16. Existing fetched evidence is
 under `runs/hpc/yale-hpc-cpsc4880/`; raw shards may require an explicit full fetch.
 
-All five reviewed code findings are present:
+All five reviewed code findings were present at initial inspection:
 
 | Finding | Current implementation | Planned check |
 |---|---|---|
@@ -284,3 +284,13 @@ Completion requires every Task 08 criterion, a consistent freeze and **4/4
 successful previews**. A concrete external blocker or unauthorized next scientific
 change must be reported precisely after independent work is complete. Planning,
 CI success, submitted jobs and empty workloads do not establish launch readiness.
+
+## Verified completion
+
+All nine stages above are complete. The [completion record](../task_completion/08-implemented-task-learnability-probe.md)
+contains actual jobs, continuation/exposure proofs, all identities, resource measurements,
+conditional per-method costs, shared accounting and four successful previews.
+A/B/C independent windows overlapped the already nonempty resumed D run after
+compatible hosted CI passed; each retained its fixed three-iteration limit and
+independent slot/reservation. This shortened elapsed readiness time without
+changing mathematical work or selecting outcomes. No main training was submitted.
