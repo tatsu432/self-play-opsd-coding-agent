@@ -405,6 +405,12 @@ def run_payload(
     partition = partition or GPU_PARTITIONS[chosen_gpu]
     cfg = load_config(settings, method=method, hardware_profile=profile)
     state = remote.call("study", {"storage_root": storage, "study_id": cfg.study_id})
+    if (
+        operation == "train"
+        and state["reports"]["freeze"]
+        and not state["reports"]["freeze"].get("resource_plan")
+    ):
+        raise HpcError("Frozen study lacks a measured resource plan; do not launch main training")
     if operation == "train" or (operation == "evaluate" and split in {"final_id", "external"}):
         pinned_commit = state["reports"]["freeze"].get("execution_commit")
         if pinned_commit:
@@ -799,6 +805,9 @@ def doctor(
             },
         )
         result["study"] = state
+        freeze = state["reports"]["freeze"]
+        if freeze and not freeze.get("resource_plan"):
+            result["blockers"].append("Frozen study lacks a measured resource plan")
         result["eligible_to_submit_main"] = (
             state["eligible_to_submit_main"] and not result["blockers"]
         )

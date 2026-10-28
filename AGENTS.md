@@ -37,6 +37,12 @@ The Task 08 frozen study remains launch ready
 and main training remains unauthorized. See the Task 09 plan and completion
 record for the pending dependency-scoped checks.
 
+Task 09 freeze 31149887 is incomplete for launch planning: it contains no
+resource plan, and controller previews use a 484-second stop lead and one
+continuation. The controller reports eligibility, but do not submit this study
+until a workload-based resource plan is bound to a correctly frozen study and
+the remaining performance validation is complete. Preserve the freeze for audit.
+
 The last accepted readiness task is `docs/task/08-task-learnability-probe-spec.md`; its plan is
 `docs/plan/08-task-learnability-probe-plan.md`. Task 08 authorizes the common
 patch-format clarification, complete protocol hashing, a new study/data revision,

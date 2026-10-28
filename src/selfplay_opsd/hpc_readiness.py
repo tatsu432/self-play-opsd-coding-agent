@@ -451,6 +451,13 @@ def register(app: typer.Typer):
                     time.sleep(30)
                     continue
                 state = remote.call("study", request)
+                refreshed_gate = state["gates"].get(name, False)
+                if name.startswith("allocation_"):
+                    refreshed_gate = state.get("allocation_checks", {}).get(
+                        name.removeprefix("allocation_"), False
+                    )
+                if refreshed_gate:
+                    continue
                 if (
                     (
                         payload["gpu_count"] == 0

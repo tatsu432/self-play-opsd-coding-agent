@@ -527,6 +527,27 @@ def test_main_preview_uses_frozen_main_budget_and_resource_plan(
         assert payload["max_continuations"] == 6
         assert payload["estimated_main_hours"] == 85.0
         assert payload["checkpoint"] == "" and payload["resume"] is None
+
+        class MissingPlan(Remote):
+            def call(self, name, *args):
+                value = super().call(name, *args)
+                if name == "study":
+                    value["reports"]["freeze"].pop("resource_plan")
+                return value
+
+        with pytest.raises(hpc.HpcError, match="lacks a measured resource plan"):
+            hpc.run_payload(
+                MissingPlan(),
+                "yale-hpc-cpsc4880",
+                operation="train",
+                method="D",
+                profile="single_gpu_80gb",
+                gpu_type="h200",
+                account="cpsc4880",
+                image="",
+                image_sha256="",
+                settings=Path("configs/task08.yaml"),
+            )
     else:
         assert payload["commit"] == "a" * 40
         assert payload["signal_seconds"] == 300

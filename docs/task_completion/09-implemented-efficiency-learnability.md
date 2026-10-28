@@ -4,19 +4,27 @@ Status: implementation staged on `feat/09-efficiency-learnability`; **the new
 study is not launch ready**. Task 08 remains launch ready on its frozen source.
 No main A–D job was submitted.
 
+Latest readiness: allocation 31091793 and backend 31091980 passed; runtime
+31092884 and greedy base 31133057 passed. D pilot 31138473/31141205 completed
+ten iterations with a verified resume from two, 15 valid proposals and 60
+episodes. A/B/C suite 31144727 passed all method gates. CPU freeze 31149887
+and four controller previews succeeded, but the immutable freeze has no
+resource plan: the previews fall back to a 484-second stop lead and one clean
+continuation, without a high-yield or monitoring envelope. **Do not launch this
+Task 09 freeze.** Preserve it for audit and bind measured planning evidence in
+a correctly frozen study. Optional optimization benchmarks remain outstanding.
+The shared ledger reported 5.052777778/24 GPU-hours committed, with no active
+GPU reservation at this checkpoint. Reconcile live state before further work.
+
 ## Current blocker
 
 Task 09 cannot be declared ready for the main experiment until its changed
 execution path passes H200 numerical, memory, performance and recovery checks,
 followed by the relevant readiness gates, a new freeze and four previews. The
-user subsequently authorized GPU readiness work within the cumulative 24-hour
-limit. Allocation check 31091793 passed, charging 0.004166667 GPU-hours.
-Backend check 31091980 (run `28ef920a20330d57a75a1f6b`) is PENDING with one
-GPU-hour reserved. The ledger reported 4.238888889 committed GPU-hours including
-that reservation. The local watcher stopped; the Slurm job was not cancelled.
-Inspect `hpc status 28ef920a20330d57a75a1f6b` and reconcile accounting before
-continuing `hpc prepare-study --settings configs/task09.yaml --gpu-type h200
---gpu-hours-limit 24 --stage backend --watch`. Never duplicate this job.
+user authorized GPU readiness work within the cumulative 24-hour limit. The
+resource plan was absent at freeze; preserve that immutable record and bind
+measured planning evidence to a correctly frozen study. The requested H200
+optimization comparisons also remain incomplete.
 
 The local Docker daemon was unavailable, so the new sandbox-backed trainer
 tests and hosted Linux/Docker CI remain unverified. This is an additional

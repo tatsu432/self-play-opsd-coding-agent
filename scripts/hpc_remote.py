@@ -1592,6 +1592,8 @@ def precheck(payload: dict):
         if operation == "train" or (
             operation == "evaluate" and payload.get("split") in {"final_id", "external"}
         ):
+            if operation == "train" and not state["reports"]["freeze"].get("resource_plan"):
+                raise ValueError("Frozen study lacks a measured resource plan for main training")
             if (
                 not state["eligible_to_submit_main"]
                 or state["readiness"].get("common_config") != payload.get("common_config")
