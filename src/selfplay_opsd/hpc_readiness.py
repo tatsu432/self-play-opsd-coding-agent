@@ -18,6 +18,22 @@ from selfplay_opsd.core import digest
 from selfplay_opsd.worker_runtime import supervisor_hash
 
 
+def pilot_schedule(gpu_count: int) -> dict:
+    """Preserve the original four-plus-eight allocated GPU-hour ceilings."""
+    if gpu_count < 1:
+        raise ValueError("Pilot needs allocated GPUs")
+
+    def duration(gpu_hours: int) -> str:
+        seconds = gpu_hours * 3600 // gpu_count
+        return f"{seconds // 3600:02d}:{seconds // 60 % 60:02d}:{seconds % 60:02d}"
+
+    return {
+        "stop_after_iteration": 2,
+        "time": duration(4),
+        "continuation_time": duration(8),
+    }
+
+
 def build_archive(
     kind: str, source_root: Path, directory: Path, commit: str, builder: str | None = None
 ) -> tuple[Path, dict]:
@@ -416,9 +432,7 @@ def register(app: typer.Typer):
             )
             payload["readiness_budget"] = gpu_hours_limit
             if operation == "pilot":
-                payload.update(
-                    {"stop_after_iteration": 2, "time": "02:00:00", "continuation_time": "04:00:00"}
-                )
+                payload.update(pilot_schedule(payload["gpu_count"]))
             report = remote.call("status", {**request, "run_id": payload["run_id"]})
             if report["ledger"].get("pending_intent"):
                 output({"stage": name, "blocked": "Unreconciled submission", "status": report})

@@ -27,8 +27,8 @@ storage is 64 MiB. No nested user cgroup configuration, pids.max, subordinate UI
 allocator, external service or SSH tunnel is needed. These restrictions are the
 same for A–D.
 
-CPU runtime validation **31040084** / `333e5b3f69f36d3e35221472` passed all 306
-frozen tasks under the latest scientific source identity. Worker and runtime
+CPU runtime validation **31045342** / `6ab6345e274dd617c2f0d9da` passed all 306
+frozen tasks under evaluation source **4a393df**. Worker and runtime
 acceptance remain compatible with the operational trainer CPU adjustment.
 
 Allocation check **31038198** / `a38a5c80f7518cd7d26c66f4` passed actual Slurm
@@ -49,8 +49,16 @@ vLLM synchronization/scoring cycles and checkpoint save/load/restoration. It use
 222 GPU-seconds. Base evaluation, pilot, method acceptance, freeze and main
 previews are still pending. Synthetic acceptance does not establish real yield,
 throughput or full-workload memory fit.
-Cumulative consumption is **0.274444444 GPU-hours**, with no active GPU job at
-this checkpoint. Live accounting and reservations always take precedence.
+Base attempt **31044199** failed before repair generation because count_nonzero
+does not support DTensor. Source **4a393df** checks local B-weight coordinates
+and reduces across ranks; a real two-rank CPU regression proves that a nonzero
+remote shard makes both ranks reject the adapter. Hosted CI 40611635030 passed
+215 tests. Base **31046386** / `46ec4ac904e9611f551f8713` is now running and has
+cleared that guard and begun real repair evaluation. Inspect this existing job
+before more preparation. The local watcher was stopped to review pilot scheduling;
+the Slurm base job continues. Consumption before this active base allocation is
+**0.292222222 GPU-hours**, plus its two-hour reservation. Live accounting and
+reservations always take precedence.
 
 The earlier PEFT initialization mismatch is fixed: proposer adapter masters are
 promoted to the student's FP32 dtype before copying, with equal initial version
@@ -83,6 +91,13 @@ throughput or repair performance. A degenerate pilot/smoke must be diagnosed,
 without changing rewards, sampling, data boundaries or refilling proposals.
 Freeze and all four successful previews are required for launch eligibility.
 Preparation never submits main runs. CPU tests alone establish no target readiness.
+Pilot wall-time ceilings scale with GPU count to preserve the original four
+GPU-hours before the iteration-two stop plus eight GPU-hours for continuation:
+one GPU receives four/eight hours; two GPUs retain two/four hours. The pilot's
+12-GPU-hour and total readiness 24-GPU-hour ceilings are unchanged. The initial
+real base episodes measured roughly 66 seconds each, so carrying the old
+two-GPU wall limits into the one-GPU setup could truncate the required pilot.
+This is an operational estimate; real pilot timing remains to be measured.
 
 All attempts share the durable 24-hour ledger. At most two confirmed transient
 scheduler interruptions can restart diagnostics. Application failures, OOM,

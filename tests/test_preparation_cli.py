@@ -9,6 +9,15 @@ from typer.testing import CliRunner
 from selfplay_opsd import hpc, hpc_readiness
 
 
+@pytest.mark.parametrize("count", [1, 2, 4, 8])
+def test_pilot_reservation_ceilings_preserve_gpu_budget_and_iteration_two_stop(count):
+    schedule = hpc_readiness.pilot_schedule(count)
+    assert schedule["stop_after_iteration"] == 2
+    for field, gpu_hours in (("time", 4), ("continuation_time", 8)):
+        hours, minutes, seconds = map(int, schedule[field].split(":"))
+        assert (hours + minutes / 60 + seconds / 3600) * count == gpu_hours
+
+
 @pytest.mark.parametrize("gpu_type", [None, "h200"])
 def test_doctor_uses_selected_h200_before_or_after_freeze(monkeypatch, gpu_type):
     calls = []

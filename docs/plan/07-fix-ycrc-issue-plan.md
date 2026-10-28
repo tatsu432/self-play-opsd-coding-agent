@@ -170,3 +170,22 @@ evaluation source identity, without changing any frozen data or sampling rules.
 The failed base attempt cost 64 GPU-seconds; cumulative cost is 0.292222222
 GPU-hours. No scientific training or main job ran. The failed base had no repair
 rows and no partial optimizer state to resume; the next base starts fresh.
+
+### Preserve pilot GPU-hour ceilings on the selected one-GPU profile
+
+Source 4a393df passed hosted CI 40611635030 (215 tests) and CPU runtime job
+31045342 (`6ab6345e274dd617c2f0d9da`), all 306 tasks. Base job 31046386
+(`46ec4ac904e9611f551f8713`) is running on one H200, has cleared the real FSDP
+no-op guard and begun repair generation. Inspect it before another base request.
+The initial three episodes averaged about 66 seconds; these are partial real
+evaluation observations, not pilot throughput or a final baseline score.
+
+The old two/four wall-hour pilot segments assumed two GPUs (four/eight allocated
+GPU-hours). Scale their wall limits by allocated count: the selected single GPU
+gets four hours before the iteration-two stop and eight for its continuation.
+The 12 pilot GPU-hour and 24 cumulative GPU-hour caps, ten iterations and required
+resume at two remain unchanged. This avoids carrying a two-GPU wall allowance
+into a one-GPU workload. A resource-budget regression checks these ceilings for
+all supported single-node counts. No scientific or evidence dependency changes.
+The local watcher was stopped while base continues, so inspect its actual result
+before resuming preparation after CI; do not repeat an unmodified failed base.
