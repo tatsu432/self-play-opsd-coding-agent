@@ -189,3 +189,36 @@ into a one-GPU workload. A resource-budget regression checks these ceilings for
 all supported single-node counts. No scientific or evidence dependency changes.
 The local watcher was stopped while base continues, so inspect its actual result
 before resuming preparation after CI; do not repeat an unmodified failed base.
+
+### Real baseline and zero-yield D pilot
+
+Commit 9964937 passed hosted CI 40613870205 (219 tests). Base 31046386 completed
+all 41 monitoring tasks, with zero successful repairs, in 1205 allocated GPU
+seconds. D pilot 31049338 stopped cleanly at iteration two; the controller
+verified checkpoint 000002 and submitted continuation 31050754. The continuation
+restored the joint checkpoint, completed iteration ten and correctly failed its
+acceptance gate: 0/160 valid proposals, zero student episodes, zero student or
+proposer updates, and no alignment scores. Counts: 154 required-header errors,
+one hunk-count error and five JSON errors. The pilot consumed 406+513 GPU-seconds.
+No successful pilot report, freeze or main eligibility is claimed. Its timings
+and memory describe an empty-workload proposal run, not real training throughput
+or learning memory fit. The frozen baseline and failed pilot remain intact.
+
+Captured outputs were diagnosed without changing rewards, prompts or parser.
+Of the first 112 captured proposals, 13 had Git metadata preambles; removing
+only that metadata in an offline diagnostic still left context, hunk-count or
+line-format errors, with no valid mutation. No diagnostic output was substituted
+into training. A concrete common format clarification is proposed in
+`docs/task/07-shared-diff-format-decision.md`; its synthetic example passes the
+current validator. User authorization is pending because Task 07 explicitly
+preserves prompts. Do not repeat the unchanged zero-yield D pilot.
+
+Independent A/B/C launch 31052304 failed before model load: the common launcher
+passed --config while method-smoke declares a positional method. The launcher now
+translates that argument, and honors explicit A/B/C selection; D continues to
+request the full suite. CLI/scientific source, data and numerical compatibility
+are unchanged. An integration regression checks preserved settings/hardware
+arguments and separate method launches (88 focused tests passed). The failed
+launch cost 46 GPU-seconds. Cumulative consumption is 0.895 GPU-hours before
+corrected A/B/C checks. No GPU job is currently active; main training remains
+unauthorized.

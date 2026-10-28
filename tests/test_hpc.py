@@ -46,12 +46,15 @@ def test_method_smoke_launch_honors_independent_selection_and_keeps_scientific_a
     ]
     original = list(args)
     all_commands = module.method_smoke_commands(prefix, args, "D")
-    assert [c[c.index("--config") + 1] for c in all_commands] == list("ABC")
+    position = len(prefix) + args.index("--config")
+    assert [c[position] for c in all_commands] == list("ABC")
+    assert all("--config" not in command for command in all_commands)
     for method in "ABC":
         selected = module.method_smoke_commands(prefix, args, method)
         assert len(selected) == 1
         expected = list(args)
-        expected[expected.index("--config") + 1] = method
+        index = expected.index("--config")
+        expected[index : index + 2] = [method]
         assert selected[0] == prefix + expected
     assert args == original
 

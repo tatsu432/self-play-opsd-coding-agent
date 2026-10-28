@@ -735,11 +735,12 @@ def method_smoke_commands(command: list[str], args: list[str], requested: str) -
     """D requests the full acceptance suite; A/B/C request one fresh method."""
     if requested not in {"A", "B", "C", "D"}:
         raise ValueError("Unknown method smoke selection")
-    index = args.index("--config") + 1
+    index = args.index("--config")
     result = []
     for method in "ABC" if requested == "D" else requested:
         selected = list(args)
-        selected[index] = method
+        # This command has a required positional method, unlike train/pilot.
+        selected[index : index + 2] = [method]
         result.append(command + selected)
     return result
 
