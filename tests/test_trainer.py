@@ -14,6 +14,51 @@ from selfplay_opsd.storage import CheckpointManager, active_events
 from selfplay_opsd.trainer import SelfPlayTrainer
 
 
+@pytest.mark.sandbox
+def test_batched_proposer_preserves_canonical_records(tmp_path, repository, sandbox):
+    cfg = configuration(tmp_path, "B", repository)
+    policy = scripted_policy(cfg)
+    trainer = SelfPlayTrainer(cfg, policy, repository, sandbox)
+    original, _ = trainer.proposals(1)
+    cfg.hardware.proposer_batch_size = 16
+    batched, _ = trainer.proposals(1)
+    assert [row.model_dump(mode="json") for row in original] == [
+        row.model_dump(mode="json") for row in batched
+    ]
+    trainer.sink.finish()
+
+
+@pytest.mark.sandbox
+def test_c_zero_reward_groups_skip_candidate_backward(tmp_path, repository, sandbox):
+    cfg = configuration(tmp_path, "C", repository)
+    policy = scripted_policy(cfg)
+    original_generate = policy.generate
+    original_gradients = policy.gradients
+    candidate_calls = []
+
+    def finish_only(self, prompt, max_tokens, seed, greedy=False):
+        if self.role == "proposer":
+            return original_generate(prompt, max_tokens, seed, greedy=greedy)
+        output = canonical({"action": "finish"})
+        ids = self.tokenizer.encode(output) + [self.tokenizer.eos_token_id]
+        return Generation(ids, self.score(prompt, ids).tolist(), output)
+
+    def count_gradients(examples, step=False):
+        if policy.role == "student" and not step and examples and examples[0].kind == "rl":
+            candidate_calls.append(1)
+        return original_gradients(examples, step=step)
+
+    policy.generate = types.MethodType(finish_only, policy)
+    policy.gradients = count_gradients
+    trainer = SelfPlayTrainer(cfg, policy, repository, sandbox)
+    result = trainer.run_iteration(1)
+    assert result.valid > 0 and not candidate_calls
+    assert result.metrics["alignment"]["scored_count"] == result.valid
+    assert result.metrics["alignment"]["exact_zero_fraction"] == 1
+    assert all(score["reward"] == 0.5 for score in result.metrics["alignment"]["scores"])
+    trainer.sink.finish()
+
+
 def scripted_policy(config):
     policy = HFPolicy(config)
 

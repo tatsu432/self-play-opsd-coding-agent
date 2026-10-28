@@ -78,6 +78,7 @@ class HardwareConfig(Strict):
     allocated_gpu_count: int | None = Field(default=None, ge=0)
     min_vram_gib: int = Field(default=79, ge=0)
     microbatch_episodes: int = Field(default=1, ge=1)
+    proposer_batch_size: int = Field(default=1, ge=1, le=64)
     cpu_workers: int = Field(default=8, ge=1)
     rollout_concurrency: int = Field(default=4, ge=1)
     host_ram_gib: int = Field(default=128, ge=1)
@@ -85,6 +86,8 @@ class HardwareConfig(Strict):
     activation_checkpointing: bool = True
     offload: bool = True
     rollout_memory_fraction: float = Field(default=0.5, gt=0, lt=1)
+    enable_prefix_caching: bool = False
+    enforce_eager: bool = True
 
     @model_validator(mode="after")
     def parallelism(self):

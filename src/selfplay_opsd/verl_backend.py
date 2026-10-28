@@ -24,7 +24,7 @@ import torch
 
 from selfplay_opsd.config import RunConfig
 from selfplay_opsd.core import ExperimentError, canonical
-from selfplay_opsd.policy import Generation, HFPolicy, LossExample
+from selfplay_opsd.policy import Generation, GenerationRequest, HFPolicy, LossExample
 
 
 def rollout_environment(environment: dict[str, str]) -> dict[str, str]:
@@ -287,8 +287,8 @@ class VerlPolicy(HFPolicy):
                         "max_loras": 2,
                         "max_cpu_loras": 4,
                         "enable_sleep_mode": True,
-                        "enable_prefix_caching": False,
-                        "enforce_eager": True,
+                        "enable_prefix_caching": self.config.hardware.enable_prefix_caching,
+                        "enforce_eager": self.config.hardware.enforce_eager,
                         "trust_remote_code": False,
                         "disable_log_stats": True,
                         "seed": self.config.seed,
@@ -321,6 +321,35 @@ class VerlPolicy(HFPolicy):
             }
         )
         return Generation(result["ids"], result["logps"], result["text"])
+
+    def generate_many(self, requests: list[GenerationRequest]) -> list[Generation]:
+        if not requests:
+            return []
+        if len(requests) == 1 or any(request.max_tokens <= 0 for request in requests):
+            return super().generate_many(requests)
+        version = self._ensure_rollout()
+        result = self._rpc(
+            {
+                "action": "generate_many",
+                "requests": [
+                    {
+                        "prompt": request.prompt,
+                        "max_tokens": request.max_tokens,
+                        "seed": request.seed,
+                        "greedy": request.greedy,
+                    }
+                    for request in requests
+                ],
+                "version": version,
+                "adapter_id": self._adapter_ids.setdefault(version, len(self._adapter_ids) + 1),
+                "adapter_path": self._adapter_paths[version],
+            }
+        )
+        if len(result["generations"]) != len(requests):
+            raise ExperimentError("vLLM returned an incomplete generation batch")
+        return [
+            Generation(item["ids"], item["logps"], item["text"]) for item in result["generations"]
+        ]
 
     def prepare_rollout(self):
         self._ensure_rollout()

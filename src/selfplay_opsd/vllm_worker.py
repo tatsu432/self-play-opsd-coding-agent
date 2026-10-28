@@ -49,31 +49,49 @@ def main():
                     engine.wake_up()
                     result = {"ok": True}
                 else:
-                    settings = SamplingParams(
-                        temperature=0.0 if command["greedy"] else 1.0,
-                        top_p=1.0,
-                        top_k=-1,
-                        min_p=0.0,
-                        repetition_penalty=1.0,
-                        max_tokens=command["max_tokens"],
-                        seed=command["seed"],
-                        logprobs=1,
+                    requests = (
+                        command["requests"] if command["action"] == "generate_many" else [command]
                     )
+                    if not requests or len(requests) > 64:
+                        raise ValueError("Generation batch size must be 1..64")
+                    settings = [
+                        SamplingParams(
+                            temperature=0.0 if item["greedy"] else 1.0,
+                            top_p=1.0,
+                            top_k=-1,
+                            min_p=0.0,
+                            repetition_penalty=1.0,
+                            max_tokens=item["max_tokens"],
+                            seed=item["seed"],
+                            logprobs=1,
+                        )
+                        for item in requests
+                    ]
                     adapter = LoRARequest(
                         command["version"], command["adapter_id"], command["adapter_path"]
                     )
-                    output = engine.generate(
-                        [TokensPrompt(prompt_token_ids=command["prompt"])],
+                    outputs = engine.generate(
+                        [TokensPrompt(prompt_token_ids=item["prompt"]) for item in requests],
                         settings,
                         lora_request=adapter,
                         use_tqdm=False,
-                    )[0].outputs[0]
-                    ids = list(output.token_ids)
-                    logps = [
-                        float(row[token].logprob)
-                        for row, token in zip(output.logprobs, ids, strict=True)
-                    ]
-                    result = {"ok": True, "ids": ids, "logps": logps, "text": output.text}
+                    )
+                    if len(outputs) != len(requests):
+                        raise ValueError("vLLM returned an incomplete generation batch")
+                    generations = []
+                    for response in outputs:
+                        output = response.outputs[0]
+                        ids = list(output.token_ids)
+                        logps = [
+                            float(row[token].logprob)
+                            for row, token in zip(output.logprobs, ids, strict=True)
+                        ]
+                        generations.append({"ids": ids, "logps": logps, "text": output.text})
+                    result = (
+                        {"ok": True, "generations": generations}
+                        if command["action"] == "generate_many"
+                        else {"ok": True, **generations[0]}
+                    )
             except Exception as exc:
                 result = {
                     "ok": False,

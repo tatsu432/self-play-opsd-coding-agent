@@ -1,5 +1,9 @@
 # Yale A–D readiness and launch
 
+Task 09 optimization is staged in `configs/task09.yaml` but has no H200
+benchmark, new freeze or main previews. Use the Task 08 commands below only
+for its unchanged frozen source. See the [Task 09 status](task_completion/09-implemented-efficiency-learnability.md).
+
 Task 08 launch readiness is **verified**, 2026-10-28. All ten gates, freeze job
 31082462 and four actual controller previews pass. **Main A–D training remains
 unauthorized; no main job has been submitted.** The [Task 08 completion record](task_completion/08-implemented-task-learnability-probe.md)

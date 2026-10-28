@@ -35,7 +35,7 @@ from selfplay_opsd.environment import check_admission, score_teacher
 from selfplay_opsd.mutations import strict_json_object, validate_mutation
 from selfplay_opsd.objectives import advantages, alignment, difficulty, sd_coefficients
 from selfplay_opsd.observability import HealthMonitor, WandbSink, distribution, system_metrics
-from selfplay_opsd.policy import HFPolicy, LossExample
+from selfplay_opsd.policy import GenerationRequest, HFPolicy, LossExample
 from selfplay_opsd.protocol import PROMPT_HASH, proposer_messages
 from selfplay_opsd.sandbox import SandboxBackend
 from selfplay_opsd.storage import (
@@ -175,6 +175,7 @@ class SelfPlayTrainer:
         self.health = HealthMonitor()
         self._phase_totals: dict[str, float] = defaultdict(float)
         self._detail_times: dict[str, float] = defaultdict(float)
+        self._proposal_batch_sizes: list[int] = []
         self.root = config.run_dir
         self.checkpoints = CheckpointManager(self.root) if policy.is_coordinator else None
         from selfplay_opsd.readiness import execution_identity
@@ -367,21 +368,52 @@ class SelfPlayTrainer:
         pending: dict[str, set[str]] = {}
         with self.policy.active("proposer"):
             version = self.policy.version("proposer")
+            batched = None
+            if self.config.hardware.proposer_batch_size > 1:
+                requests = []
+                for parent in parents:
+                    prompt = self.policy.encode_history(proposer_messages(parent))
+                    for slot in range(self.config.proposals_per_parent):
+                        requests.append(
+                            GenerationRequest(
+                                prompt,
+                                min(
+                                    self.config.proposer_max_tokens,
+                                    self.config.episode.max_student_sequence_tokens - len(prompt),
+                                ),
+                                keyed_seed(self.config.seed, "proposer", k, parent.parent_id, slot),
+                            )
+                        )
+                outputs = []
+                size = self.config.hardware.proposer_batch_size
+                for start in range(0, len(requests), size):
+                    batch = requests[start : start + size]
+                    generated_at = time.monotonic()
+                    outputs.extend(self.policy.generate_many(batch))
+                    self._detail_times["propose"] += time.monotonic() - generated_at
+                    self._proposal_batch_sizes.append(len(batch))
+                if len(outputs) != len(requests):
+                    raise ExperimentError("Incomplete proposer generation batch")
+                batched = iter(outputs)
             for parent in parents:
                 messages = proposer_messages(parent)
                 prompt = self.policy.encode_history(messages)
                 for slot in range(self.config.proposals_per_parent):
                     seed = keyed_seed(self.config.seed, "proposer", k, parent.parent_id, slot)
-                    generation_started = time.monotonic()
-                    output = self.policy.generate(
-                        prompt,
-                        min(
-                            self.config.proposer_max_tokens,
-                            self.config.episode.max_student_sequence_tokens - len(prompt),
-                        ),
-                        seed,
-                    )
-                    self._detail_times["propose"] += time.monotonic() - generation_started
+                    if batched is None:
+                        generation_started = time.monotonic()
+                        output = self.policy.generate(
+                            prompt,
+                            min(
+                                self.config.proposer_max_tokens,
+                                self.config.episode.max_student_sequence_tokens - len(prompt),
+                            ),
+                            seed,
+                        )
+                        self._detail_times["propose"] += time.monotonic() - generation_started
+                        self._proposal_batch_sizes.append(1)
+                    else:
+                        output = next(batched)
                     if self.proposal_observer:
                         self.proposal_observer(
                             {
@@ -477,6 +509,7 @@ class SelfPlayTrainer:
         cfg = self.config
         self._phase_totals.clear()
         self._detail_times.clear()
+        self._proposal_batch_sizes.clear()
         if self.store:
             self.store.iteration = k
         snapshot, proposer_snapshot = (
@@ -586,16 +619,28 @@ class SelfPlayTrainer:
                 assert proposal.task_id is not None
                 episodes = groups[proposal.task_id]
                 if cfg.candidate_objective:
-                    examples, _ = student_examples(
-                        episodes, cfg, kind="rl" if cfg.method == "C" else "combined"
-                    )
-                    candidate_started = time.monotonic()
-                    gradients, _ = self.policy.gradients(examples)
-                    self._detail_times["candidate_gradient"] += time.monotonic() - candidate_started
                     assert reference is not None
-                    score = alignment(
-                        gradients, reference, cfg.objective.near_zero, self.policy.distributed
-                    )
+                    if cfg.method == "C" and len({episode.reward for episode in episodes}) == 1:
+                        # Population-normalized GRPO advantages are exactly zero here.
+                        # Keep the same distributed alignment reduction and diagnostics.
+                        score = alignment(
+                            (torch.zeros_like(gradient) for gradient in reference),
+                            reference,
+                            cfg.objective.near_zero,
+                            self.policy.distributed,
+                        )
+                    else:
+                        examples, _ = student_examples(
+                            episodes, cfg, kind="rl" if cfg.method == "C" else "combined"
+                        )
+                        candidate_started = time.monotonic()
+                        gradients, _ = self.policy.gradients(examples)
+                        self._detail_times["candidate_gradient"] += (
+                            time.monotonic() - candidate_started
+                        )
+                        score = alignment(
+                            gradients, reference, cfg.objective.near_zero, self.policy.distributed
+                        )
                     rewards[index] = score.reward
                     alignments.append(dataclasses.asdict(score) | {"task_id": proposal.task_id})
                 else:
@@ -775,6 +820,22 @@ class SelfPlayTrainer:
                 else None,
             },
             "perf": {
+                "proposer_generation_batches": len(self._proposal_batch_sizes),
+                "proposer_batch_sizes": list(self._proposal_batch_sizes),
+                "proposer_generated_tokens_per_second": (
+                    sum(len(p.turn.target_ids) for p in proposals) / self._detail_times["propose"]
+                    if self._detail_times["propose"] > 0
+                    else None
+                ),
+                "student_generation_requests": sum(len(e.turns) for e in episodes),
+                "student_generated_tokens_per_generation_second": (
+                    sum(len(turn.target_ids) for e in episodes for turn in e.turns)
+                    / sum(e.timings.get("generate", 0.0) for e in episodes)
+                    if sum(e.timings.get("generate", 0.0) for e in episodes) > 0
+                    else None
+                ),
+            }
+            | {
                 name + "_seconds": self._detail_times.get(name, self._phase_totals.get(name))
                 for name in (
                     "propose",

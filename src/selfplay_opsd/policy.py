@@ -57,6 +57,14 @@ class Generation:
 
 
 @dataclass(frozen=True)
+class GenerationRequest:
+    prompt: list[int]
+    max_tokens: int
+    seed: int
+    greedy: bool = False
+
+
+@dataclass(frozen=True)
 class LossExample:
     prompt: list[int]
     targets: list[int]
@@ -301,6 +309,12 @@ class HFPolicy:
             ids = output[0, len(prompt) :].tolist()
             old = self.score(prompt, ids).tolist()
         return Generation(ids, old, self.tokenizer.decode(ids, skip_special_tokens=True))
+
+    def generate_many(self, requests: list[GenerationRequest]) -> list[Generation]:
+        return [
+            self.generate(request.prompt, request.max_tokens, request.seed, greedy=request.greedy)
+            for request in requests
+        ]
 
     def gradients(
         self, examples: list[LossExample], *, step: bool = False

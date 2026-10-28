@@ -1,5 +1,10 @@
 # Self-play OPSD coding-agent experiment
 
+Task 09 optimization code is staged under `configs/task09.yaml` and is not
+launch ready. The [Task 09 record](task_completion/09-implemented-efficiency-learnability.md)
+lists CPU evidence, remaining H200 checks and the read-only health report.
+Task 08's frozen launch commands remain the active accepted path.
+
 
 Task 08 launch readiness is verified: all ten gates, a frozen common study and
 four actual A–D submission previews pass. Follow the active [Yale launch runbook](yale-launch-runbook.md)

@@ -26,5 +26,7 @@ uv run selfplay smoke --output runs/local-smoke
   setup, hardware checks, pilot, launch, recovery, evaluation and W&B.
 - [Implemented methods](docs/methods.md): objectives, normalization, data boundaries
   and validation limits.
+- [Task 09 optimization status](docs/task_completion/09-implemented-efficiency-learnability.md):
+  staged CPU changes, scientific-health report, and pending H200 acceptance.
 - [Yale HPC operations](docs/operations.md#switch-profiles-and-verify-production-backends):
   inspection, immutable synchronization, submission and recovery.
