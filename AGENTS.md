@@ -29,13 +29,15 @@ documents are historical. Read `README.md`, `docs/methods.md` and
 
 ## Yale operations
 
-Task 09 optimization is staged on `feat/09-efficiency-learnability` with
-`configs/task09.yaml` and a new study ID. Its CPU changes are not H200 accepted
-or frozen. The user authorized Task 09 GPU readiness within the existing 24-hour
-allowance. Reconcile existing jobs and reservations before new submissions.
-The Task 08 frozen study remains launch ready
-and main training remains unauthorized. See the Task 09 plan and completion
-record for the pending dependency-scoped checks.
+Task 09 v2 is launch ready with caveats on `feat/09-efficiency-learnability`,
+`configs/task09-diagnostics.yaml`, study `repair-selfplay-2026-efficiency-v2`.
+Freeze 31197007 and all four actual previews passed; frozen execution is
+`93a8533beeae26e54bb1510caa12991fb2471337`. CI 40748915396 passed. Main A–D
+training remains unauthorized. The Task 08 frozen study is a separate valid
+baseline. See the Task 09 completion record and launch runbook for evidence,
+numerical caveats, costs and exact commands. Reconcile live jobs and budget
+before operations; last reconciled consumption was 7.478055556/24 GPU-hours,
+with no outstanding reservation.
 
 Task 09 freeze 31149887 is incomplete for launch planning: it contains no
 resource plan, and controller previews use a 484-second stop lead and one
@@ -43,10 +45,10 @@ continuation. The controller reports eligibility, but do not submit this study
 until a workload-based resource plan is bound to a correctly frozen study and
 the remaining performance validation is complete. Preserve the freeze for audit.
 
-The follow-on mismatch instrumentation uses `configs/task09-diagnostics.yaml`,
-study `repair-selfplay-2026-efficiency-v2`. It changes scientific code identity
-and is not accepted or frozen. Reuse dependency-compatible evidence and do not
-run main training from it before its own validation and measured resource plan.
+The follow-on mismatch instrumentation changed scientific code identity and
+passed its own dependency-scoped validation. Its frozen measured plan uses stop
+leads 4616/4540/4717/5211 seconds and 5/5/5/6 continuations for A/B/C/D.
+The earlier v1 freeze above remains unsuitable for launch.
 
 The last accepted readiness task is `docs/task/08-task-learnability-probe-spec.md`; its plan is
 `docs/plan/08-task-learnability-probe-plan.md`. Task 08 authorizes the common

@@ -1,8 +1,54 @@
-# Task 09 — CPU implementation and pending H200 acceptance
+# Task 09 — implementation and H200 readiness
 
-Status: implementation staged on `feat/09-efficiency-learnability`; **the new
-study is not launch ready**. Task 08 remains launch ready on its frozen source.
-No main A–D job was submitted.
+Status: **GO WITH CAVEATS** for the new v2 study: all readiness gates and four
+actual submission previews passed. Main training remains subject to the
+separate authorization in Task 09 §1; no main A–D job was submitted. Task 08
+remains a separately frozen launch-ready baseline. Historical status and
+estimates below are retained for provenance and superseded by this section.
+
+Study `repair-selfplay-2026-efficiency-v2`, settings
+`configs/task09-diagnostics.yaml`, frozen execution `93a8533beeae26e54bb1510caa12991fb2471337`:
+runtime 31151547, greedy base 31156334 (0/41), D pilot 31158975/31161158
+(verified resume at two, ten iterations, 14/160 valid, 56 episodes, 14
+successes and eight steps per optimizer), A/B/C suite 31169497 (each three
+iterations, six valid tasks, 24 episodes and three steps per optimizer), and
+CPU freeze 31197007 passed. Worker and backend proofs were reused with their
+dependency-scoped provenance. Hosted Linux/Docker correctness CI 40748915396
+passed for the frozen source.
+
+The resource plan binds the reports and measured Slurm accounting: suite 2996 s,
+pilot 2695 s, base 1058 s; file SHA-256
+`6e20c52ab4ee5ebcb6fb646461cae7a6b17702afbc033a1b484abca8790d0fe7`.
+Observed-yield projections for A/B/C/D are 17.69/17.33/18.00/15.80 GPU-hours;
+conservative planning projections are 82.06/79.94/84.82/97.95 hours, or
+344.78 total, including monitoring and excluding final evaluations. These are
+conditional scenarios based on short samples, not guarantees; longer responses
+or different yield may exceed them. Shared suite overhead is apportioned once.
+Four previews used 23-hour segments, 200 iterations, fresh initialization and
+stop leads 4616/4540/4717/5211 s with 5/5/5/6 continuations. Preview IDs are
+`f244f8eec337077c09b7d40d`, `8af244041ef9c1fee8c67d05`,
+`e223ab1b20daeb7de548f11f`, `108c801d89e63a856490fdcf`; all reported
+`submitted=false`. The final shared readiness ledger was 7.478055556/24
+GPU-hours consumed with no outstanding reservation. Reconcile live state
+before operations.
+
+Before launch, the B and D main directories contained only diagnostic
+`state/vllm.log` files. They were moved intact to
+`runs/readiness/repair-selfplay-2026-efficiency-v2/pre-main-diagnostic-logs/`
+outside the main namespace; B and D log SHA-256 values are
+`32d925aba41feb68af6cf4e358e7e7a71e4d91f7e07981672a38a56cd9d872cc`
+and `36f3d523c7879d7f9f5691eb0f14dbdeab272540216929bf349fc500818a815a`.
+No main training artifacts or active jobs were present.
+
+Main risks remain: greedy base repairs were 0/41; five of eight sampled D RL
+gradients were zero. The sampled rollout/scoring discrepancy affected one
+mixed-reward diagnostic gradient by 9.9% relative L2 (cosine 0.9985); its
+learning effect is unknown. Review scientific health at iterations 5–10 and
+20. Faster batching, graph and cache variants are not promoted because their
+sampled behavior differed; longer-context memory and end-to-end optimization
+benchmarks remain unmeasured. The controller's foreground watcher is not
+durable; use the documented verified manual continuation if disconnected.
+See the [launch runbook](../yale-launch-runbook.md) for exact commands.
 
 ### Latest continuation and numerical diagnostic
 
@@ -85,7 +131,7 @@ method and remaining shared time is split equally, without charging the same
 allocation three times. This is an estimate, with limited samples and lower-bound
 memory observations. It is not attached to the premature immutable freeze.
 
-## Current blocker
+## Historical blocker (resolved for v2)
 
 Task 09 cannot be declared ready for the main experiment until its changed
 execution path passes H200 numerical, memory, performance and recovery checks,

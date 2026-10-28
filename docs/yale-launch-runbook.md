@@ -1,8 +1,50 @@
 # Yale A–D readiness and launch
 
-Task 09 optimization is staged in `configs/task09.yaml` but has no H200
-benchmark, new freeze or main previews. Use the Task 08 commands below only
-for its unchanged frozen source. See the [Task 09 status](task_completion/09-implemented-efficiency-learnability.md).
+Task 09 v2 is **GO WITH CAVEATS**: freeze 31197007 and four previews passed.
+The [completion record](task_completion/09-implemented-efficiency-learnability.md)
+contains the scientific caveats, evidence and conditional costs. Main A–D
+training requires separate authorization; no main job has been submitted.
+The Task 08 commands below remain valid only for its distinct frozen source.
+
+## Task 09 v2 launch and monitoring
+
+Use `configs/task09-diagnostics.yaml`, study `repair-selfplay-2026-efficiency-v2`,
+and frozen source `93a8533beeae26e54bb1510caa12991fb2471337`. Reconcile live
+state, use normal Duo login if needed, and sync the clean committed checkout:
+
+```bash
+uv run selfplay hpc login
+uv run selfplay hpc sync --settings configs/task09-diagnostics.yaml
+uv run selfplay hpc doctor --settings configs/task09-diagnostics.yaml --gpu-type h200
+uv run selfplay hpc inspect
+```
+
+The following four previews were executed successfully with `submitted=false`:
+
+```bash
+for method in A B C D; do
+  uv run selfplay hpc submit --settings configs/task09-diagnostics.yaml --operation train --method "$method" --profile single_gpu_80gb --gpu-type h200 --account cpsc4880 --dry-run
+done
+```
+
+After separate authorization, remove `--dry-run` and submit the desired methods.
+Each uses a single H200, 23-hour segments and 200 iterations. Main costs are
+outside the readiness allowance. Monitor and recover using the returned run ID:
+
+```bash
+uv run selfplay hpc status RUN_ID
+uv run selfplay hpc logs RUN_ID
+uv run selfplay hpc fetch RUN_ID
+uv run selfplay hpc watch RUN_ID --continue-stopped
+uv run python scripts/scientific_health.py runs/hpc/yale-hpc-cpsc4880/RUN_ID --allocated-gpu-hours ACTUAL_HOURS
+```
+
+The watcher is a foreground process. If disconnected, first inspect status,
+logs and the ledger, then use `uv run selfplay hpc resume RUN_ID
+--continue-stopped` only for a verified clean segment stop. Never duplicate an
+uncertain submission or automatically retry scientific failures. Review health
+after 5–10 iterations and around 20; sparse rewards alone do not establish a
+failure. See the monitoring, evaluation and offline W&B instructions below.
 
 Task 08 launch readiness is **verified**, 2026-10-28. All ten gates, freeze job
 31082462 and four actual controller previews pass. **Main A–D training remains
