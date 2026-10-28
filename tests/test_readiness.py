@@ -276,6 +276,49 @@ def test_freeze_is_idempotent_and_all_methods_share_the_gate(tmp_path, monkeypat
         check_frozen(cfg, SimpleNamespace(hash="data"))
 
 
+def test_freeze_binds_resource_plan_to_actual_evidence(tmp_path, monkeypatch):
+    from selfplay_opsd.core import digest
+    from selfplay_opsd.readiness import evidence_root, hardware_settings
+
+    cfg, pilot = ready_fixture(tmp_path, monkeypatch)
+    frozen = freeze_study(cfg, pilot)
+    root = cfg.output_root / cfg.study_id
+    (root / "study_frozen.json").unlink()
+    plan = {
+        "runtime_identity": frozen["runtime_identity"],
+        "common_config": frozen["common_config"],
+        "pilot_hash": frozen["pilot_hash"],
+        "checkpoint_every": cfg.checkpoint_every,
+        "hardware": hardware_settings(cfg.hardware.model_dump(mode="json")),
+        "gpu_type": frozen["gpu_type"],
+        "baseline_hash": digest(json.loads((root / "base/evaluation_complete.json").read_text())),
+        "method_hashes": {
+            m: digest(json.loads((evidence_root(cfg) / "method-smokes" / f"{m}.json").read_text()))
+            for m in "ABC"
+        },
+        "per_method": {
+            m: {
+                "planning_projection_200_hours": 25.0,
+                "signal_seconds": 3600,
+                "max_continuations": 3,
+            }
+            for m in "ABCD"
+        },
+    }
+    atomic_json(root / "resource_plan.json", plan)
+    result = freeze_study(cfg, pilot)
+    assert result["resource_plan"] == plan
+    assert result["resource_plan_hash"] == digest(plan)
+    (root / "study_frozen.json").unlink()
+    atomic_json(root / "resource_plan.json", plan | {"baseline_hash": "stale"})
+    with pytest.raises(ExperimentError, match="does not match"):
+        freeze_study(cfg, pilot)
+    plan["per_method"]["D"]["signal_seconds"] = 70000
+    atomic_json(root / "resource_plan.json", plan)
+    with pytest.raises(ExperimentError, match="continuation envelope"):
+        freeze_study(cfg, pilot)
+
+
 def test_all_method_proofs_and_intact_checkpoints_are_required(tmp_path, monkeypatch):
     cfg, _ = ready_fixture(tmp_path, monkeypatch)
     from selfplay_opsd.method_smoke import smoke_config, smoke_path
