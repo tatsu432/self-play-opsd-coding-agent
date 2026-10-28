@@ -20,7 +20,9 @@ sampling, mathematical budgets and frozen task boundaries are unchanged.
 | Worker 31033392 | Reused; all 19 checks, original report SHA-256 `b0b4781ee150260269690f074f2f509b24998c243800ce36383acf34988ebe8c` |
 | Probe 31069728 / `7f6319f6b8b125ac11eaa7af` | Passed, 32 attempts, five valid mutations, 20 episodes/9,252 tokens, no updates/refills |
 | Revision 31069732 / `d4630697f6f230e3021769b7` | Passed all 306 admissions/verifications and original-file equality; new anchors |
-| Runtime/backend/base/D/A–C/freeze/previews | Pending current compatible execution |
+| Runtime 31071377 / `1efeedad6e8ff2df7ca56863` | Submitted CPU deployment check |
+| Backend 31071410 / `1b79a8543eecd835654471e5` | Submitted current numerical acceptance |
+| Base/D/A–C/freeze/previews | Pending current compatible execution |
 
 Probe actions: 55 valid reads, one valid patch, one valid public-test call, nine
 valid finishes, 53 patch tool errors and 38 invalid actions. Invalid proposal
@@ -52,3 +54,18 @@ under `runs/hpc/yale-hpc-cpsc4880/`. The old full D fetch reported directory met
 errors, but all three joint checkpoints (0/2/10) verified by checksum; raw D and
 baseline trajectories were fetched independently. Historical A/B/C raw proposals
 also confirm the shared format failure. All historical failed runs remain intact.
+
+
+Before replacing shared backend outputs, the complete original numerical report,
+1.85-GB gradient reference and 1.06-GB joint checkpoint were copied on Yale to
+`runs/readiness/repair-selfplay-2026/backend-v2-archive-31040984`. Transfer metadata
+is recorded in `runs/task08/backend-archive.json`. The redundant local full-backend
+transfer was stopped after this durable archive completed. Default `hpc fetch`
+now excludes tensor payloads; use `--full` when those artifacts are required.
+
+Selected A/B/C method checks now have independent submission slots; a D suite
+still conflicts with every selected method, including legacy/uncertain slots.
+This removes the remaining same-report-parent collision without weakening
+submission/budget locking. Controller-only changes leave scientific code hash
+`d8526f680fbbe3aff938d8688307817bb25ff496cd3d1cc02de3daecb5a5c6e1`
+and protocol/data/runtime dependencies unchanged. Focused controller tests pass.

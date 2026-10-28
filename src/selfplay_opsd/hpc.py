@@ -179,6 +179,7 @@ class YaleSSH:
                 "--exclude=checkpoints/",
                 "--exclude=trajectories/",
                 "--exclude=wandb/",
+                "--exclude=*.pt",
                 "--exclude=*.sif",
                 "--exclude=*.tar",
             ]

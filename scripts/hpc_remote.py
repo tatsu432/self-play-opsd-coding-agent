@@ -707,7 +707,22 @@ def submit(payload: dict) -> dict:
         legacy_slot = (
             p["state"] / "slots" / (hashlib.sha256(str(artifact).encode()).hexdigest() + ".json")
         )
-        for candidate_slot in dict.fromkeys([slot, legacy_slot]):
+        parent_slot = slot
+        checked_slots = [slot, legacy_slot]
+        if payload["operation"] == "method-smoke":
+            # A/B/C write separate reports and checkpoints. The D launcher runs
+            # the entire suite, so it must conflict with every selected method.
+            def method_slot(method):
+                key = f"{artifact}:method-smoke:{method}"
+                return p["state"] / "slots" / (hashlib.sha256(key.encode()).hexdigest() + ".json")
+
+            method = payload["method"]
+            if method not in {"A", "B", "C", "D"}:
+                raise ValueError("Unknown method acceptance selection")
+            slot = method_slot(method)
+            peers = "ABCD" if method == "D" else method + "D"
+            checked_slots = [slot, parent_slot, legacy_slot, *[method_slot(m) for m in peers]]
+        for candidate_slot in dict.fromkeys(checked_slots):
             if not candidate_slot.exists():
                 continue
             owner = json.loads(candidate_slot.read_text())
@@ -719,6 +734,15 @@ def submit(payload: dict) -> dict:
                 ):
                     # An old shared directory slot cannot serialize unrelated
                     # work. Equivalent old/uncertain submissions still block.
+                    continue
+                prior_method = prior["ledger"].get("specification", {}).get("method")
+                if (
+                    payload["operation"] == "method-smoke"
+                    and prior["ledger"].get("operation") == "method-smoke"
+                    and payload["method"] in "ABC"
+                    and prior_method in {"A", "B", "C"}
+                    and payload["method"] != prior_method
+                ):
                     continue
                 states = [a["scheduler"]["state"] for a in prior["attempts"]]
                 if (

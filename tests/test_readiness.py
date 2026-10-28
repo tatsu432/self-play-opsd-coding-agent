@@ -813,6 +813,39 @@ def test_independent_slots_preserve_legacy_duplicate_exclusion(tmp_path, monkeyp
     assert remote.submit(payload | {"run_id": "gpu2", "identity": "gpu-id2"})["submitted"]
     assert sum(args[0] == "sbatch" for args in calls) == 3
 
+    method_a = payload | {
+        "operation": "method-smoke",
+        "method": "A",
+        "run_id": "methodA",
+        "identity": "idA",
+    }
+    method_b = method_a | {"method": "B", "run_id": "methodB", "identity": "idB"}
+    assert remote.submit(method_a)["submitted"]
+    assert remote.submit(method_b)["submitted"]
+    suite = method_a | {"method": "D", "run_id": "suite", "identity": "idD"}
+    assert remote.submit(suite)["reason"] == "slot_busy"
+    # A historical operation-wide slot owned by A cannot block independent C.
+    shared = (
+        paths["state"]
+        / "slots"
+        / (
+            hashlib.sha256(
+                (str(remote.artifact_dir(method_a)) + ":method-smoke").encode()
+            ).hexdigest()
+            + ".json"
+        )
+    )
+    atomic_json(shared, {"run_id": "methodA", "identity": "idA"})
+    method_c = method_a | {"method": "C", "run_id": "methodC", "identity": "idC"}
+    assert remote.submit(method_c)["submitted"]
+    monkeypatch.setattr(remote, "job_state", lambda _: {"state": "COMPLETED"})
+    assert remote.submit(suite)["submitted"]
+    monkeypatch.setattr(remote, "job_state", lambda _: {"state": "PENDING"})
+    assert (
+        remote.submit(method_a | {"run_id": "anotherA", "identity": "idA2"})["reason"]
+        == "slot_busy"
+    )
+
 
 def test_allocation_proof_reuse_checks_immutable_legacy_source(tmp_path):
     from selfplay_opsd.readiness import allocation_code_hash
