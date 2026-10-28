@@ -81,7 +81,7 @@ def workload_summary(events: list[dict], root: Path) -> dict:
         assert len(proposals) == c["attempted"]
         proposal_limit_hits += sum(len(p["turn"]["target_ids"]) == 512 for p in proposals)
         episodes = read_json(ep)
-        assert len(episodes) == c["episodes"]
+        assert len(episodes) == c["episodes"] == c["valid"] * 4
         for episode in episodes:
             episode_ids.append(episode["episode_id"])
             for turn in episode["turns"]:
@@ -171,6 +171,9 @@ def main():
             "workload": workload_summary(events, root),
             "fixture": fixture,
         }
+    assert pilot["iterations"] == 10 and pilot["resume_history"] == [2]
+    assert pilot["actual_exposures"]["episodes"] == projections["D"]["episodes"]
+    assert pilot["actual_exposures"]["tokens"] == projections["D"]["tokens"]
     plan = {
         "schema_version": 1,
         "runtime_identity": pilot["runtime_identity"],
