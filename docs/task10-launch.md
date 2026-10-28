@@ -2,7 +2,8 @@
 
 Main A–D training still requires explicit authorization. Use this workflow with
 `configs/task10-online.yaml`, study `repair-selfplay-2026-main-online-v1`.
-The original Task 09 v2 freeze remains available as a separate offline fallback.
+Frozen execution is `54f087fdc5cf5170800d825bf1ee92b89a43c8ed` (CPU freeze
+31206522). The original Task 09 v2 freeze remains available as a separate offline fallback.
 See the [implementation record](task_completion/10-implemented-main-experiment.md)
 for executed jobs, validation, costs and current GO/NO-GO status.
 

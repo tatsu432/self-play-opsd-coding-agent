@@ -236,3 +236,18 @@ def test_pinned_sdk_accepts_canonical_tables_and_dashboard_charts(tmp_path):
     warnings = [e for e in active_events(store.root) if e["kind"] == "logging_warning"]
     assert not warnings
     assert sink.status["sdk_delivered_iteration"] == 1
+
+
+def test_rollback_clears_stale_cloud_summaries():
+    from selfplay_opsd.telemetry import update_canonical_summary
+
+    run = FakeRun()
+    run.summary = {
+        "student/grad_norm": 9,
+        "eval/best_dev_parent_macro": 0.5,
+        "run/logical_run_id": "logical",
+    }
+    update_canonical_summary(run, {"run/checkpoint_iteration": 0})
+    assert run.summary["student/grad_norm"] is None
+    assert run.summary["eval/best_dev_parent_macro"] is None
+    assert run.summary["run/logical_run_id"] == "logical"

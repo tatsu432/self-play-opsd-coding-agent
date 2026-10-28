@@ -31,8 +31,9 @@ changed. There is no new automatic scientific-underperformance stop.
 
 ## Validation and operations
 
-Local CPU suite passed 239 tests with 33 environment-dependent skips and three
-deselections before the latest provenance regression; lint and mypy passed.
+Local CPU suite passed 240 tests with 33 environment-dependent skips and three
+deselections; lint and mypy passed. Subsequent controller/rollback checks passed
+39 focused tests.
 Focused tests cover private upload boundaries, checkpoints, rollback, stable IDs,
 SDK failure isolation, pinned SDK table/chart serialization, scientific RNG,
 all A–D numerical counterfactuals without steps, accounting, and exact reuse.
@@ -44,6 +45,14 @@ Dependency-checked evidence reuse from Task 09 succeeded. CPU freeze attempt
 `SELFPLAY_MAIN_STUDY` redirected the historical smoke-report source lookup.
 The lookup is now explicit and has a regression test under the real environment
 variable. No historical report/checkpoint was changed to make reuse pass.
+
+CPU freeze **31206522**, controller run `7e9a7c9ab6f73107387bdd04`, completed
+successfully with execution **`54f087fdc5cf5170800d825bf1ee92b89a43c8ed`**.
+All scientific readiness gates pass with unchanged dependencies. Resource-plan
+hash is `47ed0332e6f873022a5aa743b63c5aeb10d53c33ba9981f56dc0d49d3f0544cb`;
+frozen telemetry identity is
+`dfdb26ba5320da92155a5ccf7e754725ad201211724b1953ffae1c83ccbcd9ef`.
+The controller separately blocks online launch when cloud/resume proof is absent.
 
 Standard W&B login was opened in a local Terminal. Local and remote credential
 inspection initially found no W&B credentials. User supplied username `tatsu432`

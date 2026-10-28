@@ -869,6 +869,18 @@ def doctor(
         freeze = state["reports"]["freeze"]
         if freeze and not freeze.get("resource_plan"):
             result["blockers"].append("Frozen study lacks a measured resource plan")
+        if cfg.logging.mode == "online":
+            from selfplay_opsd.telemetry import telemetry_identity
+
+            proof = state["reports"].get("telemetry", {})
+            if not (
+                proof.get("ready")
+                and proof.get("cloud_verified")
+                and proof.get("sequence") == 2
+                and proof.get("telemetry_identity") == telemetry_identity()
+                and proof.get("telemetry_identity") == freeze.get("telemetry_identity")
+            ):
+                result["blockers"].append("Online W&B cloud delivery/resume proof missing or stale")
         result["eligible_to_submit_main"] = (
             state["eligible_to_submit_main"] and not result["blockers"]
         )
@@ -882,6 +894,10 @@ def doctor(
         result["next_action"] = (
             "Run hpc prepare-study; inspect its next action or failed-stage evidence"
         )
+        if any("Online W&B" in blocker for blocker in result["blockers"]):
+            result["next_action"] = (
+                "Configure the private W&B secrets file, then submit CPU wandb-verify; do not repeat passed readiness probes"
+            )
     except HpcError as exc:
         result = {
             "local": local,
