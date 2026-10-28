@@ -1589,6 +1589,10 @@ def precheck(payload: dict):
         state = study_state(payload)
         if not state["gates"]["worker"] or not state["gates"]["runtime"]:
             raise ValueError("Runtime isolation and target data validation have not passed")
+        if operation == "freeze-study":
+            plan_path = workspace(payload) / "runs" / payload["study_id"] / "resource_plan.json"
+            if not plan_path.is_file():
+                raise ValueError("A measured resource plan is required before Yale study freeze")
         if operation == "train" or (
             operation == "evaluate" and payload.get("split") in {"final_id", "external"}
         ):
