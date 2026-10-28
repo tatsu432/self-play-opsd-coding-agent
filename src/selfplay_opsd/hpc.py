@@ -191,6 +191,7 @@ class YaleSSH:
                 # Fetch contents/timestamps without replaying remote checkpoint
                 # directory modes (Apple openrsync otherwise fails fchmodat).
                 "-rlt",
+                "--chmod=Du=rwx,Dgo=,Dg-s,Fu=rw,Fgo=",
                 "--checksum",
                 *excludes,
                 "-e",
