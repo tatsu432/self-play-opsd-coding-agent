@@ -927,6 +927,8 @@ def artifact_dir(payload: dict) -> Path:
         )
     if operation == "method-smoke":
         return runs / "readiness" / study / "method-smokes"
+    if operation == "rollout-parity":
+        return runs / "readiness" / study / "rollout-parity"
     if operation in {
         "worker-check",
         "runtime-check",
@@ -1498,6 +1500,7 @@ def precheck(payload: dict):
         "protocol-check",
         "protocol-revision",
         "backend-check",
+        "rollout-parity",
         "allocation-check",
         "worker-diagnose",
         "worker-check",
@@ -1543,6 +1546,19 @@ def precheck(payload: dict):
             or payload.get("readiness_budget") != 24
         ):
             raise ValueError("Allocation diagnostics require bounded cpsc4880 H100/H200 readiness")
+        return
+    if operation == "rollout-parity":
+        if (
+            payload.get("account") != "cpsc4880"
+            or payload.get("gpu_count") != 1
+            or payload.get("gpu_type") != "h200"
+            or payload.get("time") != "01:00:00"
+            or payload.get("readiness_budget") != 24
+            or not Path(payload.get("image", "")).is_file()
+            or not DIGEST.fullmatch(payload.get("image_sha256", ""))
+            or not study_state(payload)["gates"]["target"]
+        ):
+            raise ValueError("Rollout parity requires accepted one-H200 backend and bounded budget")
         return
     uses_worker = operation in {
         "worker-check",

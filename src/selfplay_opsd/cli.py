@@ -563,6 +563,15 @@ def backend_check(
     typer.echo(canonical(check_backend(cfg, output, reference=reference)))
 
 
+@app.command("rollout-parity")
+def rollout_parity(settings: ConfigOption, hardware: str, output: Path):
+    """Score fixed saved pilot tokens and compare sequential/batched generation."""
+    from selfplay_opsd.rollout_parity_probe import run
+
+    cfg = load_config(settings, hardware_profile=hardware)
+    typer.echo(canonical(run(cfg, output)))
+
+
 @app.command("runtime-check")
 def runtime_check(settings: ConfigOption):
     from selfplay_opsd.readiness import validate_runtime

@@ -338,6 +338,7 @@ def run_payload(
 ) -> dict:
     if operation not in {
         "backend-check",
+        "rollout-parity",
         "allocation-check",
         "worker-diagnose",
         "pilot",
@@ -448,6 +449,7 @@ def run_payload(
         raise HpcError("GPU VRAM is below the selected hardware profile")
     gpu_operation = operation in {
         "backend-check",
+        "rollout-parity",
         "allocation-check",
         "pilot",
         "method-smoke",
@@ -549,7 +551,14 @@ def run_payload(
         "retry_setup": not gpu_operation or operation in {"allocation-check", "backend-check"},
         "readiness_budget": 24
         if operation
-        in {"backend-check", "allocation-check", "pilot", "method-smoke", "protocol-check"}
+        in {
+            "backend-check",
+            "rollout-parity",
+            "allocation-check",
+            "pilot",
+            "method-smoke",
+            "protocol-check",
+        }
         or (operation == "evaluate" and base)
         else None,
         "run_id": identity[:24],
@@ -586,7 +595,7 @@ def run_payload(
         "time": "00:05:00"
         if operation in {"allocation-check", "worker-diagnose"}
         else "01:00:00"
-        if operation == "backend-check"
+        if operation in {"backend-check", "rollout-parity"}
         else "06:00:00"
         if operation == "pilot"
         else "02:00:00"
@@ -603,7 +612,9 @@ def run_payload(
         "seed": cfg.seed,
         "iterations": cfg.iterations if operation == "train" else iterations,
         "resume": resume,
-        "output": f"/runs/compatibility/backend-v2/{profile}"
+        "output": f"/runs/readiness/{cfg.study_id}/rollout-parity"
+        if operation == "rollout-parity"
+        else f"/runs/compatibility/backend-v2/{profile}"
         if operation == "backend-check"
         else f"/runs/compatibility/{profile}",
         "reference": "/runs/compatibility/backend-v2/single_gpu_80gb/reference_gradients.pt"

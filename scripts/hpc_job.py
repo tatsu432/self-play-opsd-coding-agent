@@ -825,6 +825,7 @@ def execute(env: dict) -> int:
     operation = env["SELFPLAY_OPERATION"]
     if operation not in {
         "backend-check",
+        "rollout-parity",
         "allocation-check",
         "worker-diagnose",
         "worker-check",
@@ -1077,9 +1078,9 @@ def execute(env: dict) -> int:
             args += ["--resume", env["SELFPLAY_RESUME"]]
         if operation == "pilot":
             args += ["--iterations", env["SELFPLAY_ITERATIONS"]]
-        if operation in {"backend-check", "diagnose"}:
+        if operation in {"backend-check", "rollout-parity", "diagnose"}:
             args += ["--output", env["SELFPLAY_OUTPUT"]]
-        if operation in {"backend-check", "readiness-check"}:
+        if operation in {"backend-check", "rollout-parity", "readiness-check"}:
             args += ["--hardware", env["SELFPLAY_HARDWARE"]]
         if operation == "backend-check" and env.get("SELFPLAY_REFERENCE"):
             args += ["--reference", env["SELFPLAY_REFERENCE"]]
