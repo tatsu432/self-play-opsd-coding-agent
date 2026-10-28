@@ -383,7 +383,7 @@ def canonical_snapshot(root: Path, config: RunConfig) -> dict:
         "evaluations": evaluations,
         "summary": summary,
         "checkpoint": metadata,
-        "revision": digest([rows, evaluations, lineage, summary]),
+        "revision": digest([rows, evaluations, lineage]),
     }
 
 
@@ -429,3 +429,44 @@ def dashboard_charts(wandb, tables: dict):
         if x in table.columns and y in table.columns:
             charts[f"dashboard/{name}"] = wandb.plot.line(table, x, y, title=name.replace("_", " "))
     return charts
+
+
+def canonical_payload(wandb, snapshot: dict) -> dict:
+    payload = dict(snapshot["summary"])
+    tables = {}
+    for name, rows in (("training", snapshot["rows"]), ("development", snapshot["evaluations"])):
+        columns, data = table_data(rows)
+        if not columns:
+            columns = sorted(
+                {
+                    column
+                    for _, (table, x, y) in DASHBOARD_CHARTS.items()
+                    if table == name
+                    for column in (x, y)
+                }
+            )
+        tables[name] = wandb.Table(columns=columns, data=data)
+        payload[f"canonical/{name}"] = tables[name]
+    if hasattr(wandb, "plot"):
+        payload.update(dashboard_charts(wandb, tables))
+    payload["run/canonical_revision"] = snapshot["revision"]
+    return payload
+
+
+def update_canonical_summary(run, payload: dict):
+    # A rollback or unsampled diagnostic must clear stale summaries as well as
+    # replace tables. CustomChart is supported by log(), not by summary.update().
+    prefixes = (
+        "student/",
+        "proposer/",
+        "distill/",
+        "alignment/",
+        "eval/",
+        "perf/",
+        "system/",
+        "compute/",
+        "train/",
+    )
+    summary = {k: None for k in run.summary.keys() if k.startswith(prefixes) and k not in payload}
+    summary.update({k: v for k, v in payload.items() if not k.startswith("dashboard/")})
+    run.summary.update(summary)

@@ -107,9 +107,9 @@ class WandbSink:
     def _deliver(self):
         from selfplay_opsd.telemetry import (
             METHOD_NAMES,
+            canonical_payload,
             canonical_snapshot,
-            dashboard_charts,
-            table_data,
+            update_canonical_summary,
         )
 
         backoff = 5
@@ -165,29 +165,14 @@ class WandbSink:
                 # Rebuild canonical tables after every init, including uncertain
                 # delivery. The append-only scalar audit may repeat; tables do not.
                 self.last_revision = None
+                refresh = True
+                snapshot = None
                 while True:
                     self.wake.clear()
-                    snapshot = canonical_snapshot(self.store.root, self.config)
+                    if refresh or snapshot is None:
+                        snapshot = canonical_snapshot(self.store.root, self.config)
                     if snapshot["revision"] != self.last_revision:
-                        payload = dict(snapshot["summary"])
-                        tables = {}
-                        for key, rows in (
-                            ("canonical/training", snapshot["rows"]),
-                            ("canonical/development", snapshot["evaluations"]),
-                        ):
-                            if rows:
-                                columns, data = table_data(rows)
-                                payload[key] = wandb.Table(columns=columns, data=data)
-                            else:
-                                payload[key] = wandb.Table(
-                                    columns=["train/outer_iteration"], data=[]
-                                )
-                        if hasattr(wandb, "plot"):
-                            tables = {
-                                name: payload[f"canonical/{name}"]
-                                for name in ("training", "development")
-                            }
-                            payload.update(dashboard_charts(wandb, tables))
+                        payload = canonical_payload(wandb, snapshot)
                         payload.update(
                             {
                                 "run/canonical_revision": snapshot["revision"],
@@ -199,9 +184,7 @@ class WandbSink:
                         )
                         run.log(payload)
                         # Summary tables give a replaceable authoritative view.
-                        run.summary.update(
-                            {k: v for k, v in payload.items() if not k.startswith("dashboard/")}
-                        )
+                        update_canonical_summary(run, payload)
                         self.last_revision = snapshot["revision"]
                         self.status.update(
                             sdk_delivered_iteration=snapshot["summary"]["run/checkpoint_iteration"],
@@ -212,7 +195,7 @@ class WandbSink:
                     backoff = 5
                     if self.stopping.is_set():
                         break
-                    self.wake.wait(30)
+                    refresh = self.wake.wait(30)
                 break
             except Exception as exc:
                 self._warning(exc)

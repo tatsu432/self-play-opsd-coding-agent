@@ -10,7 +10,12 @@ from typing import Literal
 
 from selfplay_opsd.config import RunConfig
 from selfplay_opsd.storage import CheckpointManager, active_events, atomic_json, read_json
-from selfplay_opsd.telemetry import METHOD_NAMES, canonical_snapshot, table_data
+from selfplay_opsd.telemetry import (
+    METHOD_NAMES,
+    canonical_payload,
+    canonical_snapshot,
+    update_canonical_summary,
+)
 
 
 def sdk_settings():
@@ -154,18 +159,9 @@ def reconcile(
             settings=sdk_settings(),
         )
         try:
-            payload = dict(snapshot["summary"])
-            for name, rows in (
-                ("training", snapshot["rows"]),
-                ("development", snapshot["evaluations"]),
-            ):
-                columns, data = table_data(rows)
-                payload[f"canonical/{name}"] = wandb.Table(
-                    columns=columns or ["train/outer_iteration"], data=data
-                )
-            payload["run/canonical_revision"] = snapshot["revision"]
+            payload = canonical_payload(wandb, snapshot)
             run.log(payload)
-            run.summary.update(payload)
+            update_canonical_summary(run, payload)
             url = run.url
         finally:
             run.finish()
