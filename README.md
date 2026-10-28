@@ -20,13 +20,15 @@ uv run selfplay smoke --output runs/local-smoke
 
 ## Documentation
 
-- [Yale launch runbook](docs/yale-launch-runbook.md): Task 08 protocol revision, worker evidence reuse,
-  readiness gates, four submission previews and recovery.
+- [Task 10 online launch](docs/task10-launch.md): verified W&B setup, staged
+  A–D launch, scientific-health reviews and checkpoint recovery.
+- [Yale launch runbook](docs/yale-launch-runbook.md): frozen readiness evidence,
+  submission previews and historical operations.
 - [Operations guide](docs/operations.md): data preparation, containers, worker
   setup, hardware checks, pilot, launch, recovery, evaluation and W&B.
 - [Implemented methods](docs/methods.md): objectives, normalization, data boundaries
   and validation limits.
 - [Task 09 optimization status](docs/task_completion/09-implemented-efficiency-learnability.md):
-  staged CPU changes, scientific-health report, and pending H200 acceptance.
+  verified H200 baseline, numerical caveats and measured resource planning.
 - [Yale HPC operations](docs/operations.md#switch-profiles-and-verify-production-backends):
   inspection, immutable synchronization, submission and recovery.

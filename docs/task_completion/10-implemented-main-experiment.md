@@ -1,8 +1,8 @@
 # Task 10 — main launch engineering
 
-Status: implementation and live validation in progress. **Main A–D training has
-not been submitted and remains unauthorized.** Do not interpret an offline SDK
-test or the prior Task 09 scientific readiness as verified online monitoring.
+Status: online monitoring, freeze and four actual main previews are validated;
+final numerical assessment is running. **Main A–D training has not been submitted
+and remains unauthorized.**
 
 ## Implemented behavior
 
@@ -37,7 +37,10 @@ deselections; lint and mypy passed. Subsequent controller/rollback checks passed
 Focused tests cover private upload boundaries, checkpoints, rollback, stable IDs,
 SDK failure isolation, pinned SDK table/chart serialization, scientific RNG,
 all A–D numerical counterfactuals without steps, accounting, and exact reuse.
-Hosted Linux/Docker CI is still being monitored. CPU tests alone do not prove
+Frozen-source hosted Linux/Docker CI **40784025848** passed **272 tests**,
+one skipped and three deselected. Controller CI **40784625055** also passed.
+The opt-in cloud sink test passed all four methods with real cloud readback.
+A subsequent injected delivery-interruption test verified reconnect/replay. CPU tests alone do not prove
 online W&B, H200 numerical results or worker readiness.
 
 Dependency-checked evidence reuse from Task 09 succeeded. CPU freeze attempt
@@ -54,10 +57,48 @@ frozen telemetry identity is
 `dfdb26ba5320da92155a5ccf7e754725ad201211724b1953ffae1c83ccbcd9ef`.
 The controller separately blocks online launch when cloud/resume proof is absent.
 
-Standard W&B login was opened in a local Terminal. Local and remote credential
-inspection initially found no W&B credentials. User supplied username `tatsu432`
-and candidate entities `tatsu432`/`tatsu432s`; the authenticated API must establish
-the actual entity. Cloud URLs will only be reported after cloud verification.
+W&B authentication is verified as username **`tatsu432`**, default entity
+**`tatsu432s`**. The 0.22.2 interactive login rejected the new 86-character key;
+login succeeded with the isolated **0.22.3** tool. The frozen 0.22.2 trainer SDK
+then demonstrably authenticated and delivered metrics with the key supplied
+through its supported environment path. No dependency lock or SIF was changed.
+Credentials are in user-owned mode-600 files outside Git, including the persistent
+Yale secrets path; no secret values were printed, uploaded or passed as arguments.
+
+CPU-only compute job **31208617**, controller run
+`5c7e1e247ccfdfe81889b225`, passed on **c1104u05n01**. HTTPS and actual cloud
+history were verified; a second independent process resumed the same run and
+read back both sequence values `[1, 2]`. This proof matches the frozen telemetry
+identity. Actual URLs:
+
+- [Project](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent)
+- [Yale compute-node verification](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/telemetry-check-ffbb587a663649ed)
+- [Local transport verification](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/telemetry-check-0594601936814586)
+
+Four actual cloud sink fixtures verified display names, common grouping, a
+checkpoint restart, a previously uploaded iteration rollback, corrected canonical
+row counts, and replay to iteration two. Their group is explicitly
+`task10-synthetic-telemetry-verification`; these are **synthetic validation data,
+not main training outcomes**:
+
+- [A validation](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/task10check-5a4b972d36cbA)
+- [B validation](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/task10check-af0d1b01e731B)
+- [C validation](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/task10check-1f32a8443a96C)
+- [D validation](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/task10check-1db95b379bb0D)
+
+All four actual online main previews passed with `submitted=false`, frozen
+execution `54f087f`, 200 iterations and the measured resource envelope:
+
+| Method | Controller preview ID | Stop lead (s) | Clean continuations |
+|---|---|---:|---:|
+| A | `a87f3772b284d35a375cf69e` | 4616 | 5 |
+| B | `0b05980057d59ae164ab70bd` | 4540 | 5 |
+| C | `b3375c49bcf2afb16abd7860` | 4717 | 5 |
+| D | `ca8427236f53c75161749aab` | 5211 | 6 |
+
+Actual main run URLs do not exist yet; they are emitted after the authorized
+main starts. No synthetic fixture was inserted into a main namespace. Main
+A/B/C/D artifact directories and submission ledgers remain absent.
 
 Live Slurm inspection found the cpsc4880 association with interactive/normal
 QOS. `gpu_h200` has 72 GPUs across nine nodes; partition QOS `part_gpu_h200`
@@ -88,6 +129,23 @@ Replacing old probabilities changes both the GRPO importance estimator and the
 teacher-minus-old OPSD coefficient/gate. The original behavior denominator is
 retained. No scientific correction has been adopted.
 
+Replay attempt 31207286 was cancelled while pending (zero allocated seconds)
+to correct saved-proposal parsing. Attempt 31207388 failed before model load
+because the new CLI hardware argument was positional while the controller used
+`--hardware`; it charged 92 seconds (0.025555556 GPU-hours). This avoidable
+launcher defect was fixed and has a direct CLI regression. The replacement
+**31208618**, run `ba904652d21c9dfa5205bbda`, has a **50-minute cap**, keeping
+all actual Task 10 diagnostic allocations together below one GPU-hour. It is a
+manual corrected launch after confirmed failure, not an automatic retry or a
+repeat for a different stochastic outcome. The replacement performs no
+sampling, candidate execution or optimizer steps.
+
+Initial and later saved-token replay statistics reproduce Task 09 exactly.
+New proposer measurements are mean absolute discrepancy 0.002691/0.002187,
+p99 0.07377/0.04848, maximum 0.4873/0.3087, with 9/1690 and 5/1228 tokens
+outside the ratio clipping interval. Complete RL/OPSD/C/D consequences are
+being measured by the same bounded allocation.
+
 ## Runtime scenarios and staged authorization
 
 | Method | Pilot-yield GPU-hours | Planning GPU-hours | First main measured rate | Projected finish |
@@ -106,5 +164,10 @@ explicit GPU-hour authorization; B/C/D require review and separate authorization
 
 The [launch/recovery workflow](../task10-launch.md) contains copyable commands,
 the metric mapping, privacy boundaries, interpretation and missing measurements.
-Executed versus prepared commands and final live evidence will be recorded here
-before declaring Task 10 complete.
+Executed: synchronization, evidence reuse, two CPU freeze attempts, local and
+allocated-node cloud verification, the opt-in four-method cloud sink test,
+four main previews, fetch/status/log inspection, and bounded numerical diagnostics.
+Prepared only: actual main A/B/C/D submissions, their continuation/watch commands,
+and final evaluations. Main spending and final-evaluation spending require
+separate authorization. Branch: `feat/10-main-online`; [draft PR #1](https://github.com/tatsu432/self-play-opsd-coding-agent/pull/1).
+No persistent scheduler service, network tunnel or login-node daemon was added.

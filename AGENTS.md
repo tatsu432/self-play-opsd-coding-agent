@@ -29,6 +29,23 @@ documents are historical. Read `README.md`, `docs/methods.md` and
 
 ## Yale operations
 
+Task 10 online successor is `repair-selfplay-2026-main-online-v1`, settings
+`configs/task10-online.yaml`, frozen execution
+`54f087fdc5cf5170800d825bf1ee92b89a43c8ed` (CPU freeze 31206522).
+Frozen-source CI 40784025848 passed 272 tests. Allocated-node W&B cloud delivery
+and same-run cross-process resume passed in CPU job 31208617; authorized entity
+is `tatsu432s`, username `tatsu432`. All four actual online main previews passed;
+no main training job was submitted, and main training remains unauthorized.
+Use `docs/task10-launch.md` and the Task 10 completion record. Credentials remain
+outside Git in private files. Login uses isolated W&B 0.22.3 for new-format keys;
+the frozen trainer SDK/image/lock remain unchanged and online delivery is proven.
+The bounded numerical replay 31208618 / `ba904652d21c9dfa5205bbda` is active at
+this checkpoint; inspect it before further GPU work. Its 50-minute cap plus the
+92-second failed pre-model launcher attempt stays below one allocated GPU-hour.
+Do not reset the cumulative 24-hour ledger or duplicate that diagnostic. Task 09
+and Task 08 freezes below remain separate preserved baselines.
+
+
 Task 09 v2 is launch ready with caveats on `feat/09-efficiency-learnability`,
 `configs/task09-diagnostics.yaml`, study `repair-selfplay-2026-efficiency-v2`.
 Freeze 31197007 and all four actual previews passed; frozen execution is

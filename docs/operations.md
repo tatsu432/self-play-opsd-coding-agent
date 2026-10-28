@@ -441,6 +441,12 @@ A/B compare separately evolving systems.
 
 ## W&B and readiness
 
+Task 10 adds a verified online operational configuration and aggregate-only
+checkpoint-backed telemetry. Use the [Task 10 launch workflow](task10-launch.md)
+for secure new-format key setup, allocated-node cloud verification, exact online
+commands, rollback handling and safe reconciliation. General defaults below
+remain offline.
+
 Default project is `self-play-opsd-coding-agent`, mode **offline**. Set
 `logging.mode: online` and an existing `WANDB_API_KEY` environment variable for
 live tracking. No Slurm job prompts for credentials. Offline logs are not live;

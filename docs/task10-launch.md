@@ -9,7 +9,7 @@ for executed jobs, validation, costs and current GO/NO-GO status.
 
 ## Credentials and verified delivery
 
-Run the 0.22.3 login tool locally in a terminal. Version 0.22.3 supports
+Run the 0.22.3 login tool locally in a terminal. The [0.22.3 release](https://github.com/wandb/wandb/releases/tag/v0.22.3) supports
 new-format keys longer than 40 characters; the pinned trainer SDK 0.22.2
 rejects them in the interactive credential-save path. The isolated login tool
 does not modify the trainer lock/image. Do not paste the key into chat:

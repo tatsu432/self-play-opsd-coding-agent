@@ -327,3 +327,34 @@ def test_cloud_method_grouping_checkpoint_restart_and_rollback(tmp_path, monkeyp
     report = Path(os.getenv("SELFPLAY_WANDB_VERIFY_REPORT", str(tmp_path / "cloud-report.json")))
     report.parent.mkdir(parents=True, exist_ok=True)
     report.write_text(json.dumps(reports, indent=2) + "\n")
+
+
+def test_network_delivery_failure_reconnects_and_replays_local_checkpoint(tmp_path, monkeypatch):
+    calls = []
+
+    class Interrupted(FakeRun):
+        def log(self, row):
+            raise OSError("private-network-error-body")
+
+    def init(**kwargs):
+        calls.append(kwargs)
+        return Interrupted(**kwargs) if len(calls) == 1 else FakeRun(**kwargs)
+
+    monkeypatch.setitem(
+        sys.modules,
+        "wandb",
+        SimpleNamespace(init=init, Settings=lambda **kw: kw, Table=lambda **kw: kw),
+    )
+    cfg, store = fixture(tmp_path)
+    cfg.logging.mode = "online"
+    commit(store, 1)
+    checkpoint(store, 1)
+    sink = WandbSink(cfg, store)
+    deadline = time.monotonic() + 8
+    while sink.status["sdk_delivered_iteration"] != 1 and time.monotonic() < deadline:
+        time.sleep(0.02)
+    sink.finish()
+    assert sink.status["sdk_delivered_iteration"] == 1
+    assert sink.status["delivery_errors"] == 1
+    assert len(calls) == 2 and calls[0]["id"] == calls[1]["id"]
+    assert "private-network-error-body" not in str(active_events(store.root))
