@@ -20,8 +20,8 @@ sampling, mathematical budgets and frozen task boundaries are unchanged.
 | Worker 31033392 | Reused; all 19 checks, original report SHA-256 `b0b4781ee150260269690f074f2f509b24998c243800ce36383acf34988ebe8c` |
 | Probe 31069728 / `7f6319f6b8b125ac11eaa7af` | Passed, 32 attempts, five valid mutations, 20 episodes/9,252 tokens, no updates/refills |
 | Revision 31069732 / `d4630697f6f230e3021769b7` | Passed all 306 admissions/verifications and original-file equality; new anchors |
-| Runtime 31071377 / `1efeedad6e8ff2df7ca56863` | Submitted CPU deployment check |
-| Backend 31071410 / `1b79a8543eecd835654471e5` | Submitted current numerical acceptance |
+| Runtime 31071377 / `1efeedad6e8ff2df7ca56863` | Passed deployed 306-task validation and isolation |
+| Backend 31071410 / `1b79a8543eecd835654471e5` | Passed A–D numerical objectives, adapter reloads and checkpoint acceptance |
 | Base/D/A–C/freeze/previews | Pending current compatible execution |
 
 Probe actions: 55 valid reads, one valid patch, one valid public-test call, nine
@@ -69,3 +69,9 @@ This removes the remaining same-report-parent collision without weakening
 submission/budget locking. Controller-only changes leave scientific code hash
 `d8526f680fbbe3aff938d8688307817bb25ff496cd3d1cc02de3daecb5a5c6e1`
 and protocol/data/runtime dependencies unchanged. Focused controller tests pass.
+
+Pilot reporting now uses the trainer's actual cumulative step counters rather than
+summing cumulative per-iteration counters. Its simple time extrapolation is
+explicitly labelled conditional on observed workload and excludes unmeasured
+monitoring/continuation overhead; the final cost analysis must account for those
+costs and higher-yield scenarios separately. No optimizer or objective changed.

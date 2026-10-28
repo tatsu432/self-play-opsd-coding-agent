@@ -307,8 +307,9 @@ def pilot(
             values = [value for key, value in times.items() if key > 0]
             commits = [e["payload"] for e in events if e["kind"] == "iteration_commit"]
             alignment_count = sum(r["metrics"]["alignment"]["scored_count"] for r in commits)
-            student_steps = sum(r["student_steps"] for r in commits)
-            proposer_steps = sum(r["proposer_steps"] for r in commits)
+            # IterationRecord counters are cumulative, not per-iteration deltas.
+            student_steps = trainer.student_steps
+            proposer_steps = trainer.proposer_steps
             if trainer.iteration < cfg.iterations:
                 typer.echo(canonical({"stopped": True, "iteration": trainer.iteration}))
                 return
@@ -332,6 +333,19 @@ def pilot(
                 "manifest_hash": trainer.repository.hash,
                 "median_iteration_seconds": float(np.median(values)),
                 "p90_iteration_seconds": float(np.quantile(values, 0.9)),
+                "projection_basis": "observed workload only; not a representative higher-yield estimate; startup, monitoring and continuation overhead require separate accounting",
+                "realized_workload": [
+                    {
+                        "iteration": r["iteration"],
+                        "attempted": r["attempted"],
+                        "valid": r["valid"],
+                        "episodes": r["episodes"],
+                        "tokens": r["metrics"]["student"]["tokens"],
+                        "student_stepped": r["metrics"]["student"]["stepped"],
+                        "proposer_stepped": r["metrics"]["proposer"]["stepped"],
+                    }
+                    for r in commits
+                ],
                 "projection_100_hours": float(np.median(values)) * 100 / 3600,
                 "projection_200_hours": float(np.median(values)) * 200 / 3600,
                 "phase_times": phase_rows,
