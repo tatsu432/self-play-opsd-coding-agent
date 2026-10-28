@@ -1,5 +1,14 @@
 # Self-play OPSD coding-agent experiment
 
+
+Task 08 now governs Yale readiness. Follow the Task 08 section of the
+[Yale launch runbook](yale-launch-runbook.md). It authorizes a common protocol
+clarification and immutable prompt-dependent revision, preserves the cumulative
+24 GPU-hour allowance across studies, and replaces one-iteration A/B/C checks
+with fixed three-iteration windows. The historical 0/41 baseline was sampled;
+corrected evaluation must be greedy. Older workflow examples below are historical
+where they conflict with that runbook. Main A–D submission remains unauthorized.
+
 Controlled Python repair self-play with gated signed-gap on-policy
 self-distillation, verifiable rewards, and gradient-guided task generation.
 Read [methods.md](methods.md) for the implemented equations and boundaries.

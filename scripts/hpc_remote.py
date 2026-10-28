@@ -882,6 +882,10 @@ def artifact_dir(payload: dict) -> Path:
     if not SAFE_NAME.fullmatch(study):
         raise ValueError("Unsafe study ID")
     operation = payload["operation"]
+    if operation == "protocol-check":
+        return runs / (study + "-protocol-probe") / f"B-seed{payload['seed']}"
+    if operation == "protocol-revision":
+        return runs / "data-revisions" / study
     if operation == "image-convert":
         return (
             workspace(payload)
@@ -923,12 +927,50 @@ def artifact_dir(payload: dict) -> Path:
 def budget_path(payload: dict) -> Path:
     if not SAFE_NAME.fullmatch(payload["study_id"]):
         raise ValueError("Unsafe study ID")
-    return workspace(payload) / "state" / f"budget-{payload['study_id']}.json"
+    # Readiness authorization spans protocol/study revisions. Never let a new
+    # scientific identity create a fresh allowance.
+    return workspace(payload) / "state" / "budget-readiness-cpsc4880.json"
 
 
 def refreshed_budget(payload: dict) -> dict:
     path = budget_path(payload)
     budget = json.loads(path.read_text()) if path.exists() else {"limit": 24.0, "reservations": {}}
+    authorization = "cpsc4880-readiness-24h-v1"
+    if budget.get("authorization_id", authorization) != authorization:
+        raise ValueError("Readiness authorization identity mismatch")
+    budget["authorization_id"] = authorization
+    # Import every legacy study, not just the caller's study. Keep source hashes
+    # so a legacy writer cannot silently fork the allowance after migration.
+    imported = budget.setdefault("legacy_sources", {})
+    for legacy in sorted(path.parent.glob("budget-*.json")):
+        if legacy == path:
+            continue
+        checksum = sha256(legacy)
+        if legacy.name in imported:
+            if imported[legacy.name] != checksum:
+                raise ValueError(
+                    "Legacy budget changed after migration; reconcile before allocation"
+                )
+            continue
+        previous = json.loads(legacy.read_text())
+        if previous.get("limit") != budget["limit"]:
+            raise ValueError("Conflicting historical readiness limits")
+        for token, record in previous["reservations"].items():
+            existing = budget["reservations"].get(token)
+            if existing is not None and existing != record:
+                raise ValueError("Conflicting historical readiness reservation")
+            # A job can occur in multiple copied ledgers. Only exact duplicates
+            # have sufficient evidence to be charged once.
+            same_job = [
+                item
+                for item in budget["reservations"].values()
+                if record.get("job_id") and item.get("job_id") == record["job_id"]
+            ]
+            if same_job and any(item != record for item in same_job):
+                raise ValueError("Conflicting historical job accounting")
+            if not same_job:
+                budget["reservations"][token] = record
+        imported[legacy.name] = checksum
     for item in budget["reservations"].values():
         if not item.get("job_id") or item.get("charged") is not None:
             continue
@@ -999,6 +1041,8 @@ def reserve_budget(payload: dict, token: str):
             if spent + reserved > 12 + 1e-9:
                 raise ValueError("Pilot allocation budget exhausted")
         budget["limit"] = limit
+        if token in budget["reservations"]:
+            raise ValueError("Readiness reservation token already exists")
         budget["reservations"][token] = {
             "reserved": reserved,
             "charged": None,
@@ -1423,6 +1467,8 @@ def precheck(payload: dict):
         "image-convert",
         "image-build",
         "method-smoke",
+        "protocol-check",
+        "protocol-revision",
         "backend-check",
         "allocation-check",
         "worker-diagnose",
@@ -1476,6 +1522,8 @@ def precheck(payload: dict):
         "train",
         "pilot",
         "method-smoke",
+        "protocol-check",
+        "protocol-revision",
         "evaluate",
         "diagnose",
     }
@@ -1500,6 +1548,15 @@ def precheck(payload: dict):
                 raise ValueError(
                     "Worker site setup is unchanged; obtain YCRC-supported setup and supply a new worker setup ID"
                 )
+    if operation in {"protocol-check", "protocol-revision"}:
+        if payload.get("account") != "cpsc4880" or not study_state(payload)["gates"]["worker"]:
+            raise ValueError("Protocol work requires accepted cpsc4880 worker evidence")
+        if operation == "protocol-check" and (
+            payload.get("gpu_count") != 1
+            or payload.get("time") != "02:00:00"
+            or payload.get("readiness_budget") != 24
+        ):
+            raise ValueError("Protocol probe requires its fixed two-GPU-hour ceiling")
     if operation in {"train", "pilot", "method-smoke", "evaluate", "diagnose", "freeze-study"}:
         state = study_state(payload)
         if not state["gates"]["worker"] or not state["gates"]["runtime"]:
@@ -1586,6 +1643,29 @@ def prepare_source_image(payload: dict) -> dict:
     }
 
 
+def reuse_worker(payload: dict) -> dict:
+    """Publish dependency-checked containment evidence with original provenance."""
+    source_study = payload["source_study"]
+    if not SAFE_NAME.fullmatch(source_study):
+        raise ValueError("Unsafe source study")
+    source = workspace(payload) / "runs/readiness" / source_study / "worker.json"
+    report = json.loads(source.read_text())
+    state = study_state(payload | {"study_id": source_study})
+    if not state["gates"]["worker"] or not all(report.get("checks", {}).values()):
+        raise ValueError("Worker evidence dependencies differ or acceptance is incomplete")
+    if report.get("worker_setup_id", "") != payload.get("worker_setup_id", ""):
+        raise ValueError("Worker setup changed")
+    target = workspace(payload) / "runs/readiness" / payload["study_id"] / "worker.json"
+    if not SAFE_NAME.fullmatch(payload["study_id"]):
+        raise ValueError("Unsafe destination study")
+    reused = report | {"reuse_provenance": {"source": str(source), "sha256": sha256(source)}}
+    with locked(workspace(payload) / "state/.worker-evidence.lock"):
+        if target.exists() and json.loads(target.read_text()) != reused:
+            raise ValueError("Destination already has different worker evidence")
+        write_json(target, reused)
+    return {"ready": True, "evidence": str(target), "provenance": reused["reuse_provenance"]}
+
+
 COMMANDS = {
     "inspect": inspect,
     "context": context,
@@ -1601,6 +1681,7 @@ COMMANDS = {
     "submit": submit,
     "recover": recover,
     "recover_allocation": recover_allocation,
+    "reuse_worker": reuse_worker,
 }
 
 

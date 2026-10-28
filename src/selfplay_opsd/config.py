@@ -166,6 +166,7 @@ class RunConfig(Strict):
     checkpoint_every: int = Field(default=10, ge=1)
     evaluate_every: int = Field(default=20, ge=1)
     diagnostic_attempts: int = Field(default=320, ge=16)
+    gradient_diagnostics: bool = False
     output_root: Path = Path("runs")
     data_root: Path = Path("data/prepared")
     max_active_hours: float | None = Field(default=None, gt=0)
@@ -212,6 +213,7 @@ class RunConfig(Strict):
                 "max_active_hours",
                 "max_gpu_hours",
                 "checkpoint_every",
+                "gradient_diagnostics",
             },
         )
         values["model"].pop("backend")

@@ -227,8 +227,18 @@ class WandbSink:
 def system_metrics(output_root: Path) -> dict:
     process = psutil.Process()
     disk = psutil.disk_usage(output_root)
+    children_rss = 0
+    child_pids = []
+    for child in process.children(recursive=True):
+        try:
+            children_rss += child.memory_info().rss
+            child_pids.append(child.pid)
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
     result = {
         "host_rss_bytes": process.memory_info().rss,
+        "descendant_rss_bytes": children_rss,
+        "descendant_pids": child_pids,
         "host_available_bytes": psutil.virtual_memory().available,
         "disk_free_bytes": disk.free,
         "cpu_percent": process.cpu_percent(),

@@ -137,6 +137,36 @@ def prepare(settings: ConfigOption, allow_reduced: bool = False, inventory_only:
     typer.echo(canonical(read_json(cfg.data_root / "manifest.json")))
 
 
+@app.command("protocol-check")
+def protocol_check(settings: ConfigOption, config: str = "B", hardware: str | None = None):
+    """Fixed 32-attempt training-parent check; cannot update or refill batches."""
+    from selfplay_opsd.protocol_probe import run_probe
+
+    cfg = load_config(settings, method="B", **({"hardware_profile": hardware} if hardware else {}))
+    sandbox = SandboxBackend(cfg.sandbox)
+    sandbox.preflight()
+    policy = make_policy(cfg)
+    try:
+        typer.echo(canonical(run_probe(cfg, policy, TaskRepository(cfg.data_root), sandbox)))
+    finally:
+        policy.close()
+
+
+@app.command("protocol-revision")
+def protocol_revision(settings: ConfigOption):
+    """Publish a prompt-only revision, retaining every frozen record and split."""
+    from selfplay_opsd.policy import HFPolicy, tokenizer_for
+    from selfplay_opsd.protocol_revision import revise_protocol
+
+    cfg = load_config(settings)
+    sandbox = SandboxBackend(cfg.sandbox)
+    sandbox.preflight()
+    policy = object.__new__(HFPolicy)
+    policy.config, policy.tokenizer = cfg, tokenizer_for(cfg)
+    destination = cfg.output_root / "data-revisions" / cfg.study_id
+    typer.echo(canonical(revise_protocol(cfg.data_root, destination, policy, sandbox, cfg.episode)))
+
+
 @app.command("validate-data")
 def validate(
     settings: ConfigOption,
@@ -208,7 +238,7 @@ def train(
 
 @app.command("method-smoke")
 def method_smoke(settings: ConfigOption, config: str, hardware: str | None = None):
-    """One full training iteration for A/B/C, separate from pilot and main state."""
+    """A fixed three-iteration acceptance window for A/B/C, separate from pilot and main state."""
     from selfplay_opsd.method_smoke import run_smoke, smoke_config
 
     cfg = load_config(
@@ -243,6 +273,7 @@ def pilot(
     )
     cfg.study_id += os.getenv("SELFPLAY_PILOT_SUFFIX", "-pilot")
     cfg.iterations = iterations
+    cfg.gradient_diagnostics = True
     report = checked_preflight(cfg)
     if not report["ready_for_pilot"]:
         raise ExperimentError("Pilot preflight blocked: " + "; ".join(report["blockers"]))
@@ -285,6 +316,8 @@ def pilot(
                 raise ExperimentError(
                     "Pilot did not exercise alignment and both real updates; inspect curriculum validity/difficulty"
                 )
+            if not any(r["metrics"]["student"]["gradient_interaction"]["sampled"] for r in commits):
+                raise ExperimentError("Pilot has no real RL/SD interaction diagnostics")
             from selfplay_opsd.observability import system_metrics
             from selfplay_opsd.readiness import execution_identity
 

@@ -10,7 +10,7 @@ from selfplay_opsd.core import EvaluationRecord, ExperimentError, Status, digest
 from selfplay_opsd.data import TaskRepository
 from selfplay_opsd.environment import canonical_trajectory, check_admission, run_episode
 from selfplay_opsd.policy import HFPolicy
-from selfplay_opsd.protocol import PROMPT_HASH
+from selfplay_opsd.protocol import PROMPT_HASH, VERSION
 from selfplay_opsd.sandbox import SandboxBackend
 from selfplay_opsd.storage import EventStore, atomic_json, file_hash, read_json
 
@@ -39,7 +39,12 @@ def finalize_data(
     for split in ("reference", "dev_diagnostic"):
         rows = []
         for task, oracle in repository.tasks(split):
-            rows.append(canonical_trajectory(policy, sandbox, task, oracle, limits))
+            try:
+                rows.append(canonical_trajectory(policy, sandbox, task, oracle, limits))
+            except (ValueError, ExperimentError) as exc:
+                raise ExperimentError(
+                    f"Canonical admission failed {split}/{task.task_id}: {exc}", Status.ORACLE
+                ) from exc
         if not rows:
             raise ExperimentError(f"No canonical anchors in {split}", Status.ORACLE)
         path = repository.root / "private" / f"anchors-{split}.json"
@@ -48,7 +53,12 @@ def finalize_data(
     admitted: dict[str, int] = defaultdict(int)
     for split in ("reference", "dev_monitor", "dev_diagnostic", "final_id", "external"):
         for task, oracle in repository.tasks(split):
-            check_admission(policy, task, oracle, limits)
+            try:
+                check_admission(policy, task, oracle, limits)
+            except ValueError as exc:
+                raise ExperimentError(
+                    f"Admission failed {split}/{task.task_id}: {exc}", Status.ORACLE
+                ) from exc
             admitted[split] += 1
     manifest = repository.manifest | {
         "ready": True,
@@ -237,7 +247,8 @@ def evaluate_tasks(
                 "verifier_status": episode.verifier_status,
                 "runtime_failures": episode.runtime_failures,
                 "semantic_failures": episode.semantic_failures,
-                "protocol": task.protocol_version,
+                "protocol": VERSION,
+                "task_creation_protocol": task.protocol_version,
                 "seed": episode_seed,
                 "manifest_hash": repository.hash,
             },

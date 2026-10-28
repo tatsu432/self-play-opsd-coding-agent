@@ -29,9 +29,11 @@ documents are historical. Read `README.md`, `docs/methods.md` and
 
 ## Yale operations
 
-The current task is `docs/task/07-fix-ycrc-issue-spec.md`; its plan is
-`docs/plan/07-fix-ycrc-issue-plan.md`. Task 07 supersedes conflicting operational
-rules in Tasks 03–06 and the historical checkpoints below. The cumulative
+The current task is `docs/task/08-task-learnability-probe-spec.md`; its plan is
+`docs/plan/08-task-learnability-probe-plan.md`. Task 08 authorizes the common
+patch-format clarification, complete protocol hashing, a new study/data revision,
+and bounded acceptance windows. Task 07's worker/resource rules remain in force
+where Task 08 does not supersede them. Main training remains unauthorized. The cumulative
 cpsc4880 readiness allowance remains 24 allocated GPU-hours, including prior
 attempts and outstanding reservations. Main A–D training and new infrastructure
 remain unauthorized.
@@ -101,7 +103,32 @@ image or failed evidence gate. Never treat a passed CPU test as target readiness
    never create a duplicate. Scientific failures, OOM, authentication, quota
    and unauthorized resource requests are not automatic retries.
 
-## Task 07 live checkpoint — 2026-10-27
+## Task 08 implementation checkpoint — 2026-10-27
+
+Implementation is in progress; launch readiness remains false. Protocol v2 uses
+one shared strict-diff syntax reference in student tool/proposer output
+instructions. Model, sampling, rewards and mathematical budgets are unchanged.
+`configs/task08-source.yaml` selects the new study with the original frozen data
+for a fixed 32-proposal training-parent probe and an immutable protocol revision.
+Do not use this source configuration for main training. Revision output is
+`runs/data-revisions/repair-selfplay-2026-protocol-v2`; publish final settings
+pointing there only after complete admission/equality validation.
+
+All studies share `state/budget-readiness-cpsc4880.json`, authorization
+`cpsc4880-readiness-24h-v1`. Import all historical ledgers; changed legacy history
+requires reconciliation. The 24-hour total and 12-hour pilot sublimit persist.
+The fixed probe uses two batches, 32 proposals, four episodes per valid task,
+no updates/refills, and at most two allocated GPU-hours. Do not restart for luck.
+A/B/C use one three-iteration window each; clearly labelled optimizer fixtures
+may establish zero-advantage mechanics but cannot replace real workload.
+D retains ten iterations and the iteration-two stop/resume design.
+
+The previous 0/41 baseline was sampled due to a lost greedy flag. It remains
+historical sampled evidence and cannot satisfy corrected greedy evaluation.
+The read-only queue inspection found no active user jobs; accounting must still
+be reconciled before allocations. Historical consumption below is not a new grant.
+
+## Task 07 historical checkpoint — 2026-10-27
 
 Execution code `9980c78` passed hosted CI 40617600830 (220 tests). Real worker
 acceptance 31033392 passed all 19 checks; runtime 31045342 validated all 306 tasks;

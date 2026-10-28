@@ -75,7 +75,7 @@ def test_full_method_smoke_is_separate_and_rejects_checkpoint_corruption(
         run_smoke(cfg, policy, repository, sandbox)
         assert verify_smoke(cfg, method)["ready"]
         assert not cfg.run_dir.exists()
-        checkpoint = smoke_config(cfg, method).run_dir / "checkpoints/000001/state.pt"
+        checkpoint = smoke_config(cfg, method).run_dir / "checkpoints/000003/state.pt"
         checkpoint.write_bytes(b"corrupt")
         with pytest.raises(ExperimentError, match="checksum"):
             verify_smoke(cfg, method)

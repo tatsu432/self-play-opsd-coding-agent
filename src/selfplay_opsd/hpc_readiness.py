@@ -326,7 +326,8 @@ def register(app: typer.Typer):
             raise HpcError("Readiness authorization is restricted to cpsc4880")
         if not 0 < gpu_hours_limit <= 24:
             raise HpcError("Readiness cap must be positive and at most 24 GPU-hours")
-        snapshot()
+        data_root = load_config(settings).data_root
+        snapshot() if data_root == Path("data/prepared") else snapshot(ROOT / data_root)
         remote = YaleSSH(alias)
         while True:
             state, request = study(remote, settings, gpu_type, backend_only=stage == "backend")

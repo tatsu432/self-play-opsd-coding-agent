@@ -155,6 +155,7 @@ class SelfPlayTrainer:
         resume: Path | None = None,
         development_enabled: bool = True,
     ):
+        self.proposal_observer: Any = None
         self.config, self.policy, self.repository, self.sandbox = (
             config,
             policy,
@@ -381,6 +382,19 @@ class SelfPlayTrainer:
                         seed,
                     )
                     self._detail_times["propose"] += time.monotonic() - generation_started
+                    if self.proposal_observer:
+                        self.proposal_observer(
+                            {
+                                "iteration": k,
+                                "parent_id": parent.parent_id,
+                                "slot": slot,
+                                "seed": seed,
+                                "prompt_ids": prompt,
+                                "target_ids": output.ids,
+                                "old_logps": output.logps,
+                                "raw_text": output.text,
+                            }
+                        )
                     validation_started = time.monotonic()
                     valid, reason, task_id, key, nodes, lines, family = (
                         False,
@@ -592,7 +606,7 @@ class SelfPlayTrainer:
             all_examples.extend(examples)
             distill.append(metrics)
         interaction: dict[str, Any] = {"sampled": False, "ratio": None, "cosine": None}
-        if all_examples and (k % 20 == 0 or cfg.study_id.endswith("-pilot")):
+        if all_examples and (k % 20 == 0 or cfg.gradient_diagnostics):
             with self.policy.active("student"), self.phase("gradient_diagnostic"):
                 rl_grad, rl_info = self.policy.gradients(
                     [dataclasses.replace(e, kind="rl") for e in all_examples]
@@ -604,6 +618,7 @@ class SelfPlayTrainer:
                     "sampled": True,
                     "rl_norm": rl_info["grad_norm"],
                     "lambda_sd_norm": sd_info["grad_norm"],
+                    "undefined_reason": "zero_rl_norm" if rl_info["grad_norm"] == 0 else None,
                     "ratio": sd_info["grad_norm"] / rl_info["grad_norm"]
                     if rl_info["grad_norm"] > 0
                     else None,
@@ -648,6 +663,19 @@ class SelfPlayTrainer:
                 "proposer_steps": self.proposer_steps,
             },
             "proposer": {
+                "nonzero_advantage_count": sum(
+                    int(value != 0)
+                    for parent_id in {p.parent_id for p in proposals}
+                    for value in advantages(
+                        torch.tensor(
+                            [
+                                reward
+                                for proposal, reward in zip(proposals, rewards, strict=True)
+                                if proposal.parent_id == parent_id
+                            ]
+                        )
+                    ).tolist()
+                ),
                 "attempted_count": len(proposals),
                 "valid_count": len(tasks),
                 "valid_fraction": len(tasks) / len(proposals),

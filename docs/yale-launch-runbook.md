@@ -1,11 +1,47 @@
 # Yale A–D readiness and launch
 
-Task 07 is authoritative. Main A–D training remains unauthorized. The cumulative
+Task 08 is authoritative; the Task 07 checkpoint below is historical. Main A–D training remains unauthorized. The cumulative
 readiness cap is 24 allocated GPU-hours, including historical attempts and all
 unresolved reservations. Historical job states live in the Task 03–06 completion
 records and the Task 07 plan; reconcile live Slurm and controller state first.
 
-## Current checkpoint — 2026-10-27
+## Task 08 continuation
+
+Task 08 authorizes the common format clarification and prompt-dependent immutable
+revision. Main training remains unauthorized. Current work has no readiness claim.
+Use `configs/task08-source.yaml` only for the fixed training-parent probe and data
+revision, both based on unchanged original parents/tasks. After successful CI:
+
+```bash
+uv run selfplay hpc doctor --settings configs/task08-source.yaml --gpu-type h200
+uv run selfplay hpc inspect
+uv run selfplay hpc sync --settings configs/task08-source.yaml
+uv run selfplay hpc reuse-worker repair-selfplay-2026 --settings configs/task08-source.yaml
+uv run selfplay hpc submit --settings configs/task08-source.yaml --operation protocol-check --method B --profile single_gpu_80gb --gpu-type h200
+uv run selfplay hpc submit --settings configs/task08-source.yaml --operation protocol-revision --method B --profile single_gpu_80gb --gpu-type h200
+```
+
+Reconcile shared accounting and inspect existing operation ledgers before any
+submission. The probe is one fixed 32-proposal/two-batch window, no updates or
+refills, four episodes per valid task, with a two-GPU-hour ceiling. Failed
+clarified outputs stop dependent experiments; do not retry unchanged outputs.
+CPU revision work may complete independently. All allocations retain accepted
+containment and exact GPU ownership/initial occupancy checks.
+
+Revision outputs live under `runs/data-revisions/STUDY`. Preserve original data,
+inspect all equality/admission results, fetch the completed revision, and commit
+final settings pointing at its local directory before final synchronization.
+Run only invalidated runtime/backend proofs, corrected greedy monitoring base,
+D's ten-iteration stop/resume pilot, three-iteration A/B/C windows, freeze, then
+four actual previews. Source settings are not final main settings.
+
+All studies share `state/budget-readiness-cpsc4880.json` under the existing lock.
+Historical charges and unresolved reservations remain binding, including the
+12-hour pilot sublimit. Never use a new study/operation name to bypass a limit.
+GPU allocations record one-second device/process memory samples in readiness
+`resource-samples-JOB.jsonl`; these are sampled lower bounds, not exact peaks.
+
+## Historical Task 07 checkpoint — 2026-10-27
 
 **Launch readiness is blocked by zero valid proposal yield.** The accepted Yale
 execution path requires no further YCRC setup. The [Task 07 record](task_completion/07-implemented-yale-execution-blocked-readiness.md)

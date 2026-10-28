@@ -191,7 +191,7 @@ def run_episode(
             )
             break
         generation_started = time.monotonic()
-        output = policy.generate(prompt, max_tokens, seed + turn_index)
+        output = policy.generate(prompt, max_tokens, seed + turn_index, greedy=greedy)
         generation_seconds += time.monotonic() - generation_started
         if len(output.ids) > max_tokens or len(output.ids) != len(output.logps):
             raise ExperimentError("Backend violated sampled token budget/mapping")

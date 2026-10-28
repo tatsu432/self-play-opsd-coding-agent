@@ -26,6 +26,74 @@ from contextlib import contextmanager
 from pathlib import Path
 
 
+@contextmanager
+def sampled_device_usage(path: Path, devices: list, interval: float = 1.0):
+    """Sample complete allocated devices and GPU-process RSS; peaks are lower bounds."""
+    stop = threading.Event()
+    uuids = {d["uuid"].removeprefix("GPU-").lower() for d in devices}
+
+    def query(fields, kind):
+        result = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-" + kind + "=" + fields,
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=True,
+        )
+        return list(csv.reader(result.stdout.splitlines(), skipinitialspace=True))
+
+    def sample():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        while True:
+            row = {
+                "timestamp": time.time(),
+                "interval_seconds": interval,
+                "peak_interpretation": "sampled lower bound",
+            }
+            try:
+                row["devices"] = [
+                    {"uuid": uuid, "used_mib": int(used), "total_mib": int(total)}
+                    for uuid, used, total in query("uuid,memory.used,memory.total", "gpu")
+                    if uuid.removeprefix("GPU-").lower() in uuids
+                ]
+                processes = []
+                for uuid, pid, memory in query("gpu_uuid,pid,used_gpu_memory", "compute-apps"):
+                    if uuid.removeprefix("GPU-").lower() not in uuids:
+                        continue
+                    item = {"uuid": uuid, "pid": int(pid), "gpu_memory_mib": memory}
+                    try:
+                        status = Path("/proc") / pid / "status"
+                        item["host_rss_kib"] = next(
+                            int(line.split()[1])
+                            for line in status.read_text().splitlines()
+                            if line.startswith("VmRSS:")
+                        )
+                    except (OSError, StopIteration):
+                        item["host_rss_kib"] = None
+                    processes.append(item)
+                row["processes"] = processes
+            except (OSError, ValueError, subprocess.SubprocessError) as exc:
+                row["sampling_error"] = str(exc)[:500]
+            with path.open("a") as stream:
+                stream.write(json.dumps(row, sort_keys=True) + "\n")
+            if stop.wait(interval):
+                break
+
+    thread = threading.Thread(target=sample, daemon=True)
+    if devices:
+        thread.start()
+    try:
+        yield
+    finally:
+        stop.set()
+        if devices:
+            thread.join(timeout=12)
+
+
 def sha256(path: Path) -> str:
     h = hashlib.sha256()
     with path.open("rb") as stream:
@@ -756,6 +824,8 @@ def execute(env: dict) -> int:
         "train",
         "pilot",
         "method-smoke",
+        "protocol-check",
+        "protocol-revision",
         "evaluate",
         "diagnose",
         "freeze-study",
@@ -768,6 +838,8 @@ def execute(env: dict) -> int:
         "train",
         "pilot",
         "method-smoke",
+        "protocol-check",
+        "protocol-revision",
         "evaluate",
         "diagnose",
     }
@@ -984,7 +1056,14 @@ def execute(env: dict) -> int:
             "--settings",
             "/workspace/" + env["SELFPLAY_SETTINGS"],
         ]
-        if operation in {"train", "pilot", "method-smoke", "evaluate", "diagnose"}:
+        if operation in {
+            "train",
+            "pilot",
+            "method-smoke",
+            "protocol-check",
+            "evaluate",
+            "diagnose",
+        }:
             args += ["--config", env["SELFPLAY_METHOD"], "--hardware", env["SELFPLAY_HARDWARE"]]
         if operation in {"train", "pilot"} and env.get("SELFPLAY_RESUME"):
             args += ["--resume", env["SELFPLAY_RESUME"]]
@@ -1066,17 +1145,18 @@ def execute(env: dict) -> int:
                 },
             )
             return 0
-        if operation == "method-smoke":
-            # Separate processes provide fresh model, RNG and optimizer initialization.
-            status = 0
-            for method_command in method_smoke_commands(command, args, env["SELFPLAY_METHOD"]):
-                if stop.exists():
-                    return 75
-                status = subprocess.run(method_command, env=process_env, check=False).returncode
-                if status:
-                    break
-        else:
-            status = subprocess.run(command + args, env=process_env, check=False).returncode
+        with sampled_device_usage(readiness / f"resource-samples-{attempt}.jsonl", devices):
+            if operation == "method-smoke":
+                # Separate processes provide fresh model, RNG and optimizer initialization.
+                status = 0
+                for method_command in method_smoke_commands(command, args, env["SELFPLAY_METHOD"]):
+                    if stop.exists():
+                        return 75
+                    status = subprocess.run(method_command, env=process_env, check=False).returncode
+                    if status:
+                        break
+            else:
+                status = subprocess.run(command + args, env=process_env, check=False).returncode
         if status == 0 and operation == "freeze-study":
             command_report = [
                 "python",

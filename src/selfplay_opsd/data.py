@@ -373,7 +373,10 @@ def build_task(
         raise ExperimentError("Restoring original did not pass", Status.ORACLE)
     task_id = digest([parent.parent_id, mutation.dedup_key, split, seed])
     tests = render_public_tests(parent.entry_point, public)
+    from selfplay_opsd.protocol import VERSION
+
     task = TaskSpec(
+        protocol_version=VERSION,
         task_id=task_id,
         parent_id=parent.parent_id,
         split=split,

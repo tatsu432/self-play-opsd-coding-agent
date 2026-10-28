@@ -225,11 +225,11 @@ def ready_fixture(tmp_path, monkeypatch):
 
     for method in "ABC":
         smoke_cfg = smoke_config(cfg, method)
-        checkpoint = smoke_cfg.run_dir / "checkpoints/000001"
+        checkpoint = smoke_cfg.run_dir / "checkpoints/000003"
         atomic_json(
             checkpoint / "metadata.json",
             {
-                "iteration": 1,
+                "iteration": 3,
                 "scientific_hash": smoke_cfg.scientific_hash,
                 "runtime_identity": identity,
                 "manifests_hash": "data",
@@ -284,7 +284,7 @@ def test_all_method_proofs_and_intact_checkpoints_are_required(tmp_path, monkeyp
     atomic_json(path, original | {"method": "A"})
     assert not readiness_report(cfg, require_freeze=False)["gates"]["method_B"]["ready"]
     atomic_json(path, original)
-    checkpoint = smoke_config(cfg, "B").run_dir / "checkpoints/000001/metadata.json"
+    checkpoint = smoke_config(cfg, "B").run_dir / "checkpoints/000003/metadata.json"
     checkpoint.write_text("{}")
     assert not readiness_report(cfg, require_freeze=False)["gates"]["method_B"]["ready"]
 

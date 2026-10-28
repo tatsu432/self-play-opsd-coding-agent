@@ -121,6 +121,7 @@ class YaleSSH:
             "submit",
             "recover",
             "recover_allocation",
+            "reuse_worker",
             "logs",
         }:
             raise HpcError("Unsupported remote operation")
@@ -226,11 +227,12 @@ def git(*args: str) -> str:
     return result.stdout.strip()
 
 
-def snapshot() -> dict:
+def snapshot(data_root: Path | None = None) -> dict:
     if git("status", "--porcelain", "--untracked-files=all"):
         raise HpcError("Git checkout has uncommitted files; make an immutable run commit first")
-    manifest = ROOT / "data/prepared/manifest.json"
-    validation = ROOT / "data/prepared/validation_report.json"
+    data_root = data_root or ROOT / "data/prepared"
+    manifest = data_root / "manifest.json"
+    validation = data_root / "validation_report.json"
     if not manifest.is_file() or not validation.is_file():
         raise HpcError("Prepared and validated data are required for Yale synchronization")
     manifest_data = json.loads(manifest.read_text())
@@ -268,8 +270,8 @@ def remote_context(remote: Scheduler, alias: str) -> dict:
     return {"storage_root": choose_storage(report, alias), "inspection": report}
 
 
-def sync(remote: YaleSSH) -> dict:
-    identity = snapshot()
+def sync(remote: YaleSSH, data_root: Path | None = None) -> dict:
+    identity = snapshot(data_root) if data_root else snapshot()
     context = remote_context(remote, remote.alias)
     scratch = choose_scratch(context["inspection"], remote.alias)
     payload = {**identity, "storage_root": context["storage_root"], "scratch_root": scratch}
@@ -283,7 +285,7 @@ def sync(remote: YaleSSH) -> dict:
             text=True,
         )
         remote.rsync(bundle, paths["bundle"])
-    remote.rsync(ROOT / "data/prepared/", paths["dataset"] + "/")
+    remote.rsync(data_root or ROOT / "data/prepared/", paths["dataset"] + "/")
     return {
         **remote.call("finalize", payload),
         **identity,
@@ -343,6 +345,8 @@ def run_payload(
         "image-convert",
         "image-build",
         "method-smoke",
+        "protocol-check",
+        "protocol-revision",
         "worker-check",
         "runtime-check",
         "freeze-study",
@@ -374,7 +378,8 @@ def run_payload(
         raise HpcError("--base is only valid for evaluation without a checkpoint")
     if secrets_file and not re.fullmatch(r"/[A-Za-z0-9_./-]+", secrets_file):
         raise HpcError("Secrets file must be an absolute remote path")
-    snap = snapshot()
+    source_root = load_config(settings).data_root
+    snap = snapshot() if source_root == Path("data/prepared") else snapshot(ROOT / source_root)
     inspection = remote.call("context")
     storage = choose_storage(inspection, alias)
     scratch = choose_scratch(inspection, alias)
@@ -438,6 +443,7 @@ def run_payload(
         "allocation-check",
         "pilot",
         "method-smoke",
+        "protocol-check",
         "train",
         "evaluate",
         "diagnose",
@@ -523,7 +529,8 @@ def run_payload(
         .get("projection_200_hours"),
         "retry_setup": not gpu_operation or operation in {"allocation-check", "backend-check"},
         "readiness_budget": 24
-        if operation in {"backend-check", "allocation-check", "pilot", "method-smoke"}
+        if operation
+        in {"backend-check", "allocation-check", "pilot", "method-smoke", "protocol-check"}
         or (operation == "evaluate" and base)
         else None,
         "run_id": identity[:24],
@@ -564,7 +571,7 @@ def run_payload(
         else "06:00:00"
         if operation == "pilot"
         else "02:00:00"
-        if (operation == "evaluate" and base) or operation == "method-smoke"
+        if (operation == "evaluate" and base) or operation in {"method-smoke", "protocol-check"}
         else "00:15:00"
         if operation in {"worker-check", "freeze-study", "readiness-check"}
         else "01:00:00"
@@ -596,7 +603,17 @@ def run_payload(
     if (
         runtime_identity
         and cfg.sandbox.resource_backend == "slurm"
-        and operation in {"runtime-check", "train", "pilot", "method-smoke", "evaluate", "diagnose"}
+        and operation
+        in {
+            "runtime-check",
+            "train",
+            "pilot",
+            "method-smoke",
+            "protocol-check",
+            "protocol-revision",
+            "evaluate",
+            "diagnose",
+        }
     ):
         payload["cpus"] += cfg.sandbox.cpus
         payload["memory_gib"] += math.ceil(cfg.sandbox.memory_mib / 1024)
@@ -707,8 +724,8 @@ def doctor(
     """Report local prerequisites and lightweight remote state without allocation."""
     if gpu_type not in {None, "h100", "h200"}:
         raise HpcError("Readiness supports authorized H100 or H200 resources")
-    manifest_path = ROOT / "data/prepared/manifest.json"
-    validation_path = ROOT / "data/prepared/validation_report.json"
+    manifest_path = ROOT / load_config(settings).data_root / "manifest.json"
+    validation_path = manifest_path.parent / "validation_report.json"
     manifest = json.loads(manifest_path.read_text()) if manifest_path.is_file() else {}
     validation = json.loads(validation_path.read_text()) if validation_path.is_file() else {}
     local = {
@@ -823,10 +840,36 @@ def resources_command(
     output(remote.call("resources", payload))
 
 
+@app.command("reuse-worker")
+def reuse_worker_command(
+    source_study: str, settings: Path = Path("configs/yale.yaml"), alias: str = ALIASES[0]
+):
+    """Reuse unchanged accepted containment, retaining the original evidence hash."""
+    if alias != ALIASES[0]:
+        raise HpcError("Worker reuse is restricted to the authorized cpsc4880 workspace")
+    remote = YaleSSH(alias)
+    context = remote_context(remote, alias)
+    cfg = load_config(settings)
+    output(
+        remote.call(
+            "reuse_worker",
+            {
+                "storage_root": context["storage_root"],
+                "study_id": cfg.study_id,
+                "source_study": source_study,
+                "supervisor_hash": supervisor_hash(),
+                "worker_setup_id": "",
+            },
+        )
+    )
+
+
 @app.command("sync")
-def sync_command(alias: Annotated[str, typer.Option()] = ALIASES[0]):
+def sync_command(
+    alias: Annotated[str, typer.Option()] = ALIASES[0], settings: Path = Path("configs/yale.yaml")
+):
     """Transfer a clean Git commit and independently hashed prepared dataset."""
-    output(sync(YaleSSH(alias)))
+    output(sync(YaleSSH(alias), ROOT / load_config(settings).data_root))
 
 
 @app.command("submit")

@@ -1,0 +1,20 @@
+study_id: repair-selfplay-2026-protocol-v2
+method: B
+seed: 2026
+iterations: 200
+data_root: data/protocol-v2
+output_root: runs
+model:
+  revision: cdbee75f17c01a7cc42f958dc650907174af0554
+  tokenizer_revision: cdbee75f17c01a7cc42f958dc650907174af0554
+hardware:
+  profile: single_gpu_80gb
+  cpu_workers: 7
+  rollout_concurrency: 1
+sandbox:
+  backend: remote
+  process_policy: single_process
+  resource_backend: slurm
+  remote_url: http://127.0.0.1:8765
+logging:
+  mode: offline
