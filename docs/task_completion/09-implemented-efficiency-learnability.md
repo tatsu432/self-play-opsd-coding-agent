@@ -4,6 +4,25 @@ Status: implementation staged on `feat/09-efficiency-learnability`; **the new
 study is not launch ready**. Task 08 remains launch ready on its frozen source.
 No Task 09 GPU job or main A–D job was submitted.
 
+## Current blocker
+
+Task 09 cannot be declared ready for the main experiment until its changed
+execution path passes H200 numerical, memory, performance and recovery checks,
+followed by the relevant readiness gates, a new freeze and four previews. Task
+09 specification §8.4 requires an authorized GPU budget before profiling; no
+separate Task 09 H200 budget has been granted. The proposed first stage is at
+most four allocated GPU-hours on one H200, with live accounting reconciliation
+before submission. Its results may reveal further required checks or budget;
+four hours is a cap for the initial stage, not a guarantee of full readiness.
+
+The local Docker daemon was unavailable, so the new sandbox-backed trainer
+tests and hosted Linux/Docker CI remain unverified. This is an additional
+validation gap. Source commit `3019394ac60619a8970cf8f43fa84b1ed10b1fb9`
+and the frozen dataset were synchronized to Yale; this does not establish
+compatibility. The unchanged Task 08 frozen study has passed readiness and four
+previews, but submitting its main runs requires separate authorization under
+Task 09 §1 and the project operating instructions.
+
 ## Changes and evidence
 
 - Added the exact-zero C candidate-gradient shortcut. It retains the neutral
