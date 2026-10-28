@@ -7,6 +7,7 @@ import time
 from types import SimpleNamespace
 
 import numpy as np
+import pytest
 import torch
 
 from selfplay_opsd.config import load_config
@@ -251,3 +252,78 @@ def test_rollback_clears_stale_cloud_summaries():
     assert run.summary["student/grad_norm"] is None
     assert run.summary["eval/best_dev_parent_macro"] is None
     assert run.summary["run/logical_run_id"] == "logical"
+
+
+@pytest.mark.wandb_online
+def test_cloud_method_grouping_checkpoint_restart_and_rollback(tmp_path, monkeypatch):
+    """Explicit opt-in; all cloud runs are labelled synthetic and never main."""
+    import json
+    import netrc
+    import os
+    import uuid
+    from pathlib import Path
+
+    if not os.getenv("SELFPLAY_WANDB_CLOUD_TEST"):
+        pytest.skip("Explicit cloud integration opt-in required")
+    import wandb
+
+    credentials = netrc.netrc().authenticators("api.wandb.ai")
+    monkeypatch.setenv("WANDB_API_KEY", credentials[2])
+    api = wandb.Api(timeout=15)
+    entity = api.default_entity
+    group = "task10-synthetic-telemetry-verification"
+    reports = []
+    for method in "ABCD":
+        cfg = load_config(
+            study_id=group, method=method, hardware_profile="cpu_debug", output_root=tmp_path
+        )
+        cfg.logging.mode = "online"
+        cfg.logging.entity = entity
+        logical = "task10check-" + uuid.uuid4().hex[:12] + method
+        store = EventStore(cfg.run_dir, {"logical_run_id": logical})
+        commit(store, 1)
+        checkpoint(store, 1)
+        sink = WandbSink(cfg, store)
+        sink.finish()
+        assert not sink.status["delivery_errors"]
+        resumed = EventStore(store.root, store.identity, rollback_to=1)
+        commit(resumed, 2)
+        checkpoint(resumed, 2)
+        sink = WandbSink(cfg, resumed)
+        sink.finish()
+        assert not sink.status["delivery_errors"]
+        # Roll back a previously cloud-published iteration, then replay it with
+        # a fresh event identity. The canonical view must have exactly two rows.
+        rollback = EventStore(store.root, store.identity, rollback_to=1)
+        sink = WandbSink(cfg, rollback)
+        sink.finish()
+        assert not sink.status["delivery_errors"]
+        api.flush()
+        remote = api.run(f"{entity}/{cfg.logging.project}/{logical}")
+        assert remote.summary["run/canonical_rows"] == 1
+        commit(rollback, 2)
+        checkpoint(rollback, 2)
+        sink = WandbSink(cfg, rollback)
+        sink.finish()
+        assert not sink.status["delivery_errors"]
+        api.flush()
+        remote = api.run(f"{entity}/{cfg.logging.project}/{logical}")
+        assert remote.name == METHOD_NAMES[method]
+        assert remote.group == group
+        assert remote.summary["train/outer_iteration"] == 2
+        assert remote.summary["run/canonical_rows"] == 2
+        assert remote.summary["canonical/training"]["nrows"] == 2
+        reports.append(
+            {
+                "method": method,
+                "url": remote.url,
+                "logical_run_id": logical,
+                "cloud_verified_iteration": 2,
+                "rollback_verified": True,
+                "synthetic_fixture": True,
+                "group": group,
+            }
+        )
+    report = Path(os.getenv("SELFPLAY_WANDB_VERIFY_REPORT", str(tmp_path / "cloud-report.json")))
+    report.parent.mkdir(parents=True, exist_ok=True)
+    report.write_text(json.dumps(reports, indent=2) + "\n")
