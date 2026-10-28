@@ -214,6 +214,10 @@ def run(config: RunConfig, output: Path) -> dict:
             "identical_ids_after_sleep_wake": sequential[0].ids == after_wake.ids,
             "sequential_tokens": sum(len(item.ids) for item in sequential),
             "batched_tokens": sum(len(item.ids) for item in batched),
+            "sequential_samples": [
+                {"ids": item.ids, "logps": item.logps} for item in sequential
+            ],
+            "batched_samples": [{"ids": item.ids, "logps": item.logps} for item in batched],
             "note": "Fixed saved-snapshot replay; not a full-iteration benchmark.",
         }
         later = list((source / "trajectories").glob("*/000010-episodes.json"))

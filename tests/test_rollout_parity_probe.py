@@ -80,6 +80,7 @@ def test_replay_counts_real_token_errors_and_keeps_request_order(tmp_path, monke
     assert result["absolute_error_max"] == pytest.approx(0.4)
     assert result["outside_grpo_clip"] == 1
     assert result["identical_output_ids"] == 16
+    assert result["sequential_samples"][7] == {"ids": [7], "logps": [-0.1]}
     assert (tmp_path / "output/rollout-parity.json").exists()
 
 
