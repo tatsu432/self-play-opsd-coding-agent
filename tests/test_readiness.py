@@ -9,6 +9,7 @@ import socket
 import subprocess
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import nullcontext
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -414,6 +415,7 @@ def gpu_inventory(args):
 
 def test_backend_allocation_ignores_broken_worker_and_needs_no_data(tmp_path, monkeypatch):
     job = allocation_module()
+    monkeypatch.setattr(job, "sampled_device_usage", lambda *_: nullcontext())
     env = allocation_env(tmp_path) | {
         "SELFPLAY_WORKER_SIF": "/missing/worker.sif",
         "SELFPLAY_WORKER_TOKEN": "stale-token",
@@ -949,3 +951,29 @@ def test_hardware_evidence_normalizes_default_allocation_without_ignoring_real_c
     assert hardware_settings(values) != hardware_settings(
         values | {"rollout_memory_fraction": 0.25}
     )
+
+
+def test_device_sampler_filters_other_gpus_and_preserves_process_attribution(tmp_path, monkeypatch):
+    import threading
+
+    job = allocation_module()
+    sampled = threading.Event()
+    uuid = "GPU-11111111-1111-1111-1111-111111111111"
+
+    def query(args, **kwargs):
+        if "--query-gpu=uuid,memory.used,memory.total" in args:
+            text = f"{uuid}, 123, 140000\nGPU-other, 999, 140000\n"
+        else:
+            text = f"{uuid}, 999999999, 100\nGPU-other, 888888888, 900\n"
+            sampled.set()
+        return SimpleNamespace(stdout=text, returncode=0)
+
+    monkeypatch.setattr(job.subprocess, "run", query)
+    path = tmp_path / "resources.jsonl"
+    with job.sampled_device_usage(path, [{"uuid": uuid}], interval=60):
+        assert sampled.wait(2)
+    rows = [json.loads(line) for line in path.read_text().splitlines()]
+    assert rows[0]["devices"] == [{"uuid": uuid, "used_mib": 123, "total_mib": 140000}]
+    assert len(rows[0]["processes"]) == 1
+    assert rows[0]["processes"][0]["pid"] == 999999999
+    assert rows[0]["peak_interpretation"] == "sampled lower bound"

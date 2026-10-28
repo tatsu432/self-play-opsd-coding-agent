@@ -29,6 +29,7 @@ from selfplay_opsd.mutations import (
     normalized_family,
     validate_source,
 )
+from selfplay_opsd.protocol import VERSION
 from selfplay_opsd.sandbox import SandboxBackend
 from selfplay_opsd.storage import atomic_json, file_hash
 
@@ -373,8 +374,6 @@ def build_task(
         raise ExperimentError("Restoring original did not pass", Status.ORACLE)
     task_id = digest([parent.parent_id, mutation.dedup_key, split, seed])
     tests = render_public_tests(parent.entry_point, public)
-    from selfplay_opsd.protocol import VERSION
-
     task = TaskSpec(
         protocol_version=VERSION,
         task_id=task_id,
@@ -609,7 +608,7 @@ def prepare_data(
         "task_hashes": {
             p.name: file_hash(p) for p in sorted((root / "private").glob("tasks-*.json"))
         },
-        "protocol": "repair-json-v1",
+        "protocol": VERSION,
         "image_digest": sandbox.identity(),
         "execution_limits": sandbox.config.model_dump(
             mode="json", exclude={"backend", "image", "runtime", "remote_url", "remote_token_env"}

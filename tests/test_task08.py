@@ -3,6 +3,7 @@
 import copy
 import importlib.util
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -306,3 +307,68 @@ def test_acceptance_distinguishes_zero_advantages_from_broken_optimizer(
     ]
     assert update_path_accepted(commits, "proposer", stepped, mechanics) is expected
     assert not update_path_accepted([], "proposer", 0, True)
+
+
+def test_revision_cannot_reset_pilot_sublimit(tmp_path, monkeypatch):
+    remote = endpoint()
+    monkeypatch.setattr(remote, "workspace", lambda _: tmp_path)
+    monkeypatch.setattr(remote, "capture", lambda _: {"exit_code": 1})
+    state = tmp_path / "state"
+    state.mkdir()
+    (state / "budget-original.json").write_text(
+        json.dumps(
+            {
+                "limit": 24,
+                "reservations": {
+                    "charged": {"reserved": 11, "charged": 11, "operation": "pilot"},
+                    "unknown": {"reserved": 1, "charged": None, "operation": "pilot"},
+                },
+            }
+        )
+    )
+    with pytest.raises(ValueError, match="Pilot allocation budget"):
+        remote.reserve_budget(
+            {
+                "study_id": "revised",
+                "run_id": "run",
+                "gpu_count": 1,
+                "time": "01:00:00",
+                "readiness_budget": 24,
+                "operation": "pilot",
+            },
+            "new",
+        )
+
+
+def test_worker_reuse_requires_identical_limits_and_retains_provenance(tmp_path, monkeypatch):
+    from selfplay_opsd.config import SandboxConfig
+    from selfplay_opsd.storage import atomic_json, file_hash
+
+    remote = endpoint()
+    monkeypatch.setattr(remote, "workspace", lambda _: tmp_path)
+    monkeypatch.setattr(remote, "study_state", lambda _: {"gates": {"worker": True}})
+    cfg = SandboxConfig(process_policy="single_process", resource_backend="slurm")
+    source = tmp_path / "runs/readiness/original/worker.json"
+    atomic_json(
+        source,
+        {
+            "ready": True,
+            "checks": {"cleanup": True},
+            "worker_setup_id": "",
+            "limits": cfg.model_dump(mode="json"),
+        },
+    )
+    payload = {
+        "source_study": "original",
+        "study_id": "revised",
+        "worker_setup_id": "",
+        "execution_limits": cfg.execution_limits(),
+    }
+    result = remote.reuse_worker(payload)
+    assert result["provenance"]["sha256"] == file_hash(source)
+    assert json.loads(Path(result["evidence"]).read_text())["reuse_provenance"]["source"] == str(
+        source
+    )
+    changed = cfg.execution_limits() | {"memory_mib": 2048}
+    with pytest.raises(ValueError, match="limits changed"):
+        remote.reuse_worker(payload | {"execution_limits": changed})

@@ -10,7 +10,7 @@ from selfplay_opsd.core import ExperimentError
 from selfplay_opsd.data import TaskRepository
 from selfplay_opsd.evaluation import finalize_data, validate_data
 from selfplay_opsd.protocol import PROMPT_HASH, VERSION
-from selfplay_opsd.storage import atomic_json, file_hash
+from selfplay_opsd.storage import atomic_json, file_hash, read_json
 
 
 def revise_protocol(source: Path, destination: Path, policy, sandbox, limits) -> dict:
@@ -77,5 +77,9 @@ def revise_protocol(source: Path, destination: Path, policy, sandbox, limits) ->
         os.rename(staging, destination)
         return report
     except Exception as exc:
+        if (staging / "manifest.json").exists():
+            atomic_json(
+                staging / "manifest.json", read_json(staging / "manifest.json") | {"ready": False}
+            )
         atomic_json(staging / "revision_failure.json", {"ready": False, "error": str(exc)})
         raise
