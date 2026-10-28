@@ -1,6 +1,6 @@
 # Task 08 — Protocol repair and verified launch readiness
 
-Status: implementation in progress, 2026-10-27. Launch readiness remains false;
+Status: execution in progress, 2026-10-28. Launch readiness remains false;
 new allocations require passed CPU/hosted checks and reconciled shared accounting.
 
 Source: [Task 08 specification](../task/08-task-learnability-probe-spec.md).

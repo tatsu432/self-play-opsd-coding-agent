@@ -5,6 +5,27 @@ readiness cap is 24 allocated GPU-hours, including historical attempts and all
 unresolved reservations. Historical job states live in the Task 03–06 completion
 records and the Task 07 plan; reconcile live Slurm and controller state first.
 
+## Task 08 verified progress — 2026-10-28
+
+Code `e1836a0` passed CI 40627889719: 238 tests. Probe 31069728 passed its fixed
+32-attempt window with five valid tasks, 20 episodes and 9,252 student tokens.
+CPU revision 31069732 passed all 306 tasks and exact frozen-content equality.
+Do not rerun these stages. The source-config commands below are retained as
+history; current continuation uses `configs/task08.yaml` and `data/protocol-v2`.
+
+```bash
+uv run selfplay hpc sync --settings configs/task08.yaml
+uv run selfplay hpc submit --settings configs/task08.yaml --operation runtime-check --method D --profile single_gpu_80gb --gpu-type h200
+uv run selfplay hpc submit --settings configs/task08.yaml --operation backend-check --method D --profile single_gpu_80gb --gpu-type h200
+```
+
+Runtime/backend checks are independent. Inspect their existing run IDs before
+submission. After compatible evidence passes, run the corrected greedy baseline,
+D stop/resume pilot, A/B/C windows, freeze and actual previews. Historical numerical
+artifacts must be archived before replacing the shared backend output directory.
+Current reconciled cost is 1.241111111/24 GPU-hours, with zero reservations at this
+snapshot. Launch readiness remains false; main jobs remain unauthorized.
+
 ## Task 08 continuation
 
 Task 08 authorizes the common format clarification and prompt-dependent immutable

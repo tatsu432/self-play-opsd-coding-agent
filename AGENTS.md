@@ -103,16 +103,32 @@ image or failed evidence gate. Never treat a passed CPU test as target readiness
    never create a duplicate. Scientific failures, OOM, authentication, quota
    and unauthorized resource requests are not automatic retries.
 
-## Task 08 implementation checkpoint — 2026-10-27
+## Task 08 execution checkpoint — 2026-10-28
 
-Implementation is in progress; launch readiness remains false. Protocol v2 uses
-one shared strict-diff syntax reference in student tool/proposer output
-instructions. Model, sampling, rewards and mathematical budgets are unchanged.
-`configs/task08-source.yaml` selects the new study with the original frozen data
-for a fixed 32-proposal training-parent probe and an immutable protocol revision.
-Do not use this source configuration for main training. Revision output is
-`runs/data-revisions/repair-selfplay-2026-protocol-v2`; publish final settings
-pointing there only after complete admission/equality validation.
+Execution code `e1836a0` passed hosted CI 40627889719 (238 tests, one skipped,
+three deselected). Protocol v2's common strict format clarification is applied;
+model, sampling, rewards and mathematical budgets are unchanged.
+
+Fixed probe 31069728 / `7f6319f6b8b125ac11eaa7af` passed: 32 proposals, five
+valid mutations, 20 real student episodes/9,252 tokens, and a valid source-read
+then patch/test action. No optimizer updates/refills occurred. Do not repeat it.
+CPU revision 31069732 / `d4630697f6f230e3021769b7` passed all 306 task admissions
+and target verifications, regenerated anchors, and preserved every original
+parent/task/split/coverage file byte-for-byte. `data/prepared` remains unchanged.
+
+Use `configs/task08.yaml` for the final study `repair-selfplay-2026-protocol-v2`,
+with immutable data in `data/protocol-v2`. Manifest file SHA-256:
+`934412b2181ead4377d383130a19ad0d58eaab6bb9f74c5d8005416d09412fd2`;
+canonical manifest: `d9140367e20587051b328dda20a7d93916ee5cadc7e72c2564523cf6ab6beade`;
+prompt: `07968cec687ca52d8ce02c4a6d52eaca529f830855690cab1caff71c096f4322`.
+`configs/task08-source.yaml` is historical source/probe setup, not main settings.
+
+Launch readiness remains false pending fresh runtime/backend evidence, corrected
+greedy baseline, real D continuation/learning coverage, bounded A/B/C acceptance,
+freeze and four previews. Worker proof and SIFs are reused with original provenance.
+The probe cost 0.15 GPU-hours; reconciled cumulative consumption is 1.241111111
+of 24, with no outstanding reservation at this checkpoint. Inspect live state
+before new allocations. Main training remains unauthorized.
 
 All studies share `state/budget-readiness-cpsc4880.json`, authorization
 `cpsc4880-readiness-24h-v1`. Import all historical ledgers; changed legacy history
