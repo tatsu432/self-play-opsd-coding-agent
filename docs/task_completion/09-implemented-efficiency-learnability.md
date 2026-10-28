@@ -25,6 +25,23 @@ identity and uses new study `repair-selfplay-2026-efficiency-v2` in
 `configs/task09-diagnostics.yaml`. It requires target-hardware validation and
 does not make the v1 freeze launch ready.
 
+Trusted H200 replay 31153613 reproduced the initial-snapshot discrepancy: mean
+absolute difference 0.00369, p99 0.1004, maximum 1.138, and 18/3621 tokens
+outside the GRPO clip interval. A checksummed iteration-nine checkpoint and
+iteration-ten trajectories gave mean 0.00330, p99 0.0996, maximum 0.728 and
+21/4054 outside the interval. These are observed counts, not an assessment of
+the impact on learning. The replay verified the checkpoint's policy version,
+manifest and prompt and did not execute generated candidates.
+
+On 16 fixed initial proposer requests, warm sequential and batch generation
+took 52.80 and 6.29 seconds, with identical output IDs, but the maximum difference
+between sampled log-probabilities was 1.229. Scoring microbatches 2 and 4 had
+maximum differences of 1.037 versus size 1. These options are **not accepted for
+main training**. Follow-on jobs 31154488, 31154500, 31154505 and 31154513 compare
+the baseline, prefix cache, CUDA Graphs and their combination; reconcile their
+existing ledgers before further submissions. A diagnostic comparison of C's
+zero-gradient shortcut to the original backward pass is being prepared.
+
 The new measured conditional planning estimates are A 75.84, B 72.90, C 75.08,
 and D 88.65 GPU-hours; observed-yield estimates are 16.31, 15.94, 16.39, and
 15.20 hours. These are scenarios, not guarantees, and exclude final evaluations.

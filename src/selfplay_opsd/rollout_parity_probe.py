@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import time
+from collections import defaultdict
+from dataclasses import asdict
 from pathlib import Path
 
 import numpy as np
 import torch
 
 from selfplay_opsd.config import RunConfig
-from selfplay_opsd.core import ExperimentError
+from selfplay_opsd.core import EpisodeRecord, ExperimentError
+from selfplay_opsd.objectives import alignment
 from selfplay_opsd.policy import GenerationRequest
 from selfplay_opsd.storage import CheckpointManager, atomic_json, file_hash, provenance, read_json
 
@@ -90,6 +93,47 @@ def benchmark_scoring(policy, config: RunConfig, episodes: list[dict]) -> list[d
     finally:
         config.hardware.microbatch_episodes = original
     return results
+
+
+def check_zero_candidate(
+    policy, config: RunConfig, episodes: list[dict], anchors: list[dict]
+) -> dict:
+    from selfplay_opsd.trainer import reference_examples, student_examples
+
+    groups: dict[str, list[EpisodeRecord]] = defaultdict(list)
+    for row in episodes:
+        episode = EpisodeRecord.model_validate(row)
+        groups[episode.task_id].append(episode)
+    group = next(
+        (
+            rows
+            for rows in groups.values()
+            if len(rows) == config.episodes_per_task and len({e.reward for e in rows}) == 1
+        ),
+        None,
+    )
+    if group is None:
+        return {"available": False, "reason": "no_equal_reward_group"}
+    cfg = config.model_copy(update={"method": "C"}, deep=True)
+    with policy.active("student"):
+        reference, _ = policy.gradients(reference_examples(anchors))
+        examples, _ = student_examples(group, cfg, kind="rl")
+        actual, _ = policy.gradients(examples)
+        old_score = alignment(actual, reference, cfg.objective.near_zero, policy.distributed)
+        shortcut_score = alignment(
+            (torch.zeros_like(tensor) for tensor in reference),
+            reference,
+            cfg.objective.near_zero,
+            policy.distributed,
+        )
+    return {
+        "available": True,
+        "episode_count": len(group),
+        "reward": group[0].reward,
+        "old_alignment": asdict(old_score),
+        "shortcut_alignment": asdict(shortcut_score),
+        "exact_match": old_score == shortcut_score,
+    }
 
 
 def run(config: RunConfig, output: Path) -> dict:
@@ -194,6 +238,9 @@ def run(config: RunConfig, output: Path) -> dict:
             result["later_snapshot"]["source_episode_sha256"] = file_hash(later[0])
             result["later_snapshot"]["checkpoint_marker_sha256"] = file_hash(
                 checkpoint / "complete.json"
+            )
+            result["later_snapshot"]["c_zero_candidate_check"] = check_zero_candidate(
+                policy, config, later_episodes, state["reference_anchors"]
             )
             with policy.active("student"):
                 prompt = later_episodes[0]["turns"][0]["prompt_ids"]

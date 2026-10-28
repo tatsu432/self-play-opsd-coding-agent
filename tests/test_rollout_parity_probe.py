@@ -6,8 +6,9 @@ import torch
 from typer.testing import CliRunner
 
 from selfplay_opsd.config import load_config
-from selfplay_opsd.policy import Generation
-from selfplay_opsd.rollout_parity_probe import run
+from selfplay_opsd.core import EpisodeRecord, Status, TokenTurn
+from selfplay_opsd.policy import Generation, HFPolicy
+from selfplay_opsd.rollout_parity_probe import check_zero_candidate, run
 
 
 def test_rollout_parity_cli_accepts_scheduler_options(tmp_path, monkeypatch):
@@ -80,3 +81,46 @@ def test_replay_counts_real_token_errors_and_keeps_request_order(tmp_path, monke
     assert result["outside_grpo_clip"] == 1
     assert result["identical_output_ids"] == 16
     assert (tmp_path / "output/rollout-parity.json").exists()
+
+
+def test_equal_reward_shortcut_matches_actual_backward(tmp_path):
+    cfg = load_config(study_id="zero", hardware_profile="cpu_debug", output_root=tmp_path)
+    policy = HFPolicy(cfg)
+    prompt, targets = [1, 7, 8], [9, 10]
+    old = policy.score(prompt, targets).tolist()
+    turn = TokenTurn(
+        prompt_ids=prompt,
+        target_ids=targets,
+        old_logps=old,
+        teacher_logps=old,
+        history=[],
+        raw_text="",
+        action="finish",
+        parse_status="valid",
+    )
+    episode = EpisodeRecord(
+        episode_id="example",
+        task_id="task",
+        seed=1,
+        policy_version=policy.version("student"),
+        turns=[turn],
+        reward=0,
+        public_pass=False,
+        hidden_pass=False,
+        termination="finish",
+        status=Status.STUDENT_FAILURE,
+        final_source="",
+        final_source_hash="hash",
+        test_calls=0,
+        seconds=0,
+    )
+    result = check_zero_candidate(
+        policy,
+        cfg,
+        [episode.model_dump(mode="json")] * 4,
+        [{"edit": {"prompt": prompt, "targets": targets}}],
+    )
+    assert result["available"] and result["exact_match"]
+    assert result["old_alignment"]["reward"] == 0.5
+    assert result["old_alignment"]["exact_zero"]
+    policy.close()
