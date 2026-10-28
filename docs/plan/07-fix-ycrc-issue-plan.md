@@ -137,3 +137,18 @@ deployed-data evidence remain compatible; subsequent real pilot measurements wil
 use this hardware configuration. `doctor --gpu-type h200` can now inspect the
 selected target before freeze; default doctor still honors a frozen GPU choice.
 No base job, main training or additional GPU allocation was created by the rejection.
+
+### Reclaim a definitively rejected submission slot
+
+Commit a8b8599 passed hosted CI 40608844739 (214 tests). Its corrected base preview
+requests eight CPUs and 129 GiB total, retaining a seven-CPU/128-GiB trainer and
+independent worker. Live doctor with `--gpu-type h200` recognizes worker, runtime,
+single and target as passed. The next submission encountered the old rejected
+request's slot: its ledger has no attempts or pending intent and records Slurm's
+CPU-policy rejection, but the controller treated every empty-attempt slot as
+unknown. Release the slot on definitive sbatch rejection and recognize this exact
+legacy state. Empty ledgers without a rejection, active jobs and pending intents
+remain blocking; the regression tests distinguish these states. This controller
+repair changes no scientific, backend, worker or deployed-data identity. No GPU
+was allocated by either rejected/blocked request. Consumption remains 0.274444444
+GPU-hours; no main run has been submitted.

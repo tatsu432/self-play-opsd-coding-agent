@@ -722,6 +722,14 @@ def submit(payload: dict) -> dict:
                     continue
                 states = [a["scheduler"]["state"] for a in prior["attempts"]]
                 if (
+                    prior["ledger"].get("last_rejection")
+                    and not prior["ledger"].get("pending_intent")
+                    and not prior["attempts"]
+                ):
+                    # Older controllers retained slots after a definitive
+                    # sbatch rejection. No accepted/uncertain job owns these.
+                    continue
+                if (
                     prior["ledger"].get("pending_intent")
                     or not states
                     or states[-1] in ACTIVE | {"UNKNOWN"}
@@ -831,6 +839,7 @@ def submit(payload: dict) -> dict:
             release_budget(payload, token)
             ledger["last_rejection"] = result.stderr[-2000:]
             write_json(path, ledger)
+            slot.unlink(missing_ok=True)
             return {
                 "run_id": payload["run_id"],
                 "submitted": False,

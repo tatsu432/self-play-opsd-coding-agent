@@ -797,6 +797,19 @@ def test_independent_slots_preserve_legacy_duplicate_exclusion(tmp_path, monkeyp
     equivalent = remote.submit(payload | {"run_id": "gpu2", "identity": "gpu-id2"})
     assert equivalent["reason"] == "slot_busy" and equivalent["run_id"] == "gpu"
     assert len(calls) == 2
+    # An empty ledger without a definitive rejection remains uncertain.
+    ledger_path = paths["state"] / "gpu.json"
+    prior = json.loads(ledger_path.read_text()) | {"attempts": []}
+    atomic_json(ledger_path, prior)
+    assert (
+        remote.submit(payload | {"run_id": "gpu2", "identity": "gpu-id2"})["reason"] == "slot_busy"
+    )
+    assert len(calls) == 2
+    # A recorded nonzero sbatch response with no accepted attempt is different:
+    # a corrected immutable request can reclaim its old slot without a job retry.
+    atomic_json(ledger_path, prior | {"last_rejection": "sbatch: invalid CPU request"})
+    assert remote.submit(payload | {"run_id": "gpu2", "identity": "gpu-id2"})["submitted"]
+    assert len(calls) == 3
 
 
 def test_allocation_proof_reuse_checks_immutable_legacy_source(tmp_path):
