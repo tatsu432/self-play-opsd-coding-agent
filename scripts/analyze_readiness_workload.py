@@ -61,7 +61,7 @@ def memory_summary(events: list[dict], samples: list[dict], fixture: dict) -> di
     }
 
 
-def workload_summary(events: list[dict]) -> dict:
+def workload_summary(events: list[dict], root: Path) -> dict:
     commits = [e["payload"] for e in events if e["kind"] == "iteration_commit"]
     invalid, groups, termination = Counter(), Counter(), Counter()
     for c in commits:
@@ -69,12 +69,40 @@ def workload_summary(events: list[dict]) -> dict:
         invalid.update(m["proposer"]["invalid_reasons"])
         groups.update(m["student"]["success_group_mix"])
         termination.update(m["student"]["termination"])
+    actions, token_lengths = Counter(), Counter()
+    truncated_histories, proposal_limit_hits = 0, 0
+    sources, episode_ids = {}, []
+    for c in commits:
+        ep = root / c["episodes_path"]
+        pp = root / c["proposals_path"]
+        sources[str(ep)] = file_hash(ep)
+        sources[str(pp)] = file_hash(pp)
+        proposals = read_json(pp)
+        assert len(proposals) == c["attempted"]
+        proposal_limit_hits += sum(len(p["turn"]["target_ids"]) == 512 for p in proposals)
+        episodes = read_json(ep)
+        assert len(episodes) == c["episodes"]
+        for episode in episodes:
+            episode_ids.append(episode["episode_id"])
+            for turn in episode["turns"]:
+                actions[f"{turn['action']}:{turn['parse_status']}"] += 1
+                token_lengths[len(turn["target_ids"])] += 1
+                truncated_histories += any(
+                    "[OBSERVATION_TRUNCATED]" in h["content"] for h in turn["history"]
+                )
+    assert len(episode_ids) == len(set(episode_ids)), "Duplicated active episode exposure"
     phases = Counter()
     for e in events:
         if e["kind"] == "phase_time":
             phases[e["phase"]] += e["payload"]["seconds"]
     return {
         "proposal_rejections": dict(invalid),
+        "raw_shard_sha256": sources,
+        "unique_episode_ids": len(episode_ids),
+        "student_actions": dict(actions),
+        "student_turn_token_lengths": dict(token_lengths),
+        "histories_with_observation_truncation": truncated_histories,
+        "proposer_outputs_at_512_tokens": proposal_limit_hits,
         "success_group_mix": dict(groups),
         "termination": dict(termination),
         "phase_seconds": dict(phases),
@@ -140,7 +168,7 @@ def main():
             "jobs": jobs,
             "sample_hashes": hashes,
             "memory": memory_summary(events, samples, fixture),
-            "workload": workload_summary(events),
+            "workload": workload_summary(events, root),
             "fixture": fixture,
         }
     plan = {
