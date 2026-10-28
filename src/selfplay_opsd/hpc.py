@@ -180,6 +180,7 @@ class YaleSSH:
                 "--exclude=trajectories/",
                 "--exclude=wandb/",
                 "--exclude=*.pt",
+                "--exclude=*.safetensors",
                 "--exclude=*.sif",
                 "--exclude=*.tar",
             ]
