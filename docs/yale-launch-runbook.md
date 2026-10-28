@@ -7,75 +7,68 @@ records and the Task 07 plan; reconcile live Slurm and controller state first.
 
 ## Current checkpoint — 2026-10-27
 
-The selected profile is `single_gpu_80gb`, using one entitled H200 in `gpu_h200`
-for the documented scheduling reason in the Task 07 plan. H100 OOM is not required.
-Seven trainer CPUs/128 GiB host RAM and a separate one-CPU/1-GiB worker step are
-requested for generated-code jobs. Add GPUs only if measurements justify them;
-a multi-GPU target additionally needs agreement with single-GPU gradients.
-Slurm rejected the previous nine-CPU total: gpu_h200 permits at most eight CPUs
-per GPU. The current total is eight, retaining independent worker enforcement.
+**Launch readiness is blocked by zero valid proposal yield.** The accepted Yale
+execution path requires no further YCRC setup. The [Task 07 record](task_completion/07-implemented-yale-execution-blocked-readiness.md)
+contains exact code, CI, identities, measurements and live evidence. Execution
+code is `9980c78`; CI 40617600830 passed 220 tests.
 
-Worker acceptance **31033392** / `639345f9a3d7a5c3953ece55` passed all 19 checks:
-independent scheduler CPU/memory enforcement, single-process/thread seccomp,
-filesystem/network/GPU/credential isolation, bounded storage/output/time,
-candidate OOM followed by correct-program recovery, cancellation and real Slurm
-step KILL with no observed processes left running. The no-GRES broker uses
-`--oom-kill-step=0`; its 1-GiB kernel bound remains enforced. The deliberate OOM
-witness is CPU acceptance only. Ordinary GPU preflight does not trigger an OOM.
-The policy is installed before candidate compilation/imports. Private temporary
-storage is 64 MiB. No nested user cgroup configuration, pids.max, subordinate UID
-allocator, external service or SSH tunnel is needed. These restrictions are the
-same for A–D.
+The selected profile is one H200 in `gpu_h200`, with seven trainer CPUs/128 GiB
+and an independently bounded no-GRES worker CPU/1 GiB: eight CPUs/129 GiB total.
+Slurm permits at most eight CPUs per H200. The documented scheduling reason
+permits H200 without manufacturing an H100 OOM. A multi-GPU configuration is not
+required; adding GPUs would additionally require gradient-agreement evidence.
 
-CPU runtime validation **31045342** / `6ab6345e274dd617c2f0d9da` passed all 306
-frozen tasks under evaluation source **4a393df**. Worker and runtime
-acceptance remain compatible with the operational trainer CPU adjustment.
+| Stage | Current result |
+|---|---|
+| Worker | All 19 checks passed, job 31033392 |
+| Deployed data | All 306 frozen tasks passed, job 31045342 |
+| Numerical backend | One-H200 acceptance passed, job 31040984 |
+| Baseline | Completed 0/41 repairs, job 31046386 |
+| D pilot | Ten iterations, verified resume at two, 0/160 valid proposals and no updates |
+| A/B/C | One iteration each; all 0/16 valid proposals, no episodes or updates |
+| Freeze/main previews | Blocked; all four dry runs refused eligibility |
 
-Allocation check **31038198** / `a38a5c80f7518cd7d26c66f4` passed actual Slurm
-device ownership, numeric container mask, exact CUDA UUID and initial occupancy.
-On this node NVIDIA index 0 had Linux minor 1; equality is never assumed. Pinned
-vLLM 0.11.0 requires a numeric mask, so the launcher verifies its actual UUIDs
-before any model load. Ambiguous, extra, wrong or occupied GPUs stop the job.
+The worker installs an irreversible AMD64 single-process/thread seccomp policy
+before candidate compilation/imports. Slurm bounds its actual cpuset and memory;
+Apptainer isolates filesystem/network/GPU/credentials. Private temporary storage
+is 64 MiB. Real candidate OOM recovery, timeout/output/cancellation cleanup and
+Slurm KILL acceptance passed. No nested user cgroup, numeric pids.max, external
+worker host, subordinate UID allocator or SSH tunnel is required. Deliberate OOM
+witnesses run only in CPU acceptance, not ordinary GPU preflight.
 
-Backend **31038874** / `2eddfa162616da98b977e779` loaded the pinned model and
-recognized Qwen3 in vLLM, then stalled with inherited torchrun agent-store state.
-It was stopped after diagnosis; `state/task07-stop-31038874.json` records why.
-Source **e0f4374** removes all TORCHELASTIC_* settings alongside parent rank and
-rendezvous variables. A real CPU process-group regression reproduces the timeout
-with the inherited flag and succeeds without it. Hosted CI 40607054798 passed
-(212 tests). Backend **31040984** / `d3a9ac3571ccc56dc379385b`, source **6768da2**
-(same scientific code), passed all A–D objective probes, adapter isolation, two
-vLLM synchronization/scoring cycles and checkpoint save/load/restoration. It used
-222 GPU-seconds. Base evaluation, pilot, method acceptance, freeze and main
-previews are still pending. Synthetic acceptance does not establish real yield,
-throughput or full-workload memory fit.
-Base attempt **31044199** failed before repair generation because count_nonzero
-does not support DTensor. Source **4a393df** checks local B-weight coordinates
-and reduces across ranks; a real two-rank CPU regression proves that a nonzero
-remote shard makes both ranks reject the adapter. Hosted CI 40611635030 passed
-215 tests. Base **31046386** / `46ec4ac904e9611f551f8713` is now running and has
-cleared that guard and begun real repair evaluation. Inspect this existing job
-before more preparation. The local watcher was stopped to review pilot scheduling;
-the Slurm base job continues. Consumption before this active base allocation is
-**0.292222222 GPU-hours**, plus its two-hour reservation. Live accounting and
-reservations always take precedence.
+GPU ownership comes from the actual Slurm device cgroup plus exact container
+CUDA UUID/occupancy verification. Pinned vLLM uses a numeric mask, proved before
+model load; NVIDIA indices and Linux minors need not match. Student/proposer
+master precision, independent rollout rendezvous, DTensor base verification and
+method-smoke argument integration are repaired without weakening their checks.
 
-The earlier PEFT initialization mismatch is fixed: proposer adapter masters are
-promoted to the student's FP32 dtype before copying, with equal initial version
-hashes and independent storage. BF16 base compute, objectives, prompts, dataset,
-seed 2026 and mathematical budgets are preserved.
+Cumulative consumption is **1.091111111 of 24 GPU-hours**; outstanding
+reservations, active jobs and watchers are zero. The D pilot's proposal-only
+49.06-s median/104.53-s p90 and 10.46-GiB trainer PyTorch peak do not establish
+learning throughput or memory fit. A defensible main cost estimate is unavailable.
 
-## Continue preparation
+The [shared diff-format clarification](task/07-shared-diff-format-decision.md)
+is a reviewed proposal only. User authorization is pending because Task 07 freezes
+prompts. No active prompt/parser, sampling, reward, model or data change has been
+applied. Keep the failed results intact and do not repeat the unchanged zero-yield
+pilot. A new study identity must not create a fresh readiness allowance.
+
+## Review and authorized continuation
 
 ```bash
 uv run selfplay hpc doctor --gpu-type h200
 uv run selfplay hpc inspect
-# Only if normal SSH authentication has expired:
-uv run selfplay hpc login
-uv run selfplay hpc sync
-uv run selfplay hpc prepare-study --stage backend --gpu-type h200 --gpu-hours-limit 24 --watch
-uv run selfplay hpc prepare-study --gpu-type h200 --gpu-hours-limit 24 --watch
+uv run selfplay hpc status f597e3f66092a9a9c1265ea0
+uv run selfplay hpc logs f597e3f66092a9a9c1265ea0
+uv run selfplay hpc fetch f597e3f66092a9a9c1265ea0
 ```
+
+After an explicitly authorized scientific resolution and compatible evidence,
+use `hpc sync` and `hpc prepare-study --gpu-type h200 --gpu-hours-limit 24 --watch`
+for the new setup. Current passed evidence should be reused wherever relevant;
+changed prompt/scientific identities require their own compatible evidence.
+Never reset or fork the cumulative authorization ledger. Normal MFA, if needed,
+is `hpc login` in a terminal; complete Yale's normal Duo prompt.
 
 `doctor` reports pending/running/passed/stale/failed stages, scheduler/run identity,
 evidence and next action. Reconcile an existing active or uncertain submission;
@@ -97,7 +90,8 @@ one GPU receives four/eight hours; two GPUs retain two/four hours. The pilot's
 12-GPU-hour and total readiness 24-GPU-hour ceilings are unchanged. The initial
 real base episodes measured roughly 66 seconds each, so carrying the old
 two-GPU wall limits into the one-GPU setup could truncate the required pilot.
-This is an operational estimate; real pilot timing remains to be measured.
+This operational scaling preserves the same allowance. The completed pilot had
+no valid tasks, so its measured empty-workload cadence is not training throughput.
 
 All attempts share the durable 24-hour ledger. At most two confirmed transient
 scheduler interruptions can restart diagnostics. Application failures, OOM,
@@ -123,7 +117,7 @@ original failed scheduler accounting. This does not prove backend compatibility.
 
 ## Main previews and later launch
 
-These are the intended commands, **not successful previews yet**. They use the
+All four commands below were tested and refused main eligibility (exit 1). They use the
 selected single-GPU profile explicitly; the generic submit command defaults to a
 different profile. All four must pass after freeze. Main submission additionally
 requires separate user authorization.
@@ -137,10 +131,9 @@ uv run selfplay hpc submit --operation train --method D --profile single_gpu_80g
 
 After readiness and separate main authorization, remove `--dry-run` for the
 corresponding method. Begin with one method at a time. Each starts fresh at seed
-2026 for 200 iterations; pilot/smoke weights are never used. Measured pilot memory,
-median/p90 iteration/phase times and startup costs are still pending. Its projected
-200-iteration duration is an estimate for A/B/C, not measured performance. Main
-GPU cost must be reviewed separately from the readiness allowance.
+2026 for 200 iterations; pilot/smoke weights are never used. Meaningful learning-memory and training-time measurements remain unestablished
+because the pilot had no valid tasks. No valid main projection or launch command
+can be certified yet. Main GPU cost requires separate authorization.
 
 ## Monitor and recover
 

@@ -8,9 +8,11 @@ candidate process/thread creation has passed real Bouchet acceptance. CPU job
 31033392 passed all 19 worker checks, including private Apptainer namespaces,
 bounded storage/output/time, independent Slurm CPU/memory enforcement, candidate
 OOM recovery and scheduler step termination with no observed processes left
-running. Backend acceptance and later readiness stages remain incomplete; see
-the launch runbook and Task 07 plan. No subordinate-UID allocator or managed service is being pursued
-while this simpler route is viable. Do not wait for an answer to the historical
+running. Numerical backend, deployed-data and baseline execution have passed.
+Learning acceptance failed because the frozen setup generated no valid tasks;
+the remaining blocker is a scientific prompt decision, not another YCRC setup
+response. See the launch runbook and Task 07 record. No subordinate-UID allocator
+or managed service is being pursued. Do not wait for an answer to the historical
 subordinate-ID question before continuing independent readiness work.
 
 The remaining sections preserve the support correspondence and old proposals;

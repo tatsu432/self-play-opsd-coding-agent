@@ -101,6 +101,31 @@ image or failed evidence gate. Never treat a passed CPU test as target readiness
    never create a duplicate. Scientific failures, OOM, authentication, quota
    and unauthorized resource requests are not automatic retries.
 
+## Task 07 live checkpoint — 2026-10-27
+
+Execution code `9980c78` passed hosted CI 40617600830 (220 tests). Real worker
+acceptance 31033392 passed all 19 checks; runtime 31045342 validated all 306 tasks;
+one-H200 backend 31040984 passed numerical/adapter/vLLM/checkpoint acceptance.
+Base evaluation 31046386 completed 0/41 repairs. The selected request is one H200,
+seven trainer CPUs/128 GiB plus one worker CPU/1 GiB (eight CPUs/129 GiB total).
+
+D jobs 31049338/31050754 completed ten iterations with verified resume at two,
+but 0/160 proposals were valid and no episodes, updates or alignment scores were
+produced. Independent A/B/C jobs 31054795/31055413/31056122 each committed one
+iteration and a joint checkpoint, but also had zero yield/updates and failed
+acceptance. **Launch readiness is false.** No freeze or successful main preview
+exists; all four dry runs refused eligibility. No main job was submitted.
+
+Cumulative consumption is 1.091111111 of 24 GPU-hours, with no outstanding
+reservation, active job or watcher. Do not repeat the unchanged zero-yield pilot
+or reinterpret empty-workload timings as training throughput. A concrete shared
+format clarification is in `docs/task/07-shared-diff-format-decision.md`; user
+authorization is pending because Task 07 preserves prompts. No prompt/parser,
+sampling, reward, model or frozen-data change has been applied. A new study
+identity must not reset the existing cumulative allowance. Read
+`docs/task_completion/07-implemented-yale-execution-blocked-readiness.md` and the
+launch runbook for exact evidence and the remaining scientific decision.
+
 ## Historical checkpoints (superseded operational rules; inspect live state)
 
 The Task 07 rules above take precedence over mechanism and hardware restrictions

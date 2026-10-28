@@ -222,3 +222,23 @@ arguments and separate method launches (88 focused tests passed). The failed
 launch cost 46 GPU-seconds. Cumulative consumption is 0.895 GPU-hours before
 corrected A/B/C checks. No GPU job is currently active; main training remains
 unauthorized.
+
+### Authorized work checkpoint: launch readiness blocked
+
+Execution source 9980c78 passed CI 40617600830 (220 tests). Corrected A/B/C jobs
+31054795 / `3a3595c3ba3ddf9273d7d7a8`, 31055413 /
+`86c10ae147544ad5343f0edc`, and 31056122 / `953d8f64c795c5016f07e36e` each
+committed one iteration and a joint checkpoint, but each had 0/16 valid tasks,
+zero episodes and zero updates. C also had no alignment scores. Their runtime
+was 173/170/363 GPU-seconds. The launcher now passes the required positional
+method and permits independent B/C checks after A fails, without changing the
+scientific CLI, package identity or accepted data/backend evidence.
+
+The final doctor has worker/runtime/single/target/base true and
+pilot/methods/freeze false. All four real main dry runs refused eligibility;
+zero main jobs were submitted. Reconciled consumption is 1.091111111 GPU-hours,
+with zero outstanding reservations and no active job/watcher. The proposed
+shared prompt-format clarification is pending user authorization. The original
+prompts/parser and every scientific setting remain unchanged. Completion and
+the concrete external decision are recorded in
+`docs/task_completion/07-implemented-yale-execution-blocked-readiness.md`.
