@@ -27,6 +27,35 @@ def remote_module():
     return module
 
 
+def test_method_smoke_launch_honors_independent_selection_and_keeps_scientific_args():
+    spec = importlib.util.spec_from_file_location("job", Path("scripts/hpc_job.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    prefix = ["apptainer", "exec", "pinned.sif"]
+    args = [
+        "torchrun",
+        "-m",
+        "selfplay_opsd.cli",
+        "method-smoke",
+        "--config",
+        "D",
+        "--settings",
+        "/workspace/configs/yale.yaml",
+        "--hardware",
+        "single_gpu_80gb",
+    ]
+    original = list(args)
+    all_commands = module.method_smoke_commands(prefix, args, "D")
+    assert [c[c.index("--config") + 1] for c in all_commands] == list("ABC")
+    for method in "ABC":
+        selected = module.method_smoke_commands(prefix, args, method)
+        assert len(selected) == 1
+        expected = list(args)
+        expected[expected.index("--config") + 1] = method
+        assert selected[0] == prefix + expected
+    assert args == original
+
+
 def test_inspection_never_invents_an_account_or_project():
     report = {
         "storage": {"project": {"project_cpsc4880": "/project/cpsc4880"}},

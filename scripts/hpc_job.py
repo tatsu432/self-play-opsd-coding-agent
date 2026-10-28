@@ -731,6 +731,19 @@ def worker_termination_probe(env: dict) -> dict:
     return result
 
 
+def method_smoke_commands(command: list[str], args: list[str], requested: str) -> list[list[str]]:
+    """D requests the full acceptance suite; A/B/C request one fresh method."""
+    if requested not in {"A", "B", "C", "D"}:
+        raise ValueError("Unknown method smoke selection")
+    index = args.index("--config") + 1
+    result = []
+    for method in "ABC" if requested == "D" else requested:
+        selected = list(args)
+        selected[index] = method
+        result.append(command + selected)
+    return result
+
+
 def execute(env: dict) -> int:
     operation = env["SELFPLAY_OPERATION"]
     if operation not in {
@@ -1055,15 +1068,10 @@ def execute(env: dict) -> int:
         if operation == "method-smoke":
             # Separate processes provide fresh model, RNG and optimizer initialization.
             status = 0
-            method_index = args.index("--config") + 1
-            for method in "ABC":
+            for method_command in method_smoke_commands(command, args, env["SELFPLAY_METHOD"]):
                 if stop.exists():
                     return 75
-                method_args = list(args)
-                method_args[method_index] = method
-                status = subprocess.run(
-                    command + method_args, env=process_env, check=False
-                ).returncode
+                status = subprocess.run(method_command, env=process_env, check=False).returncode
                 if status:
                     break
         else:
