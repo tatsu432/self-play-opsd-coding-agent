@@ -136,6 +136,68 @@ def check_zero_candidate(
     }
 
 
+def check_mixed_rl(policy, config: RunConfig, episodes: list[dict]) -> dict:
+    """Compare actual RL gradient to a diagnostic ratio-one scoring counterfactual."""
+    from selfplay_opsd.trainer import student_examples
+
+    groups: dict[str, list[EpisodeRecord]] = defaultdict(list)
+    for row in episodes:
+        episode = EpisodeRecord.model_validate(row)
+        groups[episode.task_id].append(episode)
+    group = next(
+        (
+            rows
+            for rows in groups.values()
+            if len(rows) == config.episodes_per_task and len({e.reward for e in rows}) > 1
+        ),
+        None,
+    )
+    if group is None:
+        return {"available": False, "reason": "no_mixed_reward_group"}
+    with policy.active("student"):
+        if any(e.policy_version != policy.version("student") for e in group):
+            raise ExperimentError("Mixed group snapshot differs from loaded checkpoint")
+        rescored = []
+        for episode in group:
+            turns = [
+                turn.model_copy(
+                    update={
+                        "old_logps": policy.score(turn.prompt_ids, turn.target_ids)
+                        .detach()
+                        .float()
+                        .cpu()
+                        .tolist()
+                    }
+                )
+                for turn in episode.turns
+            ]
+            rescored.append(episode.model_copy(update={"turns": turns}))
+        original_examples, _ = student_examples(group, config, kind="rl")
+        rescored_examples, _ = student_examples(rescored, config, kind="rl")
+        original, _ = policy.gradients(original_examples)
+        corrected, _ = policy.gradients(rescored_examples)
+        comparison = alignment(original, corrected, config.objective.near_zero, policy.distributed)
+        difference = sum(
+            (a.double() - b.double()).square().sum()
+            for a, b in zip(original, corrected, strict=True)
+        )
+        if policy.distributed:
+            torch.distributed.all_reduce(difference)
+        relative = (
+            float(difference.sqrt().item() / comparison.reference_norm)
+            if comparison.reference_norm
+            else None
+        )
+    return {
+        "available": True,
+        "episode_count": len(group),
+        "rewards": [e.reward for e in group],
+        "original_vs_ratio_one_alignment": asdict(comparison),
+        "relative_gradient_l2_difference": relative,
+        "note": "Diagnostic counterfactual only; no optimizer step or training change.",
+    }
+
+
 def run(config: RunConfig, output: Path) -> dict:
     from selfplay_opsd.cli import make_policy
 
@@ -214,9 +276,7 @@ def run(config: RunConfig, output: Path) -> dict:
             "identical_ids_after_sleep_wake": sequential[0].ids == after_wake.ids,
             "sequential_tokens": sum(len(item.ids) for item in sequential),
             "batched_tokens": sum(len(item.ids) for item in batched),
-            "sequential_samples": [
-                {"ids": item.ids, "logps": item.logps} for item in sequential
-            ],
+            "sequential_samples": [{"ids": item.ids, "logps": item.logps} for item in sequential],
             "batched_samples": [{"ids": item.ids, "logps": item.logps} for item in batched],
             "note": "Fixed saved-snapshot replay; not a full-iteration benchmark.",
         }
@@ -261,6 +321,30 @@ def run(config: RunConfig, output: Path) -> dict:
             result["later_snapshot"]["post_sync_wake_ids_match"] = (
                 output_after_update.ids == after_update_wake.ids
             )
+        mixed_source = config.output_root / f"{config.study_id}-pilot-h200/D-seed{config.seed}"
+        mixed_shards = list((mixed_source / "trajectories").glob("*/000002-episodes.json"))
+        mixed_checkpoint = mixed_source / "acceptance/iteration-one-checkpoint"
+        if len(mixed_shards) == 1 and mixed_checkpoint.is_dir():
+            from selfplay_opsd.data import TaskRepository
+            from selfplay_opsd.protocol import PROMPT_HASH
+
+            state, metadata = CheckpointManager.load(mixed_checkpoint)
+            if (
+                metadata.get("iteration") != 1
+                or metadata.get("artifact_kind") != "fully_resumable"
+                or metadata.get("prompt_hash") != PROMPT_HASH
+                or metadata.get("manifests_hash") != TaskRepository(config.data_root).hash
+            ):
+                raise ExperimentError("Mixed-reward checkpoint identity differs")
+            policy.load_state_dict(state["policy"])
+            mixed_episodes = read_json(mixed_shards[0])
+            if any(e["policy_version"] != metadata["student_version"] for e in mixed_episodes):
+                raise ExperimentError("Mixed-reward episodes differ from checkpoint")
+            result["mixed_rl_diagnostic"] = check_mixed_rl(policy, config, mixed_episodes)
+            result["mixed_rl_diagnostic"]["checkpoint_marker_sha256"] = file_hash(
+                mixed_checkpoint / "complete.json"
+            )
+            result["mixed_rl_diagnostic"]["source_episode_sha256"] = file_hash(mixed_shards[0])
         if policy.is_coordinator:
             atomic_json(output / "rollout-parity.json", result)
         return result

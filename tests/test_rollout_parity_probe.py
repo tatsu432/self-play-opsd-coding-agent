@@ -8,7 +8,7 @@ from typer.testing import CliRunner
 from selfplay_opsd.config import load_config
 from selfplay_opsd.core import EpisodeRecord, Status, TokenTurn
 from selfplay_opsd.policy import Generation, HFPolicy
-from selfplay_opsd.rollout_parity_probe import check_zero_candidate, run
+from selfplay_opsd.rollout_parity_probe import check_mixed_rl, check_zero_candidate, run
 
 
 def test_rollout_parity_cli_accepts_scheduler_options(tmp_path, monkeypatch):
@@ -124,4 +124,19 @@ def test_equal_reward_shortcut_matches_actual_backward(tmp_path):
     assert result["available"] and result["exact_match"]
     assert result["old_alignment"]["reward"] == 0.5
     assert result["old_alignment"]["exact_zero"]
+    mixed = []
+    for index in range(4):
+        changed_prompt = [1, 7, 8 + index]
+        changed_old = [value + 0.3 for value in policy.score(changed_prompt, targets).tolist()]
+        changed_turn = turn.model_copy(
+            update={"prompt_ids": changed_prompt, "old_logps": changed_old}
+        )
+        mixed.append(
+            episode.model_copy(
+                update={"turns": [changed_turn], "reward": float(index == 1)}
+            ).model_dump(mode="json")
+        )
+    impact = check_mixed_rl(policy, cfg, mixed)
+    assert impact["available"]
+    assert impact["relative_gradient_l2_difference"] > 0
     policy.close()
