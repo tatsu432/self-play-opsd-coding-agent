@@ -66,6 +66,7 @@ def test_counterfactual_measures_all_objectives_without_updates(tmp_path):
             ).model_dump(mode="json")
             for i in range(16)
         ]
+    proposals = [row | {"reward": 0.5 if row["valid"] else -1.0} for row in proposals]
     before = {name: value.clone() for name, value in policy.model.state_dict().items()}
     rng = rng_state()
     report = assess(

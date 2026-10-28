@@ -76,7 +76,10 @@ def assess(
         groups[episode.task_id].append(episode)
     if not groups:
         return {"available": False}
-    parsed = [ProposalRecord.model_validate(row) for row in proposals]
+    parsed = [
+        ProposalRecord.model_validate({k: v for k, v in row.items() if k != "reward"})
+        for row in proposals
+    ]
     if any(e.policy_version != policy.version("student") for g in groups.values() for e in g):
         raise ExperimentError("Student replay snapshot mismatch")
     if any(p.policy_version != policy.version("proposer") for p in parsed):
@@ -289,7 +292,10 @@ def run(config: RunConfig, output: Path) -> dict:
                     turns[0].policy_version,
                     config.objective.clip,
                 )
-                proposals = [ProposalRecord.model_validate(p) for p in read_json(proposals_path)]
+                proposals = [
+                    ProposalRecord.model_validate({k: v for k, v in p.items() if k != "reward"})
+                    for p in read_json(proposals_path)
+                ]
                 _, proposer = score_role(
                     policy,
                     [p.turn for p in proposals],
