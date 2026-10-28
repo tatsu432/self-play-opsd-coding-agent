@@ -700,9 +700,13 @@ def login_command(alias: Annotated[str, typer.Option()] = ALIASES[0]):
 
 @app.command("doctor")
 def doctor(
-    alias: Annotated[str, typer.Option()] = ALIASES[0], settings: Path = Path("configs/yale.yaml")
+    alias: Annotated[str, typer.Option()] = ALIASES[0],
+    settings: Path = Path("configs/yale.yaml"),
+    gpu_type: str | None = None,
 ):
     """Report local prerequisites and lightweight remote state without allocation."""
+    if gpu_type not in {None, "h100", "h200"}:
+        raise HpcError("Readiness supports authorized H100 or H200 resources")
     manifest_path = ROOT / "data/prepared/manifest.json"
     validation_path = ROOT / "data/prepared/validation_report.json"
     manifest = json.loads(manifest_path.read_text()) if manifest_path.is_file() else {}
@@ -748,8 +752,8 @@ def doctor(
             "seed": cfg.seed,
         }
         state = target.call("study", context)
-        context["gpu_type"] = state["reports"]["freeze"].get("gpu_type", "h100")
-        context["pilot_suffix"] = state["reports"]["freeze"].get("pilot_suffix", "-pilot")
+        context["gpu_type"] = gpu_type or state["reports"]["freeze"].get("gpu_type", "h100")
+        context["pilot_suffix"] = "-pilot-h200" if context["gpu_type"] == "h200" else "-pilot"
         identity = execution_identity(cfg) | {
             "trainer_sha256": state["images"]["trainer"].get("sha256"),
             "worker_sha256": state["images"]["worker"].get("sha256"),

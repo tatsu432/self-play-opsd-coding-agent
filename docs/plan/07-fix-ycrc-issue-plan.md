@@ -117,3 +117,23 @@ The stalled trusted diagnostic was stopped after recording its identity/reason i
 Slurm charged 371 GPU-seconds for that attempt and 65 for the successful allocation
 check. Cumulative consumption is 0.212777778 GPU-hours, with no active GPU job.
 The controller watcher has stopped. Worker evidence is still compatible.
+
+### Backend accepted; fit the scheduler's CPU-per-GPU limit
+
+Hosted CI 40607054798 passed 212 tests. Runtime job 31040084 passed all 306 tasks.
+Backend job 31040984 (`d3a9ac3571ccc56dc379385b`), source 6768da2 with the same
+e0f4374 scientific code, completed in 222 GPU-seconds. It passed all A–D numerical
+probes, separate adapters, two real vLLM weight synchronization/scoring cycles,
+sleep/wake transitions and joint policy/optimizer checkpoint restoration.
+The canonical report appeared on the login node shortly after Slurm completion;
+preparation was resumed from the valid report without another GPU allocation.
+Cumulative consumption is 0.274444444 GPU-hours.
+
+The first base submission was rejected before allocation: gpu_h200 allows at most
+eight CPUs per GPU; eight trainer CPUs plus the worker CPU requested nine. Set
+the Yale trainer to seven CPUs, leaving an independently bounded worker CPU and
+1-GiB memory step. This changes operational resources only. Backend, worker and
+deployed-data evidence remain compatible; subsequent real pilot measurements will
+use this hardware configuration. `doctor --gpu-type h200` can now inspect the
+selected target before freeze; default doctor still honors a frozen GPU choice.
+No base job, main training or additional GPU allocation was created by the rejection.

@@ -9,9 +9,11 @@ records and the Task 07 plan; reconcile live Slurm and controller state first.
 
 The selected profile is `single_gpu_80gb`, using one entitled H200 in `gpu_h200`
 for the documented scheduling reason in the Task 07 plan. H100 OOM is not required.
-Eight trainer CPUs/128 GiB host RAM and a separate one-CPU/1-GiB worker step are
+Seven trainer CPUs/128 GiB host RAM and a separate one-CPU/1-GiB worker step are
 requested for generated-code jobs. Add GPUs only if measurements justify them;
 a multi-GPU target additionally needs agreement with single-GPU gradients.
+Slurm rejected the previous nine-CPU total: gpu_h200 permits at most eight CPUs
+per GPU. The current total is eight, retaining independent worker enforcement.
 
 Worker acceptance **31033392** / `639345f9a3d7a5c3953ece55` passed all 19 checks:
 independent scheduler CPU/memory enforcement, single-process/thread seccomp,
@@ -25,10 +27,9 @@ storage is 64 MiB. No nested user cgroup configuration, pids.max, subordinate UI
 allocator, external service or SSH tunnel is needed. These restrictions are the
 same for A–D.
 
-CPU runtime validation **31037352** revalidated all 306 frozen tasks. Job
-**31040084** / `333e5b3f69f36d3e35221472` refreshes the scientific source identity
-for the latest rendezvous repair; inspect it before a replacement. Worker
-acceptance remains compatible.
+CPU runtime validation **31040084** / `333e5b3f69f36d3e35221472` passed all 306
+frozen tasks under the latest scientific source identity. Worker and runtime
+acceptance remain compatible with the operational trainer CPU adjustment.
 
 Allocation check **31038198** / `a38a5c80f7518cd7d26c66f4` passed actual Slurm
 device ownership, numeric container mask, exact CUDA UUID and initial occupancy.
@@ -41,11 +42,14 @@ recognized Qwen3 in vLLM, then stalled with inherited torchrun agent-store state
 It was stopped after diagnosis; `state/task07-stop-31038874.json` records why.
 Source **e0f4374** removes all TORCHELASTIC_* settings alongside parent rank and
 rendezvous variables. A real CPU process-group regression reproduces the timeout
-with the inherited flag and succeeds without it. Hosted CI 40607054798 is in
-progress. Earlier source e0b2336 passed CI 40604870399 (211 tests). Check CI before
-GPU acceptance. No backend proof, base evaluation, pilot, method acceptance,
-freeze or main preview has passed yet. Do not interpret model loading as readiness.
-Cumulative consumption is **0.212777778 GPU-hours**, with no active GPU job at
+with the inherited flag and succeeds without it. Hosted CI 40607054798 passed
+(212 tests). Backend **31040984** / `d3a9ac3571ccc56dc379385b`, source **6768da2**
+(same scientific code), passed all A–D objective probes, adapter isolation, two
+vLLM synchronization/scoring cycles and checkpoint save/load/restoration. It used
+222 GPU-seconds. Base evaluation, pilot, method acceptance, freeze and main
+previews are still pending. Synthetic acceptance does not establish real yield,
+throughput or full-workload memory fit.
+Cumulative consumption is **0.274444444 GPU-hours**, with no active GPU job at
 this checkpoint. Live accounting and reservations always take precedence.
 
 The earlier PEFT initialization mismatch is fixed: proposer adapter masters are
@@ -56,7 +60,7 @@ seed 2026 and mathematical budgets are preserved.
 ## Continue preparation
 
 ```bash
-uv run selfplay hpc doctor
+uv run selfplay hpc doctor --gpu-type h200
 uv run selfplay hpc inspect
 # Only if normal SSH authentication has expired:
 uv run selfplay hpc login

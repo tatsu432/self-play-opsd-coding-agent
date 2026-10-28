@@ -9,6 +9,7 @@ model:
   tokenizer_revision: cdbee75f17c01a7cc42f958dc650907174af0554
 hardware:
   profile: single_gpu_80gb
+  cpu_workers: 7
   rollout_concurrency: 1
 sandbox:
   backend: remote

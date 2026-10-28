@@ -9,6 +9,38 @@ from typer.testing import CliRunner
 from selfplay_opsd import hpc, hpc_readiness
 
 
+@pytest.mark.parametrize("gpu_type", [None, "h200"])
+def test_doctor_uses_selected_h200_before_or_after_freeze(monkeypatch, gpu_type):
+    calls = []
+    inspection = {
+        "storage": {"project": {"project_cpsc4880": "/project"}, "scratch": {"x": "/scratch"}},
+        "slurm": {"associations": {"exit_code": 0}},
+        "workspace": {"current_snapshot": True},
+    }
+    state = {
+        "images": {"trainer": {"sha256": "a" * 64}, "worker": {"sha256": "b" * 64}},
+        "reports": {"worker": {}, "freeze": {} if gpu_type else {"gpu_type": "h200"}},
+        "gates": {},
+        "eligible_to_submit_main": False,
+    }
+
+    class Remote:
+        def __init__(self, alias):
+            pass
+
+        def call(self, operation, payload):
+            calls.append((operation, dict(payload)))
+            return inspection if operation == "inspect" else state
+
+    monkeypatch.setattr(hpc, "YaleSSH", Remote)
+    monkeypatch.setattr(hpc, "git", lambda *a: "")
+    monkeypatch.setattr(hpc, "output", lambda value: None)
+    monkeypatch.setattr("selfplay_opsd.readiness.execution_identity", lambda _: {})
+    hpc.doctor(alias="yale-hpc-cpsc4880", settings=Path("configs/yale.yaml"), gpu_type=gpu_type)
+    selected = calls[-1][1]
+    assert selected["gpu_type"] == "h200" and selected["pilot_suffix"] == "-pilot-h200"
+
+
 @pytest.mark.parametrize("complete", [0, 1, 2])
 def test_backend_stage_advances_without_worker_or_runtime(complete, monkeypatch):
     state = {
