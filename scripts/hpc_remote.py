@@ -1655,6 +1655,13 @@ def reuse_worker(payload: dict) -> dict:
         raise ValueError("Worker evidence dependencies differ or acceptance is incomplete")
     if report.get("worker_setup_id", "") != payload.get("worker_setup_id", ""):
         raise ValueError("Worker setup changed")
+    limits = {
+        key: value
+        for key, value in report.get("limits", {}).items()
+        if key not in {"backend", "image", "runtime", "remote_url", "remote_token_env", "pids"}
+    }
+    if limits != payload.get("execution_limits"):
+        raise ValueError("Worker execution limits changed")
     target = workspace(payload) / "runs/readiness" / payload["study_id"] / "worker.json"
     if not SAFE_NAME.fullmatch(payload["study_id"]):
         raise ValueError("Unsafe destination study")

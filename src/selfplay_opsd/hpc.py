@@ -857,6 +857,7 @@ def reuse_worker_command(
                 "storage_root": context["storage_root"],
                 "study_id": cfg.study_id,
                 "source_study": source_study,
+                "execution_limits": cfg.sandbox.execution_limits(),
                 "supervisor_hash": supervisor_hash(),
                 "worker_setup_id": "",
             },

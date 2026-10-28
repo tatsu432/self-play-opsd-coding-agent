@@ -125,10 +125,22 @@ def protocol_definition() -> dict:
     for filename, names in {
         "protocol.py": {"budget", "student_messages", "proposer_messages", "teacher_messages"},
         "core.py": {"canonical"},
-        "environment.py": {"append_context", "bounded_observation"},
+        "environment.py": {"append_context", "bounded_observation", "run_episode", "step"},
         "policy.py": {"encode_history"},
     }.items():
         tree = ast.parse((package / filename).read_text())
+        # Comments and docstrings do not condition the model. Tool response and
+        # subsequent-turn templates do, including the episode's error/budget
+        # serialization, so bind those executable definitions too.
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.FunctionDef)
+                and node.body
+                and isinstance(node.body[0], ast.Expr)
+            ):
+                value = node.body[0].value
+                if isinstance(value, ast.Constant) and isinstance(value.value, str):
+                    node.body = node.body[1:]
         serialization[filename] = [
             ast.dump(node, include_attributes=False)
             for node in ast.walk(tree)
