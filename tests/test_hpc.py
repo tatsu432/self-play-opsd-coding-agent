@@ -27,6 +27,20 @@ def remote_module():
     return module
 
 
+def test_resource_plan_operation_is_available_in_ssh_transport(monkeypatch):
+    from selfplay_opsd.hpc import YaleSSH
+
+    calls = []
+
+    def fake_run(args, **kwargs):
+        calls.append(args)
+        return subprocess.CompletedProcess(args, 0, stdout='{"ready": true}\n', stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    assert YaleSSH().call("publish_resource_plan", {"study_id": "study"}) == {"ready": True}
+    assert "publish_resource_plan" in calls[0]
+
+
 def test_method_smoke_launch_honors_independent_selection_and_keeps_scientific_args():
     spec = importlib.util.spec_from_file_location("job", Path("scripts/hpc_job.py"))
     module = importlib.util.module_from_spec(spec)

@@ -122,6 +122,7 @@ class YaleSSH:
             "recover",
             "recover_allocation",
             "reuse_worker",
+            "publish_resource_plan",
             "logs",
         }:
             raise HpcError("Unsupported remote operation")
