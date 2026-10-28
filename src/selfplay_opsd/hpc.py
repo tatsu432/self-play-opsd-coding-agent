@@ -607,7 +607,9 @@ def run_payload(
         else 4
         if operation == "worker-check"
         else 8,
-        "time": "00:05:00"
+        "time": "00:50:00"
+        if operation == "numerical-audit"
+        else "00:05:00"
         if operation in {"allocation-check", "worker-diagnose"}
         else "01:00:00"
         if operation in {"backend-check", "rollout-parity", "numerical-audit"}

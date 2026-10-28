@@ -83,3 +83,27 @@ def test_counterfactual_measures_all_objectives_without_updates(tmp_path):
     )
     assert not any(policy.optimizers[role].state for role in ("student", "proposer"))
     policy.close()
+
+
+def test_audit_cli_matches_allocated_launcher_options(tmp_path, monkeypatch):
+    import json
+
+    from typer.testing import CliRunner
+
+    from selfplay_opsd.cli import app
+
+    monkeypatch.setattr("selfplay_opsd.numerical_audit.run", lambda config, output: {"ok": True})
+    result = CliRunner().invoke(
+        app,
+        [
+            "numerical-audit",
+            "--settings",
+            "configs/task10-online.yaml",
+            "--hardware",
+            "single_gpu_80gb",
+            "--output",
+            str(tmp_path),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.output)["ok"]

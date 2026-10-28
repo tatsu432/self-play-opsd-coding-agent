@@ -1565,7 +1565,7 @@ def precheck(payload: dict):
             payload.get("account") != "cpsc4880"
             or payload.get("gpu_count") != 1
             or payload.get("gpu_type") != "h200"
-            or payload.get("time") != "01:00:00"
+            or payload.get("time") != ("00:50:00" if operation == "numerical-audit" else "01:00:00")
             or payload.get("readiness_budget") != 24
             or not Path(payload.get("image", "")).is_file()
             or not DIGEST.fullmatch(payload.get("image_sha256", ""))

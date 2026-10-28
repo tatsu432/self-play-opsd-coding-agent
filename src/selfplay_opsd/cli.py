@@ -586,7 +586,7 @@ def runtime_check(settings: ConfigOption):
 @app.command("numerical-audit")
 def numerical_audit(
     settings: ConfigOption,
-    hardware: str,
+    hardware: Annotated[str, typer.Option("--hardware")],
     output: Annotated[Path, typer.Option("--output")],
 ):
     """Trusted saved-token replay, with no generation or optimizer steps."""
