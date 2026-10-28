@@ -927,7 +927,7 @@ def artifact_dir(payload: dict) -> Path:
         )
     if operation == "method-smoke":
         return runs / "readiness" / study / "method-smokes"
-    if operation in {"rollout-parity", "numerical-audit"}:
+    if operation in {"rollout-parity", "numerical-audit", "proposer-audit"}:
         return runs / "readiness" / study / operation / payload["run_id"]
     if operation == "wandb-verify":
         return runs / "readiness" / study / operation / payload["run_id"]
@@ -1505,6 +1505,7 @@ def precheck(payload: dict):
         "backend-check",
         "rollout-parity",
         "numerical-audit",
+        "proposer-audit",
         "wandb-verify",
         "allocation-check",
         "worker-diagnose",
@@ -1560,12 +1561,19 @@ def precheck(payload: dict):
         ):
             raise ValueError("Allocation diagnostics require bounded cpsc4880 H100/H200 readiness")
         return
-    if operation in {"rollout-parity", "numerical-audit"}:
+    if operation in {"rollout-parity", "numerical-audit", "proposer-audit"}:
         if (
             payload.get("account") != "cpsc4880"
             or payload.get("gpu_count") != 1
             or payload.get("gpu_type") != "h200"
-            or payload.get("time") != ("00:50:00" if operation == "numerical-audit" else "01:00:00")
+            or payload.get("time")
+            != (
+                "00:30:00"
+                if operation == "proposer-audit"
+                else "00:50:00"
+                if operation == "numerical-audit"
+                else "01:00:00"
+            )
             or payload.get("readiness_budget") != 24
             or not Path(payload.get("image", "")).is_file()
             or not DIGEST.fullmatch(payload.get("image_sha256", ""))

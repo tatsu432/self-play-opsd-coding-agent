@@ -908,6 +908,7 @@ def execute(env: dict) -> int:
         "backend-check",
         "rollout-parity",
         "numerical-audit",
+        "proposer-audit",
         "wandb-verify",
         "allocation-check",
         "worker-diagnose",
@@ -1166,11 +1167,18 @@ def execute(env: dict) -> int:
             "backend-check",
             "rollout-parity",
             "numerical-audit",
+            "proposer-audit",
             "wandb-verify",
             "diagnose",
         }:
             args += ["--output", env["SELFPLAY_OUTPUT"]]
-        if operation in {"backend-check", "rollout-parity", "numerical-audit", "readiness-check"}:
+        if operation in {
+            "backend-check",
+            "rollout-parity",
+            "numerical-audit",
+            "proposer-audit",
+            "readiness-check",
+        }:
             args += ["--hardware", env["SELFPLAY_HARDWARE"]]
         if operation == "backend-check" and env.get("SELFPLAY_REFERENCE"):
             args += ["--reference", env["SELFPLAY_REFERENCE"]]

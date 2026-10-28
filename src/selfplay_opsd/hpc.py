@@ -342,6 +342,7 @@ def run_payload(
         "backend-check",
         "rollout-parity",
         "numerical-audit",
+        "proposer-audit",
         "wandb-verify",
         "allocation-check",
         "worker-diagnose",
@@ -441,6 +442,7 @@ def run_payload(
             "worker-diagnose",
             "wandb-verify",
             "numerical-audit",
+            "proposer-audit",
         }
         else execution_identity(cfg)
         | {
@@ -462,6 +464,7 @@ def run_payload(
         "backend-check",
         "rollout-parity",
         "numerical-audit",
+        "proposer-audit",
         "allocation-check",
         "pilot",
         "method-smoke",
@@ -569,6 +572,7 @@ def run_payload(
             "backend-check",
             "rollout-parity",
             "numerical-audit",
+            "proposer-audit",
             "allocation-check",
             "pilot",
             "method-smoke",
@@ -607,12 +611,14 @@ def run_payload(
         else 4
         if operation == "worker-check"
         else 8,
-        "time": "00:50:00"
+        "time": "00:30:00"
+        if operation == "proposer-audit"
+        else "00:50:00"
         if operation == "numerical-audit"
         else "00:05:00"
         if operation in {"allocation-check", "worker-diagnose"}
         else "01:00:00"
-        if operation in {"backend-check", "rollout-parity", "numerical-audit"}
+        if operation in {"backend-check", "rollout-parity", "numerical-audit", "proposer-audit"}
         else "06:00:00"
         if operation == "pilot"
         else "02:00:00"
@@ -630,7 +636,7 @@ def run_payload(
         "iterations": cfg.iterations if operation == "train" else iterations,
         "resume": resume,
         "output": f"/runs/readiness/{cfg.study_id}/{operation}/{identity[:24]}"
-        if operation in {"rollout-parity", "numerical-audit", "wandb-verify"}
+        if operation in {"rollout-parity", "numerical-audit", "proposer-audit", "wandb-verify"}
         else f"/runs/compatibility/backend-v2/{profile}"
         if operation == "backend-check"
         else f"/runs/compatibility/{profile}",

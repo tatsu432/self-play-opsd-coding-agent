@@ -595,6 +595,18 @@ def numerical_audit(
     typer.echo(canonical(run(load_config(settings, hardware_profile=hardware), output)))
 
 
+@app.command("proposer-audit")
+def proposer_audit(
+    settings: ConfigOption,
+    hardware: Annotated[str, typer.Option("--hardware")],
+    output: Annotated[Path, typer.Option("--output")],
+):
+    """Trusted, state-restored proposer gradient and Adam update comparison."""
+    from selfplay_opsd.proposer_audit import run
+
+    typer.echo(canonical(run(load_config(settings, hardware_profile=hardware), output)))
+
+
 @app.command("readiness-check")
 def readiness_check(settings: ConfigOption, hardware: str | None = None):
     from selfplay_opsd.readiness import readiness_report

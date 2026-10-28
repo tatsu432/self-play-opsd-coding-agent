@@ -82,6 +82,22 @@ def test_counterfactual_measures_all_objectives_without_updates(tmp_path):
         torch.equal(before[name], value) for name, value in policy.model.state_dict().items()
     )
     assert not any(policy.optimizers[role].state for role in ("student", "proposer"))
+    from selfplay_opsd.proposer_audit import compare_updates
+
+    saved = {"policy": policy.state_dict(), "rng": rng_state()}
+    parsed = [
+        ProposalRecord.model_validate({k: v for k, v in row.items() if k != "reward"})
+        for row in proposals
+    ]
+    update_report = compare_updates(
+        policy, cfg, parsed, [1.0 if p.valid else -1.0 for p in parsed], saved
+    )
+    assert "adam_update_comparison" in update_report
+    assert update_report["behavior"]["optimizer_update_metrics"]["stepped"] == 1
+    assert all(
+        torch.equal(before[name], value) for name, value in policy.model.state_dict().items()
+    )
+    assert not any(policy.optimizers[role].state for role in ("student", "proposer"))
     policy.close()
 
 
@@ -97,6 +113,30 @@ def test_audit_cli_matches_allocated_launcher_options(tmp_path, monkeypatch):
         app,
         [
             "numerical-audit",
+            "--settings",
+            "configs/task10-online.yaml",
+            "--hardware",
+            "single_gpu_80gb",
+            "--output",
+            str(tmp_path),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.output)["ok"]
+
+
+def test_proposer_audit_cli_matches_allocated_launcher_options(tmp_path, monkeypatch):
+    import json
+
+    from typer.testing import CliRunner
+
+    from selfplay_opsd.cli import app
+
+    monkeypatch.setattr("selfplay_opsd.proposer_audit.run", lambda config, output: {"ok": True})
+    result = CliRunner().invoke(
+        app,
+        [
+            "proposer-audit",
             "--settings",
             "configs/task10-online.yaml",
             "--hardware",
