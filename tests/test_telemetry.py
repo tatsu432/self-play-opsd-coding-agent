@@ -225,3 +225,14 @@ def test_actual_gpu_hour_axis_uses_slurm_not_trainer_estimate(tmp_path):
     assert row["compute/allocated_gpu_hours"] == 7.0
     assert row["compute/trainer_gpu_hours_estimate"] == 0.1
     assert row["run/slurm_job_id"] == "42"
+
+
+def test_pinned_sdk_accepts_canonical_tables_and_dashboard_charts(tmp_path):
+    cfg, store = fixture(tmp_path)
+    commit(store, 1)
+    checkpoint(store, 1)
+    sink = WandbSink(cfg, store)
+    sink.finish()
+    warnings = [e for e in active_events(store.root) if e["kind"] == "logging_warning"]
+    assert not warnings
+    assert sink.status["sdk_delivered_iteration"] == 1

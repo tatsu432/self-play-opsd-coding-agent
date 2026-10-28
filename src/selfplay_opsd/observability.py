@@ -199,7 +199,9 @@ class WandbSink:
                         )
                         run.log(payload)
                         # Summary tables give a replaceable authoritative view.
-                        run.summary.update(payload)
+                        run.summary.update(
+                            {k: v for k, v in payload.items() if not k.startswith("dashboard/")}
+                        )
                         self.last_revision = snapshot["revision"]
                         self.status.update(
                             sdk_delivered_iteration=snapshot["summary"]["run/checkpoint_iteration"],
