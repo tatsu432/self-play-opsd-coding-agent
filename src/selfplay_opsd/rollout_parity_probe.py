@@ -11,7 +11,7 @@ import torch
 from selfplay_opsd.config import RunConfig
 from selfplay_opsd.core import ExperimentError
 from selfplay_opsd.policy import GenerationRequest
-from selfplay_opsd.storage import CheckpointManager, atomic_json, file_hash, read_json
+from selfplay_opsd.storage import CheckpointManager, atomic_json, file_hash, provenance, read_json
 
 
 def score_saved(policy, episodes: list[dict], clip: float) -> dict:
@@ -69,15 +69,19 @@ def benchmark_scoring(policy, config: RunConfig, episodes: list[dict]) -> list[d
                 seconds = time.monotonic() - start
                 if reference is None:
                     reference = scored
-                difference = max(
-                    (float((a - b).abs().max()) for a, b in zip(scored, reference, strict=True)),
-                    default=0.0,
-                )
+                parts = [(a - b).abs() for a, b in zip(scored, reference, strict=True)]
+                differences = torch.cat(parts) if parts else torch.empty(0)
+                difference = float(differences.max()) if len(differences) else 0.0
                 results.append(
                     {
                         "microbatch": size,
                         "seconds": seconds,
                         "max_abs_difference_from_one": difference,
+                        "mean_abs_difference_from_one": float(differences.mean())
+                        if len(differences)
+                        else None,
+                        "tokens_above_005": int((differences > 0.05).sum()),
+                        "tokens_above_02": int((differences > 0.2).sum()),
                         "peak_allocated_gpu_bytes": torch.cuda.max_memory_allocated()
                         if torch.cuda.is_available()
                         else None,
@@ -141,6 +145,10 @@ def run(config: RunConfig, output: Path) -> dict:
             "source_episode_sha256": file_hash(shards[0]),
             "source_proposal_sha256": file_hash(proposals_path),
             "student_version": episodes[0]["policy_version"],
+            "hardware": config.hardware.model_dump(mode="json"),
+            "model_revision": config.model.revision,
+            "tokenizer_revision": config.model.tokenizer_revision,
+            "provenance": provenance(),
             **initial_scoring,
             "scoring_microbatches": scoring_batches,
             "proposer_requests": len(batch),
@@ -151,6 +159,14 @@ def run(config: RunConfig, output: Path) -> dict:
                 a.ids == b.ids for a, b in zip(sequential, batched, strict=True)
             ),
             "matching_output_logprob_abs_max": max(matching_logprob_errors, default=0.0),
+            "matching_output_logprob_abs_mean": (
+                sum(matching_logprob_errors) / len(matching_logprob_errors)
+                if matching_logprob_errors
+                else None
+            ),
+            "matching_output_logprob_count": len(matching_logprob_errors),
+            "matching_output_logprob_above_005": sum(x > 0.05 for x in matching_logprob_errors),
+            "matching_output_logprob_above_02": sum(x > 0.2 for x in matching_logprob_errors),
             "identical_ids_after_sleep_wake": sequential[0].ids == after_wake.ids,
             "sequential_tokens": sum(len(item.ids) for item in sequential),
             "batched_tokens": sum(len(item.ids) for item in batched),
