@@ -158,7 +158,10 @@ def update_path_accepted(commits: list[dict], role: str, steps: int, mechanics_r
 def optimizer_mechanics(policy) -> dict:
     """Labelled deterministic mechanics only; restore state before returning."""
     import copy
+    import time
 
+    started = time.monotonic()
+    started_at = time.time()
     from selfplay_opsd.diagnostics import _optimizer_digest
     from selfplay_opsd.policy import LossExample
 
@@ -184,4 +187,11 @@ def optimizer_mechanics(policy) -> dict:
     finally:
         policy.load_state_dict(state)
     checks["restored"] = _optimizer_digest(policy.state_dict()) == before
-    return {"fixture_only": True, "ready": all(checks.values()), "checks": checks}
+    return {
+        "fixture_only": True,
+        "ready": all(checks.values()),
+        "checks": checks,
+        "seconds": time.monotonic() - started,
+        "started_at": started_at,
+        "ended_at": time.time(),
+    }

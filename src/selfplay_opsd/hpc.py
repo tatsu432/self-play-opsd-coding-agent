@@ -481,6 +481,9 @@ def run_payload(
         "endpoint": endpoint if operation == "evaluate" else None,
     }
     identity = hashlib.sha256(json.dumps(logical, sort_keys=True).encode()).hexdigest()
+    planning = (
+        state["reports"]["freeze"].get("resource_plan", {}).get("per_method", {}).get(method, {})
+    )
     payload = {
         **snap,
         "storage_root": storage,
@@ -489,12 +492,15 @@ def run_payload(
         "runtime_identity": runtime_identity,
         "backend_identity": backend_expected,
         "common_config": cfg.scientific_settings(common=True),
-        "signal_seconds": max(
-            300,
-            min(
-                3600,
-                int(state["reports"]["freeze"].get("pilot", {}).get("p90_iteration_seconds", 0))
-                + 120,
+        "signal_seconds": planning.get(
+            "signal_seconds",
+            max(
+                300,
+                min(
+                    3600,
+                    int(state["reports"]["freeze"].get("pilot", {}).get("p90_iteration_seconds", 0))
+                    + 120,
+                ),
             ),
         )
         if operation == "train"
@@ -514,17 +520,22 @@ def run_payload(
         "target_iterations": iterations if operation == "pilot" else cfg.iterations,
         "max_continuations": 1
         if operation == "pilot"
-        else min(
-            32,
-            max(
-                1,
-                math.ceil(
-                    state["reports"]["freeze"].get("pilot", {}).get("projection_200_hours", 0) / 22
+        else planning.get(
+            "max_continuations",
+            min(
+                32,
+                max(
+                    1,
+                    math.ceil(
+                        state["reports"]["freeze"].get("pilot", {}).get("projection_200_hours", 0)
+                        / 22
+                    ),
                 ),
             ),
         )
         if operation == "train"
         else 0,
+        "estimated_main_hours": planning.get("planning_projection_200_hours"),
         "estimated_main_hours_from_D_pilot": state["reports"]["freeze"]
         .get("pilot", {})
         .get("projection_200_hours"),

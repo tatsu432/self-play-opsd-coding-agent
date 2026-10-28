@@ -807,6 +807,11 @@ def test_independent_slots_preserve_legacy_duplicate_exclusion(tmp_path, monkeyp
         remote.submit(payload | {"run_id": "gpu2", "identity": "gpu-id2"})["reason"] == "slot_busy"
     )
     assert len(calls) == 2
+    # With no operation/specification, a legacy owner is uncertain, not proven
+    # independent. Keep its exclusion even for another requested operation.
+    atomic_json(ledger_path, {"attempts": [], "retries": 0})
+    assert remote.submit(cpu | {"run_id": "cpu2", "identity": "cpu-id2"})["reason"] == "slot_busy"
+    atomic_json(ledger_path, prior)
     # A recorded nonzero sbatch response with no accepted attempt is different:
     # a corrected immutable request can reclaim its old slot without a job retry.
     atomic_json(ledger_path, prior | {"last_rejection": "sbatch: invalid CPU request"})

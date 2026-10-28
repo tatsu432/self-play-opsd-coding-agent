@@ -728,9 +728,13 @@ def submit(payload: dict) -> dict:
             owner = json.loads(candidate_slot.read_text())
             if owner["run_id"] != payload["run_id"]:
                 prior = status({**payload, "run_id": owner["run_id"]})
+                prior_operation = prior["ledger"].get("operation") or prior["ledger"].get(
+                    "specification", {}
+                ).get("operation")
                 if (
                     candidate_slot == legacy_slot
-                    and prior["ledger"].get("operation") != payload["operation"]
+                    and prior_operation is not None
+                    and prior_operation != payload["operation"]
                 ):
                     # An old shared directory slot cannot serialize unrelated
                     # work. Equivalent old/uncertain submissions still block.
@@ -738,7 +742,7 @@ def submit(payload: dict) -> dict:
                 prior_method = prior["ledger"].get("specification", {}).get("method")
                 if (
                     payload["operation"] == "method-smoke"
-                    and prior["ledger"].get("operation") == "method-smoke"
+                    and prior_operation == "method-smoke"
                     and payload["method"] in "ABC"
                     and prior_method in {"A", "B", "C"}
                     and payload["method"] != prior_method

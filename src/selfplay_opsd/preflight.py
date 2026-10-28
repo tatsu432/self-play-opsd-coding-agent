@@ -194,6 +194,41 @@ def freeze_study(config: RunConfig, pilot: Path) -> dict:
         "execution_commit": provenance()["git_commit"],
         "requires_fresh_initialization": True,
     }
+    plan_path = root / "resource_plan.json"
+    if plan_path.exists():
+        from selfplay_opsd.readiness import evidence_root, hardware_settings
+
+        plan = read_json(plan_path)
+        if (
+            plan.get("runtime_identity") != payload["runtime_identity"]
+            or plan.get("common_config") != payload["common_config"]
+            or plan.get("pilot_hash") != payload["pilot_hash"]
+            or plan.get("checkpoint_every") != config.checkpoint_every
+            or plan.get("hardware") != hardware_settings(config.hardware.model_dump(mode="json"))
+            or plan.get("gpu_type") != payload["gpu_type"]
+            or plan.get("baseline_hash")
+            != digest(read_json(root / "base/evaluation_complete.json"))
+            or plan.get("method_hashes")
+            != {
+                method: digest(
+                    read_json(evidence_root(config) / "method-smokes" / f"{method}.json")
+                )
+                for method in "ABC"
+            }
+        ):
+            raise ExperimentError("Resource plan does not match measured common-study evidence")
+        for method in "ABCD":
+            entry = plan["per_method"][method]
+            if not (
+                0 < entry["planning_projection_200_hours"] < float("inf")
+                and type(entry["signal_seconds"]) is int
+                and type(entry["max_continuations"]) is int
+                and 300 <= entry["signal_seconds"] <= 65535
+                and 1 <= entry["max_continuations"] <= 32
+            ):
+                raise ExperimentError("Resource plan has an invalid continuation envelope")
+        payload["resource_plan"] = plan
+        payload["resource_plan_hash"] = digest(plan)
     path = root / "study_frozen.json"
     with (root / ".freeze.lock").open("a+") as lock:
         fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
