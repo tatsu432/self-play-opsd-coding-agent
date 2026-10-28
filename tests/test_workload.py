@@ -60,7 +60,9 @@ def test_sparse_workload_forecast_does_not_multiply_fixed_cost_or_omit_monitorin
     )
     assert report["planning_projection_200_hours"] >= report["observed_load_200_hours"]
     assert report["monitoring_events"] == 11
-    assert report["signal_seconds"] >= report["planning_iteration_seconds"]
+    assert report["signal_seconds"] >= report["planning_monitor_boundary_seconds"]
+    long_monitor = project_method(events(), allocated_seconds=28, baseline_seconds=3600)
+    assert long_monitor["signal_seconds"] >= long_monitor["planning_monitor_boundary_seconds"]
 
 
 def test_acceptance_fixture_is_charged_to_readiness_but_excluded_from_main_projection():

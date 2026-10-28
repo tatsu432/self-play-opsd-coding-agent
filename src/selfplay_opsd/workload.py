@@ -112,8 +112,11 @@ def project_method(
     dense = forecast(full_median, diagnostic_median, checkpoint)
     conservative = max(observed, forecast(full_p90, diagnostic_p90, checkpoint))
     planning_iteration = full_p90 + diagnostic_p90 + checkpoint + overhead_per_iteration
-    # Allow twice the conditional high-load iteration plus checkpoint margin.
-    signal_seconds = max(300, math.ceil(2 * planning_iteration + checkpoint + 120))
+    # Allow twice the conditional high-load iteration plus a complete monitoring
+    # pass: the trainer honors stop requests after any iteration-boundary eval.
+    signal_seconds = max(
+        300, math.ceil(2 * planning_iteration + baseline_seconds + checkpoint + 120)
+    )
     if signal_seconds > 65535 or signal_seconds >= 23 * 3600:
         raise ValueError("Measured workload does not fit the proposed Slurm continuation envelope")
     segment_hours = 23 - signal_seconds / 3600
@@ -146,6 +149,7 @@ def project_method(
         "all_valid_observed_lengths_200_hours": dense,
         "planning_projection_200_hours": conservative,
         "planning_iteration_seconds": planning_iteration,
+        "planning_monitor_boundary_seconds": planning_iteration + baseline_seconds,
         "signal_seconds": signal_seconds,
         "max_continuations": continuations,
         "monitoring_events": monitor_count,
@@ -154,7 +158,7 @@ def project_method(
         "assumptions": [
             "Conditional scenarios, not confidence intervals or guaranteed future throughput",
             "All-valid scenario retains observed episode lengths and per-task phase rates",
-            "Higher response/context lengths may exceed these scenarios",
+            "Higher response/context lengths or a different reward mix may exceed these scenarios",
             "Only nonempty learning iterations estimate variable-workload rates",
             "Full baseline allocated time is conservatively charged for each monitoring event",
             "Pilot gradient diagnostics are charged at the main frequency of every 20 iterations",
