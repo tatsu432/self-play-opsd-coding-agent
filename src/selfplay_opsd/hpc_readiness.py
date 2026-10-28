@@ -209,8 +209,12 @@ def register(app: typer.Typer):
         if build_mode == "yale" and (build_root or builder or alias != ALIASES[0]):
             raise HpcError("Yale builds use cpsc4880 scratch; local build options do not apply")
         remote = YaleSSH(alias)
-        snap = sync(remote)
         cfg = load_config(settings)
+        snap = (
+            sync(remote)
+            if cfg.data_root == Path("data/prepared")
+            else sync(remote, ROOT / cfg.data_root)
+        )
         if (
             alias == ALIASES[0]
             and cfg.sandbox.resource_backend == "slurm"

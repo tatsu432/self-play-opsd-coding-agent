@@ -65,7 +65,7 @@ isolation cannot be enforced. Use `hpc images build --kind worker`, then
 `hpc prepare-study --watch`. The preparation command identifies the next missing
 image or failed evidence gate. Never treat a passed CPU test as target readiness.
 
-1. Start with `uv run selfplay hpc doctor` and `uv run selfplay hpc inspect`.
+1. For Task 08, start with `uv run selfplay hpc doctor --settings configs/task08.yaml --gpu-type h200` and `uv run selfplay hpc inspect`.
    The commands are read-only and do not allocate resources. Inspect the live
    account/QOS associations, partitions, GRES, queue, quotas and software.
    YCRC web documentation is guidance; Slurm is the live authority. If SSH says
