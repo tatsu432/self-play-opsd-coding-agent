@@ -4,10 +4,12 @@
 
 Task 07 supersedes the historical cgroup-specific and exact 32-process contract
 below. Slurm step CPU/memory enforcement plus kernel-enforced prohibition of
-candidate process/thread creation is the first investigation. CPU job 31027216
-passed 18 trusted fixtures on Bouchet with the seccomp filter and private
-Apptainer namespaces. Full worker containment, storage and cleanup acceptance
-remain required. No subordinate-UID allocator or managed service is being pursued
+candidate process/thread creation has passed real Bouchet acceptance. CPU job
+31033392 passed all 19 worker checks, including private Apptainer namespaces,
+bounded storage/output/time, independent Slurm CPU/memory enforcement, candidate
+OOM recovery and scheduler step termination with no observed processes left
+running. Backend acceptance and later readiness stages remain incomplete; see
+the launch runbook and Task 07 plan. No subordinate-UID allocator or managed service is being pursued
 while this simpler route is viable. Do not wait for an answer to the historical
 subordinate-ID question before continuing independent readiness work.
 

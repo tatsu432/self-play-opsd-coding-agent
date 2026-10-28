@@ -255,8 +255,8 @@ to Slurm and never writes the secret into the repository or scheduler arguments.
 
 ## Prepare the Yale A–D study
 
-Task 05 continues this workflow with Dockerfile-derived image builds on Yale
-CPU nodes and A/B/C acceptance checks. Follow the current
+Task 07 continues this workflow with verified single-process workers, compatible
+image/evidence reuse and real A–D acceptance checks. Follow the current
 [Yale launch runbook](yale-launch-runbook.md); local large-image exports below
 remain an optional compatibility path.
 

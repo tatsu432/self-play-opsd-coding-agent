@@ -1,134 +1,150 @@
 # Yale A–D readiness and launch
 
-Task 07 is authoritative. Main A–D training remains unauthorized; finish with
-live readiness and four successful previews. The cumulative readiness cap is
-24 allocated GPU-hours, including all earlier attempts and unresolved reservations.
+Task 07 is authoritative. Main A–D training remains unauthorized. The cumulative
+readiness cap is 24 allocated GPU-hours, including historical attempts and all
+unresolved reservations. Historical job states live in the Task 03–06 completion
+records and the Task 07 plan; reconcile live Slurm and controller state first.
 
-The selected initial profile is one GPU (`configs/yale.yaml`). Prefer H100; use entitled H200
-when a documented memory, scheduling or runtime reason makes it practical; H100
-OOM is not a prerequisite. Add GPUs only when measurements justify them, and
-then require single-process/distributed gradient agreement.
+## Current checkpoint — 2026-10-27
 
-The new worker path uses a persistent one-CPU/1-GiB no-GRES Slurm step at
-concurrency one and a fresh Apptainer payload per request. The trusted payload
-installs an AMD64 seccomp allowlist before candidate compilation/imports and
-prohibits process/thread creation. It does not claim a pids.max or 32-process cap.
-No nested user cgroup configuration, subordinate UID allocator or external
-service is required if this complete path passes real acceptance. Three trusted
-entry scripts are mounted individually read-only over the existing checksummed
-stdlib-only SIF; image and entry-source provenance are recorded separately.
+The selected profile is `single_gpu_80gb`, using one entitled H200 in `gpu_h200`
+for the documented scheduling reason in the Task 07 plan. H100 OOM is not required.
+Eight trainer CPUs/128 GiB host RAM and a separate one-CPU/1-GiB worker step are
+requested for generated-code jobs. Add GPUs only if measurements justify them;
+a multi-GPU target additionally needs agreement with single-GPU gradients.
 
-CPU-only job 31027216 (commit db61aa0) passed 18 trusted feasibility fixtures,
-including native process/thread restrictions and compatibility ABI rejection.
-Apptainer exposed a private 64-MiB /tmp. This is feasibility evidence, not worker
-or data readiness. The production containment and cleanup checks must still pass.
+Worker acceptance **31033392** / `639345f9a3d7a5c3953ece55` passed all 19 checks:
+independent scheduler CPU/memory enforcement, single-process/thread seccomp,
+filesystem/network/GPU/credential isolation, bounded storage/output/time,
+candidate OOM followed by correct-program recovery, cancellation and real Slurm
+step KILL with no observed processes left running. The no-GRES broker uses
+`--oom-kill-step=0`; its 1-GiB kernel bound remains enforced. The deliberate OOM
+witness is CPU acceptance only. Ordinary GPU preflight does not trigger an OOM.
+The policy is installed before candidate compilation/imports. Private temporary
+storage is 64 MiB. No nested user cgroup configuration, pids.max, subordinate UID
+allocator, external service or SSH tunnel is needed. These restrictions are the
+same for A–D.
 
-Start with doctor/inspect and reconcile the existing pending allocation check
-30988667 (run 95db439761558f8764a42f00). Do not duplicate it. At the Task 07
-initial reconciliation, 0.0425 GPU-hours were charged and 0.083333 reserved.
-Use the live ledger, not these historical totals, before another allocation.
+CPU runtime validation **31037352** revalidated all 306 frozen tasks. Job
+**31040084** / `333e5b3f69f36d3e35221472` refreshes the scientific source identity
+for the latest rendezvous repair; inspect it before a replacement. Worker
+acceptance remains compatible.
+
+Allocation check **31038198** / `a38a5c80f7518cd7d26c66f4` passed actual Slurm
+device ownership, numeric container mask, exact CUDA UUID and initial occupancy.
+On this node NVIDIA index 0 had Linux minor 1; equality is never assumed. Pinned
+vLLM 0.11.0 requires a numeric mask, so the launcher verifies its actual UUIDs
+before any model load. Ambiguous, extra, wrong or occupied GPUs stop the job.
+
+Backend **31038874** / `2eddfa162616da98b977e779` loaded the pinned model and
+recognized Qwen3 in vLLM, then stalled with inherited torchrun agent-store state.
+It was stopped after diagnosis; `state/task07-stop-31038874.json` records why.
+Source **e0f4374** removes all TORCHELASTIC_* settings alongside parent rank and
+rendezvous variables. A real CPU process-group regression reproduces the timeout
+with the inherited flag and succeeds without it. Hosted CI 40607054798 is in
+progress. Earlier source e0b2336 passed CI 40604870399 (211 tests). Check CI before
+GPU acceptance. No backend proof, base evaluation, pilot, method acceptance,
+freeze or main preview has passed yet. Do not interpret model loading as readiness.
+Cumulative consumption is **0.212777778 GPU-hours**, with no active GPU job at
+this checkpoint. Live accounting and reservations always take precedence.
+
+The earlier PEFT initialization mismatch is fixed: proposer adapter masters are
+promoted to the student's FP32 dtype before copying, with equal initial version
+hashes and independent storage. BF16 base compute, objectives, prompts, dataset,
+seed 2026 and mathematical budgets are preserved.
+
+## Continue preparation
 
 ```bash
 uv run selfplay hpc doctor
 uv run selfplay hpc inspect
+# Only if normal SSH authentication has expired:
+uv run selfplay hpc login
 uv run selfplay hpc sync
-uv run selfplay hpc submit --operation worker-check --method D --profile single_gpu_80gb
 uv run selfplay hpc prepare-study --stage backend --gpu-type h200 --gpu-hours-limit 24 --watch
 uv run selfplay hpc prepare-study --gpu-type h200 --gpu-hours-limit 24 --watch
 ```
 
-Trusted backend preparation is independent of worker acceptance. Operation slots
-are separate, including compatibility with old equivalent/uncertain submissions.
-Reports publish atomically. Numerical compatibility excludes unrelated controller
-and worker changes; allocation proof reuse checks verifier functions against its
-immutable source. Full source provenance remains in the original reports.
+`doctor` reports pending/running/passed/stale/failed stages, scheduler/run identity,
+evidence and next action. Reconcile an existing active or uncertain submission;
+never duplicate it. Independent operation slots permit CPU validation while a
+GPU diagnostic is pending. Allocation/backend acceptance executes only trusted
+fixtures and does not depend on generated-code worker readiness.
 
-Task 07 live acceptance checkpoint (2026-10-27): source `dd5a06e` passed the
-expanded worker check in job **31029044**: single-process restriction, namespace,
-credential/GPU denial, 64-MiB temporary-storage exhaustion and timeout/output/
-cancellation cleanup all passed. CPU diagnostic **31029045** observed Slurm's
-actual OOM kill at **1,073,741,824 bytes** in its independently scoped step;
-affinity remained one CPU after an expansion attempt. This intentional CPU OOM
-is an enforcement witness, not a GPU memory-fit failure. Reports are under
-`runs/readiness/repair-selfplay-2026` on Yale and fetched by their run IDs.
+Preparation validates deployed data, the selected backend, base monitoring
+evaluation, a real ten-iteration D pilot stopped/resumed at iteration two, and
+one full iteration each of A/B/C in fresh processes. The pilot must demonstrate
+valid tasks, alignment and both updates; synthetic probes cannot establish yield,
+throughput or repair performance. A degenerate pilot/smoke must be diagnosed,
+without changing rewards, sampling, data boundaries or refilling proposals.
+Freeze and all four successful previews are required for launch eligibility.
+Preparation never submits main runs. CPU tests alone establish no target readiness.
 
-Deployed-data validation job **31029058** / run `584a6958010d8f4f6f05cfa0`
-is active; inspect before replacement. H100 backend **31029051** was cancelled
-while pending, after live scheduler inspection showed available H100 GPUs only
-on PLANNED nodes and an unplanned H200 node with a free GPU/eight CPUs fitting
-the diagnostic. Task 07 therefore selects one H200 for this scheduling reason,
-with fresh UUID ownership and occupancy checks and the same cumulative budget.
-No H100 OOM or measured model memory fit is claimed. Cancellation decisions are
-recorded durably in `state/task07-cancel-30988667.json` and
-`state/task07-cancel-31029051.json`. Reconcile live ledgers before continuing.
+All attempts share the durable 24-hour ledger. At most two confirmed transient
+scheduler interruptions can restart diagnostics. Application failures, OOM,
+GPU timeout, authentication and uncertain submission require inspection. A
+never-started cancellation releases its reservation only after confirmed accounting;
+incomplete accounting remains reserved. Do not reset the ledger.
 
-The latest worker acceptance is **31033392** / run
-`639345f9a3d7a5c3953ece55` from `fa29cd9`: all 19 checks passed, including a
-candidate OOM followed by a correct request, and an actual Slurm KILL of a live
-contained step with no observed processes left running. The broker step uses
-`--oom-kill-step=0`; memory remains kernel-bounded at 1 GiB. Only CPU worker
-acceptance triggers the deliberate OOM witness. Ordinary GPU preflight checks
-enforcement without deliberately marking the job OOM.
-
-The normal H200 allocation check **31030407** completed its real checks but
-failed while publishing the summary. Recovery uses the original checksummed raw
-proof and immutable verifier source, does not change failed Slurm accounting,
-and allocates no GPUs:
-
-```bash
-uv run selfplay hpc recover-allocation fdbf5a3060dc5a0b1a858bff
-```
-
-The recovered ownership proof authorizes proceeding to backend acceptance;
-it does not establish model load or memory fit. Backend **31033410** / run
-`439186dc49ffec5d599f8356` is active. Use the canonical `gpu_h200` route (omit
-`--diagnostic-partition scavenge_gpu`); scavenge's estimate was seven hours away.
-Consumption before this backend attempt was 0.0475 GPU-hours, plus its one-hour
-reservation. Inspect current jobs/ledgers before more submissions.
-
-Image preparation now reuses compatible verified SIFs by their pinned base,
-dependency lock and installation inputs while preserving each image's original
-source commit. Worker entry code is mounted as the three explicit read-only
-files; trainer code is mounted from the immutable checkout. Documentation and
-controller commits do not force image rebuilds. `--force`, `--builder` or an
-explicit build root requests a real build/export instead of this reuse path.
-The normal command was verified to reuse both existing SIFs without allocation:
+Images are checksummed on compute nodes. Existing trainer/worker SIFs can be
+reused when their pinned base, lock and installation inputs match. Original image
+provenance remains intact; current immutable trainer sources and exactly three
+worker entry files are mounted read-only. Controller/documentation changes do
+not force image rebuilds or unrelated numerical retesting.
 
 ```bash
 uv run selfplay hpc images build --kind all
 ```
 
-Backend job 31033410 loaded the actual pinned 4B model, then failed strict
-student/proposer initialization equality. A CPU BF16 reproduction proved that
-PEFT's first adapter had FP32 masters while `add_adapter` retained BF16 for the
-second. Source **e21e04d** matches proposer master precision to the student
-before copying, preserving independent storage and the configured BF16 model
-compute. The regression checks exact initial version equality and isolation;
-the scientific objectives, seeds and mathematical budgets are unchanged.
-Reconciled GPU consumption after that attempt is **0.071388889 hours**.
+`--force`, an explicit builder or build root requests an actual build. The normal
+reuse path has been verified without allocation. If an allocation check's raw
+proof passed but publication failed, `hpc recover-allocation RUN_ID` validates its
+immutable verifier and raw checksum without a new GPU allocation; it preserves
+original failed scheduler accounting. This does not prove backend compatibility.
 
-Current runtime validation is job **31035577** / run
-`f1bd1e3f13671d50990efe81`, using this corrected scientific source identity.
-Inspect it and the current backend ledger before another preparation request.
+## Main previews and later launch
 
-The sections below describe available operations and historical checkpoints.
-Where their mechanism or hardware restrictions conflict, this Task 07 section
-and its specification take precedence.
+These are the intended commands, **not successful previews yet**. They use the
+selected single-GPU profile explicitly; the generic submit command defaults to a
+different profile. All four must pass after freeze. Main submission additionally
+requires separate user authorization.
 
+```bash
+uv run selfplay hpc submit --operation train --method A --profile single_gpu_80gb --gpu-type h200 --dry-run
+uv run selfplay hpc submit --operation train --method B --profile single_gpu_80gb --gpu-type h200 --dry-run
+uv run selfplay hpc submit --operation train --method C --profile single_gpu_80gb --gpu-type h200 --dry-run
+uv run selfplay hpc submit --operation train --method D --profile single_gpu_80gb --gpu-type h200 --dry-run
+```
 
-Task 05 is preparing this study. **Do not launch main runs until the live doctor
-and all four previews pass and main training is separately authorized.** CPU CI
-does not prove GPU compatibility or generated-code isolation.
+After readiness and separate main authorization, remove `--dry-run` for the
+corresponding method. Begin with one method at a time. Each starts fresh at seed
+2026 for 200 iterations; pilot/smoke weights are never used. Measured pilot memory,
+median/p90 iteration/phase times and startup costs are still pending. Its projected
+200-iteration duration is an estimate for A/B/C, not measured performance. Main
+GPU cost must be reviewed separately from the readiness allowance.
 
-The [Task 05 checkpoint](task_completion/05-implemented-yale-experiment-readiness.md)
-records the published trainer, queued reference job, exact budget and external
-worker dependency. Inspect that existing job before submitting more readiness
-work. If doctor reports a verified trainer already available, proceed to the
-readiness sequence; rebuilding is needed only when its authoritative inputs change.
+## Monitor and recover
+
+```bash
+uv run selfplay hpc status RUN_ID
+uv run selfplay hpc logs RUN_ID
+uv run selfplay hpc fetch RUN_ID
+uv run selfplay hpc watch RUN_ID
+```
+
+Watch resumes at most two confirmed PREEMPTED/NODE_FAIL/BOOT_FAIL attempts from
+a verified joint checkpoint. `hpc resume RUN_ID --continue-stopped` permits a
+recorded clean continuation. Unknown scheduler state, ambiguous submission,
+scientific failure, OOM, authentication or quota problems require inspection.
+Never submit a replacement while an earlier intent remains unresolved.
+
+W&B is offline by default. Local events/checkpoints are authoritative; retain
+offline segments for later `selfplay wandb-sync`. Fetch uses small reports by
+default; `--full` explicitly includes checkpoints/trajectories/W&B files.
 
 ## Build without a large local archive
 
-From the clean committed Task 05 checkout:
+When image preparation reports an incompatible or missing trainer, use a clean committed checkout:
 
 ```bash
 uv sync --frozen --group build
@@ -160,170 +176,3 @@ Docker archive path remains available with `--build-mode docker`.
 
 If a site permission failure occurs, inspect that job and discuss it in the
 existing YCRC thread. Do not repeat it without a changed supported setup.
-
-## Readiness sequence
-
-Task 06 first establishes physical allocation ownership in short model-free
-checks and collects worker setup diagnostics on a CPU node:
-
-```bash
-uv run selfplay hpc sync
-uv run selfplay hpc worker-diagnose
-uv run selfplay hpc allocation-check --profile single_gpu_80gb
-uv run selfplay hpc allocation-check --profile dual_gpu_80gb
-```
-
-Inspect each returned run before advancing. Allocation checks each have a
-five-minute ceiling, two CPUs, 8 GiB host RAM and a 30-second advance stop signal;
-they share the existing 24 GPU-hour ledger. They publish
-`gpu-allocation-JOB_ID.json` even on failure, and successful profile proofs as
-`allocation-PROFILE.json`. NVIDIA indices and Linux device minors may differ;
-ownership comes from actual kernel device access inside the live Slurm cgroup,
-followed by a container CUDA UUID/occupancy check. Extra device access fails.
-
-Worker diagnostics execute no candidate code, establish no isolation evidence,
-and publish `worker-diagnostics-JOB_ID.json`. Use these findings in YCRC ticket
-79403. After a documented supported site change, identify it explicitly:
-
-```bash
-uv run selfplay hpc prepare-study --worker-setup-id TICKET-AND-SETUP-REVISION --watch
-```
-
-The setup ID records the change; actual isolation probes must still pass. An
-unchanged delegation failure cannot be retried merely by restarting preparation.
-The setup identity follows runtime evidence and checkpoints into main previews.
-An existing approved Yale service remains a contingency pending YCRC's concrete
-endpoint, authentication, cancellation and accounting contract; no service has
-been provisioned or assumed available.
-
-`doctor` includes `stage_status`: pending, running, passed, stale or failed,
-with scheduler/run identity, evidence and next action. Allocation and backend
-checks can retry at most two confirmed scheduler interruptions; application
-failure, OOM, uncertain submission and GPU timeout require inspection.
-Only confirmed never-started cancellations (zero elapsed time, no allocated
-resources and no start timestamp) release a reservation without a GPU TRES
-record; incomplete accounting stays reserved.
-
-After the trainer build and hosted CPU CI pass, backend-only GPU acceptance can
-proceed independently of the worker support response:
-
-```bash
-uv run selfplay hpc sync
-uv run selfplay hpc prepare-study --stage backend --gpu-hours-limit 24 --watch
-```
-
-When the normal H100 queue cannot start short trusted checks, the same account
-may use the live-validated preemptible diagnostic route:
-
-```bash
-uv run selfplay hpc prepare-study --stage backend --diagnostic-partition scavenge_gpu --gpu-hours-limit 24 --watch
-```
-
-This routes only allocation/backend diagnostics. It preserves typed GPUs and
-the full allocated GPU-hour budget, uses a distinct immutable submission identity,
-and disables automatic Slurm requeue so every attempt is accounted separately.
-At most two confirmed transient interruptions may restart a diagnostic. Inspect
-and reconcile an existing normal-queue attempt before switching; never duplicate
-an active or uncertain job. Main, pilot and generated-code jobs keep their normal
-partition. Yale documents this queue for restartable work:
-[scavenge guidance](https://docs.ycrc.yale.edu/clusters-at-yale/job-scheduling/scavenge/).
-
-After inspecting a recorded occupied allocation, diagnostic requests may exclude
-that explicit node using `--exclude-node NODE` (repeat for additional nodes).
-This changes the submission identity and still requires full physical ownership
-and occupancy proof. It never selects a GPU by apparent idleness. Task 06 job
-30296835 proved UUID ownership on `a1127u05n01`, then rejected its assigned GPU:
-an existing `VLLM::Worker_TP3` PID 572771 held 73,814 MiB (about 72.1 GiB) before model
-loading. The next diagnostic route excludes that node pending site inspection.
-
-Synchronize again after any new source commit before preparing evidence. A
-successful build does not synchronize later changes automatically.
-
-The following Task 06 setup discussion is historical; Task 07 has established
-the supported Slurm-step plus single-process route described above:
-
-YCRC's 2026-10-27 reply in ticket 79403 confirms that per-worker cgroup
-configuration and a Slurm process-count limit are unavailable to users. Slurm
-job steps can bound per-task CPU/memory, and Apptainer can provide filesystem
-and network isolation, but these alone do not meet the required 32-process
-limit. Candidate execution remains blocked until the complete Task 07 single-process
-contract and cleanup pass on Bouchet; the old numeric PID requirement is superseded. A shared per-user
-`RLIMIT_NPROC` does not count as a per-worker limit.
-
-One candidate mechanism is under review with YCRC: a unique subordinate UID per
-worker via Apptainer `--fakeroot`, a kernel hard limit of 32 tasks for that UID,
-and a Slurm step requesting one CPU/1 GiB with `--gres=none`. This only proceeds
-if the mapping is available and allowed, the UID allocator prevents concurrent
-reuse, and adversarial probes show candidates cannot change IDs/limits or create
-a new user namespace. It is not yet implemented or accepted.
-
-```bash
-uv run selfplay hpc prepare-study --gpu-hours-limit 24 --watch
-uv run selfplay hpc doctor
-uv run selfplay hpc fetch-study repair-selfplay-2026
-```
-
-Preparation validates deployed data, the selected backend (distributed gradient
-comparison only for multiple GPUs), base
-monitoring evaluation, a ten-iteration D pilot with stop/resume at 2, and
-one full iteration each of A/B/C in separate fresh processes. Method smoke
-states live in `repair-selfplay-2026-method-smoke`; their proofs live under
-`readiness/repair-selfplay-2026/method-smokes`. All three must exercise their
-expected update paths and retain intact joint checkpoints. A degenerate smoke
-is a failure to establish evidence, not permission to alter generated data.
-
-Initial reservation ceilings are reference 1, target 2, base 4, D pilot 12 and
-combined A/B/C smoke 4 allocated GPU-hours. One additional GPU-hour remains;
-unused reservations are released only after actual Slurm accounting. All
-attempts share the cumulative 24-hour cap. H200 is permitted for a documented practical reason after live entitlement
-checks and requires fresh matching target proof within the same cumulative cap. Preparation never launches main.
-
-GPU jobs resolve Slurm's physical allocation to UUIDs and verify the container's
-actual CUDA UUIDs before loading models. Allocation proofs are retained as
-`readiness/STUDY/gpu-allocation-JOB_ID.json`. Ambiguous NVIDIA/Slurm numbering,
-missing masks, wrong devices or substantial initial occupancy stop the job.
-Inspect this proof alongside an OOM; a device-binding failure is not evidence
-that the model needs a larger GPU.
-
-## Four main previews and submissions
-
-The following H100 commands resolve the published SIF and frozen evidence.
-Use the hardware selected by the actual readiness result; H200 fallback needs
-`--gpu-type h200` and its matching evidence. Do not infer readiness from a free
-GPU in a queue snapshot.
-
-```bash
-uv run selfplay hpc submit --operation train --method A --gpu-type h100 --dry-run
-uv run selfplay hpc submit --operation train --method B --gpu-type h100 --dry-run
-uv run selfplay hpc submit --operation train --method C --gpu-type h100 --dry-run
-uv run selfplay hpc submit --operation train --method D --gpu-type h100 --dry-run
-```
-
-Only after all gates pass and main training is authorized, submit one method at
-a time, initially. Remove `--dry-run` from the corresponding preview command.
-Each main run starts fresh with seed 2026 and 200 iterations; pilot/smoke weights
-are never used. Four concurrent runs are not needed for scientific comparability.
-
-**Measured estimates:** pending a real D pilot. Its median/p90 phase times,
-memory, startup costs and projected 200-iteration duration determine continuation
-planning. The D projection is an estimate for A/B/C, not a measured guarantee.
-Main GPU cost must be reviewed separately from the readiness allowance.
-
-## Monitor and recover
-
-```bash
-uv run selfplay hpc status RUN_ID
-uv run selfplay hpc logs RUN_ID
-uv run selfplay hpc fetch RUN_ID
-uv run selfplay hpc watch RUN_ID
-```
-
-Watch resumes at most two confirmed PREEMPTED/NODE_FAIL/BOOT_FAIL attempts from
-a verified joint checkpoint. `hpc resume RUN_ID --continue-stopped` permits a
-recorded clean continuation. Unknown scheduler state, ambiguous submission,
-scientific failure, OOM, authentication or quota problems require inspection.
-Never submit a replacement while an earlier intent remains unresolved.
-
-W&B is offline by default. Local events/checkpoints are authoritative; retain
-offline segments for later `selfplay wandb-sync`. Fetch uses small reports by
-default; `--full` explicitly includes checkpoints/trajectories/W&B files.
