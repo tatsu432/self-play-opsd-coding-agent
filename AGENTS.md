@@ -29,6 +29,15 @@ documents are historical. Read `README.md`, `docs/methods.md` and
 
 ## Yale operations
 
+**Authorized initial A run:** the user explicitly authorized one H200 allocation
+up to 23 GPU-hours, capped at iteration 20, with no automatic continuation and no
+B/C/D. Controller run `a87f3772b284d35a375cf69e`, Slurm job `31219895`, was
+submitted with frozen execution `54f087fdc5cf5170800d825bf1ee92b89a43c8ed`.
+Inspect this existing run and scheduler state before any action; never duplicate
+it. Review live W&B and scientific health at iterations 5, 10 and 20. A clean
+checkpoint at 20 requires a new authorization for continuation.
+
+
 Task 10 online successor is `repair-selfplay-2026-main-online-v1`, settings
 `configs/task10-online.yaml`, frozen execution
 `54f087fdc5cf5170800d825bf1ee92b89a43c8ed` (CPU freeze 31206522).

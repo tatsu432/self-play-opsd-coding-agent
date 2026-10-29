@@ -315,3 +315,12 @@ The actual controller preview for bounded A passed with `submitted=false`, run
 ID `a87f3772b284d35a375cf69e`, frozen execution `54f087fdc5cf5170800d825bf1ee92b89a43c8ed`,
 `target_iterations=200`, `stop_after_iteration=20`, one H200, 23-hour cap and
 4,616-second stop lead. Controller commit `2df6902` passed 88 scoped tests.
+
+## Authorized initial A allocation
+
+The user authorized one H200 allocation with a 23 GPU-hour ceiling, stopping at
+iteration 20; no automatic continuation or B/C/D is authorized. Submitted Slurm
+job `31219895`, controller run `a87f3772b284d35a375cf69e`. It retains the frozen
+200-iteration scientific configuration, source `54f087fdc5cf5170800d825bf1ee92b89a43c8ed`,
+and explicit `stop_after_iteration=20`. Review W&B and health at 5, 10 and 20.
+Inspect this existing ledger before any further scheduler action.
