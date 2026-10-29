@@ -366,3 +366,7 @@ inspect that job and accounting, then resume monitoring without duplicating it.
 The existing 24 GPU-hour cap and H100-first/OOM-only H200 rule still apply.
 The user has not answered the separate H200 exception question. No main A–D
 jobs have been submitted; Task 06 remains incomplete.
+
+## Task 10 initial main A stage — 2026-10-28
+
+The user authorized one bounded Experiment A H200 allocation through iteration 20. Job 31219895 completed successfully, stopped at iteration 20 and consumed 1.527778 allocated GPU-hours; no continuation or B–D job was submitted. The latest checkpoint is `000020`, with complete manifest and resumable metadata; the controller must verify file checksums and identity before any future resume. W&B run: https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/9c125e660c942541076d5d50. Valid proposals 30/320, successful solver episodes 40/120, development evaluation 12/41 after training versus 0/41 initially. See `docs/task_completion/10-implemented-main-experiment.md` for scientific health, limits and accounting. Further main allocation requires authorization; do not automatically continue.
