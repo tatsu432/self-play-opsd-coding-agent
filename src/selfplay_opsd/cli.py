@@ -583,6 +583,30 @@ def runtime_check(settings: ConfigOption):
     typer.echo(canonical(validate_runtime(load_config(settings))))
 
 
+@app.command("numerical-audit")
+def numerical_audit(
+    settings: ConfigOption,
+    hardware: Annotated[str, typer.Option("--hardware")],
+    output: Annotated[Path, typer.Option("--output")],
+):
+    """Trusted saved-token replay, with no generation or optimizer steps."""
+    from selfplay_opsd.numerical_audit import run
+
+    typer.echo(canonical(run(load_config(settings, hardware_profile=hardware), output)))
+
+
+@app.command("proposer-audit")
+def proposer_audit(
+    settings: ConfigOption,
+    hardware: Annotated[str, typer.Option("--hardware")],
+    output: Annotated[Path, typer.Option("--output")],
+):
+    """Trusted, state-restored proposer gradient and Adam update comparison."""
+    from selfplay_opsd.proposer_audit import run
+
+    typer.echo(canonical(run(load_config(settings, hardware_profile=hardware), output)))
+
+
 @app.command("readiness-check")
 def readiness_check(settings: ConfigOption, hardware: str | None = None):
     from selfplay_opsd.readiness import readiness_report
@@ -597,6 +621,42 @@ def readiness_check(settings: ConfigOption, hardware: str | None = None):
 def wandb_sync(path: Annotated[Path, typer.Option("--path")]):
     """Explicitly upload a chosen offline segment using the pinned SDK CLI."""
     subprocess.run(["wandb", "sync", str(path)], check=True)
+
+
+@app.command("wandb-verify")
+def wandb_verify(
+    output: Annotated[Path, typer.Option("--output")],
+    settings: ConfigOption,
+    entity: str | None = None,
+    run_id: str | None = None,
+    sequence: int = 1,
+):
+    """CPU-only HTTPS and actual cloud history verification (two calls test resume)."""
+    from selfplay_opsd.wandb_tools import verify
+
+    report = verify(
+        output,
+        entity=entity or load_config(settings).logging.entity,
+        run_id=run_id,
+        sequence=sequence,
+    )
+    typer.echo(canonical(report))
+    if not report["ready"]:
+        raise typer.Exit(1)
+
+
+@app.command("wandb-reconcile")
+def wandb_reconcile(
+    run_dir: Annotated[Path, typer.Option("--run-dir")],
+    entity: str | None = None,
+    offline: bool = False,
+):
+    """Recover aggregate telemetry after stopping the original writer."""
+    from selfplay_opsd.wandb_tools import reconcile
+
+    typer.echo(
+        canonical(reconcile(run_dir, entity=entity, mode="offline" if offline else "online"))
+    )
 
 
 @app.command("wandb-export")

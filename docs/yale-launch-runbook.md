@@ -1,5 +1,10 @@
 # Yale A–D readiness and launch
 
+Task 10: the user accepted the numerical sensitivity for a bounded initial A run.
+A main GPU-hour authorization is still required; stop at iteration 20. See the [online launch and recovery workflow](task10-launch.md)
+and [Task 10 implementation record](task_completion/10-implemented-main-experiment.md).
+Main training remains separately unauthorized.
+
 Task 09 v2 is **GO WITH CAVEATS**: freeze 31197007 and four previews passed.
 The [completion record](task_completion/09-implemented-efficiency-learnability.md)
 contains the scientific caveats, evidence and conditional costs. Main A–D

@@ -11,8 +11,12 @@ from pathlib import Path
 from selfplay_opsd.storage import active_events, read_json
 
 
-def summarize(root: Path, allocated_gpu_hours: float | None = None) -> dict:
+def summarize(
+    root: Path, allocated_gpu_hours: float | None = None, through_iteration: int | None = None
+) -> dict:
     events = active_events(root)
+    if through_iteration is not None:
+        events = [e for e in events if e["completed_iteration"] <= through_iteration]
     commits = [event["payload"] for event in events if event["kind"] == "iteration_commit"]
     invalid: Counter[str] = Counter()
     actions: Counter[str] = Counter()
@@ -62,7 +66,12 @@ def summarize(root: Path, allocated_gpu_hours: float | None = None) -> dict:
                 for row in read_json(proposal_shard)
                 if row["valid"] and row.get("dedup_key")
             )
-    evaluations = [event["payload"] for event in events if event["kind"] == "evaluation"]
+    evaluations = [
+        event["payload"]
+        for event in events
+        if event["kind"] == "evaluation"
+        and event["payload"].get("split", "dev_monitor") == "dev_monitor"
+    ]
     complete_eval = [row for row in evaluations if row.get("success") is not None]
     result = {
         "committed_iterations": len(commits),
@@ -136,6 +145,36 @@ def summarize(root: Path, allocated_gpu_hours: float | None = None) -> dict:
         ]
         valid_counts = [c["valid"] for c in commits]
         result["valid_per_iteration_median"] = statistics.median(valid_counts)
+    observations = []
+    if attempted and valid / attempted < 0.25:
+        observations.append(
+            "Invalid proposals dominate; inspect the recorded reason/action patterns."
+        )
+    if rl_diagnostics and zero_rl == rl_diagnostics:
+        observations.append(
+            "All sampled RL gradients are zero; optimizer steps alone do not establish useful RL learning."
+        )
+    elif rl_diagnostics:
+        observations.append(
+            f"{zero_rl}/{rl_diagnostics} sampled RL gradients are zero; inspect mixed-reward yield."
+        )
+    if alignment_count and near_zero / alignment_count > 0.8:
+        observations.append(
+            "Most candidate alignments are near zero; inspect reference/candidate signal."
+        )
+    if not any(row.get("iteration", 0) > 0 for row in complete_eval):
+        observations.append(
+            "No post-training development evaluation is available; held-out improvement is not established."
+        )
+    if student_steps or proposer_steps:
+        observations.append(
+            "Mechanical optimizer updates occurred; this is distinct from demonstrated repair improvement."
+        )
+    result["interpretation"] = observations
+    result["scientific_underperformance_action"] = (
+        "review_and_recommend; no automatic scientific stopping gate"
+    )
+    result["requested_through_iteration"] = through_iteration
     return result
 
 
@@ -143,10 +182,15 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("run_dir", type=Path)
     parser.add_argument("--allocated-gpu-hours", type=float)
+    parser.add_argument("--through-iteration", type=int, choices=(5, 10, 20))
     args = parser.parse_args()
     if args.allocated_gpu_hours is not None and args.allocated_gpu_hours <= 0:
         parser.error("--allocated-gpu-hours must be positive")
-    print(json.dumps(summarize(args.run_dir, args.allocated_gpu_hours), indent=2))
+    print(
+        json.dumps(
+            summarize(args.run_dir, args.allocated_gpu_hours, args.through_iteration), indent=2
+        )
+    )
 
 
 if __name__ == "__main__":

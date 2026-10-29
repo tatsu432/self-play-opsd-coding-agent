@@ -1,0 +1,360 @@
+"""Checkpoint, lineage and upload-boundary regressions for Task 10."""
+
+import copy
+import random
+import sys
+import time
+from types import SimpleNamespace
+
+import numpy as np
+import pytest
+import torch
+
+from selfplay_opsd.config import load_config
+from selfplay_opsd.observability import WandbSink
+from selfplay_opsd.storage import CheckpointManager, EventStore, active_events
+from selfplay_opsd.telemetry import METHOD_NAMES, aggregate_metrics, canonical_snapshot
+
+
+def fixture(tmp_path, method="B"):
+    cfg = load_config(
+        study_id="telemetry", method=method, hardware_profile="cpu_debug", output_root=tmp_path
+    )
+    store = EventStore(cfg.run_dir, {"logical_run_id": "logical"})
+    return cfg, store
+
+
+def commit(store, iteration, extra=None):
+    store.iteration = iteration
+    metrics = {
+        "train": {"outer_iteration": iteration},
+        "compute": {"active_seconds": iteration * 10, "allocated_gpu_hours": iteration / 10},
+        "proposer": {
+            "attempted_count": 16,
+            "valid_count": 1,
+            "duplicate_count": 0,
+            "invalid_reasons": {"SECRET raw patch": 15},
+        },
+        "student": {
+            "success_numerator": 1,
+            "success_group_mix": {"1": 1},
+            "repair_success_fraction": 0.25,
+        },
+        "alignment": {"available": True, "scored_count": 0},
+    }
+    if extra:
+        metrics.update(extra)
+    store.emit(
+        "iteration_commit",
+        {"iteration": iteration, "metrics": metrics, "attempted": 16, "valid": 1, "episodes": 4},
+        committed=True,
+    )
+
+
+def checkpoint(store, iteration):
+    CheckpointManager(store.root).save(
+        iteration, {}, {"iteration": iteration, "segment_id": store.segment}
+    )
+
+
+def test_no_checkpoint_no_cloud_progress_and_resume_old_pointer(tmp_path):
+    cfg, store = fixture(tmp_path)
+    commit(store, 1)
+    assert canonical_snapshot(store.root, cfg)["rows"] == []
+    checkpoint(store, 1)
+    assert len(canonical_snapshot(store.root, cfg)["rows"]) == 1
+    commit(store, 2)
+    assert len(canonical_snapshot(store.root, cfg)["rows"]) == 1
+    checkpoint(store, 2)
+    resumed = EventStore(store.root, store.identity, rollback_to=1)
+    commit(resumed, 2)
+    snap = canonical_snapshot(store.root, cfg)
+    assert [r["train/outer_iteration"] for r in snap["rows"]] == [1]
+    checkpoint(resumed, 2)
+    snap2 = canonical_snapshot(store.root, cfg)
+    assert [r["train/outer_iteration"] for r in snap2["rows"]] == [1, 2]
+    assert snap2["rows"][-1]["run/segment_id"] == resumed.segment
+    assert snap2["revision"] != snap["revision"]
+
+
+def test_aggregate_allowlist_excludes_strings_arbitrary_keys_and_raw_tables(tmp_path):
+    cfg, store = fixture(tmp_path, "A")
+    commit(
+        store,
+        1,
+        {
+            "student": {
+                "success_numerator": 1,
+                "raw_text": "SECRET",
+                "SECRET": 99,
+                "loss": "SECRET",
+                "grad_norm": 1.0,
+            }
+        },
+    )
+    checkpoint(store, 1)
+    snap = canonical_snapshot(store.root, cfg)
+    assert "SECRET" not in str(snap)
+    assert snap["rows"][0]["alignment/available"] is False
+    assert "alignment/scored_count" not in snap["rows"][0]
+    assert aggregate_metrics({"student": {"grad_norm": float("nan")}}) == {}
+
+
+def test_only_complete_development_evaluation_is_published(tmp_path):
+    cfg, store = fixture(tmp_path)
+    checkpoint(store, 0)
+    for split in ("dev_monitor", "final_id"):
+        store.emit(
+            "evaluation",
+            {
+                "split": split,
+                "iteration": 0,
+                "parent_id": "private-id",
+                "success": True,
+                "expected": "SECRET",
+            },
+            committed=True,
+        )
+    assert not canonical_snapshot(store.root, cfg)["evaluations"]
+    store.emit("evaluation_complete", {"split": "dev_monitor"}, committed=True)
+    snap = canonical_snapshot(store.root, cfg)
+    assert len(snap["evaluations"]) == 1
+    assert snap["summary"]["eval/initial_dev_parent_macro"] == 1
+    assert "private-id" not in str(snap)
+
+
+class FakeRun:
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+        self.summary = {}
+        self.logs = []
+        self.url = "https://wandb.ai/authorized/project/logical"
+
+    def define_metric(self, *args, **kwargs):
+        pass
+
+    def log(self, row):
+        self.logs.append(copy.deepcopy(row))
+
+    def finish(self):
+        pass
+
+
+def test_sink_groups_resume_retry_and_never_uploads_raw_content(tmp_path, monkeypatch):
+    runs, calls = [], []
+
+    def init(**kwargs):
+        calls.append(kwargs)
+        run = FakeRun(**kwargs)
+        runs.append(run)
+        return run
+
+    sdk = SimpleNamespace(init=init, Settings=lambda **kw: kw, Table=lambda **kw: kw)
+    monkeypatch.setitem(sys.modules, "wandb", sdk)
+    cfg, store = fixture(tmp_path)
+    cfg.logging.mode = "online"
+    cfg.logging.upload_checkpoints = True
+    commit(store, 1)
+    checkpoint(store, 1)
+    sink = WandbSink(cfg, store)
+    sink.table("private", ["raw_text"], [["SECRET"]])
+    sink.finish()
+    assert calls[0]["id"] == "logical"
+    assert calls[0]["name"] == METHOD_NAMES["B"]
+    assert calls[0]["group"] == "telemetry"
+    assert calls[0]["resume"] == "allow"
+    assert "SECRET" not in str(runs[0].logs)
+    assert runs[0].logs[-1]["train/outer_iteration"] == 1
+    resumed = EventStore(store.root, store.identity, rollback_to=1)
+    again = WandbSink(cfg, resumed)
+    again.finish()
+    assert calls[1]["id"] == calls[0]["id"]
+    assert any(e["kind"] == "sample_table" for e in active_events(store.root))
+
+
+def test_sdk_exception_text_is_never_persisted(tmp_path, monkeypatch):
+    def init(**kwargs):
+        raise OSError("secret-key-and-private-context")
+
+    monkeypatch.setitem(sys.modules, "wandb", SimpleNamespace(init=init, Settings=lambda **kw: kw))
+    cfg, store = fixture(tmp_path)
+    sink = WandbSink(cfg, store)
+    time.sleep(0.05)
+    sink.finish()
+    warnings = [e for e in active_events(store.root) if e["kind"] == "logging_warning"]
+    assert warnings
+    assert "secret-key" not in str(warnings)
+    assert warnings[0]["payload"]["error_type"] == "OSError"
+
+
+def test_real_offline_sdk_does_not_change_scientific_rng(tmp_path):
+    cfg, store = fixture(tmp_path)
+    random.seed(99)
+    np.random.seed(99)
+    torch.manual_seed(99)
+    before = random.getstate(), np.random.get_state(), torch.get_rng_state().clone()
+    sink = WandbSink(cfg, store)
+    sink.finish()
+    after = random.getstate(), np.random.get_state(), torch.get_rng_state()
+    assert before[0] == after[0]
+    assert np.array_equal(before[1][1], after[1][1])
+    assert before[1][2:] == after[1][2:]
+    assert torch.equal(before[2], after[2])
+
+
+def test_online_config_changes_no_science_except_study():
+    old = load_config(__import__("pathlib").Path("configs/task09-diagnostics.yaml"))
+    new = load_config(__import__("pathlib").Path("configs/task10-online.yaml"))
+    assert old.scientific_settings(common=True, calibration=True) == new.scientific_settings(
+        common=True, calibration=True
+    )
+    assert old.hardware == new.hardware
+    assert old.logging.mode == "offline" and new.logging.mode == "online"
+
+
+def test_actual_gpu_hour_axis_uses_slurm_not_trainer_estimate(tmp_path):
+    import json
+
+    cfg, store = fixture(tmp_path)
+    sample_path = store.root / "state/allocation-samples.jsonl"
+    sample_path.write_text(
+        json.dumps({"timestamp": 1, "allocated_gpu_hours": 7.0, "job_id": "42"}) + "\n"
+    )
+    commit(store, 1)
+    checkpoint(store, 1)
+    row = canonical_snapshot(store.root, cfg)["rows"][0]
+    assert row["compute/allocated_gpu_hours"] == 7.0
+    assert row["compute/trainer_gpu_hours_estimate"] == 0.1
+    assert row["run/slurm_job_id"] == "42"
+
+
+def test_pinned_sdk_accepts_canonical_tables_and_dashboard_charts(tmp_path):
+    cfg, store = fixture(tmp_path)
+    commit(store, 1)
+    checkpoint(store, 1)
+    sink = WandbSink(cfg, store)
+    sink.finish()
+    warnings = [e for e in active_events(store.root) if e["kind"] == "logging_warning"]
+    assert not warnings
+    assert sink.status["sdk_delivered_iteration"] == 1
+
+
+def test_rollback_clears_stale_cloud_summaries():
+    from selfplay_opsd.telemetry import update_canonical_summary
+
+    run = FakeRun()
+    run.summary = {
+        "student/grad_norm": 9,
+        "eval/best_dev_parent_macro": 0.5,
+        "run/logical_run_id": "logical",
+    }
+    update_canonical_summary(run, {"run/checkpoint_iteration": 0})
+    assert run.summary["student/grad_norm"] is None
+    assert run.summary["eval/best_dev_parent_macro"] is None
+    assert run.summary["run/logical_run_id"] == "logical"
+
+
+@pytest.mark.wandb_online
+def test_cloud_method_grouping_checkpoint_restart_and_rollback(tmp_path, monkeypatch):
+    """Explicit opt-in; all cloud runs are labelled synthetic and never main."""
+    import json
+    import netrc
+    import os
+    import uuid
+    from pathlib import Path
+
+    if not os.getenv("SELFPLAY_WANDB_CLOUD_TEST"):
+        pytest.skip("Explicit cloud integration opt-in required")
+    import wandb
+
+    credentials = netrc.netrc().authenticators("api.wandb.ai")
+    monkeypatch.setenv("WANDB_API_KEY", credentials[2])
+    api = wandb.Api(timeout=15)
+    entity = api.default_entity
+    group = "task10-synthetic-telemetry-verification"
+    reports = []
+    for method in "ABCD":
+        cfg = load_config(
+            study_id=group, method=method, hardware_profile="cpu_debug", output_root=tmp_path
+        )
+        cfg.logging.mode = "online"
+        cfg.logging.entity = entity
+        logical = "task10check-" + uuid.uuid4().hex[:12] + method
+        store = EventStore(cfg.run_dir, {"logical_run_id": logical})
+        commit(store, 1)
+        checkpoint(store, 1)
+        sink = WandbSink(cfg, store)
+        sink.finish()
+        assert not sink.status["delivery_errors"]
+        resumed = EventStore(store.root, store.identity, rollback_to=1)
+        commit(resumed, 2)
+        checkpoint(resumed, 2)
+        sink = WandbSink(cfg, resumed)
+        sink.finish()
+        assert not sink.status["delivery_errors"]
+        # Roll back a previously cloud-published iteration, then replay it with
+        # a fresh event identity. The canonical view must have exactly two rows.
+        rollback = EventStore(store.root, store.identity, rollback_to=1)
+        sink = WandbSink(cfg, rollback)
+        sink.finish()
+        assert not sink.status["delivery_errors"]
+        api.flush()
+        remote = api.run(f"{entity}/{cfg.logging.project}/{logical}")
+        assert remote.summary["run/canonical_rows"] == 1
+        commit(rollback, 2)
+        checkpoint(rollback, 2)
+        sink = WandbSink(cfg, rollback)
+        sink.finish()
+        assert not sink.status["delivery_errors"]
+        api.flush()
+        remote = api.run(f"{entity}/{cfg.logging.project}/{logical}")
+        assert remote.name == METHOD_NAMES[method]
+        assert remote.group == group
+        assert remote.summary["train/outer_iteration"] == 2
+        assert remote.summary["run/canonical_rows"] == 2
+        assert remote.summary["canonical/training"]["nrows"] == 2
+        reports.append(
+            {
+                "method": method,
+                "url": remote.url,
+                "logical_run_id": logical,
+                "cloud_verified_iteration": 2,
+                "rollback_verified": True,
+                "synthetic_fixture": True,
+                "group": group,
+            }
+        )
+    report = Path(os.getenv("SELFPLAY_WANDB_VERIFY_REPORT", str(tmp_path / "cloud-report.json")))
+    report.parent.mkdir(parents=True, exist_ok=True)
+    report.write_text(json.dumps(reports, indent=2) + "\n")
+
+
+def test_network_delivery_failure_reconnects_and_replays_local_checkpoint(tmp_path, monkeypatch):
+    calls = []
+
+    class Interrupted(FakeRun):
+        def log(self, row):
+            raise OSError("private-network-error-body")
+
+    def init(**kwargs):
+        calls.append(kwargs)
+        return Interrupted(**kwargs) if len(calls) == 1 else FakeRun(**kwargs)
+
+    monkeypatch.setitem(
+        sys.modules,
+        "wandb",
+        SimpleNamespace(init=init, Settings=lambda **kw: kw, Table=lambda **kw: kw),
+    )
+    cfg, store = fixture(tmp_path)
+    cfg.logging.mode = "online"
+    commit(store, 1)
+    checkpoint(store, 1)
+    sink = WandbSink(cfg, store)
+    deadline = time.monotonic() + 8
+    while sink.status["sdk_delivered_iteration"] != 1 and time.monotonic() < deadline:
+        time.sleep(0.02)
+    sink.finish()
+    assert sink.status["sdk_delivered_iteration"] == 1
+    assert sink.status["delivery_errors"] == 1
+    assert len(calls) == 2 and calls[0]["id"] == calls[1]["id"]
+    assert "private-network-error-body" not in str(active_events(store.root))

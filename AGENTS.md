@@ -29,6 +29,35 @@ documents are historical. Read `README.md`, `docs/methods.md` and
 
 ## Yale operations
 
+**Authorized initial A run:** the user explicitly authorized one H200 allocation
+up to 23 GPU-hours, capped at iteration 20, with no automatic continuation and no
+B/C/D. Controller run `a87f3772b284d35a375cf69e`, Slurm job `31219895`, was
+submitted with frozen execution `54f087fdc5cf5170800d825bf1ee92b89a43c8ed`.
+Inspect this existing run and scheduler state before any action; never duplicate
+it. Review live W&B and scientific health at iterations 5, 10 and 20. A clean
+checkpoint at 20 requires a new authorization for continuation.
+
+
+Task 10 online successor is `repair-selfplay-2026-main-online-v1`, settings
+`configs/task10-online.yaml`, frozen execution
+`54f087fdc5cf5170800d825bf1ee92b89a43c8ed` (CPU freeze 31206522).
+Frozen-source CI 40784025848 passed 272 tests. Allocated-node W&B cloud delivery
+and same-run cross-process resume passed in CPU job 31208617; authorized entity
+is `tatsu432s`, username `tatsu432`. All four actual online main previews passed;
+no main training job was submitted, and main training remains unauthorized.
+Use `docs/task10-launch.md` and the Task 10 completion record. Credentials remain
+outside Git in private files. Login uses isolated W&B 0.22.3 for new-format keys;
+the frozen trainer SDK/image/lock remain unchanged and online delivery is proven.
+The user accepted the measured proposer numerical sensitivity for a bounded
+initial A experiment. Main GPU-hour authorization is still required. Student total
+counterfactual gradient cosines were about 0.9986, but the actual-D proposer
+counterfactual Adam-update cosine was 0.58968. No estimator/science correction
+was adopted. Replays 31208618 and 31212941 completed; the shared locked ledger
+is reconciled at **7.79/24 allocated GPU-hours**, zero reservation, no active
+Slurm job/watcher. Do not repeat probes to seek a different outcome or treat
+controller eligibility as scientific risk acceptance. Task 09 and Task 08
+freezes below remain separate preserved baselines.
+
 Task 09 v2 is launch ready with caveats on `feat/09-efficiency-learnability`,
 `configs/task09-diagnostics.yaml`, study `repair-selfplay-2026-efficiency-v2`.
 Freeze 31197007 and all four actual previews passed; frozen execution is
@@ -337,3 +366,11 @@ inspect that job and accounting, then resume monitoring without duplicating it.
 The existing 24 GPU-hour cap and H100-first/OOM-only H200 rule still apply.
 The user has not answered the separate H200 exception question. No main A–D
 jobs have been submitted; Task 06 remains incomplete.
+
+## Task 10 initial main A stage — 2026-10-28
+
+The user authorized one bounded Experiment A H200 allocation through iteration 20. Job 31219895 completed successfully, stopped at iteration 20 and consumed 1.527778 allocated GPU-hours; no continuation or B–D job was submitted. The latest checkpoint is `000020`, with complete manifest and resumable metadata; the controller must verify file checksums and identity before any future resume. W&B run: https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/9c125e660c942541076d5d50. Valid proposals 30/320, successful solver episodes 40/120, development evaluation 12/41 after training versus 0/41 initially. See `docs/task_completion/10-implemented-main-experiment.md` for scientific health, limits and accounting. Further main allocation requires authorization; do not automatically continue.
+
+## Task 10 Experiment A completed — 2026-10-29
+
+The user authorized continuation to the frozen 200-iteration target. Initial job 31219895 and continuation 31232768 used 7.7025 allocated H200 GPU-hours in total. Slurm recorded the continuation `COMPLETED` (exit 0); trainer health is `complete` at iteration 200 and the latest checkpoint pointer is `000200`. No B–D jobs have been submitted. Scientific events report 173/3,200 valid proposals, 162/692 successful episodes, and 5/173 mixed-outcome groups. The 41-task development success was 12 at iterations 20 and 40, then declined to 0 at iteration 100 and remained 0 through iteration 200. Final held-out evaluations have not been run. W&B delivery failed after iteration 139 (86 recorded delivery errors); the cloud dashboard is stale, while local events and checkpoints are preserved. A full checkpoint-inclusive fetch/reconciliation remains outstanding; see the Task 10 completion record and `docs/task10-launch.md`. Do not interpret cloud finished status at 139 as a training stop. Do not submit B–D or new training without authorization.
