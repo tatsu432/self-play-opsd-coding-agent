@@ -39,8 +39,8 @@ no main training job was submitted, and main training remains unauthorized.
 Use `docs/task10-launch.md` and the Task 10 completion record. Credentials remain
 outside Git in private files. Login uses isolated W&B 0.22.3 for new-format keys;
 the frozen trainer SDK/image/lock remain unchanged and online delivery is proven.
-Task 10's final recommendation is **NO-GO for unqualified main launch pending
-scientific review of material proposer numerical sensitivity**. Student total
+The user accepted the measured proposer numerical sensitivity for a bounded
+initial A experiment. Main GPU-hour authorization is still required. Student total
 counterfactual gradient cosines were about 0.9986, but the actual-D proposer
 counterfactual Adam-update cosine was 0.58968. No estimator/science correction
 was adopted. Replays 31208618 and 31212941 completed; the shared locked ledger

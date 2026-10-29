@@ -1480,6 +1480,16 @@ def study_state(payload: dict) -> dict:
 
 def precheck(payload: dict):
     operation = payload["operation"]
+    stop = payload.get("stop_after_iteration", 0)
+    if (
+        type(stop) is not int
+        or stop < 0
+        or (
+            stop
+            and (operation not in {"train", "pilot"} or stop >= payload.get("target_iterations", 0))
+        )
+    ):
+        raise ValueError("Invalid bounded iteration stop")
     excluded = payload.get("exclude_nodes", [])
     if excluded and (
         operation not in {"allocation-check", "backend-check"}

@@ -337,6 +337,7 @@ def run_payload(
     worker_setup_id: str = "",
     partition: str | None = None,
     exclude_nodes: list[str] | None = None,
+    stop_after_iteration: int | None = None,
 ) -> dict:
     if operation not in {
         "backend-check",
@@ -410,6 +411,10 @@ def run_payload(
         raise HpcError("Node exclusions require trusted diagnostics and explicit node names")
     partition = partition or GPU_PARTITIONS[chosen_gpu]
     cfg = load_config(settings, method=method, hardware_profile=profile)
+    if stop_after_iteration is not None and (
+        operation != "train" or not 1 <= stop_after_iteration < cfg.iterations
+    ):
+        raise HpcError("A bounded stop requires training and an iteration below the frozen budget")
     state = remote.call("study", {"storage_root": storage, "study_id": cfg.study_id})
     if (
         operation == "train"
@@ -544,6 +549,7 @@ def run_payload(
         "supervisor_hash": supervisor_hash(),
         "pilot_suffix": pilot_suffix,
         "target_iterations": iterations if operation == "pilot" else cfg.iterations,
+        "stop_after_iteration": stop_after_iteration or 0,
         "max_continuations": 1
         if operation == "pilot"
         else planning.get(
@@ -1041,6 +1047,7 @@ def submit_command(
     checkpoint_iteration: int | None = None,
     endpoint: str = "primary",
     secrets_file: str | None = None,
+    stop_after_iteration: int | None = None,
     dry_run: bool = False,
     alias: str = ALIASES[0],
 ):
@@ -1063,6 +1070,7 @@ def submit_command(
         checkpoint_iteration=checkpoint_iteration,
         endpoint=endpoint,
         secrets_file=secrets_file,
+        stop_after_iteration=stop_after_iteration,
     )
     output(remote.call("preview" if dry_run else "submit", payload))
 

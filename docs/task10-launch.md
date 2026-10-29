@@ -1,9 +1,8 @@
 # Task 10 — online launch and recovery
 
-**Current recommendation: NO-GO for an unqualified main launch pending the
-measured proposer numerical-sensitivity decision.** Main A–D training still
-requires explicit scientific-risk acceptance or an approved correction, and
-separate GPU-hour authorization. Use this workflow with
+**The user accepted the documented numerical sensitivity for a bounded initial
+A run.** A separate main GPU-hour authorization is still required. The first
+allocation must stop at iteration 20 and must not automatically continue. Use this workflow with
 `configs/task10-online.yaml`, study `repair-selfplay-2026-main-online-v1`.
 Frozen execution is `54f087fdc5cf5170800d825bf1ee92b89a43c8ed` (CPU freeze
 31206522). The original Task 09 v2 freeze remains available as a separate offline fallback.
@@ -22,8 +21,7 @@ uv tool run --from wandb==0.22.3 wandb login
 uv run python scripts/setup_wandb.py --from-login "$HOME/.config/selfplay/wandb.env"
 ```
 
-The setup helper uses the authenticated default entity. Username is `tatsu432`;
-`tatsu432` and `tatsu432s` are user-supplied candidate entities, not verified facts.
+The authenticated username is `tatsu432` and verified default entity is `tatsu432s`.
 If needed, specify the authorized entity with `--entity`. The helper refuses to
 overwrite an existing file. It creates the credential file with mode 600 from
 creation. Do not place it inside this checkout. Securely provision the same file
@@ -106,7 +104,7 @@ The shared readiness allowance is never the main-training budget.
 Start A first:
 
 ```bash
-uv run selfplay hpc submit --settings configs/task10-online.yaml --operation train --method A --profile single_gpu_80gb --gpu-type h200 --account cpsc4880 --secrets-file /home/cpsc4880_ts2236/.config/selfplay/wandb.env
+uv run selfplay hpc submit --settings configs/task10-online.yaml --operation train --method A --profile single_gpu_80gb --gpu-type h200 --account cpsc4880 --secrets-file /home/cpsc4880_ts2236/.config/selfplay/wandb.env --stop-after-iteration 20
 ```
 
 After the initial review and separate authorization for remaining methods:

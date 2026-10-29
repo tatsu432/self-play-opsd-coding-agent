@@ -343,6 +343,7 @@ def test_recovery_uses_verified_joint_checkpoint_once(tmp_path, monkeypatch):
         "seed": 2026,
         "operation": "train",
         "target_iterations": 200,
+        "stop_after_iteration": 20,
         "time": "01:00:00",
         "scientific_hash": "science",
         "manifests_hash": "data",
@@ -350,10 +351,60 @@ def test_recovery_uses_verified_joint_checkpoint_once(tmp_path, monkeypatch):
     result = remote.recover(payload)
     assert result["submitted"] is True
     assert submitted[0]["resume"] == str(checkpoint)
+    assert submitted[0]["stop_after_iteration"] == 20
     assert remote.recover(payload)["reason"] == "concurrent_recovery"
     state.write_bytes(b"tampered")
     with pytest.raises(ValueError, match="verification failed"):
         remote.verified_checkpoint(payload)
+
+
+def test_bounded_stop_is_cleared_only_on_explicit_clean_continuation(tmp_path, monkeypatch):
+    remote = remote_module()
+    run = tmp_path / "runs/study/A-seed2026"
+    checkpoint = run / "checkpoints/000020"
+    checkpoint.mkdir(parents=True)
+    state = checkpoint / "state.pt"
+    state.write_bytes(b"joint state")
+    (checkpoint / "metadata.json").write_text(
+        json.dumps({"iteration": 20, "scientific_hash": "science", "manifests_hash": "data"})
+    )
+    (checkpoint / "complete.json").write_text(
+        json.dumps({"files": {"state.pt": hashlib.sha256(state.read_bytes()).hexdigest()}})
+    )
+    (checkpoint.parent / "latest.json").write_text(json.dumps({"path": "000020", "iteration": 20}))
+    (run / "state").mkdir()
+    (run / "state/health.json").write_text(json.dumps({"phase": "stopped"}))
+    monkeypatch.setattr(remote, "paths", lambda _: {"runs": tmp_path / "runs"})
+    monkeypatch.setattr(remote, "workspace", lambda _: tmp_path)
+    monkeypatch.setattr(remote, "job_state", lambda _: {"state": "COMPLETED"})
+    submitted = []
+    monkeypatch.setattr(
+        remote, "submit", lambda payload: submitted.append(payload) or {"submitted": True}
+    )
+    ledger = tmp_path / "state/run1.json"
+    ledger.parent.mkdir()
+    ledger.write_text(
+        json.dumps({"identity": "same", "attempts": [{"job_id": "123"}], "run_dir": str(run)})
+    )
+    payload = {
+        "storage_root": str(tmp_path),
+        "run_id": "run1",
+        "identity": "same",
+        "study_id": "study",
+        "method": "A",
+        "seed": 2026,
+        "operation": "train",
+        "target_iterations": 200,
+        "stop_after_iteration": 20,
+        "max_continuations": 5,
+        "time": "23:00:00",
+        "scientific_hash": "science",
+        "manifests_hash": "data",
+    }
+    assert not remote.recover(payload)["submitted"]
+    assert remote.recover(payload | {"explicit_continue": True})["submitted"]
+    assert submitted[0]["stop_after_iteration"] == 0
+    assert submitted[0]["target_iterations"] == 200
 
 
 def test_operational_mounts_do_not_change_scientific_hash(monkeypatch):
@@ -533,9 +584,13 @@ def test_main_preview_uses_frozen_main_budget_and_resource_plan(
         image_sha256="",
         settings=Path("configs/task08.yaml"),
         iterations=7,
+        stop_after_iteration=20 if operation == "train" else None,
     )
     assert payload["iterations"] == payload["target_iterations"] == expected_iterations
     if operation == "train":
+        assert payload["stop_after_iteration"] == 20
+        assert payload["common_config"]["iterations"] == 200
+        assert payload["target_iterations"] == 200
         assert payload["commit"] == "f" * 40
         assert payload["signal_seconds"] == 5000
         assert payload["max_continuations"] == 6

@@ -1,7 +1,6 @@
 # Task 10 — main launch engineering
 
-Status: **NO-GO for an unqualified main launch: numerical scientific review is
-required.** Online monitoring, mechanical readiness, freeze, recovery and four
+Status: **the user accepted the numerical sensitivity for a bounded initial A run; main GPU-hour authorization remains required.** Online monitoring, mechanical readiness, freeze, recovery and four
 actual main previews are validated. Main A–D training remains unauthorized and
 unsubmitted. The numerical investigation is complete within its bounded budget;
 it found material proposer sensitivity, not a proven indexing/serialization bug.
@@ -15,6 +14,7 @@ it found material proposer sensitivity, not a proven indexing/serialization bug.
 | Compute plan | Bound to freeze; conditional scenarios remain reasonable, not upper bounds |
 | Main launch | Requires a scientific risk decision and separate GPU-hour authorization |
 
+The user accepted the documented estimator sensitivity for the bounded initial A run.
 The controller's eligibility flag measures its existing immutable readiness gates;
 it is currently true. It does not supersede this Task 10 scientific recommendation
 or provide spending authorization. No new arbitrary success-rate or automatic
@@ -299,3 +299,14 @@ Optional batching, CUDA Graphs, prefix caching and larger scoring microbatches
 remain disabled. Preserved older freezes must not be used to bypass the new
 numerical review; the measured backend sensitivity is not removed by reverting
 operational documentation or logging configuration.
+
+
+## Bounded A launch preparation
+
+The existing frozen trainer accepts a stop-at-iteration control without changing its
+200-iteration scientific configuration. The controller exposes `--stop-after-iteration`
+and checks its range; the persisted submission retains it across transient retries.
+A clean stop at 20 writes a verified joint checkpoint. Only an explicit later
+`resume --continue-stopped` clears that stop; no watcher or automatic continuation
+is authorized for the initial allocation. Main A requires separate explicit
+GPU-hour authorization before submission.
