@@ -1,7 +1,7 @@
 # Yale A–D readiness and launch
 
-Task 10: **NO-GO pending numerical scientific review**, despite verified online
-monitoring and mechanical readiness. See the [online launch and recovery workflow](task10-launch.md)
+Task 10: the user accepted the numerical sensitivity for a bounded initial A run.
+A main GPU-hour authorization is still required; stop at iteration 20. See the [online launch and recovery workflow](task10-launch.md)
 and [Task 10 implementation record](task_completion/10-implemented-main-experiment.md).
 Main training remains separately unauthorized.
 

@@ -12,7 +12,7 @@ it found material proposer sensitivity, not a proven indexing/serialization bug.
 | Frozen scientific design | Preserved exactly; no denominator/objective correction adopted |
 | Live W&B | Verified from allocated compute and four synthetic method fixtures |
 | Compute plan | Bound to freeze; conditional scenarios remain reasonable, not upper bounds |
-| Main launch | Requires a scientific risk decision and separate GPU-hour authorization |
+| Main launch | Numerical sensitivity accepted for bounded A; separate GPU-hour authorization required |
 
 The user accepted the documented estimator sensitivity for the bounded initial A run.
 The controller's eligibility flag measures its existing immutable readiness gates;
@@ -226,9 +226,9 @@ actual sampler and must not be replaced merely to force ratios to one. However,
 the measured effect is too large to label the proposer discrepancy harmless.
 The exact BF16/attention/LoRA kernel source was not isolated. Indexing, masks,
 serialization, sampled IDs and snapshot identities passed the scoped audit.
-A scientific decision is needed: explicitly accept the retained estimator's
-measured sensitivity for A-first, or authorize a narrowly scoped scoring
-consistency correction with a new immutable study and affected validation.
+The user explicitly accepted this sensitivity for the bounded initial A run.
+Any later scoring-consistency correction requires a new immutable study and
+affected validation.
 No additional broad readiness cycle is recommended, and no correction was
 silently adopted.
 
@@ -310,3 +310,8 @@ A clean stop at 20 writes a verified joint checkpoint. Only an explicit later
 `resume --continue-stopped` clears that stop; no watcher or automatic continuation
 is authorized for the initial allocation. Main A requires separate explicit
 GPU-hour authorization before submission.
+
+The actual controller preview for bounded A passed with `submitted=false`, run
+ID `a87f3772b284d35a375cf69e`, frozen execution `54f087fdc5cf5170800d825bf1ee92b89a43c8ed`,
+`target_iterations=200`, `stop_after_iteration=20`, one H200, 23-hour cap and
+4,616-second stop lead. Controller commit `2df6902` passed 88 scoped tests.
