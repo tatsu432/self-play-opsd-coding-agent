@@ -1769,6 +1769,40 @@ def reuse_worker(payload: dict) -> dict:
     return {"ready": True, "evidence": str(target), "provenance": reused["reuse_provenance"]}
 
 
+def reuse_telemetry(payload: dict) -> dict:
+    """Reuse the actual allocated-node cloud proof when its dependencies match."""
+    source_study, study = payload["source_study"], payload["study_id"]
+    if (
+        not SAFE_NAME.fullmatch(source_study)
+        or not SAFE_NAME.fullmatch(study)
+        or source_study == study
+    ):
+        raise ValueError("Distinct safe study names required")
+    base = workspace(payload)
+    if (base / "runs" / study / "study_frozen.json").exists():
+        raise ValueError("Target study is frozen; evidence cannot be replaced")
+    source = base / "runs/readiness" / source_study / "wandb-verification.json"
+    report = json.loads(source.read_text())
+    frozen = json.loads((base / "runs" / source_study / "study_frozen.json").read_text())
+    if (
+        not report.get("ready")
+        or not report.get("cloud_verified")
+        or report.get("sequence") != 2
+        or report.get("entity") != payload.get("entity")
+        or report.get("telemetry_identity") != payload.get("telemetry_identity")
+        or frozen.get("telemetry_identity") != payload.get("telemetry_identity")
+        or frozen.get("runtime_identity", {}).get("trainer_sha256") != payload.get("trainer_sha256")
+    ):
+        raise ValueError("Telemetry proof dependencies differ or cloud verification is incomplete")
+    reused = report | {"reuse_provenance": {"source": str(source), "sha256": sha256(source)}}
+    target = base / "runs/readiness" / study / "wandb-verification.json"
+    with locked(base / "state/.telemetry-evidence.lock"):
+        if target.exists() and json.loads(target.read_text()) != reused:
+            raise ValueError("Destination already has different telemetry evidence")
+        write_json(target, reused)
+    return {"ready": True, "evidence": str(target), "provenance": reused["reuse_provenance"]}
+
+
 def publish_resource_plan(payload: dict) -> dict:
     """Publish a measured plan once, before the immutable study freeze."""
     study = payload["study_id"]
@@ -1968,6 +2002,7 @@ COMMANDS = {
     "recover": recover,
     "recover_allocation": recover_allocation,
     "reuse_worker": reuse_worker,
+    "reuse_telemetry": reuse_telemetry,
     "reuse_study": reuse_study,
     "publish_resource_plan": publish_resource_plan,
 }

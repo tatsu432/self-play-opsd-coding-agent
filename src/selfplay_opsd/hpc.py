@@ -122,6 +122,7 @@ class YaleSSH:
             "recover",
             "recover_allocation",
             "reuse_worker",
+            "reuse_telemetry",
             "reuse_study",
             "publish_resource_plan",
             "logs",
@@ -973,6 +974,37 @@ def reuse_worker_command(
                 "execution_limits": cfg.sandbox.execution_limits(),
                 "supervisor_hash": supervisor_hash(),
                 "worker_setup_id": "",
+            },
+        )
+    )
+
+
+@app.command("reuse-telemetry")
+def reuse_telemetry_command(
+    source_study: str,
+    settings: Path = Path("configs/yale.yaml"),
+    entity: str = "tatsu432s",
+    alias: str = ALIASES[0],
+):
+    """Reuse a matching allocated-node cloud/resume proof with provenance."""
+    from selfplay_opsd.telemetry import telemetry_identity
+
+    remote = YaleSSH(alias)
+    context = remote_context(remote, alias)
+    cfg = load_config(settings)
+    state = remote.call(
+        "study", {"storage_root": context["storage_root"], "study_id": source_study}
+    )
+    output(
+        remote.call(
+            "reuse_telemetry",
+            {
+                "storage_root": context["storage_root"],
+                "study_id": cfg.study_id,
+                "source_study": source_study,
+                "entity": entity,
+                "telemetry_identity": telemetry_identity(),
+                "trainer_sha256": state["images"]["trainer"]["sha256"],
             },
         )
     )
