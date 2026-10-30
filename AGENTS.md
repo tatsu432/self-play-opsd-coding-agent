@@ -49,6 +49,11 @@ exited, CPU job `31397974` verified the final checkpoint checksums and reconcile
 the original W&B run; cloud verification reached iteration 200, canonical
 revision `292f50c216df0a7bb0bdd680e51dc459e83d88d212d67e67f6ff46637b6f3f7a`.
 Corrected B job `31381376` was running at iteration 153 at this snapshot.
+An aggregate event analysis of A finds 161/3,200 valid proposals; iterations
+141–200 contributed 17/960. Of 98 student optimizer steps, 82 had zero current
+group-relative RL signal; earlier optimizer momentum can still contribute. The
+aggregate fetch omitted raw trajectory shards, so action-level failure causes
+are not established by that analysis.
 
 This repository studies controlled Python repair self-play with on-policy self
 distillation (OPSD), GRPO and verifiable rewards. The authoritative scientific
