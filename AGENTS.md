@@ -120,6 +120,9 @@ These small-window observations are provisional; continue to the bounded 40.
 Through iteration 30, the resumed 21–30 window had 9/160 valid proposals,
 15/36 successful episodes, seven steps per optimizer and eight neutral scores
 of nine. The job remained active with stop 40 after this review.
+Through iteration 35, iterations 21–35 had 15/240 valid proposals, 27/60
+successful episodes, eleven steps per optimizer and fourteen neutral alignment
+scores of fifteen. The existing continuation remains bounded to 40.
 
 This repository studies controlled Python repair self-play with on-policy self
 distillation (OPSD), GRPO and verifiable rewards. The authoritative scientific
