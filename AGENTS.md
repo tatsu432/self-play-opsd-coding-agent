@@ -1,5 +1,16 @@
 # Project and operating instructions
 
+## Corrected C iteration 40 — latest live state
+
+Continuation job `31455833` completed successfully at the bounded iteration 40
+stop (5,063 seconds, 1.406389 H200 GPU-hours). Development evaluation scored
+10/41, versus corrected A 12/41 and B 13/41 at the same iteration. The trainer
+reports stopped; do not duplicate the completed job. CPU job `31468758`
+verified the checkpoint checksums and identity and reconciled W&B through 40;
+canonical revision is `688236f3308ee749b7e89a192165fd35fd8b2190a38cee57e9c876ea020cf5a3`.
+The next planned bounded continuation is to iteration 100, with reviews at 60,
+80 and 100; inspect scheduler and ledger before submission.
+
 ## Standing submission authorization — 2026-10-30
 
 The user authorizes the submissions needed to complete the corrected study,
