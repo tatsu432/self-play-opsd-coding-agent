@@ -28,7 +28,8 @@ any action; do not duplicate them. Monitor development and telemetry for
 regression. A's later development results were 12/41 at iteration 40, 11/41
 at 60, 10/41 at 80, 11/41 at both 100 and 120, 10/41 at 140, and 11/41 at 160,
 following 14/41 at 20.
-B was 13/41 at both 20 and 40, 12/41 at 60, 11/41 at 80, and 9/41 at 100.
+B was 13/41 at both 20 and 40, 12/41 at 60, 11/41 at 80, 9/41 at 100,
+and 10/41 at 120.
 A's iterations 98–117
 produced only 6 valid proposals out of 320 attempts, with 131 duplicates;
 monitor the declining proposal yield. A has not repeated the earlier collapse
