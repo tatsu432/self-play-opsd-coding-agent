@@ -108,6 +108,11 @@ job `31455833` resumed verified checkpoint `000020` with an explicit stop at
 iteration 40; the scheduler export and ledger both confirm 40. Inspect this
 existing job before any action and never duplicate it. Review the complete
 iteration-40 result and alignment health, then verify its joint checkpoint.
+The standard local `hpc watch` was started for this run (local process 73899,
+2026-10-30) without `--continue-stopped`: it monitors and may retry only
+documented transient scheduler failures, preserving the iteration-40 stop.
+It does not perform the scientific review; check whether the watcher remains
+alive after any interruption and inspect the ledger and Slurm before acting.
 
 This repository studies controlled Python repair self-play with on-policy self
 distillation (OPSD), GRPO and verifiable rewards. The authoritative scientific
