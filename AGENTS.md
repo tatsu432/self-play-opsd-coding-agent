@@ -42,6 +42,13 @@ trainer writer has stopped, reconcile and cloud-verify checkpoint-backed aggrega
 as necessary with the single-writer recovery mechanism. These job
 states are a snapshot, not live state.
 
+Corrected A reached iteration 200 and Slurm job `31372772` completed with exit
+0; its final development result was 11/41. Including initial job `31364215`,
+allocated time was 29,179 seconds (8.1053 H200 GPU-hours). CPU reconciliation
+job `31397974` was submitted once after the trainer exited to verify and
+reconcile A's checkpoint-backed dashboard; inspect it before any further action.
+Corrected B job `31381376` was running at iteration 151 at this snapshot.
+
 This repository studies controlled Python repair self-play with on-policy self
 distillation (OPSD), GRPO and verifiable rewards. The authoritative scientific
 specification is `docs/task/01-experiment-implementation-spec.md`; early proposal
