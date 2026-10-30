@@ -442,8 +442,15 @@ def recover(payload: dict) -> dict:
     ledger = read_ledger(path)
     if ledger.get("specification"):
         payload = ledger["specification"] | {
-            "explicit_continue": bool(request.get("explicit_continue"))
+            "explicit_continue": bool(request.get("explicit_continue")),
+            "stop_after_iteration": ledger.get(
+                "active_stop_after_iteration",
+                ledger["specification"].get("stop_after_iteration", 0),
+            ),
         }
+    requested_stop = request.get("continuation_stop")
+    if requested_stop is not None and not request.get("explicit_continue"):
+        raise ValueError("A continuation stop requires explicit clean continuation")
     if ledger.get("identity") != payload["identity"] or not ledger["attempts"]:
         raise ValueError("Run identity or initial submission missing")
     if ledger.get("pending_intent"):
@@ -452,6 +459,8 @@ def recover(payload: dict) -> dict:
     if state in ACTIVE or state == "UNKNOWN":
         return {"submitted": False, "state": state}
     planned = bool(payload.get("explicit_continue")) and state in {"COMPLETED", "TIMEOUT"}
+    if requested_stop is not None and not planned:
+        return {"submitted": False, "state": state, "reason": "not_a_clean_continuation"}
     if state == "COMPLETED" and not planned:
         return {"submitted": False, "state": state, "reason": "inspect_scientific_completion"}
     if not planned and state not in {"PREEMPTED", "NODE_FAIL", "BOOT_FAIL"}:
@@ -476,6 +485,19 @@ def recover(payload: dict) -> dict:
         return {"submitted": False, "state": state, "reason": "not_a_clean_stop"}
     if planned and ledger.get("continuations", 0) >= payload.get("max_continuations", 0):
         return {"submitted": False, "state": state, "reason": "continuation_limit"}
+    if requested_stop is not None and (
+        not isinstance(requested_stop, int)
+        or isinstance(requested_stop, bool)
+        or not metadata["iteration"] < requested_stop < payload.get("target_iterations", 0)
+    ):
+        raise ValueError("Continuation stop must be after the checkpoint and before the target")
+    next_stop = (
+        requested_stop
+        if requested_stop is not None
+        else 0
+        if planned and metadata["iteration"] >= payload.get("stop_after_iteration", 0)
+        else payload.get("stop_after_iteration", 0)
+    )
     # Reserve a retry under the same lock as submission; a failed reservation is
     # left auditable and cannot cause an unbounded scheduler loop.
     with locked(path.with_suffix(".lock")):
@@ -492,14 +514,13 @@ def recover(payload: dict) -> dict:
             return {"submitted": False, "state": state, "reason": "continuation_limit"}
         current[counter] = current.get(counter, 0) + 1
         current["recovery_from_job"] = previous_job
+        current["active_stop_after_iteration"] = next_stop
         write_json(path, current)
     result = submit(
         {
             **payload,
             "resume": checkpoint,
-            "stop_after_iteration": 0
-            if metadata["iteration"] >= payload.get("stop_after_iteration", 0)
-            else payload.get("stop_after_iteration", 0),
+            "stop_after_iteration": next_stop,
             "time": payload.get("continuation_time", payload["time"]),
         }
     )

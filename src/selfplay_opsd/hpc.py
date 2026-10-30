@@ -1185,7 +1185,12 @@ def fetch_command(run_id: str, full: bool = False, alias: str = ALIASES[0]):
 
 
 @app.command("resume")
-def resume_command(run_id: str, continue_stopped: bool = False, alias: str = ALIASES[0]):
+def resume_command(
+    run_id: str,
+    continue_stopped: bool = False,
+    stop_after_iteration: int | None = None,
+    alias: str = ALIASES[0],
+):
     """Use the persisted immutable specification; opt in to bounded clean continuation."""
     remote = YaleSSH(alias)
     context = remote_context(remote, alias)
@@ -1196,6 +1201,7 @@ def resume_command(run_id: str, continue_stopped: bool = False, alias: str = ALI
                 "storage_root": context["storage_root"],
                 "run_id": run_id,
                 "explicit_continue": continue_stopped,
+                "continuation_stop": stop_after_iteration,
             },
         )
     )
