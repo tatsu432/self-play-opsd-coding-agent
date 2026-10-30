@@ -41,6 +41,37 @@ def test_resource_plan_operation_is_available_in_ssh_transport(monkeypatch):
     assert "publish_resource_plan" in calls[0]
 
 
+def test_resume_cli_passes_bounded_stop_to_recovery(monkeypatch):
+    from typer.testing import CliRunner
+
+    from selfplay_opsd import hpc
+
+    calls = []
+
+    class FakeRemote:
+        def call(self, command, payload):
+            calls.append((command, payload))
+            return {"submitted": False}
+
+    monkeypatch.setattr(hpc, "YaleSSH", lambda alias: FakeRemote())
+    monkeypatch.setattr(hpc, "remote_context", lambda remote, alias: {"storage_root": "/project"})
+    result = CliRunner().invoke(
+        hpc.app, ["resume", "run1", "--continue-stopped", "--stop-after-iteration", "40"]
+    )
+    assert result.exit_code == 0, result.output
+    assert calls == [
+        (
+            "recover",
+            {
+                "storage_root": "/project",
+                "run_id": "run1",
+                "explicit_continue": True,
+                "continuation_stop": 40,
+            },
+        )
+    ]
+
+
 def test_method_smoke_launch_honors_independent_selection_and_keeps_scientific_args():
     spec = importlib.util.spec_from_file_location("job", Path("scripts/hpc_job.py"))
     module = importlib.util.module_from_spec(spec)
