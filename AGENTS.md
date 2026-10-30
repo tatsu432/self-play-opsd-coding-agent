@@ -8,8 +8,12 @@ stop (5,063 seconds, 1.406389 H200 GPU-hours). Development evaluation scored
 reports stopped; do not duplicate the completed job. CPU job `31468758`
 verified the checkpoint checksums and identity and reconciled W&B through 40;
 canonical revision is `688236f3308ee749b7e89a192165fd35fd8b2190a38cee57e9c876ea020cf5a3`.
-The next planned bounded continuation is to iteration 100, with reviews at 60,
-80 and 100; inspect scheduler and ledger before submission.
+Continuation job `31469208` was submitted from checkpoint `000040`, with
+the scheduler export and ledger confirming the bounded stop at 100. It was
+initially pending. Inspect this existing job before any action; do not duplicate
+it. Review science and telemetry at 60, 80 and 100. The local controller watcher
+was started with `hpc watch 35bfbd1bc074a8963e916f77 --interval 60` and may
+retry only its supported transient failures, retaining the stop at 100.
 
 ## Standing submission authorization — 2026-10-30
 
