@@ -92,6 +92,15 @@ Its development evaluation was 12/41, versus 14/41 A and 13/41 B at iteration
 20. CPU job `31444352` was submitted once to verify checkpoint checksums and
 reconcile W&B; inspect it before any further recovery. Complete the 20-iteration
 scientific health and alignment review before deciding whether to continue.
+CPU job `31444352` completed checksum verification and cloud reconciliation
+through 20; canonical revision `904d5540957132887f6432184ef60438f803983f0bdc0e9726f9aa0efe099b04`.
+The 20-iteration review found 29/320 valid proposals, 28/116 successful
+episodes, six mixed groups, 15 steps per optimizer, and 23/29 neutral
+alignments. The six non-neutral cosines were 0.000988, -0.001611, 0.113171,
+0.063790, 0.300570 and -0.162341. There were 14 rollout-scoring mismatch
+warnings; the maximum sampled student log-probability difference was 2.317.
+The stopped checkpoint is fully resumable with matching corrected identity. No
+continuation or D job was submitted. Inspect live state before future action.
 
 This repository studies controlled Python repair self-play with on-policy self
 distillation (OPSD), GRPO and verifiable rewards. The authoritative scientific
