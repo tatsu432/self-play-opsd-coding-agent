@@ -19,10 +19,13 @@ the controller-verified checkpoint `000020` in job `31372772`. Its development
 result improved from 0/41 to 14/41; 34/320 proposals were valid and 36/136
 episodes succeeded. Iteration-5 and -10 health reviews passed, and W&B cloud
 history was verified through iteration 20. Fresh corrected B run
-`f3271727f5fd25c07466e50d`, job `31372774`, was submitted separately with an
-iteration-20 stop. Inspect these existing jobs and ledgers before any action;
-do not duplicate them. Review B at 5, 10 and 20 and monitor A's development
-and telemetry for regression. These job states are a snapshot, not live state.
+`f3271727f5fd25c07466e50d` completed its iteration-20 stop in job `31372774`:
+13/41 development successes versus 0/41 initially, 30/320 valid proposals and
+20/120 successful episodes. Its iteration-5, -10 and -20 health and cloud
+delivery reviews were performed. Controller-verified checkpoint `000020`
+continued in job `31381376`. Inspect these existing jobs and ledgers before
+any action; do not duplicate them. Monitor development and telemetry for
+regression. These job states are a snapshot, not live state.
 
 This repository studies controlled Python repair self-play with on-policy self
 distillation (OPSD), GRPO and verifiable rewards. The authoritative scientific
