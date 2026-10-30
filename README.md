@@ -20,6 +20,8 @@ uv run selfplay smoke --output runs/local-smoke
 
 ## Documentation
 
+- [Corrected study launch](docs/task12-launch.md): frozen readiness evidence,
+  launch authorization and measured costs.
 - [Task 10 online launch](docs/task10-launch.md): verified W&B setup, staged
   A–D launch, scientific-health reviews and checkpoint recovery.
 - [Yale launch runbook](docs/yale-launch-runbook.md): frozen readiness evidence,
