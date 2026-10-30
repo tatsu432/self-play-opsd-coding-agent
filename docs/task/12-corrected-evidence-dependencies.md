@@ -1,0 +1,16 @@
+# Corrected study evidence dependencies
+
+The source change in `ecc3851` modifies only handling of `SyntaxError` while validating a generated student patch. The existing protocol hash includes the executable `RepairEnvironment.step` AST, so the protocol identity changes even though the static prompt text, tokenizer, objective and data splits do not. The resulting hash is `6e35ae63871454564a039a3c0a6b748beeb03ae7aae67f268c5ec556193b9b82`; the scientific code hash is `ec5be92f3e5591413026f9547f01d92baca3c08835ad91e1b1bacd9626ab50a9`.
+
+| Evidence | Decision |
+|---|---|
+| Worker acceptance and worker/trainer SIFs | Reuse unchanged images and accepted worker evidence. `hpc reuse-worker` verified matching limits, setup and supervisor, retaining the source report SHA `797526d281a6f68f931fdad122610e0c31cc6c428f35e545158bb91734099d9f`. |
+| Parent, task, oracle, split and coverage records | Preserve byte-for-byte; the old manifest is immutable. Protocol-bound admission and validation must be established for the new manifest. |
+| Runtime/data validation | New corrected-data identity requires matching runtime/admission evidence. Existing 306-task execution is historical evidence for unchanged records, not a report under the new identity. |
+| H200 backend and historical numerical audit | Preserve as historical. Current backend proof explicitly binds the protocol hash; obtain a new matching backend proof or a separately tested dependency-scoped reuse mechanism. Do not relabel reports. The prior proposer estimator sensitivity remains an acknowledged scientific risk. |
+| A/B/C/D trajectories, base and pilot | Preserve as original-study evidence. Neither old checkpoint nor runtime report binds the corrected execution identity. A/B require fresh initialization in a new immutable study to support the corrected comparison. Assess which measured timing and mechanics proofs remain valid before scheduling new work. |
+| W&B allocated-node proof | Logging implementation, image, credentials workflow and telemetry identity are unchanged; preserve the existing cloud and same-run resume evidence with provenance. Do not modify scientific records or upload private trajectories. |
+
+At inspection, the shared readiness ledger was `7.79/24` allocated GPU-hours with no unreconciled reservations. Original main A and B used 7.7025 and 1.440556 GPU-hours respectively and are separate from this readiness budget. Reconcile against live scheduler and locked ledger before every allocation; these figures are not a new allowance. No corrected main run is authorized by readiness work.
+
+CPU-only protocol revision job 31344043, controller run `8b4466674d87cae3342f6919`, was submitted from clean execution `f19fc6763c1b7a67fb5ee961a7abea7533057264`; inspect this job before any further revision action. Its output destination is `runs/data-revisions/repair-selfplay-2026-syntax-fix-v1` on Yale. A single completed revision must pass checks and preserve source files byte-for-byte before materializing `data/protocol-v3`.
