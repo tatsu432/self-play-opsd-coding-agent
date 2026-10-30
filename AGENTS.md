@@ -81,6 +81,11 @@ eight alignment scores were neutral due to zero candidate gradients; the one
 nonzero cosine was 0.000988. Cloud W&B history was verified through 5. A
 rollout-scoring mismatch warning was recorded; maximum student log-probability
 difference through 5 was 2.216, and its causal effect is unverified.
+At iteration 10, C had 16/160 valid proposals, 11/64 successful episodes,
+three mixed groups and nine steps per optimizer. Thirteen of 16 alignment
+scores were neutral; the other cosines were 0.000988, -0.001611 and 0.113171.
+Cloud W&B history was verified through 10. Continue the existing bounded job
+to its iteration-20 stop and review; do not duplicate it.
 
 This repository studies controlled Python repair self-play with on-policy self
 distillation (OPSD), GRPO and verifiable rewards. The authoritative scientific
