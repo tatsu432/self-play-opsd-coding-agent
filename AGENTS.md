@@ -101,6 +101,13 @@ alignments. The six non-neutral cosines were 0.000988, -0.001611, 0.113171,
 warnings; the maximum sampled student log-probability difference was 2.317.
 The stopped checkpoint is fully resumable with matching corrected identity. No
 continuation or D job was submitted. Inspect live state before future action.
+The user subsequently directed continued investigation. Controller commit
+`e194101` added an explicit clean-continuation stop that persists across
+transient retries; local tests and hosted CI `41132705970` passed. C continuation
+job `31455833` resumed verified checkpoint `000020` with an explicit stop at
+iteration 40; the scheduler export and ledger both confirm 40. Inspect this
+existing job before any action and never duplicate it. Review the complete
+iteration-40 result and alignment health, then verify its joint checkpoint.
 
 This repository studies controlled Python repair self-play with on-policy self
 distillation (OPSD), GRPO and verifiable rewards. The authoritative scientific
