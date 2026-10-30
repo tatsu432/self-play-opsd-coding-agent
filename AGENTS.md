@@ -113,6 +113,10 @@ The standard local `hpc watch` was started for this run (local process 73899,
 documented transient scheduler failures, preserving the iteration-40 stop.
 It does not perform the scientific review; check whether the watcher remains
 alive after any interruption and inspect the ledger and Slurm before acting.
+The resumed segment reached iteration 25: iterations 21–25 had 5/80 valid
+proposals, 7/20 successful episodes and five alignment scores, four neutral;
+the non-neutral cosine was -0.040464. Both optimizers stepped three times.
+These small-window observations are provisional; continue to the bounded 40.
 
 This repository studies controlled Python repair self-play with on-policy self
 distillation (OPSD), GRPO and verifiable rewards. The authoritative scientific
