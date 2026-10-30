@@ -75,6 +75,12 @@ job and ledger before acting; never duplicate it. Review health, alignment
 coverage, development results and W&B at iterations 5, 10 and 20, then verify
 the joint checkpoint and decide scientifically whether to continue. The earlier
 statement that C had not been submitted is historical.
+At C iteration 5, the completed review found 8/80 valid proposals, 3/32
+successful episodes, one mixed group, and five steps per optimizer. Seven of
+eight alignment scores were neutral due to zero candidate gradients; the one
+nonzero cosine was 0.000988. Cloud W&B history was verified through 5. A
+rollout-scoring mismatch warning was recorded; maximum student log-probability
+difference through 5 was 2.216, and its causal effect is unverified.
 
 This repository studies controlled Python repair self-play with on-policy self
 distillation (OPSD), GRPO and verifiable rewards. The authoritative scientific
