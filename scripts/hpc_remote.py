@@ -611,7 +611,7 @@ def can_supersede_empty_pilot(payload: dict, prior: dict, owner: dict, artifact:
         "gpu_type",
         "profile",
     )
-    if any(old.get(key) != payload.get(key) for key in keys):
+    if any(key not in old or key not in payload or old[key] != payload[key] for key in keys):
         return False
     try:
         tail = logs(

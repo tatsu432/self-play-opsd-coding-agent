@@ -210,6 +210,9 @@ def test_only_explicit_empty_failed_preflight_pilot_can_be_superseded(tmp_path, 
     assert not remote.can_supersede_empty_pilot(
         request | {"scientific_hash": "changed"}, prior, owner, artifact
     )
+    missing_identity = dict(request)
+    missing_identity.pop("runtime_identity")
+    assert not remote.can_supersede_empty_pilot(missing_identity, prior, owner, artifact)
     assert not remote.can_supersede_empty_pilot(request | {"commit": "old"}, prior, owner, artifact)
     prior["attempts"][0]["scheduler"]["state"] = "RUNNING"
     assert not remote.can_supersede_empty_pilot(request, prior, owner, artifact)
