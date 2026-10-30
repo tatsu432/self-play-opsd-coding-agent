@@ -1812,6 +1812,37 @@ def reuse_telemetry(payload: dict) -> dict:
     return {"ready": True, "evidence": str(target), "provenance": reused["reuse_provenance"]}
 
 
+def reuse_allocation(payload: dict) -> dict:
+    """Reuse allocation verification only when the image and verifier match."""
+    source_study, study, profile = payload["source_study"], payload["study_id"], payload["profile"]
+    if (
+        not all(SAFE_NAME.fullmatch(v) for v in (source_study, study, profile))
+        or source_study == study
+    ):
+        raise ValueError("Distinct safe study and profile names required")
+    base = workspace(payload)
+    if (base / "runs" / study / "study_frozen.json").exists():
+        raise ValueError("Target study is frozen; evidence cannot be replaced")
+    source = base / "runs/readiness" / source_study / f"allocation-{profile}.json"
+    proof = json.loads(source.read_text())
+    if (
+        not proof.get("ready")
+        or not proof.get("ownership_verified")
+        or proof.get("image_sha256") != payload.get("trainer_sha256")
+        or proof.get("gpu_type") != payload.get("gpu_type")
+        or proof.get("gpu_count") != payload.get("gpu_count")
+        or not allocation_compatible(proof, payload.get("allocation_code_hash"), base)
+    ):
+        raise ValueError("Allocation proof dependencies differ or ownership is unverified")
+    reused = proof | {"reuse_provenance": {"source": str(source), "sha256": sha256(source)}}
+    target = base / "runs/readiness" / study / f"allocation-{profile}.json"
+    with locked(base / "state/.allocation-evidence.lock"):
+        if target.exists() and json.loads(target.read_text()) != reused:
+            raise ValueError("Destination already has different allocation evidence")
+        write_json(target, reused)
+    return {"ready": True, "evidence": str(target), "provenance": reused["reuse_provenance"]}
+
+
 def publish_resource_plan(payload: dict) -> dict:
     """Publish a measured plan once, before the immutable study freeze."""
     study = payload["study_id"]
@@ -2012,6 +2043,7 @@ COMMANDS = {
     "recover_allocation": recover_allocation,
     "reuse_worker": reuse_worker,
     "reuse_telemetry": reuse_telemetry,
+    "reuse_allocation": reuse_allocation,
     "reuse_study": reuse_study,
     "publish_resource_plan": publish_resource_plan,
 }

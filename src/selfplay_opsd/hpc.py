@@ -123,6 +123,7 @@ class YaleSSH:
             "recover_allocation",
             "reuse_worker",
             "reuse_telemetry",
+            "reuse_allocation",
             "reuse_study",
             "publish_resource_plan",
             "logs",
@@ -974,6 +975,39 @@ def reuse_worker_command(
                 "execution_limits": cfg.sandbox.execution_limits(),
                 "supervisor_hash": supervisor_hash(),
                 "worker_setup_id": "",
+            },
+        )
+    )
+
+
+@app.command("reuse-allocation")
+def reuse_allocation_command(
+    source_study: str,
+    settings: Path = Path("configs/yale.yaml"),
+    gpu_type: str = "h200",
+    alias: str = ALIASES[0],
+):
+    """Reuse compatible allocated-node GPU ownership evidence with provenance."""
+    from selfplay_opsd.readiness import allocation_code_hash
+
+    remote = YaleSSH(alias)
+    context = remote_context(remote, alias)
+    cfg = load_config(settings)
+    state = remote.call(
+        "study", {"storage_root": context["storage_root"], "study_id": source_study}
+    )
+    output(
+        remote.call(
+            "reuse_allocation",
+            {
+                "storage_root": context["storage_root"],
+                "study_id": cfg.study_id,
+                "source_study": source_study,
+                "profile": cfg.hardware.profile,
+                "gpu_type": gpu_type,
+                "gpu_count": cfg.hardware.gpu_count,
+                "allocation_code_hash": allocation_code_hash(),
+                "trainer_sha256": state["images"]["trainer"]["sha256"],
             },
         )
     )

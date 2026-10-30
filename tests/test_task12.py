@@ -101,3 +101,50 @@ def test_study_scoped_backend_proof_keeps_original_unchanged(tmp_path, monkeypat
         "output": "/runs/compatibility/backend-v2/studies/new-study/cpu_debug",
     }
     assert remote.artifact_dir(payload) == scoped / "cpu_debug"
+
+
+def test_allocation_reuse_requires_matching_image_device_and_verifier(tmp_path, monkeypatch):
+    import importlib.util
+    import json
+
+    import pytest
+
+    from selfplay_opsd.storage import atomic_json, file_hash
+
+    spec = importlib.util.spec_from_file_location(
+        "task12_allocation_remote", "scripts/hpc_remote.py"
+    )
+    remote = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(remote)
+    monkeypatch.setattr(remote, "workspace", lambda _: tmp_path)
+    source = tmp_path / "runs/readiness/old/allocation-single_gpu_80gb.json"
+    atomic_json(
+        source,
+        {
+            "ready": True,
+            "ownership_verified": True,
+            "image_sha256": "image",
+            "allocation_code_hash": "code",
+            "gpu_type": "h200",
+            "gpu_count": 1,
+        },
+    )
+    request = {
+        "source_study": "old",
+        "study_id": "new",
+        "profile": "single_gpu_80gb",
+        "trainer_sha256": "image",
+        "allocation_code_hash": "code",
+        "gpu_type": "h200",
+        "gpu_count": 1,
+    }
+    result = remote.reuse_allocation(request)
+    assert result["provenance"]["sha256"] == file_hash(source)
+    assert json.loads(Path(result["evidence"]).read_text())["ownership_verified"]
+    assert remote.reuse_allocation(request) == result
+    for field in ("trainer_sha256", "allocation_code_hash", "gpu_type", "gpu_count"):
+        with pytest.raises(ValueError, match="dependencies differ"):
+            remote.reuse_allocation(request | {field: "changed"})
+    atomic_json(tmp_path / "runs/new/study_frozen.json", {"ready": True})
+    with pytest.raises(ValueError, match="Target study is frozen"):
+        remote.reuse_allocation(request)
