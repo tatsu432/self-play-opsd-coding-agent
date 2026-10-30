@@ -57,6 +57,17 @@ workspace and analyzed: at iterations 20/100/200, rejected patches examined
 had actual newlines (152/90/93) and none had literal backslash-n. Patch context
 and hunk errors remained common. This is observational, not causal evidence.
 
+Corrected B has also completed iteration 200: jobs `31372774` and `31381376`
+both exited 0 and used 29,167 allocated seconds (8.1020 H200 GPU-hours).
+Final development was 12/41 versus A's 11/41, a single-seed descriptive result.
+CPU job `31404487` verified B's final checkpoint and reconciled W&B; canonical
+revision `22ae1beb5cd0a9b7d9acfbc31d86f32b4a0e30edd006585ae9fdf5095889b810`
+was cloud-verified through 200. B yielded 162/3,200 valid proposals and 84/102
+student steps had zero current RL signal; earlier momentum can contribute.
+Both complete trajectory sets are in the ignored private local workspace. C/D
+have not been submitted; assess the documented alignment numerical sensitivity
+and scientific value before any further method. Inspect the live scheduler.
+
 This repository studies controlled Python repair self-play with on-policy self
 distillation (OPSD), GRPO and verifiable rewards. The authoritative scientific
 specification is `docs/task/01-experiment-implementation-spec.md`; early proposal
