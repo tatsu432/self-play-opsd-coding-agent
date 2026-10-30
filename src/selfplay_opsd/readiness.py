@@ -27,7 +27,8 @@ BACKEND_EVIDENCE_DIRECTORY = "compatibility/backend-v2"
 def backend_evidence_path(config: RunConfig, profile: str) -> Path:
     """Prefer the study's immutable proof, with legacy reports as a fallback."""
     root = config.output_root / BACKEND_EVIDENCE_DIRECTORY
-    scoped = root / "studies" / config.study_id / f"{profile}.json"
+    study_id = os.getenv("SELFPLAY_MAIN_STUDY", config.study_id)
+    scoped = root / "studies" / study_id / f"{profile}.json"
     return scoped if scoped.is_file() else root / f"{profile}.json"
 
 

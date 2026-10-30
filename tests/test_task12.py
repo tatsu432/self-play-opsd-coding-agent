@@ -89,6 +89,11 @@ def test_study_scoped_backend_proof_keeps_original_unchanged(tmp_path, monkeypat
     assert read_json(legacy) == {"historic": True}
     assert backend_evidence_path(cfg, "cpu_debug") == scoped / "cpu_debug.json"
     assert read_json(scoped / "cpu_debug.json")["ready"] is True
+    pilot_cfg = cfg.model_copy(deep=True)
+    pilot_cfg.study_id += "-pilot-h200"
+    monkeypatch.setenv("SELFPLAY_MAIN_STUDY", cfg.study_id)
+    assert backend_evidence_path(pilot_cfg, "cpu_debug") == scoped / "cpu_debug.json"
+    monkeypatch.delenv("SELFPLAY_MAIN_STUDY")
     spec = importlib.util.spec_from_file_location("task12_remote_paths", "scripts/hpc_remote.py")
     remote = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(remote)
@@ -159,3 +164,91 @@ def test_evidence_reuse_rejects_inspection_only_accounts():
         reuse_allocation_command("old", alias="yale-hpc-cpsc4710")
     with pytest.raises(HpcError, match="authorized cpsc4880"):
         reuse_telemetry_command("old", alias="yale-hpc-sds6190")
+
+
+def test_only_explicit_empty_failed_preflight_pilot_can_be_superseded(tmp_path, monkeypatch):
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "task12_supersede_remote", "scripts/hpc_remote.py"
+    )
+    remote = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(remote)
+    common = {
+        "operation": "pilot",
+        "study_id": "study",
+        "method": "D",
+        "seed": 2026,
+        "scientific_hash": "science",
+        "manifests_hash": "manifest",
+        "runtime_identity": {"code": "same"},
+        "image_sha256": "image",
+        "worker_sha256": "worker",
+        "gpu_type": "h200",
+        "profile": "single_gpu_80gb",
+    }
+    old = common | {"commit": "old"}
+    prior = {"ledger": {"specification": old}, "attempts": [{"scheduler": {"state": "FAILED"}}]}
+    owner = {"run_id": "old-run"}
+    request = common | {
+        "commit": "new",
+        "storage_root": str(tmp_path),
+        "supersede_empty_pilot": "old-run",
+    }
+    monkeypatch.setattr(
+        remote,
+        "logs",
+        lambda _: {
+            "tail": "Pilot preflight blocked: Backend acceptance proof stale or missing single-process gradient comparison"
+        },
+    )
+    artifact = tmp_path / "pilot"
+    assert remote.can_supersede_empty_pilot(request, prior, owner, artifact)
+    assert not remote.can_supersede_empty_pilot(
+        request | {"supersede_empty_pilot": None}, prior, owner, artifact
+    )
+    assert not remote.can_supersede_empty_pilot(
+        request | {"scientific_hash": "changed"}, prior, owner, artifact
+    )
+    assert not remote.can_supersede_empty_pilot(request | {"commit": "old"}, prior, owner, artifact)
+    prior["attempts"][0]["scheduler"]["state"] = "RUNNING"
+    assert not remote.can_supersede_empty_pilot(request, prior, owner, artifact)
+    prior["attempts"][0]["scheduler"]["state"] = "FAILED"
+    artifact.mkdir()
+    assert not remote.can_supersede_empty_pilot(request, prior, owner, artifact)
+    artifact.rmdir()
+    monkeypatch.setattr(remote, "logs", lambda _: {"tail": "other failure"})
+    assert not remote.can_supersede_empty_pilot(request, prior, owner, artifact)
+
+
+def test_pilot_preflight_uses_main_study_scoped_backend_proof(tmp_path, monkeypatch):
+    from selfplay_opsd import preflight, readiness
+    from selfplay_opsd.storage import atomic_json
+
+    cfg = load_config(
+        study_id="new-study",
+        hardware_profile="single_gpu_80gb",
+        data_root=tmp_path / "missing-data",
+        output_root=tmp_path,
+    )
+    cfg.study_id += "-pilot-h200"
+    monkeypatch.setenv("SELFPLAY_MAIN_STUDY", "new-study")
+    monkeypatch.setenv("SELFPLAY_GPU_TYPE", "h200")
+    monkeypatch.setattr(readiness, "backend_identity", lambda _: {"identity": "expected"})
+    monkeypatch.setattr(readiness, "backend_environment", lambda **_: {"kernel": "test"})
+    proof = tmp_path / "compatibility/backend-v2/studies/new-study/single_gpu_80gb.json"
+    atomic_json(
+        proof,
+        {
+            "ready": True,
+            "backend_identity": {"identity": "expected"},
+            "objective_probes": list("ABCD"),
+            "model_revision": cfg.model.revision,
+            "gpu_count": 1,
+            "gpu_type": "h200",
+            "environment": {"kernel": "test"},
+        },
+    )
+    result = preflight.doctor(cfg)
+    assert result["checks"]["backend_acceptance"] == {"valid": True, "proof": str(proof)}
+    assert not any("Backend acceptance" in item for item in result["blockers"])

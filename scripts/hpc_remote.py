@@ -582,6 +582,49 @@ def allowed(payload: dict) -> dict:
     }
 
 
+def can_supersede_empty_pilot(payload: dict, prior: dict, owner: dict, artifact: Path) -> bool:
+    """Permit an explicit replacement only for an observed preflight-only failure."""
+    ledger = prior["ledger"]
+    attempts = prior["attempts"]
+    old = ledger.get("specification", {})
+    if (
+        payload.get("supersede_empty_pilot") != owner.get("run_id")
+        or payload.get("operation") != "pilot"
+        or old.get("operation") != "pilot"
+        or ledger.get("pending_intent")
+        or len(attempts) != 1
+        or attempts[-1]["scheduler"]["state"] != "FAILED"
+        or artifact.exists()
+        or not old.get("commit")
+        or old.get("commit") == payload.get("commit")
+    ):
+        return False
+    keys = (
+        "study_id",
+        "method",
+        "seed",
+        "scientific_hash",
+        "manifests_hash",
+        "runtime_identity",
+        "image_sha256",
+        "worker_sha256",
+        "gpu_type",
+        "profile",
+    )
+    if any(old.get(key) != payload.get(key) for key in keys):
+        return False
+    try:
+        tail = logs(
+            {"storage_root": payload["storage_root"], "run_id": owner["run_id"], "lines": 1000}
+        )
+    except (OSError, ValueError, KeyError):
+        return False
+    return (
+        "Pilot preflight blocked: Backend acceptance proof stale or missing single-process gradient comparison"
+        in tail.get("tail", "")
+    )
+
+
 def submit(payload: dict) -> dict:
     p = paths(payload)
     path = ledger_path(payload)
@@ -769,6 +812,9 @@ def submit(payload: dict) -> dict:
                         "run_id": owner["run_id"],
                     }
                 if payload["operation"] in {"train", "pilot"}:
+                    if can_supersede_empty_pilot(payload, prior, owner, artifact):
+                        ledger["supersedes_preflight_only_run"] = owner["run_id"]
+                        continue
                     raise ValueError(
                         "Existing scientific run belongs to a different immutable identity"
                     )
