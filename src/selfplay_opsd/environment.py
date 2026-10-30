@@ -79,7 +79,10 @@ class RepairEnvironment:
             return {"ok": True, "path": action["path"], "content": files[action["path"]]}
         if name == "apply_patch":
             replacement = apply_patch(self.source, action["patch"])
-            tree = validate_source(replacement)
+            try:
+                tree = validate_source(replacement)
+            except SyntaxError as exc:
+                raise ValueError(f"Invalid Python syntax: {exc.msg} (line {exc.lineno})") from exc
             if signature(tree) != signature(validate_source(self.task.initial_source)):
                 raise ValueError("Repair must preserve function APIs")
             self.source = replacement
