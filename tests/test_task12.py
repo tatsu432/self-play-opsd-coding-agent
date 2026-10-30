@@ -148,3 +148,14 @@ def test_allocation_reuse_requires_matching_image_device_and_verifier(tmp_path, 
     atomic_json(tmp_path / "runs/new/study_frozen.json", {"ready": True})
     with pytest.raises(ValueError, match="Target study is frozen"):
         remote.reuse_allocation(request)
+
+
+def test_evidence_reuse_rejects_inspection_only_accounts():
+    import pytest
+
+    from selfplay_opsd.hpc import HpcError, reuse_allocation_command, reuse_telemetry_command
+
+    with pytest.raises(HpcError, match="authorized cpsc4880"):
+        reuse_allocation_command("old", alias="yale-hpc-cpsc4710")
+    with pytest.raises(HpcError, match="authorized cpsc4880"):
+        reuse_telemetry_command("old", alias="yale-hpc-sds6190")

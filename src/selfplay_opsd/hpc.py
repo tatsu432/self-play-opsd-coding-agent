@@ -990,6 +990,8 @@ def reuse_allocation_command(
     """Reuse compatible allocated-node GPU ownership evidence with provenance."""
     from selfplay_opsd.readiness import allocation_code_hash
 
+    if alias != ALIASES[0]:
+        raise HpcError("Allocation reuse is restricted to the authorized cpsc4880 workspace")
     remote = YaleSSH(alias)
     context = remote_context(remote, alias)
     cfg = load_config(settings)
@@ -1023,6 +1025,8 @@ def reuse_telemetry_command(
     """Reuse a matching allocated-node cloud/resume proof with provenance."""
     from selfplay_opsd.telemetry import telemetry_identity
 
+    if alias != ALIASES[0]:
+        raise HpcError("Telemetry reuse is restricted to the authorized cpsc4880 workspace")
     remote = YaleSSH(alias)
     context = remote_context(remote, alias)
     cfg = load_config(settings)
