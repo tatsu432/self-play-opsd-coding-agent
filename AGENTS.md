@@ -34,11 +34,12 @@ and 10/41 at 120.
 A's iterations 98–117
 produced only 6 valid proposals out of 320 attempts, with 131 duplicates;
 monitor the declining proposal yield. A has not repeated the earlier collapse
-to zero. A's W&B delivery stopped at iteration 142 with repeated `OSError`
-warnings, while training and local scientific records continued; the dashboard
-can incorrectly show finished. After its trainer writer has stopped, reconcile
-and cloud-verify its checkpoint-backed aggregates with the single-writer recovery
-mechanism. B's delivery was current through at least iteration 106. These job
+to zero. A's W&B delivery became intermittent after iteration 142 with repeated
+`OSError` warnings, while training and local scientific records continued; cloud
+history later reached 181, but the dashboard can incorrectly show finished. B
+also reported delivery errors; its cloud history reached at least 133. After each
+trainer writer has stopped, reconcile and cloud-verify checkpoint-backed aggregates
+as necessary with the single-writer recovery mechanism. These job
 states are a snapshot, not live state.
 
 This repository studies controlled Python repair self-play with on-policy self
