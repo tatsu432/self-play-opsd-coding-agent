@@ -13,6 +13,17 @@ checkpoint, failure-handling or held-out-data safeguards. Historical statements
 below that main training requires a new authorization record earlier decisions
 and are superseded for work needed to complete the corrected study.
 
+Corrected study live checkpoint: A run `747bd2e097258445de647e47` started as
+job `31364215`, completed iteration 20 cleanly in 1:34:28, and continued from
+the controller-verified checkpoint `000020` in job `31372772`. Its development
+result improved from 0/41 to 14/41; 34/320 proposals were valid and 36/136
+episodes succeeded. Iteration-5 and -10 health reviews passed, and W&B cloud
+history was verified through iteration 20. Fresh corrected B run
+`f3271727f5fd25c07466e50d`, job `31372774`, was submitted separately with an
+iteration-20 stop. Inspect these existing jobs and ledgers before any action;
+do not duplicate them. Review B at 5, 10 and 20 and monitor A's development
+and telemetry for regression. These job states are a snapshot, not live state.
+
 This repository studies controlled Python repair self-play with on-policy self
 distillation (OPSD), GRPO and verifiable rewards. The authoritative scientific
 specification is `docs/task/01-experiment-implementation-spec.md`; early proposal
