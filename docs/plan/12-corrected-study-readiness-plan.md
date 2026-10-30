@@ -1,0 +1,7 @@
+# Task 12: corrected-study readiness plan
+
+1. Reconcile the original failed B ledger, scheduler and shared readiness allowance; retain original evidence and confirm no active duplicate.
+2. Bind `configs/task12-source.yaml` to the prior finalized data solely as a protocol-revision source, and `configs/task12-corrected.yaml` to the new immutable `data/protocol-v3` and `repair-selfplay-2026-syntax-fix-v1` study. Preserve every other scientific setting.
+3. Reuse accepted worker and pinned images by their actual dependencies. Run the existing CPU protocol-revision operation in real accepted containment; verify unchanged task/split/oracle records and complete admission/target validation before publishing the new local data root.
+4. Document the dependency matrix, run CPU and hosted tests, and reuse unaffected numerical and worker evidence without relabeling historical reports. Establish only genuinely invalidated runtime/backend and measured training evidence under the existing shared budget and exact live scheduler controls. Do not launch main training during preparation.
+5. Bind the corrected data, protocol and scientific identities to a new study freeze and measured resource plan; preview fresh A–D launches. Provide one bounded first A launch for separate main GPU authorization and require review before B. Record any unproven assumptions and do not treat CPU success as GPU acceptance.
