@@ -941,6 +941,11 @@ def artifact_dir(payload: dict) -> Path:
         return runs / "readiness" / study
     if operation == "backend-check":
         if payload.get("backend_identity", {}).get("schema_version") == 2:
+            if (
+                payload.get("output")
+                == f"/runs/compatibility/backend-v2/studies/{study}/{payload['profile']}"
+            ):
+                return runs / "compatibility/backend-v2/studies" / study / payload["profile"]
             return runs / "compatibility/backend-v2" / payload["profile"]
         return runs / "compatibility" / payload["profile"]
     if operation == "freeze-study":
@@ -1318,13 +1323,17 @@ def study_state(payload: dict) -> dict:
     images = {kind: read(base / "images" / f"{kind}.json") for kind in ("worker", "trainer")}
     evidence = runs / "readiness" / study
     identity = payload.get("runtime_identity")
+
+    def backend_report(profile):
+        scoped = runs / "compatibility/backend-v2/studies" / study / f"{profile}.json"
+        legacy = runs / "compatibility/backend-v2" / f"{profile}.json"
+        return read(scoped if scoped.is_file() else legacy)
+
     reports = {
         "worker": read(evidence / "worker.json"),
         "runtime": read(evidence / "runtime.json"),
-        "single": read(runs / "compatibility/backend-v2/single_gpu_80gb.json"),
-        "target": read(
-            runs / "compatibility/backend-v2" / (payload.get("profile", "dual_gpu_80gb") + ".json")
-        ),
+        "single": backend_report("single_gpu_80gb"),
+        "target": backend_report(payload.get("profile", "dual_gpu_80gb")),
         "base": read(runs / study / "base/evaluation_complete.json"),
         "pilot": read(
             runs

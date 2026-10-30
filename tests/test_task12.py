@@ -66,3 +66,38 @@ def test_telemetry_reuse_preserves_provenance_and_checks_dependencies(tmp_path, 
     atomic_json(tmp_path / "runs/new/study_frozen.json", {"ready": True})
     with pytest.raises(ValueError, match="Target study is frozen"):
         remote.reuse_telemetry(request)
+
+
+def test_study_scoped_backend_proof_keeps_original_unchanged(tmp_path, monkeypatch):
+    import importlib.util
+
+    from selfplay_opsd.backend_check import check_backend
+    from selfplay_opsd.readiness import backend_evidence_path
+    from selfplay_opsd.storage import atomic_json, read_json
+
+    cfg = load_config(
+        study_id="new-study",
+        hardware_profile="cpu_debug",
+        data_root=tmp_path / "unused",
+        output_root=tmp_path,
+    )
+    legacy = tmp_path / "compatibility/backend-v2/cpu_debug.json"
+    atomic_json(legacy, {"historic": True})
+    scoped = tmp_path / "compatibility/backend-v2/studies/new-study"
+    assert backend_evidence_path(cfg, "cpu_debug") == legacy
+    check_backend(cfg, scoped / "cpu_debug")
+    assert read_json(legacy) == {"historic": True}
+    assert backend_evidence_path(cfg, "cpu_debug") == scoped / "cpu_debug.json"
+    assert read_json(scoped / "cpu_debug.json")["ready"] is True
+    spec = importlib.util.spec_from_file_location("task12_remote_paths", "scripts/hpc_remote.py")
+    remote = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(remote)
+    monkeypatch.setattr(remote, "paths", lambda _: {"runs": tmp_path})
+    payload = {
+        "study_id": "new-study",
+        "operation": "backend-check",
+        "profile": "cpu_debug",
+        "backend_identity": {"schema_version": 2},
+        "output": "/runs/compatibility/backend-v2/studies/new-study/cpu_debug",
+    }
+    assert remote.artifact_dir(payload) == scoped / "cpu_debug"

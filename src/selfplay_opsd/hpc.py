@@ -644,10 +644,10 @@ def run_payload(
         "resume": resume,
         "output": f"/runs/readiness/{cfg.study_id}/{operation}/{identity[:24]}"
         if operation in {"rollout-parity", "numerical-audit", "proposer-audit", "wandb-verify"}
-        else f"/runs/compatibility/backend-v2/{profile}"
+        else f"/runs/compatibility/backend-v2/studies/{cfg.study_id}/{profile}"
         if operation == "backend-check"
         else f"/runs/compatibility/{profile}",
-        "reference": "/runs/compatibility/backend-v2/single_gpu_80gb/reference_gradients.pt"
+        "reference": f"/runs/compatibility/backend-v2/studies/{cfg.study_id}/single_gpu_80gb/reference_gradients.pt"
         if count > 1
         else "",
         "base": base,

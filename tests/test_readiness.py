@@ -427,6 +427,13 @@ def test_remote_backend_evidence_does_not_establish_runtime_readiness(tmp_path, 
     assert report["gates"]["single"] and report["gates"]["target"]
     assert not report["gates"]["worker"] and not report["gates"]["runtime"]
     assert not report["eligible_to_submit_main"]
+    scoped = tmp_path / "runs/compatibility/backend-v2/studies/study/single_gpu_80gb.json"
+    atomic_json(scoped, {"ready": True, "backend_identity": {"schema_version": 1}})
+    assert not remote.study_state(payload)["gates"]["single"]
+    assert json.loads(
+        (tmp_path / "runs/compatibility/backend-v2/single_gpu_80gb.json").read_text()
+    )["ready"]
+    scoped.unlink()
     payload["backend_identity"] = {"schema_version": 1}
     report = remote.study_state(payload)
     assert not report["gates"]["single"] and not report["gates"]["target"]

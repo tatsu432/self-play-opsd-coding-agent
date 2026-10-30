@@ -24,6 +24,13 @@ from selfplay_opsd.worker_runtime import allocation_fingerprint, supervisor_hash
 BACKEND_EVIDENCE_DIRECTORY = "compatibility/backend-v2"
 
 
+def backend_evidence_path(config: RunConfig, profile: str) -> Path:
+    """Prefer the study's immutable proof, with legacy reports as a fallback."""
+    root = config.output_root / BACKEND_EVIDENCE_DIRECTORY
+    scoped = root / "studies" / config.study_id / f"{profile}.json"
+    return scoped if scoped.is_file() else root / f"{profile}.json"
+
+
 def hardware_settings(values: dict | None) -> dict:
     """None means used GPU count; CPU freeze and GPU jobs share this meaning."""
     result = dict(values or {})
@@ -208,7 +215,7 @@ def readiness_report(config: RunConfig, *, require_freeze: bool = True) -> dict:
         )
 
     def backend(profile: str):
-        report = read_json(config.output_root / BACKEND_EVIDENCE_DIRECTORY / f"{profile}.json")
+        report = read_json(backend_evidence_path(config, profile))
         count = 1 if profile == "single_gpu_80gb" else config.hardware.gpu_count
         return bool(
             report.get("ready")
@@ -278,8 +285,8 @@ def readiness_report(config: RunConfig, *, require_freeze: bool = True) -> dict:
     files = [
         root / "runtime.json",
         root / "validation.json",
-        config.output_root / BACKEND_EVIDENCE_DIRECTORY / "single_gpu_80gb.json",
-        config.output_root / BACKEND_EVIDENCE_DIRECTORY / f"{config.hardware.profile}.json",
+        backend_evidence_path(config, "single_gpu_80gb"),
+        backend_evidence_path(config, config.hardware.profile),
         config.output_root / config.study_id / "base/evaluation_complete.json",
         config.output_root / config.study_id / "base/runtime_identity.json",
         config.output_root
