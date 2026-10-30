@@ -1,5 +1,18 @@
 # Project and operating instructions
 
+## Standing submission authorization — 2026-10-30
+
+The user authorizes the submissions needed to complete the corrected study,
+including main GPU allocations and necessary continuations, without asking for
+permission again. Start corrected Experiment A with one H200 allocation through
+iteration 20; review scientific health at iterations 5, 10 and 20 and verify the
+joint checkpoint before deciding on continuation. Reconcile live scheduler and
+ledger state before submissions and never duplicate an uncertain job. This
+authorization does not waive scientific identity, isolation, accounting,
+checkpoint, failure-handling or held-out-data safeguards. Historical statements
+below that main training requires a new authorization record earlier decisions
+and are superseded for work needed to complete the corrected study.
+
 This repository studies controlled Python repair self-play with on-policy self
 distillation (OPSD), GRPO and verifiable rewards. The authoritative scientific
 specification is `docs/task/01-experiment-implementation-spec.md`; early proposal
