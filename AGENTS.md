@@ -26,9 +26,11 @@ delivery reviews were performed. Controller-verified checkpoint `000020`
 continued in job `31381376`. Inspect these existing jobs and ledgers before
 any action; do not duplicate them. Monitor development and telemetry for
 regression. A's later development results were 12/41 at iteration 40, 11/41
-at 60, 10/41 at 80 and 11/41 at 100, following 14/41 at 20. B was 13/41 at
-both 20 and 40, and 12/41 at 60. A has not repeated the earlier collapse to zero. These job states are
-a snapshot, not live state.
+at 60, 10/41 at 80 and 11/41 at both 100 and 120, following 14/41 at 20.
+B was 13/41 at both 20 and 40, and 12/41 at 60. A's iterations 98–117
+produced only 6 valid proposals out of 320 attempts, with 131 duplicates;
+monitor the declining proposal yield. A has not repeated the earlier collapse
+to zero. These job states are a snapshot, not live state.
 
 This repository studies controlled Python repair self-play with on-policy self
 distillation (OPSD), GRPO and verifiable rewards. The authoritative scientific
