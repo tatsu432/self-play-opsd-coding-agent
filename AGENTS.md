@@ -51,9 +51,11 @@ revision `292f50c216df0a7bb0bdd680e51dc459e83d88d212d67e67f6ff46637b6f3f7a`.
 Corrected B job `31381376` was running at iteration 153 at this snapshot.
 An aggregate event analysis of A finds 161/3,200 valid proposals; iterations
 141–200 contributed 17/960. Of 98 student optimizer steps, 82 had zero current
-group-relative RL signal; earlier optimizer momentum can still contribute. The
-aggregate fetch omitted raw trajectory shards, so action-level failure causes
-are not established by that analysis.
+group-relative RL signal; earlier optimizer momentum can still contribute. All
+saved A trajectory shards were subsequently fetched to the ignored private
+workspace and analyzed: at iterations 20/100/200, rejected patches examined
+had actual newlines (152/90/93) and none had literal backslash-n. Patch context
+and hunk errors remained common. This is observational, not causal evidence.
 
 This repository studies controlled Python repair self-play with on-policy self
 distillation (OPSD), GRPO and verifiable rewards. The authoritative scientific
