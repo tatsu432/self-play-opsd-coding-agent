@@ -86,6 +86,12 @@ three mixed groups and nine steps per optimizer. Thirteen of 16 alignment
 scores were neutral; the other cosines were 0.000988, -0.001611 and 0.113171.
 Cloud W&B history was verified through 10. Continue the existing bounded job
 to its iteration-20 stop and review; do not duplicate it.
+The C job `31429026` subsequently stopped cleanly at iteration 20 and Slurm
+recorded `COMPLETED` exit 0 after 6,119 seconds (1.699722 H200 GPU-hours).
+Its development evaluation was 12/41, versus 14/41 A and 13/41 B at iteration
+20. CPU job `31444352` was submitted once to verify checkpoint checksums and
+reconcile W&B; inspect it before any further recovery. Complete the 20-iteration
+scientific health and alignment review before deciding whether to continue.
 
 This repository studies controlled Python repair self-play with on-policy self
 distillation (OPSD), GRPO and verifiable rewards. The authoritative scientific
