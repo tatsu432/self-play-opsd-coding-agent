@@ -68,6 +68,14 @@ Both complete trajectory sets are in the ignored private local workspace. C/D
 have not been submitted; assess the documented alignment numerical sensitivity
 and scientific value before any further method. Inspect the live scheduler.
 
+Corrected C bounded stage was submitted after user direction and a passing
+preview: controller run `35bfbd1bc074a8963e916f77`, Slurm job `31429026`, one
+H200, stop at iteration 20, no automatic continuation. Inspect this existing
+job and ledger before acting; never duplicate it. Review health, alignment
+coverage, development results and W&B at iterations 5, 10 and 20, then verify
+the joint checkpoint and decide scientifically whether to continue. The earlier
+statement that C had not been submitted is historical.
+
 This repository studies controlled Python repair self-play with on-policy self
 distillation (OPSD), GRPO and verifiable rewards. The authoritative scientific
 specification is `docs/task/01-experiment-implementation-spec.md`; early proposal
