@@ -44,10 +44,11 @@ states are a snapshot, not live state.
 
 Corrected A reached iteration 200 and Slurm job `31372772` completed with exit
 0; its final development result was 11/41. Including initial job `31364215`,
-allocated time was 29,179 seconds (8.1053 H200 GPU-hours). CPU reconciliation
-job `31397974` was submitted once after the trainer exited to verify and
-reconcile A's checkpoint-backed dashboard; inspect it before any further action.
-Corrected B job `31381376` was running at iteration 151 at this snapshot.
+allocated time was 29,179 seconds (8.1053 H200 GPU-hours). After its writer
+exited, CPU job `31397974` verified the final checkpoint checksums and reconciled
+the original W&B run; cloud verification reached iteration 200, canonical
+revision `292f50c216df0a7bb0bdd680e51dc459e83d88d212d67e67f6ff46637b6f3f7a`.
+Corrected B job `31381376` was running at iteration 153 at this snapshot.
 
 This repository studies controlled Python repair self-play with on-policy self
 distillation (OPSD), GRPO and verifiable rewards. The authoritative scientific
