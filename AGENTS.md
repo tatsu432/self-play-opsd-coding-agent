@@ -1,5 +1,15 @@
 # Project and operating instructions
 
+## Task 13 larger-model inference probes — 2026-10-31
+
+Diff-format inference-only probes were submitted from immutable execution
+`662a7b74d91dc5bab7924c5bc911736e7918ea21`: Qwen2.5-Coder-7B job
+`31536071`, run `1b5cdead66a593d2b51829d9`; Qwen3-8B non-thinking job
+`31536072`, run `a34502e0d48191cbef4a79e6`. Each has a two-hour H200 cap and
+was pending at submission. Inspect existing jobs/ledgers before acting; never
+duplicate them. After successful compatibility and model caching, submit the
+corresponding structured-format arms once and compare matched parents/seeds.
+
 ## Task 13 independent extra proposer samples — 2026-10-31
 
 Four additional slots (4–7) were submitted for the prespecified first 16
