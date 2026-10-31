@@ -203,14 +203,14 @@ Use matched static tasks to isolate the student objective, fixed parents with re
 
 | Observation and confidence | Action | Information gained / stop condition |
 |---|---|---|
-| Exact diff failure dominates; high confidence | 4B paired representation probe first | Separate output serialization from capacity. Stop scaling if deterministic construction fixes useful yield efficiently. |
-| Recurring-parent duplication rises; high confidence about association | Base/early/late fixed-parent probe with empty and replayed novelty histories | Separate policy concentration from novelty accounting. Do not claim exhaustive mutation-space depletion. |
-| Only 0.5–1.75% of proposer groups discriminate real reward | Keep full D deferred | Require advantage and gradient differences before an alignment training claim. |
-| Very few mixed student groups; high confidence | Static GRPO versus static gated OPSD | Test learnability independent of proposer yield; interpret failure using actual informative exposure and protocol behavior. |
-| 4B capacity unresolved | Add coding 7B and non-thinking 8B inference arms after the 4B control | Scale only for a measured gain in unique useful tasks per GPU-hour, with uncertainty and representation controlled. |
+| Exact diff failure dominates; high confidence | Use the completed structured probe to design the next study | Verify useful yield and edit diversity prospectively with the existing semantic checks. |
+| Recurring-parent duplication rises; high confidence about association | Use the completed base/early/late checkpoint probes | Separate policy concentration from novelty accounting. Do not claim exhaustive mutation-space depletion. |
+| Only 0.5–1.75% of proposer groups discriminate real reward | Keep full D deferred | One matched C/D group had different rewards but similar optimizer directions; do not generalize it. |
+| Very few mixed student groups; high confidence | Finish the active static GRPO versus gated OPSD control | Test learnability independent of proposer yield; interpret failure using actual informative exposure and protocol behavior. |
+| 4B versus larger-model evidence is format-sensitive | Use the completed 7B/8B probes and header replay | Prospectively compare normalized formats before selecting a larger model for training. |
 | Gating-strength confound confirmed by objective, effect unresolved | Later matched-strength control | Separate strength from selectivity on shared tasks; avoid broad lambda search. |
 
-The [follow-up plan](../plan/13-diagnosis-plan.md) fixes datasets, sampling, resource caps, dependencies, and interpretation. The first paired 4B probe is complete; checkpoint probes, static training, the C/D counterfactual, and initial larger-model inference are submitted. Reference-domain ablations are lower priority; the author's unpublished math-reference observation remains anecdotal evidence.
+The [follow-up plan](../plan/13-diagnosis-plan.md) fixes datasets, sampling, resource caps, dependencies, and interpretation. The paired 4B, checkpoint, larger-model and C/D probes are complete; static training is active. Reference-domain ablations are lower priority; the author's unpublished math-reference observation remains anecdotal evidence.
 
 ## Reproduction, observability, and limits
 
