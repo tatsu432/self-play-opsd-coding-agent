@@ -354,6 +354,7 @@ def run_payload(
         "evaluate",
         "diagnose",
         "task13-probe",
+        "task13-static",
         "image-convert",
         "image-build",
         "method-smoke",
@@ -462,7 +463,11 @@ def run_payload(
     pilot_suffix = "-pilot" if chosen_gpu == "h100" else "-pilot-" + chosen_gpu
     checkpoint_cfg = cfg.model_copy(deep=True)
     if operation == "task13-probe" and checkpoint_iteration is not None:
-        checkpoint_cfg.method = {"A": "A", "B": "B", "C": "C", "D": "B"}[method]
+        checkpoint_cfg = load_config(
+            settings,
+            method={"A": "A", "B": "B", "C": "C", "D": "B"}[method],
+            hardware_profile=profile,
+        )
     if operation == "pilot":
         checkpoint_cfg.study_id += pilot_suffix
         checkpoint_cfg.iterations = iterations
@@ -483,6 +488,7 @@ def run_payload(
         "evaluate",
         "diagnose",
         "task13-probe",
+        "task13-static",
     }
     count = cfg.hardware.gpu_count if gpu_operation else 0
     if not gpu_operation:
@@ -632,7 +638,7 @@ def run_payload(
         else "01:00:00"
         if operation in {"backend-check", "rollout-parity", "numerical-audit", "proposer-audit"}
         else "06:00:00"
-        if operation == "pilot"
+        if operation in {"pilot", "task13-static"}
         else "02:00:00"
         if (operation == "evaluate" and base)
         or operation in {"method-smoke", "protocol-check", "task13-probe"}
@@ -672,6 +678,10 @@ def run_payload(
         if checkpoint_iteration is None and method not in {"A", "B"}:
             raise HpcError("Task 13 base probe uses A=diff and B=structured")
         payload["output"] = f"/runs/repair-diagnosis-2026-probe-v1/{identity[:24]}"
+    if operation == "task13-static":
+        if method != "B":
+            raise HpcError("Task 13 static job executes both GRPO and B arms")
+        payload["output"] = f"/runs/repair-diagnosis-2026-static-v1/{identity[:24]}"
     if (
         runtime_identity
         and cfg.sandbox.resource_backend == "slurm"
@@ -686,6 +696,7 @@ def run_payload(
             "evaluate",
             "diagnose",
             "task13-probe",
+            "task13-static",
         }
     ):
         payload["cpus"] += cfg.sandbox.cpus

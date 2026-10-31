@@ -1033,6 +1033,8 @@ def artifact_dir(payload: dict) -> Path:
         return runs / study / "diagnostics" / Path(payload["checkpoint"]).name
     if operation == "task13-probe":
         return runs / "repair-diagnosis-2026-probe-v1" / payload["run_id"]
+    if operation == "task13-static":
+        return runs / "repair-diagnosis-2026-static-v1" / payload["run_id"]
     return (
         runs
         / (study + (payload.get("pilot_suffix", "-pilot") if operation == "pilot" else ""))
@@ -1614,6 +1616,7 @@ def precheck(payload: dict):
         "evaluate",
         "diagnose",
         "task13-probe",
+        "task13-static",
         "freeze-study",
         "readiness-check",
     }:
@@ -1691,6 +1694,7 @@ def precheck(payload: dict):
         "evaluate",
         "diagnose",
         "task13-probe",
+        "task13-static",
     }
     if uses_worker and not payload.get("worker_image"):
         raise ValueError("Yale jobs require the verified allocation worker")
@@ -1745,6 +1749,7 @@ def precheck(payload: dict):
         "diagnose",
         "freeze-study",
         "task13-probe",
+        "task13-static",
     }:
         state = study_state(payload)
         if not state["gates"]["worker"] or not state["gates"]["runtime"]:
@@ -1757,6 +1762,16 @@ def precheck(payload: dict):
             or payload.get("method") not in {"A", "B", "C", "D"}
         ):
             raise ValueError("Task 13 probe requires bounded one-H200 cpsc4880 allocation")
+        if operation == "task13-static" and (
+            payload.get("account") != "cpsc4880"
+            or payload.get("gpu_count") != 1
+            or payload.get("gpu_type") != "h200"
+            or payload.get("time") != "06:00:00"
+            or payload.get("method") != "B"
+        ):
+            raise ValueError(
+                "Task 13 static comparison requires bounded one-H200 cpsc4880 allocation"
+            )
         if operation == "freeze-study":
             plan_path = workspace(payload) / "runs" / payload["study_id"] / "resource_plan.json"
             if not plan_path.is_file():

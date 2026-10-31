@@ -37,6 +37,10 @@ def test_probe_remote_requires_worker_and_bounded_h200(tmp_path, monkeypatch):
         remote.precheck(payload | {"time": "23:00:00"})
     with pytest.raises(ValueError, match="worker"):
         remote.precheck(payload | {"worker_image": ""})
+    static = payload | {"operation": "task13-static", "method": "B", "time": "06:00:00"}
+    remote.precheck(static)
+    with pytest.raises(ValueError, match="static comparison"):
+        remote.precheck(static | {"time": "23:00:00"})
 
 
 def test_structured_mutation_builds_a_valid_patch():

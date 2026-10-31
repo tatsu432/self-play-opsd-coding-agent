@@ -922,6 +922,7 @@ def execute(env: dict) -> int:
         "evaluate",
         "diagnose",
         "task13-probe",
+        "task13-static",
         "freeze-study",
         "readiness-check",
     }:
@@ -937,6 +938,7 @@ def execute(env: dict) -> int:
         "evaluate",
         "diagnose",
         "task13-probe",
+        "task13-static",
     }
     if uses_worker and not env.get("SELFPLAY_WORKER_SIF"):
         raise ValueError("Generated-code operations require the allocation worker")
@@ -1086,6 +1088,8 @@ def execute(env: dict) -> int:
             / "state"
             / f"stop_requested.{attempt}"
         )
+        if operation == "task13-static":
+            stop = readiness / f"task13-static-stop-{attempt}"
 
         def request_stop(*_):
             stop.parent.mkdir(parents=True, exist_ok=True)
@@ -1168,6 +1172,18 @@ def execute(env: dict) -> int:
             ]
             if env.get("SELFPLAY_CHECKPOINT"):
                 args += ["--checkpoint", env["SELFPLAY_CHECKPOINT"]]
+        if operation == "task13-static":
+            args = [
+                "torchrun",
+                "--standalone",
+                "--nnodes=1",
+                "--nproc-per-node=1",
+                "/workspace/scripts/task13_static.py",
+                "--settings",
+                "/workspace/" + env["SELFPLAY_SETTINGS"],
+                "--output",
+                env["SELFPLAY_OUTPUT"],
+            ]
         if operation in {
             "train",
             "pilot",

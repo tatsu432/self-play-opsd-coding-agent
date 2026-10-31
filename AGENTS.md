@@ -1,5 +1,18 @@
 # Project and operating instructions
 
+## Task 13 checkpoint probes submitted — 2026-10-31
+
+Five checkpoint probes were submitted from immutable execution
+`d1d24c9904fc2e92870ad84412904abc36ad5e88`: A20 diff job `31535565`
+(`0d253ac48cd9fbac666560fe`), A200 diff `31535570`
+(`ef6ce5271c24ee8de47e2221`), B200 structured `31535572`
+(`0a78616509db9372715f7602`), C100 diff `31535578`
+(`d406303bf5b4d2eed674cb69`), B200 diff `31535584`
+(`f1b225fa1a92372f332f94a5`). All were PENDING at latest inspection.
+Each verifies checkpoint checksums and scientific/data/prompt/model identity on
+the allocated node before loading. Inspect live state and existing ledgers;
+never submit a duplicate. Continue independent Task 13 work while they queue.
+
 ## Task 13 base proposer probe submitted — 2026-10-31
 
 Diff-format run `0cbb6df656bf96b50a81b19e`, Slurm job `31533595`, and
