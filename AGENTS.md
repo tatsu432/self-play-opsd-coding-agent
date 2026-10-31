@@ -1,5 +1,15 @@
 # Project and operating instructions
 
+## Corrected C iteration 100 — latest live state
+
+Job `31469208` completed with exit 0, stopped at iteration 100, and used
+12,782 seconds (3.550556 H200 GPU-hours). C development scores at iterations
+0/20/40/60/80/100 were 0/12/10/10/12/11 out of 41. Through iteration 100,
+116/1,600 proposals were valid and 98/116 candidate alignment scores were
+neutral due to zero candidate gradient. CPU checkpoint verification and W&B
+reconciliation job `31528917` has been submitted; inspect it before repeating.
+No new C continuation or D main job has been submitted.
+
 ## Corrected C iteration 40 — latest live state
 
 Continuation job `31455833` completed successfully at the bounded iteration 40
