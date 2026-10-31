@@ -102,7 +102,9 @@ reconciliation and a passing preview, continuation job `31555806`, run
 `6df71fd4b3cd5fad8200ab23ca76041d249b80a3`; it was pending at submission.
 Inspect this existing job and ledger; never duplicate it. The continuation
 verifies pool/runner/data identity and checkpoint checksums on the allocated
-node before resuming. Review its final gated evaluation and actual accounting.
+node before resuming. It started, verified the checkpoint, created a new event
+segment with rollback to iteration 19, replayed the twentieth step, and began
+the gated final development evaluation. Review that evaluation and accounting.
 
 ## Task 13 checkpoint probes submitted — 2026-10-31
 
