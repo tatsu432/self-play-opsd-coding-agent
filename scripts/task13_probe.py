@@ -17,7 +17,7 @@ from selfplay_opsd.environment import check_admission
 from selfplay_opsd.mutations import strict_json_object, validate_mutation
 from selfplay_opsd.protocol import PROMPT_HASH, proposer_messages
 from selfplay_opsd.sandbox import SandboxBackend
-from selfplay_opsd.storage import CheckpointManager, atomic_json
+from selfplay_opsd.storage import CheckpointManager, atomic_json, scientific_code_hash
 
 
 def main() -> None:
@@ -54,6 +54,16 @@ def main() -> None:
                 raise ValueError("Checkpoint dataset or prompt identity differs")
             if checkpoint["resolved_config"]["model"] != cfg.model.model_dump(mode="json"):
                 raise ValueError("Checkpoint model identity differs")
+            expected = load_config(
+                args.settings,
+                method=checkpoint["resolved_config"]["method"],
+                hardware_profile="single_gpu_80gb",
+            )
+            if (
+                checkpoint["scientific_hash"] != expected.scientific_hash
+                or checkpoint["scientific_code_hash"] != scientific_code_hash()
+            ):
+                raise ValueError("Checkpoint scientific identity differs")
             policy.load_state_dict(state["policy"])
         manifest = {
             "study": "repair-diagnosis-2026-probe-v1",

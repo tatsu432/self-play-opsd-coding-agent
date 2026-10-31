@@ -6,9 +6,9 @@ The [diagnosis](../investigations/learning-stagnation-diagnosis.md) answers Q1�
 
 The evidence changes the priority: exact diff application rejects 51–53% of proposals; accumulated duplicates reject another 31–38%. Real proposer rewards materially change normalized advantages in only 4/800 A, 5/800 B, and 7/400 C groups. First improve useful candidate generation, then test student learnability; do not start full D or extend C unchanged as the next diagnostic.
 
-Task 13 implements the CPU observer and decision artifacts. The GPU experiments below are specified follow-ups, not jobs submitted by this task. The user's standing direction permits efficient GPU spending without another budget confirmation. Twelve H200-hours is an initial envelope, not an obligation to spend it or an absolute ceiling. Reconcile jobs and actual allocations before every submission, retain all failed-attempt costs, and never duplicate an uncertain submission.
+Continue the GPU experiments below through submission, monitoring, analysis, and subsequent decisions. The user authorizes efficient GPU spending without another budget confirmation. Twelve H200-hours is an initial envelope, not an obligation to spend it or an absolute ceiling. Reconcile jobs and actual allocations before every submission, retain all failed-attempt costs, and never duplicate an uncertain submission.
 
-**Probe implementation update:** the `task13-probe` operation now launches the first base-model paired arms through the existing Yale worker and GPU allocation checks. Method A selects the diff representation and B selects structured edits, with independent immutable run IDs and private output in `repair-diagnosis-2026-probe-v1`. Each arm selects the same 40 training parents and four keyed seeds and has a two-hour allocation cap. Checkpoint comparisons and the additional eight-sample subset remain follow-up work; the currently implemented controller route does not claim those arms are complete.
+**Probe implementation update:** the `task13-probe` operation launches the paired base-model arms through the existing Yale worker and GPU allocation checks. Both completed successfully: diff 43/160 verified proposals and 20 unique mutations; structured 95/160 and 33 unique. Paired-parent bootstrap differences were +32.5 percentage points in verified fraction (95% interval +15 to +50) and +0.325 unique mutations per parent (+0.025 to +0.625). Continue with the retained checkpoint comparisons and additional independent samples.
 
 ## Experiment 1: paired inference probe — run first
 
@@ -68,7 +68,7 @@ uv run --frozen python scripts/diagnose_learning.py \
   --accounting runs/task13/accounting.json --output runs/task13/diagnosis
 ```
 
-The following are **proposed follow-up controller interfaces, not currently supported commands**. Implement and test these scoped routes before using them; do not claim a preview passed or substitute the existing unrelated `diagnose` operation:
+The following interfaces include proposed routes that still require implementation. Implement and test each scoped route and continue to submission; do not substitute the existing unrelated `diagnose` operation:
 
 ```bash
 # Proposed: stateless inference and validation; stage 1a then conditional 1b.

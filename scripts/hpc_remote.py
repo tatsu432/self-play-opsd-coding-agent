@@ -679,6 +679,16 @@ def submit(payload: dict) -> dict:
             raise ValueError("Checkpoint must be a numbered state in this run")
         host_checkpoint = p["runs"] / checkpoint.removeprefix("/runs/")
         check_checkpoint(host_checkpoint, payload)
+    if payload["operation"] == "task13-probe" and payload.get("checkpoint"):
+        checkpoint = payload["checkpoint"]
+        expected_method = {"A": "A", "B": "B", "C": "C", "D": "B"}[payload["method"]]
+        prefix = f"/runs/{payload['study_id']}/{expected_method}-seed{payload['seed']}/checkpoints/"
+        if not checkpoint.startswith(prefix) or not re.fullmatch(
+            r"\d{6}", checkpoint.removeprefix(prefix)
+        ):
+            raise ValueError("Probe checkpoint must be a numbered corrected-study checkpoint")
+        if not (p["runs"] / checkpoint.removeprefix("/runs/") / "complete.json").is_file():
+            raise ValueError("Probe checkpoint is absent or incomplete")
     if payload["gpu_count"] and (
         payload["gpu_count"] != payload["profile_gpu_count"]
         or GPU_VRAM_GB[payload["gpu_type"]] < payload["min_vram_gib"]
@@ -1744,7 +1754,7 @@ def precheck(payload: dict):
             or payload.get("gpu_count") != 1
             or payload.get("gpu_type") != "h200"
             or payload.get("time") != "02:00:00"
-            or payload.get("method") not in {"A", "B"}
+            or payload.get("method") not in {"A", "B", "C", "D"}
         ):
             raise ValueError("Task 13 probe requires bounded one-H200 cpsc4880 allocation")
         if operation == "freeze-study":

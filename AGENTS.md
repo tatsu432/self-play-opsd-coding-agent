@@ -1,5 +1,19 @@
 # Project and operating instructions
 
+## Task 13 base proposer probe submitted — 2026-10-31
+
+Diff-format run `0cbb6df656bf96b50a81b19e`, Slurm job `31533595`, and
+structured-format run `a5eea7b65ed72d2ff4b3f70d`, job `31533597`, were
+submitted once from immutable execution `440451f9e75501b07f70542d96dc0c19a11a16ab`.
+Both completed with exit 0. Diff used 592 seconds and produced 43/160 verified
+proposals, 20 unique parent/AST pairs; structured used 242 seconds and produced
+95/160 verified proposals, 33 unique pairs. Both completed all 160 samples
+on the same 40 training parents and model. Private artifacts were fetched to
+`runs/hpc/yale-hpc-cpsc4880/<run-id>/`. These are preliminary paired base-model
+descriptive results, not checkpoint or larger-model comparisons. Inspect live
+scheduler state and these ledgers before acting; never duplicate either job.
+The task13 probe uses the accepted isolated worker.
+
 ## Execution persistence — 2026-10-31
 
 The user directs the agent to continue through implementation, validation,

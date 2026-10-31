@@ -461,6 +461,8 @@ def run_payload(
     )
     pilot_suffix = "-pilot" if chosen_gpu == "h100" else "-pilot-" + chosen_gpu
     checkpoint_cfg = cfg.model_copy(deep=True)
+    if operation == "task13-probe" and checkpoint_iteration is not None:
+        checkpoint_cfg.method = {"A": "A", "B": "B", "C": "C", "D": "B"}[method]
     if operation == "pilot":
         checkpoint_cfg.study_id += pilot_suffix
         checkpoint_cfg.iterations = iterations
@@ -657,7 +659,7 @@ def run_payload(
         "base": base,
         "split": split,
         "endpoint": endpoint,
-        "checkpoint": f"/runs/{cfg.study_id}/{method}-seed{cfg.seed}/checkpoints/{checkpoint_iteration:06d}"
+        "checkpoint": f"/runs/{cfg.study_id}/{ ({'A': 'A', 'B': 'B', 'C': 'C', 'D': 'B'}[method] if operation == 'task13-probe' else method) }-seed{cfg.seed}/checkpoints/{checkpoint_iteration:06d}"
         if checkpoint_iteration is not None
         else "",
         "secrets_file": secrets_file or "",
@@ -667,7 +669,7 @@ def run_payload(
     if operation == "diagnose":
         payload["output"] = f"/runs/{cfg.study_id}/diagnostics/{checkpoint_iteration:06d}"
     if operation == "task13-probe":
-        if method not in {"A", "B"}:
+        if checkpoint_iteration is None and method not in {"A", "B"}:
             raise HpcError("Task 13 base probe uses A=diff and B=structured")
         payload["output"] = f"/runs/repair-diagnosis-2026-probe-v1/{identity[:24]}"
     if (

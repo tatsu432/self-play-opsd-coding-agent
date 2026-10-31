@@ -1164,8 +1164,10 @@ def execute(env: dict) -> int:
                 "--output",
                 env["SELFPLAY_OUTPUT"],
                 "--representation",
-                "diff" if env["SELFPLAY_METHOD"] == "A" else "structured",
+                "structured" if env["SELFPLAY_METHOD"] == "B" else "diff",
             ]
+            if env.get("SELFPLAY_CHECKPOINT"):
+                args += ["--checkpoint", env["SELFPLAY_CHECKPOINT"]]
         if operation in {
             "train",
             "pilot",
