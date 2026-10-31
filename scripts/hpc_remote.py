@@ -679,7 +679,9 @@ def submit(payload: dict) -> dict:
             raise ValueError("Checkpoint must be a numbered state in this run")
         host_checkpoint = p["runs"] / checkpoint.removeprefix("/runs/")
         check_checkpoint(host_checkpoint, payload)
-    if payload["operation"] == "task13-probe" and payload.get("checkpoint"):
+    if payload["operation"] in {"task13-probe", "task13-counterfactual"} and payload.get(
+        "checkpoint"
+    ):
         checkpoint = payload["checkpoint"]
         expected_method = {"A": "A", "B": "B", "C": "C", "D": "B"}[payload["method"]]
         prefix = f"/runs/{payload['study_id']}/{expected_method}-seed{payload['seed']}/checkpoints/"
@@ -1035,6 +1037,8 @@ def artifact_dir(payload: dict) -> Path:
         return runs / "repair-diagnosis-2026-probe-v1" / payload["run_id"]
     if operation == "task13-static":
         return runs / "repair-diagnosis-2026-static-v1" / payload["run_id"]
+    if operation == "task13-counterfactual":
+        return runs / "repair-diagnosis-2026-counterfactual-v1" / payload["run_id"]
     return (
         runs
         / (study + (payload.get("pilot_suffix", "-pilot") if operation == "pilot" else ""))
@@ -1617,6 +1621,7 @@ def precheck(payload: dict):
         "diagnose",
         "task13-probe",
         "task13-static",
+        "task13-counterfactual",
         "freeze-study",
         "readiness-check",
     }:
@@ -1695,6 +1700,7 @@ def precheck(payload: dict):
         "diagnose",
         "task13-probe",
         "task13-static",
+        "task13-counterfactual",
     }
     if uses_worker and not payload.get("worker_image"):
         raise ValueError("Yale jobs require the verified allocation worker")
@@ -1750,6 +1756,7 @@ def precheck(payload: dict):
         "freeze-study",
         "task13-probe",
         "task13-static",
+        "task13-counterfactual",
     }:
         state = study_state(payload)
         if not state["gates"]["worker"] or not state["gates"]["runtime"]:
@@ -1772,6 +1779,15 @@ def precheck(payload: dict):
             raise ValueError(
                 "Task 13 static comparison requires bounded one-H200 cpsc4880 allocation"
             )
+        if operation == "task13-counterfactual" and (
+            payload.get("account") != "cpsc4880"
+            or payload.get("gpu_count") != 1
+            or payload.get("gpu_type") != "h200"
+            or payload.get("time") != "02:00:00"
+            or payload.get("method") != "C"
+            or not payload.get("checkpoint", "").endswith("/000099")
+        ):
+            raise ValueError("Task 13 counterfactual requires one H200 and C checkpoint 99")
         if operation == "freeze-study":
             plan_path = workspace(payload) / "runs" / payload["study_id"] / "resource_plan.json"
             if not plan_path.is_file():

@@ -41,6 +41,16 @@ def test_probe_remote_requires_worker_and_bounded_h200(tmp_path, monkeypatch):
     remote.precheck(static)
     with pytest.raises(ValueError, match="static comparison"):
         remote.precheck(static | {"time": "23:00:00"})
+    counterfactual = payload | {
+        "operation": "task13-counterfactual",
+        "method": "C",
+        "checkpoint": "/runs/study/C-seed2026/checkpoints/000099",
+    }
+    remote.precheck(counterfactual)
+    with pytest.raises(ValueError, match="C checkpoint 99"):
+        remote.precheck(
+            counterfactual | {"checkpoint": "/runs/study/C-seed2026/checkpoints/000100"}
+        )
 
 
 def test_structured_mutation_builds_a_valid_patch():

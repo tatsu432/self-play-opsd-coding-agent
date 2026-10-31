@@ -73,17 +73,15 @@ uv run --frozen python scripts/diagnose_learning.py \
 The following interfaces include proposed routes that still require implementation. Implement and test each scoped route and continue to submission; do not substitute the existing unrelated `diagnose` operation:
 
 ```bash
-# Proposed: stateless inference and validation; stage 1a then conditional 1b.
+# Implemented: stateless inference and validation, diff or structured arm.
 uv run selfplay hpc submit --operation task13-probe --settings configs/task13-probe.yaml --profile single_gpu_80gb --gpu-type h200 --account cpsc4880 --dry-run
-# Proposed: fixed-task source, existing GRPO objective, no proposer update.
-uv run selfplay hpc submit --operation train --method GRPO --settings configs/task13-static.yaml --profile single_gpu_80gb --gpu-type h200 --account cpsc4880 --dry-run
-# Proposed: same static source and schedule, existing gated student objective.
-uv run selfplay hpc submit --operation train --method B --settings configs/task13-static.yaml --profile single_gpu_80gb --gpu-type h200 --account cpsc4880 --dry-run
-# Proposed: read-only checkpoint counterfactual, separate diagnostic output.
-uv run selfplay hpc submit --operation task13-counterfactual --settings configs/task13-counterfactual.yaml --profile single_gpu_80gb --gpu-type h200 --account cpsc4880 --dry-run
+# Implemented: matched GRPO and gated arms on one fixed training-task pool.
+uv run selfplay hpc submit --operation task13-static --method B --settings configs/task12-corrected.yaml --profile single_gpu_80gb --gpu-type h200 --account cpsc4880 --dry-run
+# Implemented: read-only C checkpoint counterfactual.
+uv run selfplay hpc submit --operation task13-counterfactual --method C --checkpoint-iteration 99 --settings configs/task12-corrected.yaml --profile single_gpu_80gb --gpu-type h200 --account cpsc4880 --dry-run
 ```
 
-Minimal dependencies: add a focused inference/counterfactual runner, a fixed-task source that bypasses proposer generation/update while reusing existing student rollout/loss/checkpoint code, and study-scoped controller/payload/allocated-job routing. The controller currently accepts A–D only; `RunConfig` and the student objective already support GRPO. Do not globally weaken A–D readiness gates to admit these diagnostics. New operations bind their own immutable manifest and explicit caps. On a supported preview, submission removes `--dry-run`; no extra user budget permission is required.
+The focused runners and controller/allocated-job routes are implemented. The fixed-task runner uses the existing GRPO objective while bypassing proposer generation and updates; no global A–D readiness gate is weakened. New operations bind immutable inputs and explicit caps. On a supported preview, submission removes `--dry-run`; no extra user budget permission is required. Larger-model inference support and the additional eight-sample proposer subset still require implementation.
 
 Use one entitled H200 in `gpu_h200`, account `cpsc4880`, seven trainer CPUs/128 GiB plus the accepted one-CPU/1-GiB no-GRES worker step: eight CPUs/129 GiB total. H200 is chosen for the already accepted backend and measured approximately 72-GiB whole-device workload/headroom, avoiding new hardware uncertainty. Stage-1a/1b allocations are each at most two hours, static arms three hours each initially, counterfactual two hours. Reserve full requested time and count actual scheduler use, including failures and startup. Derive safe stop margins from measured initial phases and preserve partial diagnostic outputs; training stops only at joint checkpoint boundaries.
 

@@ -1,5 +1,14 @@
 # Project and operating instructions
 
+## Task 13 static student control submitted — 2026-10-31
+
+Job `31535783`, run `9a44124b61147aee02c685d6`, was submitted from
+`8eed8c09aa4035c7e32a9f5c11744d78b3369cc2` with one H200 and a six-hour
+cap; it was PENDING at latest inspection. It builds and screens one verified
+training-only pool, then runs matched GRPO and gated-OPSD arms using the
+existing isolated worker and joint checkpoints. Inspect this existing job and
+ledger; do not duplicate it. Review actual completion and exposure per arm.
+
 ## Task 13 checkpoint probes submitted — 2026-10-31
 
 Five checkpoint probes were submitted from immutable execution

@@ -923,6 +923,7 @@ def execute(env: dict) -> int:
         "diagnose",
         "task13-probe",
         "task13-static",
+        "task13-counterfactual",
         "freeze-study",
         "readiness-check",
     }:
@@ -939,6 +940,7 @@ def execute(env: dict) -> int:
         "diagnose",
         "task13-probe",
         "task13-static",
+        "task13-counterfactual",
     }
     if uses_worker and not env.get("SELFPLAY_WORKER_SIF"):
         raise ValueError("Generated-code operations require the allocation worker")
@@ -1169,6 +1171,20 @@ def execute(env: dict) -> int:
                 env["SELFPLAY_OUTPUT"],
                 "--representation",
                 "structured" if env["SELFPLAY_METHOD"] == "B" else "diff",
+            ]
+        if operation == "task13-counterfactual":
+            args = [
+                "torchrun",
+                "--standalone",
+                "--nnodes=1",
+                "--nproc-per-node=1",
+                "/workspace/scripts/task13_counterfactual.py",
+                "--settings",
+                "/workspace/" + env["SELFPLAY_SETTINGS"],
+                "--output",
+                env["SELFPLAY_OUTPUT"],
+                "--checkpoint",
+                env["SELFPLAY_CHECKPOINT"],
             ]
             if env.get("SELFPLAY_CHECKPOINT"):
                 args += ["--checkpoint", env["SELFPLAY_CHECKPOINT"]]

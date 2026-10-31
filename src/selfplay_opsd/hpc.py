@@ -355,6 +355,7 @@ def run_payload(
         "diagnose",
         "task13-probe",
         "task13-static",
+        "task13-counterfactual",
         "image-convert",
         "image-build",
         "method-smoke",
@@ -385,6 +386,8 @@ def run_payload(
         raise HpcError("Unsupported frozen evaluation split or endpoint")
     if operation == "diagnose" and checkpoint_iteration is None:
         raise HpcError("Diagnostics require a checkpoint iteration")
+    if operation == "task13-counterfactual" and (method != "C" or checkpoint_iteration != 99):
+        raise HpcError("Task 13 counterfactual requires corrected C checkpoint 99")
     if operation == "evaluate" and not base and checkpoint_iteration is None:
         raise HpcError("Evaluation requires --base or --checkpoint-iteration")
     if base and (operation != "evaluate" or checkpoint_iteration is not None):
@@ -489,6 +492,7 @@ def run_payload(
         "diagnose",
         "task13-probe",
         "task13-static",
+        "task13-counterfactual",
     }
     count = cfg.hardware.gpu_count if gpu_operation else 0
     if not gpu_operation:
@@ -641,7 +645,7 @@ def run_payload(
         if operation in {"pilot", "task13-static"}
         else "02:00:00"
         if (operation == "evaluate" and base)
-        or operation in {"method-smoke", "protocol-check", "task13-probe"}
+        or operation in {"method-smoke", "protocol-check", "task13-probe", "task13-counterfactual"}
         else "00:15:00"
         if operation in {"worker-check", "freeze-study", "readiness-check", "wandb-verify"}
         else "01:00:00"
@@ -682,6 +686,8 @@ def run_payload(
         if method != "B":
             raise HpcError("Task 13 static job executes both GRPO and B arms")
         payload["output"] = f"/runs/repair-diagnosis-2026-static-v1/{identity[:24]}"
+    if operation == "task13-counterfactual":
+        payload["output"] = f"/runs/repair-diagnosis-2026-counterfactual-v1/{identity[:24]}"
     if (
         runtime_identity
         and cfg.sandbox.resource_backend == "slurm"
@@ -697,6 +703,7 @@ def run_payload(
             "diagnose",
             "task13-probe",
             "task13-static",
+            "task13-counterfactual",
         }
     ):
         payload["cpus"] += cfg.sandbox.cpus
