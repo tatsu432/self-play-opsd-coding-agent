@@ -1041,6 +1041,8 @@ def artifact_dir(payload: dict) -> Path:
         return runs / "repair-diagnosis-2026-header-replay-v1" / payload["run_id"]
     if operation == "task13-static":
         return runs / "repair-diagnosis-2026-static-v1" / payload["run_id"]
+    if operation == "task13-static-continuation":
+        return runs / "repair-diagnosis-2026-static-continuation-v1" / payload["run_id"]
     if operation == "task13-counterfactual":
         return runs / "repair-diagnosis-2026-counterfactual-v1" / payload["run_id"]
     return (
@@ -1627,6 +1629,7 @@ def precheck(payload: dict):
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
+        "task13-static-continuation",
         "task13-counterfactual",
         "freeze-study",
         "readiness-check",
@@ -1708,6 +1711,7 @@ def precheck(payload: dict):
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
+        "task13-static-continuation",
         "task13-counterfactual",
     }
     if uses_worker and not payload.get("worker_image"):
@@ -1766,6 +1770,7 @@ def precheck(payload: dict):
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
+        "task13-static-continuation",
         "task13-counterfactual",
     }:
         state = study_state(payload)
@@ -1788,6 +1793,25 @@ def precheck(payload: dict):
             or payload.get("checkpoint")
         ):
             raise ValueError("Header replay requires the bounded CPU-only worker allocation")
+        if operation == "task13-static-continuation":
+            source = (
+                paths(payload)["runs"] / "repair-diagnosis-2026-static-v1/9a44124b61147aee02c685d6"
+            )
+            original = job_state("31535783")
+            if (
+                payload.get("account") != "cpsc4880"
+                or payload.get("gpu_count") != 1
+                or payload.get("gpu_type") != "h200"
+                or payload.get("time") != "06:00:00"
+                or payload.get("method") != "B"
+                or original.get("state") != "COMPLETED"
+                or original.get("exit_code") != "0:0"
+                or not (source / "stopped.json").is_file()
+                or (source / "complete.json").exists()
+            ):
+                raise ValueError(
+                    "Static continuation requires the original clean stopped allocation"
+                )
         if operation == "task13-model-probe" and (
             payload.get("account") != "cpsc4880"
             or payload.get("gpu_count") != 1

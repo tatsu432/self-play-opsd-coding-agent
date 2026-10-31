@@ -77,6 +77,23 @@ def test_probe_remote_requires_worker_and_bounded_h200(tmp_path, monkeypatch):
     remote.precheck(replay)
     with pytest.raises(ValueError, match="CPU-only"):
         remote.precheck(replay | {"gpu_count": 1})
+    source = tmp_path / "repair-diagnosis-2026-static-v1/9a44124b61147aee02c685d6"
+    source.mkdir(parents=True)
+    (source / "stopped.json").write_text("{}")
+    monkeypatch.setattr(remote, "paths", lambda _: {"runs": tmp_path})
+    monkeypatch.setattr(remote, "job_state", lambda _: {"state": "RUNNING"})
+    continuation = payload | {
+        "operation": "task13-static-continuation",
+        "method": "B",
+        "time": "06:00:00",
+    }
+    with pytest.raises(ValueError, match="original clean stopped"):
+        remote.precheck(continuation)
+    monkeypatch.setattr(remote, "job_state", lambda _: {"state": "COMPLETED", "exit_code": "0:0"})
+    remote.precheck(continuation)
+    (source / "complete.json").write_text("{}")
+    with pytest.raises(ValueError, match="original clean stopped"):
+        remote.precheck(continuation)
 
 
 def test_structured_mutation_builds_a_valid_patch():
@@ -132,3 +149,7 @@ def test_allocated_probe_command_preserves_checkpoint_and_extra_slots():
     replay = job.task13_command_args(env | {"SELFPLAY_OPERATION": "task13-header-replay"})
     assert replay[:2] == ["python", "/workspace/scripts/task13_header_replay.py"]
     assert "--checkpoint" not in replay
+    continuation = job.task13_command_args(
+        env | {"SELFPLAY_OPERATION": "task13-static-continuation"}
+    )
+    assert "/workspace/scripts/task13_static_continue.py" in continuation

@@ -31,6 +31,37 @@ def test_fixed_batches_cycle_and_have_no_proposer_tokens():
     assert not any(example.targets for example in examples)
 
 
+def test_static_continuation_checks_checkpoint_identity(monkeypatch, tmp_path):
+    from selfplay_opsd.protocol import PROMPT_HASH
+
+    monkeypatch.syspath_prepend(str(Path("scripts").resolve()))
+    spec = importlib.util.spec_from_file_location(
+        "static_continue", Path("scripts/task13_static_continue.py")
+    )
+    assert spec and spec.loader
+    continuation = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(continuation)
+    runtime = {"scientific_code_hash": "code", "allocation_code_hash": "allocation"}
+    state = {"iteration": 3}
+    metadata = {
+        "scientific_hash": "science",
+        "manifests_hash": "dataset",
+        "prompt_hash": PROMPT_HASH,
+        "scientific_code_hash": "code",
+        "runtime_identity": runtime,
+        "iteration": 3,
+    }
+    monkeypatch.setattr(continuation.CheckpointManager, "load", lambda _: (state, metadata))
+    monkeypatch.setattr(continuation, "execution_identity", lambda *_args, **_kwargs: runtime)
+    cfg, repo = SimpleNamespace(scientific_hash="science"), SimpleNamespace(hash="dataset")
+    assert continuation.verified_checkpoint(tmp_path, cfg, repo) == state
+    metadata["scientific_hash"] = "different"
+    import pytest
+
+    with pytest.raises(ValueError, match="identity"):
+        continuation.verified_checkpoint(tmp_path, cfg, repo)
+
+
 def test_static_iteration_updates_student_without_proposer(tmp_path, monkeypatch):
     from selfplay_opsd.core import EpisodeRecord, OracleSpec, Status, TaskSpec, TokenTurn
     from selfplay_opsd.policy import HFPolicy
@@ -130,6 +161,12 @@ def test_static_iteration_updates_student_without_proposer(tmp_path, monkeypatch
         assert result.valid == 2 and result.episodes == 8
         assert result.student_steps == 1
         assert result.proposer_steps == 0
+        checkpoint = trainer.checkpoint()
+        assert checkpoint is not None
         trainer.sink.finish()
+        resumed = module.StaticTrainer(cfg, policy, repo, sandbox, pool=pool, resume=checkpoint)
+        assert resumed.iteration == 1
+        assert resumed.student_steps == 1 and resumed.proposer_steps == 0
+        resumed.sink.finish()
     finally:
         policy.close()

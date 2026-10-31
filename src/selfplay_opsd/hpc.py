@@ -367,6 +367,7 @@ def run_payload(
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
+        "task13-static-continuation",
         "task13-counterfactual",
         "image-convert",
         "image-build",
@@ -505,6 +506,7 @@ def run_payload(
         "task13-probe",
         "task13-model-probe",
         "task13-static",
+        "task13-static-continuation",
         "task13-counterfactual",
     }
     count = cfg.hardware.gpu_count if gpu_operation else 0
@@ -666,7 +668,7 @@ def run_payload(
         else "01:00:00"
         if operation in {"backend-check", "rollout-parity", "numerical-audit", "proposer-audit"}
         else "06:00:00"
-        if operation in {"pilot", "task13-static"}
+        if operation in {"pilot", "task13-static", "task13-static-continuation"}
         else "02:00:00"
         if (operation == "evaluate" and base)
         or operation
@@ -719,6 +721,10 @@ def run_payload(
         if method != "B":
             raise HpcError("Task 13 static job executes both GRPO and B arms")
         payload["output"] = f"/runs/repair-diagnosis-2026-static-v1/{identity[:24]}"
+    if operation == "task13-static-continuation":
+        if method != "B" or checkpoint_iteration is not None:
+            raise HpcError("Static continuation is fixed to the existing matched control")
+        payload["output"] = f"/runs/repair-diagnosis-2026-static-continuation-v1/{identity[:24]}"
     if operation == "task13-model-probe":
         if checkpoint_iteration is not None:
             raise HpcError("Larger-model probes cannot load a 4B checkpoint")
@@ -747,6 +753,7 @@ def run_payload(
             "task13-model-probe",
             "task13-header-replay",
             "task13-static",
+            "task13-static-continuation",
             "task13-counterfactual",
         }
     ):

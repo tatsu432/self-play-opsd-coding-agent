@@ -949,6 +949,8 @@ def task13_command_args(env: dict) -> list[str]:
         )
     if operation == "task13-static":
         return prefix + ["/workspace/scripts/task13_static.py"] + common
+    if operation == "task13-static-continuation":
+        return prefix + ["/workspace/scripts/task13_static_continue.py"] + common
     if operation == "task13-header-replay":
         return ["python", "/workspace/scripts/task13_header_replay.py"] + common
     raise ValueError("Unknown Task 13 allocation operation")
@@ -977,6 +979,7 @@ def execute(env: dict) -> int:
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
+        "task13-static-continuation",
         "task13-counterfactual",
         "freeze-study",
         "readiness-check",
@@ -996,6 +999,7 @@ def execute(env: dict) -> int:
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
+        "task13-static-continuation",
         "task13-counterfactual",
     }
     if uses_worker and not env.get("SELFPLAY_WORKER_SIF"):
@@ -1146,7 +1150,7 @@ def execute(env: dict) -> int:
             / "state"
             / f"stop_requested.{attempt}"
         )
-        if operation == "task13-static":
+        if operation in {"task13-static", "task13-static-continuation"}:
             stop = readiness / f"task13-static-stop-{attempt}"
 
         def request_stop(*_):
@@ -1220,6 +1224,7 @@ def execute(env: dict) -> int:
             "task13-model-probe",
             "task13-header-replay",
             "task13-static",
+            "task13-static-continuation",
         }:
             args = task13_command_args(env)
         if operation in {
