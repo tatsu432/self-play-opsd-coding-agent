@@ -58,6 +58,20 @@ def summary(probe: dict) -> dict:
         "verified_in_checkpoint_history": sum(
             r["valid"] and r.get("in_training_history", False) for r in rows
         ),
+        "unique_verified_in_checkpoint_history": len(
+            {
+                (r["parent_id"], r["dedup_key"])
+                for r in rows
+                if r["valid"] and r.get("in_training_history", False)
+            }
+        ),
+        "unique_verified_not_in_checkpoint_history": len(
+            {
+                (r["parent_id"], r["dedup_key"])
+                for r in rows
+                if r["valid"] and not r.get("in_training_history", False)
+            }
+        ),
         "distinct_output_sequences": len({tuple(r["target_ids"]) for r in rows}),
         "reasons": dict(Counter(r["reason"] for r in rows)),
     }
@@ -110,13 +124,24 @@ def compare(
     count = first["manifest"]["slots"]
     result = {"parents": len(ids), "samples_per_parent": count, "differences": {}}
     rng = np.random.default_rng(2026)
-    for name in ("verified_fraction", "unique_mutations_per_parent"):
+    for name in (
+        "verified_fraction",
+        "unique_mutations_per_parent",
+        "novel_verified_fraction",
+        "unique_novel_mutations_per_parent",
+    ):
 
         def value(rows, metric=name):
+            novel = "novel" in metric
+            valid = [
+                r
+                for r in rows
+                if r["valid"] and (not novel or not r.get("in_training_history", False))
+            ]
             return (
-                sum(r["valid"] for r in rows) / count
-                if metric == "verified_fraction"
-                else len({r["dedup_key"] for r in rows if r["valid"]})
+                len(valid) / count
+                if metric.endswith("fraction")
+                else len({r["dedup_key"] for r in valid})
             )
 
         delta = np.array(

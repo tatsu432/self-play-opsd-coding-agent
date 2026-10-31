@@ -16,18 +16,25 @@ Four additional slots (4–7) were submitted for the prespecified first 16
 parents from execution `f49334e6d02813716019d7312ddd481032cb3f21`:
 base diff job `31535931` / run `bbfefdccb9d1a67dfa486e0a`, base structured
 `31535971` / `522e881e218fee881e05081c`, and B200 diff `31535981` /
-`1e5f64bb179d21b06665614f`. These supplement, rather than replace, the
-previous four samples. Inspect existing ledgers and scheduler states before
-action. Never resubmit uncertain or active jobs.
+`1e5f64bb179d21b06665614f`. A launcher wiring error failed to pass the extra
+slot flags; B's completed 160 records exactly repeat the original base samples
+and are not independent. A and D were cancelled when the error was discovered.
+Slurm charged 340, 256, and 169 seconds respectively (0.2125 H200-hours total).
+Preserve these invalid/partial runs for audit; do not count them as extra samples.
+The launcher was corrected and has an explicit command-argument regression test;
+after synchronizing a new commit, submit replacement sample runs once.
 
 ## Task 13 C/D counterfactual submitted — 2026-10-31
 
 Job `31535924`, run `913f441b4f52675eb2479c16`, was submitted once from
 `f3c290dc3d01af3af8df9b5ad926fd26b8bac850` with one H200 and a two-hour cap.
-It compares C and D candidate/proposer gradients at verified C checkpoint 99,
-using matched generated candidates and rollouts and restoring optimizer state
-after any counterfactual update. It was pending at submission. Inspect the
-existing job and ledger before any action; never duplicate it.
+It completed with exit 0. Of 64 proposals in 16 parent groups, two candidates
+in one group were accepted. Both RL candidate gradients were zero; combined
+gradients were nonzero. Normalized-advantage L2 difference was 0.13213,
+proposer-gradient cosine 0.95646 and Adam-update cosine 0.98893. Both adapters
+and optimizers were restored and verified. This is one group, not a population
+estimate. Private result: `runs/hpc/yale-hpc-cpsc4880/913f441b4f52675eb2479c16`.
+Inspect the existing job and ledger before action; never duplicate it.
 
 ## Task 13 static student control submitted — 2026-10-31
 

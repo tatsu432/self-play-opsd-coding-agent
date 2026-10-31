@@ -82,3 +82,40 @@ def test_unlisted_structured_operations_are_rejected():
     source = "def f(x):\n    return x + 1\n"
     with pytest.raises(ValueError, match="Unknown structured"):
         mutation(source, ["body", 0, "name"], "increment")
+
+
+def test_allocated_probe_command_preserves_checkpoint_and_extra_slots():
+    spec = importlib.util.spec_from_file_location("task13_job", Path("scripts/hpc_job.py"))
+    assert spec and spec.loader
+    job = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(job)
+    env = {
+        "SELFPLAY_OPERATION": "task13-probe",
+        "SELFPLAY_METHOD": "D",
+        "SELFPLAY_SETTINGS": "configs/task12-corrected.yaml",
+        "SELFPLAY_OUTPUT": "/runs/probe",
+        "SELFPLAY_ITERATIONS": "8",
+        "SELFPLAY_CHECKPOINT": "/runs/B/checkpoints/000200",
+    }
+    args = job.task13_command_args(env)
+    assert (
+        args.count("--checkpoint") == 1
+        and args[args.index("--checkpoint") + 1] == env["SELFPLAY_CHECKPOINT"]
+    )
+    assert args[args.index("--parents") + 1] == "16"
+    assert args[args.index("--slot-start") + 1] == "4"
+    assert args[args.index("--representation") + 1] == "diff"
+    extra_base = job.task13_command_args(env | {"SELFPLAY_METHOD": "B", "SELFPLAY_CHECKPOINT": ""})
+    assert (
+        "--checkpoint" not in extra_base and extra_base[extra_base.index("--slot-start") + 1] == "4"
+    )
+    original_checkpoint = job.task13_command_args(env | {"SELFPLAY_ITERATIONS": "10"})
+    assert (
+        original_checkpoint.count("--checkpoint") == 1 and "--slot-start" not in original_checkpoint
+    )
+    counter = job.task13_command_args(env | {"SELFPLAY_OPERATION": "task13-counterfactual"})
+    assert counter.count("--checkpoint") == 1 and "--slot-start" not in counter
+    model = job.task13_command_args(
+        env | {"SELFPLAY_OPERATION": "task13-model-probe", "SELFPLAY_METHOD": "C"}
+    )
+    assert model[model.index("--model-choice") + 1] == "qwen3-8b" and "--checkpoint" not in model
