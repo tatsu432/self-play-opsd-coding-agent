@@ -84,6 +84,9 @@ arm's initial evaluation also completed 0/41 and its training started. It builds
 training-only pool, then runs matched GRPO and gated-OPSD arms using the
 existing isolated worker and joint checkpoints. Inspect this existing job and
 ledger; do not duplicate it. Review actual completion and exposure per arm.
+At five gated steps, five batches yielded 40 episodes, seven mixed groups,
+finite recorded gradients and zero proposer steps; five scoring-mismatch
+warnings had maximum difference 1.376, plus one invalid-action warning.
 Continuation code `7596b7409335293923efa7e5d62ba030d1fa3a42` is synchronized
 but has not been submitted; its live preview correctly refused while job
 `31535783` was running. If that job cleanly stops before both arms finish,
