@@ -1,22 +1,22 @@
 # Task 13: learning-stagnation diagnosis implemented
 
-Completed 2026-10-31. The CPU diagnosis, tested calculations, private quantitative artifacts, offline health dashboard, research report, and follow-up decision plan are implemented. No GPU job or new training study was submitted. GPU experiments are planned follow-ups with explicitly identified runner/controller dependencies, not completed experiments.
+The CPU diagnosis, tested calculations, private quantitative artifacts, offline health dashboard, research report, and follow-up decision plan were implemented on 2026-10-31. The user subsequently directed completion of the GPU follow-ups. Paired base and checkpoint proposer probes, 7B/8B model probes, extra samples, and the C/D counterfactual have completed; the static student control remains active. CPU header-normalization replay also completed. See the [diagnosis](../investigations/learning-stagnation-diagnosis.md) and `AGENTS.md` for results, job identities, and live-state safeguards. The historical CPU-only snapshot below is retained for provenance, not current job status.
 
 ## Deliverables
 
 - `scripts/diagnose_learning.py`: CPU-only observer over active committed event lineage and referenced raw shards. It reuses production parsing, objective normalization, OPSD coefficients, storage lineage, and the existing scientific-health analysis. It never executes generated Python, loads models, or writes historical W&B runs.
 - `tests/test_diagnose_learning.py`: 12 focused tests for epsilon-sensitive reward invariance, uniform rewards, undefined cosine, duplicate missingness, overlapping diff failures, actual gate order, uncertainty-sensitive group-size projections, rollback/conflicting commits, missing/escaping shard paths, scheduler allocation integration, recurring-parent comparisons, and cumulative-history observation deduplication.
 - [Research diagnosis](../investigations/learning-stagnation-diagnosis.md): Q1–Q8, measured funnels and time windows, proposer discrimination, student/OPSD behavior, scientific identifiability, and ranked interventions.
-- [Execution and follow-up plan](../plan/13-diagnosis-plan.md): fixed-parent representation/model probe first, static student controls second, C/D counterfactual third; sampling, splits, costs, decisions, and proposed interfaces. GPU interfaces are explicitly marked as not yet implemented.
+- [Execution and follow-up plan](../plan/13-diagnosis-plan.md): fixed-parent representation/model probes, static student controls and C/D counterfactual; sampling, splits, costs, decisions, and implemented interfaces.
 - `AGENTS.md` and the Task 12 completion record now record successful C reconciliation through 100, avoiding a duplicate recovery job.
 
-The user-supplied untracked `docs/task/13-diagnosis-spec.md` remains unchanged. There are no changes to `src/`, scientific configuration, datasets, dependencies, checkpoints, or original experiment events. Relative to frozen execution, the existing source difference is the previously implemented controller continuation-stop change; the observer did not introduce it.
+The task spec remains unchanged. Follow-up runner and controller routes are separate from the frozen A–D scientific study; they preserve its configuration, datasets, dependencies, checkpoints and original events. The controller and dedicated diagnostic scripts changed to execute and monitor the authorized follow-ups.
 
 ## Evidence reused and reconciled
 
 Corrected runs A `747bd2e097258445de647e47`, B `f3271727f5fd25c07466e50d`, and C `35bfbd1bc074a8963e916f77` supplied 500 committed iterations, all 500 proposal shards, and all 500 episode shards. C's missing raw 41–100 trajectories were fetched with the existing Yale transport by targeting its trajectories directory, avoiding a checkpoint download. Existing historical A regression reports remain separate.
 
-Live controller status, Slurm accounting, remote main directories, and corrected submission ledgers were inspected. A/B completed 200, C stopped at 100, no active job exists, and D has no corrected main directory or train ledger. Existing CPU job 31528917 completed with exit 0 in 29 seconds. Its normal reconciliation path verifies the latest checkpoint; cloud verification reached 100 with canonical revision `07e12f64924f324c994551ebb4a8f98037da9561849c9bf2796557cc9971a5e6`. No verification or reconciliation was repeated.
+At the original CPU-diagnosis snapshot, controller status, Slurm accounting, remote main directories, and corrected submission ledgers showed A/B completed 200, C stopped at 100, and no active job or corrected D main run. Later diagnostic jobs are recorded above and in `AGENTS.md`. CPU job 31528917 completed with exit 0 in 29 seconds. Its normal reconciliation path verifies the latest checkpoint; cloud verification reached 100 with canonical revision `07e12f64924f324c994551ebb4a8f98037da9561849c9bf2796557cc9971a5e6`. No verification or reconciliation was repeated.
 
 Primary quantitative results:
 
@@ -53,7 +53,7 @@ Private outputs:
 - Per-method `health/`: existing regression report, windows, task transitions, and summary, reused rather than reimplemented.
 - `runs/task13/diagnosis/summary.md` and `learning-efficiency.png/.pdf`: compact offline dashboard. The PNG was visually inspected.
 - `runs/task13/*-status.json`, `inspection.json`, `corrected-ledgers.json`, `remote-inventory.json`, `accounting*.txt/.json`, and `verification-accounting.txt`: operational provenance.
-- `runs/task13/validation.json`: unchanged input hashes, matching observer hashes, coverage/totals checks, current scientific source hash, and zero GPU-hours allocated by this task.
+- `runs/task13/validation.json`: unchanged input hashes, matching observer hashes, coverage/totals checks, scientific source hash, and the CPU-only snapshot's zero GPU-hours; later diagnostic allocations are separately accounted.
 
 The new per-iteration observability export identifies groups with 2+ accepted tasks, reward-discriminating groups, and advantage distance from validity-only. These are the proposed minimal additions to a new study's W&B logger; this task makes no historical cloud mutation or raw/private-data upload.
 
@@ -70,8 +70,10 @@ git diff --check
 
 Results: **16 focused tests passed**; full CPU suite **269 passed, 33 skipped, 4 deselected**. Ruff and formatting checks passed for all 85 Python files, mypy passed for 43 source files, and diff whitespace checks passed. Four dependency warnings concern existing Typer/Click and W&B/Pydantic usage. Final artifact checks reconciled all 8,000 proposals, 439 within-run unique admitted tasks, and 1,756 episodes, and verified every recorded input hash was unchanged. CPU tests do not claim new GPU compatibility or generated-code isolation evidence.
 
+After the later runner, replay, and analysis additions, the full default suite passed **283 tests, with 37 skipped**; Ruff and format checks passed across 103 files, and scoped mypy passed for the changed controller. GPU and worker compatibility are supported by the actual allocated-node jobs rather than CPU tests.
+
 ## Remaining uncertainty and next action
 
-No existing-data blocker remains for the CPU diagnosis. Generation stop reasons, full policy entropy, complete historical proposer ratios, per-step adapter displacement, and dense RL/OPSD gradient decomposition were not recorded; they are not reconstructed from aggregate proxies. G=8 projections are prior-sensitive scenarios, not observed eight-rollout performance. One-seed development differences do not establish causal superiority.
+No existing-data blocker remains for the CPU diagnosis. Generation stop reasons, full policy entropy, complete historical proposer ratios, per-step adapter displacement, and dense RL/OPSD gradient decomposition were not recorded; they are not reconstructed from aggregate proxies. The static control is collecting observed eight-rollout screens; until complete, the historical G=8 projections remain prior-sensitive scenarios. One-seed development differences do not establish causal superiority.
 
-Implement the scoped inference runner/controller route in the follow-up plan, freeze its manifest, validate its preview, and start the 4B paired representation probe. Initial planning caps are four H200-hours for staged inference, six for static controls, and two for the C/D counterfactual, with expansion based on information gained. The user authorized efficient GPU spending without another budget question. No full D, larger-model training, or final held-out evaluation follows automatically from this completion record.
+Continue monitoring the existing static control through its bounded stop, analyze actual student exposure and development measurements, and decide whether a verified continuation is scientifically warranted. No full D, larger-model training, or final held-out evaluation follows automatically from this completion record.
