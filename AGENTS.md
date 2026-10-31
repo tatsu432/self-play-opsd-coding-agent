@@ -30,8 +30,8 @@ submitted once from `fd53d2c69276ca1065de8d03f23f820a9e214644`, job
 `31537529`, run `e57c317e45dfb110b33e8a30`. The 8B diff arm also initialized
 and generated proposals; its structured arm was submitted once from
 `3a1619e19c69179c035bbbe14a8823c666535be5`, job `31537580`, run
-`09e709fd64972a2f91dcea51`. Inspect existing ledgers and compare matched
-parents/seeds. Preserve the failed jobs for accounting.
+`09e709fd64972a2f91dcea51`. All four corrected arms completed exit 0 and were
+compared on matched parents/seeds. Preserve the failed jobs for accounting.
 
 ## Task 13 independent extra proposer samples — 2026-10-31
 
@@ -49,7 +49,8 @@ Replacement extra-slot runs were submitted once from
 `5d92eddf3299a9a0b6ad39bdbdcbca4a0910c559`: base diff job `31536424` /
 run `ea1f43c3f981c35d767eb12f`, base structured `31536425` /
 `174d4fb895b98bd10a866aeb`, and B200 diff `31536426` /
-`346d7294a177f23792416fa7`. Inspect these existing ledgers; do not duplicate.
+`346d7294a177f23792416fa7`. All three completed exit 0. Inspect these existing
+ledgers; do not duplicate.
 
 ## Task 13 C/D counterfactual submitted — 2026-10-31
 
@@ -67,7 +68,8 @@ Inspect the existing job and ledger before action; never duplicate it.
 
 Job `31535783`, run `9a44124b61147aee02c685d6`, was submitted from
 `8eed8c09aa4035c7e32a9f5c11744d78b3369cc2` with one H200 and a six-hour
-cap; it was RUNNING at latest inspection. All 32 training-only tasks were
+cap; it later timed out during the gated final evaluation as described below.
+All 32 training-only tasks were
 screened: 12/32 mixed over eight rollouts, versus a 27.95% mean mixed fraction
 over all four-rollout subsets. GRPO initial development evaluation completed
 0/41. At five student steps it had six batches, eight mixed groups in 48
@@ -80,10 +82,9 @@ at 15 steps it had 31 batches, 248 episodes, 19 mixed groups, finite recorded
 gradients, zero proposer steps, and maximum scoring difference 3.203. GRPO
 reached 20 steps after 53 batches, 424 episodes and 24 mixed groups; its final
 development score was 12/41 (initial 0/41, ten-step 10/41). The matched gated
-arm's initial evaluation also completed 0/41 and its training started. It builds and screens one verified
-training-only pool, then runs matched GRPO and gated-OPSD arms using the
-existing isolated worker and joint checkpoints. Inspect this existing job and
-ledger; do not duplicate it. Review actual completion and exposure per arm.
+arm's initial evaluation also completed 0/41. The arms used one verified
+training-only pool, the existing isolated worker and joint checkpoints. Inspect
+the existing jobs and ledgers before action; do not duplicate them.
 At five gated steps, five batches yielded 40 episodes, seven mixed groups,
 finite recorded gradients and zero proposer steps; five scoring-mismatch
 warnings had maximum difference 1.376, plus one invalid-action warning.
@@ -92,19 +93,21 @@ recorded gradients and zero proposer steps; ten mismatch warnings had maximum
 difference 1.547. Its ten-step development evaluation completed 10/41,
 matching GRPO at the same step count but with 80 versus 168 episodes. The gated
 arm reached 15 steps in 15 batches with 120 episodes, eleven mixed groups,
-finite gradients, zero proposer steps and maximum scoring difference 1.547;
-it continues toward 20 steps near the original allocation's time limit.
+finite gradients, zero proposer steps and maximum scoring difference 1.547.
 Original job `31535783` reached gated step 20 but timed out during its final
 evaluation; the last complete gated joint checkpoint was iteration 19. The
 uncheckpointed iteration and partial evaluation must be rolled back. After
 reconciliation and a passing preview, continuation job `31555806`, run
 `edb71511b52d23183f3593e5`, was submitted once from
-`6df71fd4b3cd5fad8200ab23ca76041d249b80a3`; it was pending at submission.
-Inspect this existing job and ledger; never duplicate it. The continuation
-verifies pool/runner/data identity and checkpoint checksums on the allocated
-node before resuming. It started, verified the checkpoint, created a new event
-segment with rollback to iteration 19, replayed the twentieth step, and began
-the gated final development evaluation. Review that evaluation and accounting.
+`6df71fd4b3cd5fad8200ab23ca76041d249b80a3` and completed exit 0. It verified
+the checkpoint on the allocated node, rolled back to iteration 19, replayed the
+twentieth step and completed the gated final evaluation at 10/41 (0/41 initial,
+10/41 at ten steps). Gated used 160 training episodes; GRPO scored 12/41 at
+20 steps after 424 episodes. These are single-seed, unequal-exposure results.
+The two static allocations consumed 22,852 H200-seconds (6.3478 GPU-hours).
+All Task 13 diagnostic GPU jobs together consumed 30,491 H200-seconds (8.4697
+GPU-hours), including 1,636 seconds from launcher mistakes. The scheduler had
+no active jobs at final reconciliation; never duplicate completed jobs.
 
 ## Task 13 checkpoint probes submitted — 2026-10-31
 
@@ -114,11 +117,9 @@ Five checkpoint probes were submitted from immutable execution
 (`ef6ce5271c24ee8de47e2221`), B200 structured `31535572`
 (`0a78616509db9372715f7602`), C100 diff `31535578`
 (`d406303bf5b4d2eed674cb69`), B200 diff `31535584`
-(`f1b225fa1a92372f332f94a5`). A20, A200, B200 structured, and C100 were
-RUNNING at the latest inspection; B200 diff was pending.
-Each verifies checkpoint checksums and scientific/data/prompt/model identity on
-the allocated node before loading. Inspect live state and existing ledgers;
-never submit a duplicate. Continue independent Task 13 work while they queue.
+(`f1b225fa1a92372f332f94a5`). All five completed with exit 0 and verified
+checkpoint checksums and scientific/data/prompt/model identity on the allocated
+node before loading. Inspect existing ledgers; never submit a duplicate.
 
 ## Task 13 base proposer probe submitted — 2026-10-31
 

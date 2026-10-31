@@ -1,6 +1,6 @@
 # Task 13: learning-stagnation diagnosis implemented
 
-The CPU diagnosis, tested calculations, private quantitative artifacts, offline health dashboard, research report, and follow-up decision plan were implemented on 2026-10-31. The user subsequently directed completion of the GPU follow-ups. Paired base and checkpoint proposer probes, 7B/8B model probes, extra samples, and the C/D counterfactual have completed; the static student control remains active. CPU header-normalization replay also completed. See the [diagnosis](../investigations/learning-stagnation-diagnosis.md) and `AGENTS.md` for results, job identities, and live-state safeguards. The historical CPU-only snapshot below is retained for provenance, not current job status.
+The CPU diagnosis, tested calculations, private quantitative artifacts, offline health dashboard, research report, and follow-up decision plan were implemented on 2026-10-31. The user subsequently directed completion of the GPU follow-ups. Paired base and checkpoint proposer probes, 7B/8B model probes, extra samples, the C/D counterfactual, the static student control and CPU header-normalization replay have completed. See the [diagnosis](../investigations/learning-stagnation-diagnosis.md) and `AGENTS.md` for results, job identities, and safeguards. The historical CPU-only snapshot below is retained for provenance, not current job status.
 
 ## Deliverables
 
@@ -9,6 +9,7 @@ The CPU diagnosis, tested calculations, private quantitative artifacts, offline 
 - [Research diagnosis](../investigations/learning-stagnation-diagnosis.md): Q1–Q8, measured funnels and time windows, proposer discrimination, student/OPSD behavior, scientific identifiability, and ranked interventions.
 - [Execution and follow-up plan](../plan/13-diagnosis-plan.md): fixed-parent representation/model probes, static student controls and C/D counterfactual; sampling, splits, costs, decisions, and implemented interfaces.
 - `AGENTS.md` and the Task 12 completion record now record successful C reconciliation through 100, avoiding a duplicate recovery job.
+- Dedicated `task13_*` runners, analysis scripts and controller routes performed paired proposer/model probes, the C/D counterfactual, and the matched static control. The static run's timeout was recovered from a checksummed checkpoint; both arms and their final development evaluations completed.
 
 The task spec remains unchanged. Follow-up runner and controller routes are separate from the frozen A–D scientific study; they preserve its configuration, datasets, dependencies, checkpoints and original events. The controller and dedicated diagnostic scripts changed to execute and monitor the authorized follow-ups.
 
@@ -57,6 +58,8 @@ Private outputs:
 
 The new per-iteration observability export identifies groups with 2+ accepted tasks, reward-discriminating groups, and advantage distance from validity-only. These are the proposed minimal additions to a new study's W&B logger; this task makes no historical cloud mutation or raw/private-data upload.
 
+The completed GPU follow-ups consumed **30,491 H200-seconds (8.4697 hours)**, including the static timeout/recovery and **1,636 seconds** from launcher errors. Static GRPO scored 0/41, 10/41 and 12/41 at zero, ten and twenty student steps; gated scored 0/41, 10/41 and 10/41, with 424 versus 160 training episodes. Rollout/rescoring warnings and the single-seed, unequal-exposure design limit causal conclusions. Final artifacts are in `runs/task13/` and the ignored per-run directories; the scheduler showed no active jobs at reconciliation.
+
 ## Validation
 
 ```bash
@@ -70,10 +73,10 @@ git diff --check
 
 Results: **16 focused tests passed**; full CPU suite **269 passed, 33 skipped, 4 deselected**. Ruff and formatting checks passed for all 85 Python files, mypy passed for 43 source files, and diff whitespace checks passed. Four dependency warnings concern existing Typer/Click and W&B/Pydantic usage. Final artifact checks reconciled all 8,000 proposals, 439 within-run unique admitted tasks, and 1,756 episodes, and verified every recorded input hash was unchanged. CPU tests do not claim new GPU compatibility or generated-code isolation evidence.
 
-After the later runner, replay, analysis and continuation additions, the full default suite passed **285 tests, with 37 skipped**; Ruff and format checks passed across 104 files, and scoped mypy passed for the changed controller. GPU and worker compatibility are supported by the actual allocated-node jobs rather than CPU tests. The static continuation itself has not been exercised on a live resumed job.
+After the later runner, replay, analysis and continuation additions, the full default suite passed **286 tests, with 37 skipped**; Ruff and format checks passed across 106 files, and mypy passed for all 43 source files. GPU and worker compatibility are supported by the actual allocated-node jobs rather than CPU tests. The static continuation was exercised on Yale and completed after verifying the saved joint checkpoint.
 
 ## Remaining uncertainty and next action
 
-No existing-data blocker remains for the CPU diagnosis. Generation stop reasons, full policy entropy, complete historical proposer ratios, per-step adapter displacement, and dense RL/OPSD gradient decomposition were not recorded; they are not reconstructed from aggregate proxies. The static control is collecting observed eight-rollout screens; until complete, the historical G=8 projections remain prior-sensitive scenarios. One-seed development differences do not establish causal superiority.
+No existing-data blocker remains for the CPU diagnosis. Generation stop reasons, full policy entropy, complete historical proposer ratios, per-step adapter displacement, and dense RL/OPSD gradient decomposition were not recorded; they are not reconstructed from aggregate proxies. The completed 32-task static screen provides a paired four-versus-eight comparison, but remains one selected training pool. One-seed development differences do not establish causal superiority.
 
-Continue monitoring the existing static control through its bounded stop, analyze actual student exposure and development measurements, and decide whether a verified continuation is scientifically warranted. No full D, larger-model training, or final held-out evaluation follows automatically from this completion record.
+The bounded static comparison is complete after verified timeout recovery. The next ranked experiments are in the [plan](../plan/13-diagnosis-plan.md): prospective representation normalization, matched-exposure multi-seed replication, and a conditional matched-strength gate control. No full D, larger-model training, or final held-out evaluation follows automatically from this completion record.
