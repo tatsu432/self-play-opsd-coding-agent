@@ -1,4 +1,5 @@
 import importlib.util
+import json
 from pathlib import Path
 
 import pytest
@@ -67,3 +68,25 @@ def test_cross_model_comparison_requires_explicit_opt_in():
     with pytest.raises(ValueError, match="Model identity"):
         module.compare(first, second)
     assert module.compare(first, second, allow_model_difference=True)["parents"] == 2
+
+
+def test_replay_is_checksum_bound_and_preserves_original(tmp_path):
+    probe = make_probe(0, 2, ("a",))
+    probe["input_sha256"] = {"proposals.json": "source-hash"}
+    rows = [{"parent_id": "a", "slot": 1, "valid": True, "dedup_key": "recovered"}]
+    complete = {
+        "source_hashes": probe["input_sha256"],
+        "count": 1,
+        "valid": 1,
+        "unique": 1,
+        "change": "remove exactly one leading diff --git header",
+    }
+    (tmp_path / "results.json").write_text(json.dumps(rows))
+    (tmp_path / "complete.json").write_text(json.dumps(complete))
+    replay = module.apply_header_replay(probe, tmp_path)
+    assert replay["by_parent"]["a"][1]["valid"]
+    assert not probe["by_parent"]["a"][1]["valid"]
+    complete["source_hashes"] = {"proposals.json": "different"}
+    (tmp_path / "complete.json").write_text(json.dumps(complete))
+    with pytest.raises(ValueError, match="identity"):
+        module.apply_header_replay(probe, tmp_path)

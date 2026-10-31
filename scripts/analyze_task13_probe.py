@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -104,6 +105,38 @@ def combine_samples(base: dict, extra: dict) -> dict:
     }
 
 
+def apply_header_replay(probe: dict, path: Path) -> dict:
+    """Overlay checksum-bound worker verification without changing original results."""
+    complete = json.loads((path / "complete.json").read_text())
+    rows = json.loads((path / "results.json").read_text())
+    if (
+        complete["source_hashes"] != probe["input_sha256"]
+        or complete["count"] != len(rows)
+        or complete["valid"] != sum(row["valid"] for row in rows)
+        or complete["change"] != "remove exactly one leading diff --git header"
+    ):
+        raise ValueError("Replay identity, transformation or completeness differs")
+    if complete["unique"] != len({(r["parent_id"], r["dedup_key"]) for r in rows if r["valid"]}):
+        raise ValueError("Replay uniqueness differs from completion record")
+    result = copy.deepcopy(probe)
+    original = {(r["parent_id"], r["slot"]): r for r in result["rows"]}
+    seen = set()
+    for row in rows:
+        key = (row["parent_id"], row["slot"])
+        if key in seen or key not in original or original[key]["valid"]:
+            raise ValueError("Replay references an absent, repeated or already-valid sample")
+        seen.add(key)
+        if row["valid"]:
+            original[key].update(
+                valid=True, dedup_key=row["dedup_key"], reason="header replay valid"
+            )
+    result["input_sha256"] = {
+        "original": probe["input_sha256"],
+        "replay": {name: file_hash(path / name) for name in ("complete.json", "results.json")},
+    }
+    return result
+
+
 def compare(
     first: dict, second: dict, *, resamples: int = 10000, allow_model_difference: bool = False
 ) -> dict:
@@ -164,6 +197,7 @@ def main() -> None:
     parser.add_argument("--structured", type=Path, required=True)
     parser.add_argument("--diff-extra", type=Path)
     parser.add_argument("--structured-extra", type=Path)
+    parser.add_argument("--second-header-replay", type=Path)
     parser.add_argument(
         "--allow-model-difference",
         action="store_true",
@@ -210,6 +244,15 @@ def main() -> None:
         },
         "input_sha256": {"first": first["input_sha256"], "second": second["input_sha256"]},
     }
+    if args.second_header_replay:
+        normalized = apply_header_replay(second, args.second_header_replay)
+        result["posthoc_header_replay"] = {
+            "second": summary(normalized),
+            "paired": compare(
+                first, normalized, allow_model_difference=args.allow_model_difference
+            ),
+            "input_sha256": normalized["input_sha256"],
+        }
     if bool(args.diff_extra) != bool(args.structured_extra):
         parser.error("Provide both additional-sample directories")
     if args.diff_extra and args.structured_extra:
