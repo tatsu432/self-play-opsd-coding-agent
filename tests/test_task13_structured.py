@@ -52,6 +52,22 @@ def test_probe_remote_requires_worker_and_bounded_h200(tmp_path, monkeypatch):
         remote.precheck(
             counterfactual | {"checkpoint": "/runs/study/C-seed2026/checkpoints/000100"}
         )
+    from selfplay_opsd.hpc import TASK13_MODELS
+
+    name, revision, representation = TASK13_MODELS["A"]
+    model = payload | {
+        "operation": "task13-model-probe",
+        "probe_model": {
+            "name": name,
+            "revision": revision,
+            "representation": representation,
+            "non_thinking": False,
+            "backend": "vllm-inference-only",
+        },
+    }
+    remote.precheck(model)
+    with pytest.raises(ValueError, match="pinned manifest"):
+        remote.precheck(model | {"probe_model": model["probe_model"] | {"revision": "unverified"}})
 
 
 def test_structured_mutation_builds_a_valid_patch():

@@ -30,6 +30,16 @@ app = typer.Typer(no_args_is_help=True, help="Inspect and operate approved Yale 
 ROOT = Path(__file__).resolve().parents[2]
 REMOTE_SCRIPT = ROOT / "scripts/hpc_remote.py"
 ALIASES = ("yale-hpc-cpsc4880", "yale-hpc-cpsc4710", "yale-hpc-sds6190")
+TASK13_MODELS = {
+    "A": ("Qwen/Qwen2.5-Coder-7B-Instruct", "c03e6d358207e414f1eca0bb1891e29f1db0e242", "diff"),
+    "B": (
+        "Qwen/Qwen2.5-Coder-7B-Instruct",
+        "c03e6d358207e414f1eca0bb1891e29f1db0e242",
+        "structured",
+    ),
+    "C": ("Qwen/Qwen3-8B", "b968826d9c46dd6066d109eabc6255188de91218", "diff"),
+    "D": ("Qwen/Qwen3-8B", "b968826d9c46dd6066d109eabc6255188de91218", "structured"),
+}
 GPU_PARTITIONS = {"h100": "gpu_h100", "h200": "gpu_h200", "rtx_pro_6000_blackwell": "gpu_rtx6000"}
 GPU_VRAM = {"h100": 80, "h200": 141, "rtx_pro_6000_blackwell": 96}
 ACTIVE = {"PENDING", "CONFIGURING", "RUNNING", "COMPLETING", "SUSPENDED", "REQUEUED"}
@@ -354,6 +364,7 @@ def run_payload(
         "evaluate",
         "diagnose",
         "task13-probe",
+        "task13-model-probe",
         "task13-static",
         "task13-counterfactual",
         "image-convert",
@@ -491,6 +502,7 @@ def run_payload(
         "evaluate",
         "diagnose",
         "task13-probe",
+        "task13-model-probe",
         "task13-static",
         "task13-counterfactual",
     }
@@ -527,6 +539,15 @@ def run_payload(
         "checkpoint_iteration": checkpoint_iteration,
         "endpoint": endpoint if operation == "evaluate" else None,
     }
+    if operation == "task13-model-probe":
+        name, revision, representation = TASK13_MODELS[method]
+        logical["probe_model"] = {
+            "name": name,
+            "revision": revision,
+            "representation": representation,
+            "non_thinking": method in {"C", "D"},
+            "backend": "vllm-inference-only",
+        }
     from selfplay_opsd.telemetry import telemetry_identity
 
     identity = hashlib.sha256(json.dumps(logical, sort_keys=True).encode()).hexdigest()
@@ -647,7 +668,14 @@ def run_payload(
         if operation in {"pilot", "task13-static"}
         else "02:00:00"
         if (operation == "evaluate" and base)
-        or operation in {"method-smoke", "protocol-check", "task13-probe", "task13-counterfactual"}
+        or operation
+        in {
+            "method-smoke",
+            "protocol-check",
+            "task13-probe",
+            "task13-model-probe",
+            "task13-counterfactual",
+        }
         else "00:15:00"
         if operation in {"worker-check", "freeze-study", "readiness-check", "wandb-verify"}
         else "01:00:00"
@@ -690,6 +718,11 @@ def run_payload(
         if method != "B":
             raise HpcError("Task 13 static job executes both GRPO and B arms")
         payload["output"] = f"/runs/repair-diagnosis-2026-static-v1/{identity[:24]}"
+    if operation == "task13-model-probe":
+        if checkpoint_iteration is not None:
+            raise HpcError("Larger-model probes cannot load a 4B checkpoint")
+        payload["output"] = f"/runs/repair-diagnosis-2026-model-probe-v1/{identity[:24]}"
+        payload["probe_model"] = logical["probe_model"]
     if operation == "task13-counterfactual":
         payload["output"] = f"/runs/repair-diagnosis-2026-counterfactual-v1/{identity[:24]}"
     if (
@@ -706,6 +739,7 @@ def run_payload(
             "evaluate",
             "diagnose",
             "task13-probe",
+            "task13-model-probe",
             "task13-static",
             "task13-counterfactual",
         }

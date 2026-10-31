@@ -59,3 +59,11 @@ def test_paired_comparison_requires_matching_seeds():
     second["by_parent"]["a"][0]["seed"] = 999
     with pytest.raises(ValueError, match="seeds"):
         module.compare(first, second)
+
+
+def test_cross_model_comparison_requires_explicit_opt_in():
+    first, second = make_probe(0, 4), make_probe(0, 4)
+    second["manifest"]["model"] = {"name": "other"}
+    with pytest.raises(ValueError, match="Model identity"):
+        module.compare(first, second)
+    assert module.compare(first, second, allow_model_difference=True)["parents"] == 2

@@ -922,6 +922,7 @@ def execute(env: dict) -> int:
         "evaluate",
         "diagnose",
         "task13-probe",
+        "task13-model-probe",
         "task13-static",
         "task13-counterfactual",
         "freeze-study",
@@ -939,6 +940,7 @@ def execute(env: dict) -> int:
         "evaluate",
         "diagnose",
         "task13-probe",
+        "task13-model-probe",
         "task13-static",
         "task13-counterfactual",
     }
@@ -1190,6 +1192,22 @@ def execute(env: dict) -> int:
                 args += ["--checkpoint", env["SELFPLAY_CHECKPOINT"]]
             if env.get("SELFPLAY_ITERATIONS") == "8":
                 args += ["--parents", "16", "--slots", "4", "--slot-start", "4"]
+        if operation == "task13-model-probe":
+            args = [
+                "torchrun",
+                "--standalone",
+                "--nnodes=1",
+                "--nproc-per-node=1",
+                "/workspace/scripts/task13_probe.py",
+                "--settings",
+                "/workspace/" + env["SELFPLAY_SETTINGS"],
+                "--output",
+                env["SELFPLAY_OUTPUT"],
+                "--model-choice",
+                "coder7b" if env["SELFPLAY_METHOD"] in {"A", "B"} else "qwen3-8b",
+                "--representation",
+                "diff" if env["SELFPLAY_METHOD"] in {"A", "C"} else "structured",
+            ]
         if operation == "task13-static":
             args = [
                 "torchrun",

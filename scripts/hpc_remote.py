@@ -1035,6 +1035,8 @@ def artifact_dir(payload: dict) -> Path:
         return runs / study / "diagnostics" / Path(payload["checkpoint"]).name
     if operation == "task13-probe":
         return runs / "repair-diagnosis-2026-probe-v1" / payload["run_id"]
+    if operation == "task13-model-probe":
+        return runs / "repair-diagnosis-2026-model-probe-v1" / payload["run_id"]
     if operation == "task13-static":
         return runs / "repair-diagnosis-2026-static-v1" / payload["run_id"]
     if operation == "task13-counterfactual":
@@ -1620,6 +1622,7 @@ def precheck(payload: dict):
         "evaluate",
         "diagnose",
         "task13-probe",
+        "task13-model-probe",
         "task13-static",
         "task13-counterfactual",
         "freeze-study",
@@ -1699,6 +1702,7 @@ def precheck(payload: dict):
         "evaluate",
         "diagnose",
         "task13-probe",
+        "task13-model-probe",
         "task13-static",
         "task13-counterfactual",
     }
@@ -1755,6 +1759,7 @@ def precheck(payload: dict):
         "diagnose",
         "freeze-study",
         "task13-probe",
+        "task13-model-probe",
         "task13-static",
         "task13-counterfactual",
     }:
@@ -1770,6 +1775,40 @@ def precheck(payload: dict):
             or payload.get("iterations") not in {8, 10}
         ):
             raise ValueError("Task 13 probe requires bounded one-H200 cpsc4880 allocation")
+        if operation == "task13-model-probe" and (
+            payload.get("account") != "cpsc4880"
+            or payload.get("gpu_count") != 1
+            or payload.get("gpu_type") != "h200"
+            or payload.get("time") != "02:00:00"
+            or payload.get("method") not in {"A", "B", "C", "D"}
+            or payload.get("checkpoint")
+        ):
+            raise ValueError("Task 13 model probe requires bounded base-model inference")
+        if operation == "task13-model-probe":
+            models = {
+                "A": (
+                    "Qwen/Qwen2.5-Coder-7B-Instruct",
+                    "c03e6d358207e414f1eca0bb1891e29f1db0e242",
+                    "diff",
+                ),
+                "B": (
+                    "Qwen/Qwen2.5-Coder-7B-Instruct",
+                    "c03e6d358207e414f1eca0bb1891e29f1db0e242",
+                    "structured",
+                ),
+                "C": ("Qwen/Qwen3-8B", "b968826d9c46dd6066d109eabc6255188de91218", "diff"),
+                "D": ("Qwen/Qwen3-8B", "b968826d9c46dd6066d109eabc6255188de91218", "structured"),
+            }
+            name, revision, representation = models[payload["method"]]
+            expected = {
+                "name": name,
+                "revision": revision,
+                "representation": representation,
+                "non_thinking": payload["method"] in {"C", "D"},
+                "backend": "vllm-inference-only",
+            }
+            if payload.get("probe_model") != expected:
+                raise ValueError("Task 13 model identity does not match the pinned manifest")
         if operation == "task13-static" and (
             payload.get("account") != "cpsc4880"
             or payload.get("gpu_count") != 1

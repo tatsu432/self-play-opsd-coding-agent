@@ -1,5 +1,15 @@
 # Project and operating instructions
 
+## Task 13 independent extra proposer samples — 2026-10-31
+
+Four additional slots (4–7) were submitted for the prespecified first 16
+parents from execution `f49334e6d02813716019d7312ddd481032cb3f21`:
+base diff job `31535931` / run `bbfefdccb9d1a67dfa486e0a`, base structured
+`31535971` / `522e881e218fee881e05081c`, and B200 diff `31535981` /
+`1e5f64bb179d21b06665614f`. These supplement, rather than replace, the
+previous four samples. Inspect existing ledgers and scheduler states before
+action. Never resubmit uncertain or active jobs.
+
 ## Task 13 C/D counterfactual submitted — 2026-10-31
 
 Job `31535924`, run `913f441b4f52675eb2479c16`, was submitted once from
@@ -26,7 +36,8 @@ Five checkpoint probes were submitted from immutable execution
 (`ef6ce5271c24ee8de47e2221`), B200 structured `31535572`
 (`0a78616509db9372715f7602`), C100 diff `31535578`
 (`d406303bf5b4d2eed674cb69`), B200 diff `31535584`
-(`f1b225fa1a92372f332f94a5`). All were PENDING at latest inspection.
+(`f1b225fa1a92372f332f94a5`). A20, A200, B200 structured, and C100 were
+RUNNING at the latest inspection; B200 diff was pending.
 Each verifies checkpoint checksums and scientific/data/prompt/model identity on
 the allocated node before loading. Inspect live state and existing ledgers;
 never submit a duplicate. Continue independent Task 13 work while they queue.
@@ -55,6 +66,10 @@ Treat planning caps as review points, not permission gates. If a route is missin
 implement and test it, reconcile existing scheduler and ledger state, then
 submit and monitor. Preserve the scientific identity, worker isolation,
 checkpoint verification, accounting, and no-duplicate safeguards below.
+Older statements below that further GPU work is unauthorized or requires a new
+user approval record historical decisions and are superseded for the current
+Task 13 investigation. Scientific decision points still guide what to run; they
+do not require asking the user to restate their authorization.
 
 ## Corrected C iteration 100 — latest live state
 

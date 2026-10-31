@@ -90,10 +90,12 @@ def combine_samples(base: dict, extra: dict) -> dict:
     }
 
 
-def compare(first: dict, second: dict, *, resamples: int = 10000) -> dict:
+def compare(
+    first: dict, second: dict, *, resamples: int = 10000, allow_model_difference: bool = False
+) -> dict:
     if first["parents"] != second["parents"]:
         raise ValueError("Probe parent identities or source hashes do not match")
-    if first["manifest"]["model"] != second["manifest"]["model"]:
+    if first["manifest"]["model"] != second["manifest"]["model"] and not allow_model_difference:
         raise ValueError("Model identity differs; use a separately labelled comparison")
     if first["manifest"]["slots"] != second["manifest"]["slots"]:
         raise ValueError("Probe sampling budgets differ")
@@ -137,19 +139,51 @@ def main() -> None:
     parser.add_argument("--structured", type=Path, required=True)
     parser.add_argument("--diff-extra", type=Path)
     parser.add_argument("--structured-extra", type=Path)
+    parser.add_argument(
+        "--allow-model-difference",
+        action="store_true",
+        help="Explicitly label a paired cross-model comparison",
+    )
+    parser.add_argument(
+        "--allow-same-format",
+        action="store_true",
+        help="Compare the same representation across models",
+    )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     first, second = load_probe(args.diff), load_probe(args.structured)
-    if (
+    if not args.allow_same_format and (
         first["manifest"]["representation"] != "diff"
         or second["manifest"]["representation"] != "structured"
     ):
         raise ValueError("Probe representations are reversed or unknown")
     result = {
-        "diff": summary(first),
-        "structured": summary(second),
-        "paired": compare(first, second),
-        "input_sha256": {"diff": first["input_sha256"], "structured": second["input_sha256"]},
+        "first": summary(first),
+        "second": summary(second),
+        "paired": compare(first, second, allow_model_difference=args.allow_model_difference),
+        "comparison_identities": {
+            "first": {
+                k: first["manifest"].get(k)
+                for k in (
+                    "model",
+                    "representation",
+                    "inference_backend",
+                    "adapter",
+                    "chat_template_non_thinking",
+                )
+            },
+            "second": {
+                k: second["manifest"].get(k)
+                for k in (
+                    "model",
+                    "representation",
+                    "inference_backend",
+                    "adapter",
+                    "chat_template_non_thinking",
+                )
+            },
+        },
+        "input_sha256": {"first": first["input_sha256"], "second": second["input_sha256"]},
     }
     if bool(args.diff_extra) != bool(args.structured_extra):
         parser.error("Provide both additional-sample directories")
@@ -157,12 +191,14 @@ def main() -> None:
         diff_eight = combine_samples(first, load_probe(args.diff_extra))
         structured_eight = combine_samples(second, load_probe(args.structured_extra))
         result["eight_sample_subset"] = {
-            "diff": summary(diff_eight),
-            "structured": summary(structured_eight),
-            "paired": compare(diff_eight, structured_eight),
+            "first": summary(diff_eight),
+            "second": summary(structured_eight),
+            "paired": compare(
+                diff_eight, structured_eight, allow_model_difference=args.allow_model_difference
+            ),
             "input_sha256": {
-                "diff": diff_eight["input_sha256"],
-                "structured": structured_eight["input_sha256"],
+                "first": diff_eight["input_sha256"],
+                "second": structured_eight["input_sha256"],
             },
         }
     atomic_json(args.output, result)
