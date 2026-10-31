@@ -7,7 +7,7 @@ import json
 import time
 from pathlib import Path
 
-from selfplay_opsd.hpc import YaleSSH, remote_context
+from selfplay_opsd.hpc import HpcError, YaleSSH, remote_context
 
 
 def main() -> None:
@@ -24,6 +24,7 @@ def main() -> None:
     audit.mkdir(parents=True, exist_ok=True, mode=0o700)
     active = set(args.runs)
     previous = {}
+    fetch_failures: dict[str, int] = {}
     while active:
         for run_id in sorted(active.copy()):
             status = remote.call(
@@ -48,7 +49,23 @@ def main() -> None:
                 "UNKNOWN",
             }:
                 if state == "COMPLETED" and attempt["scheduler"].get("exit_code") == "0:0":
-                    remote.fetch(status["ledger"]["run_dir"], root / run_id)
+                    try:
+                        remote.fetch(status["ledger"]["run_dir"], root / run_id)
+                    except HpcError as error:
+                        fetch_failures[run_id] = fetch_failures.get(run_id, 0) + 1
+                        print(
+                            json.dumps(
+                                {
+                                    "run_id": run_id,
+                                    "fetch_failure": str(error),
+                                    "attempt": fetch_failures[run_id],
+                                }
+                            ),
+                            flush=True,
+                        )
+                        if fetch_failures[run_id] >= 5:
+                            raise
+                        continue
                     print(
                         json.dumps(
                             {

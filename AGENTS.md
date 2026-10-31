@@ -1,5 +1,16 @@
 # Project and operating instructions
 
+## Task 13 CPU header replay — 2026-10-31
+
+CPU-only worker job `31537818`, run `8878e774a2d4480b5f0eba36`, was submitted
+from `c187909b9afbff4c59b4fdc250ca01087447f859` with a one-hour cap. It
+replayed the checksummed 8B diff outputs after removing one exact optional
+header, using the accepted isolated worker and the matching cached tokenizer.
+It completed exit 0 and verified 37 of 114 affected samples. With the six
+originally accepted outputs, 43/160 were valid and 30 unique under this
+post-hoc normalization. The first fetch raced filesystem visibility; a later
+fetch succeeded. Inspect the existing ledger; do not duplicate this job.
+
 ## Task 13 larger-model inference probes — 2026-10-31
 
 Diff-format inference-only probes were submitted from immutable execution

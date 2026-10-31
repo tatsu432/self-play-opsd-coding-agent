@@ -70,15 +70,17 @@ uv run --frozen python scripts/diagnose_learning.py \
   --accounting runs/task13/accounting.json --output runs/task13/diagnosis
 ```
 
-The following interfaces include proposed routes that still require implementation. Implement and test each scoped route and continue to submission; do not substitute the existing unrelated `diagnose` operation:
+These scoped routes are implemented and have been submitted; the static comparison is still running. Do not substitute the existing unrelated `diagnose` operation:
 
 ```bash
 # Implemented: stateless inference and validation, diff or structured arm.
-uv run selfplay hpc submit --operation task13-probe --settings configs/task13-probe.yaml --profile single_gpu_80gb --gpu-type h200 --account cpsc4880 --dry-run
+uv run selfplay hpc submit --operation task13-probe --method A --settings configs/task12-corrected.yaml --profile single_gpu_80gb --gpu-type h200 --account cpsc4880 --dry-run
 # Implemented: matched GRPO and gated arms on one fixed training-task pool.
 uv run selfplay hpc submit --operation task13-static --method B --settings configs/task12-corrected.yaml --profile single_gpu_80gb --gpu-type h200 --account cpsc4880 --dry-run
 # Implemented: read-only C checkpoint counterfactual.
 uv run selfplay hpc submit --operation task13-counterfactual --method C --checkpoint-iteration 99 --settings configs/task12-corrected.yaml --profile single_gpu_80gb --gpu-type h200 --account cpsc4880 --dry-run
+# Implemented: fixed, checksummed 8B header-normalization CPU replay (completed once).
+uv run selfplay hpc submit --operation task13-header-replay --method C --settings configs/task12-corrected.yaml --profile single_gpu_80gb --gpu-type h200 --account cpsc4880 --dry-run
 ```
 
 The focused runners and controller/allocated-job routes are implemented. The fixed-task runner uses the existing GRPO objective while bypassing proposer generation and updates; no global A–D readiness gate is weakened. New operations bind immutable inputs and explicit caps. On a supported preview, submission removes `--dry-run`; no extra user budget permission is required. The additional eight-sample proposer subset and larger-model inference paths are implemented as separate immutable runs.
