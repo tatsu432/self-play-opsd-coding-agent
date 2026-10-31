@@ -57,3 +57,14 @@ Iterations 21–40 produced 25 valid proposals from 320 attempts, 45 successful 
 ## Corrected C: continuation through iteration 100
 
 Job 31469208 resumed checkpoint 40 and stopped cleanly at iteration 100, with Slurm exit 0 after 12,782 seconds (3.550556 H200 GPU-hours). Development successes out of 41 at iterations 0/20/40/60/80/100 were 0/12/10/10/12/11. Corrected A and B scored 11 and 9 at iteration 100. These are descriptive single-seed development outcomes, not held-out results or causal estimates. Across iterations 1–100, C produced 116 valid proposals out of 1,600, 464 solver episodes, 18 mixed groups and 70 student steps. Of 116 alignment scores, 98 were neutral with exactly zero candidate gradient. This sparse reward is a real limitation of the observed training signal, not a demonstrated implementation defect. Cumulative C allocation through 100 was 6.656667 H200 GPU-hours. CPU job 31528917 is queued for checkpoint checksum verification and W&B reconciliation; do not duplicate it.
+
+Task 13 live inspection on 2026-10-31 supersedes that queued snapshot: job
+31528917 completed with exit 0 in 29 seconds. The existing reconciler verifies
+the latest joint checkpoint before logging. Its fetched telemetry record is
+cloud-verified through iteration 100, canonical revision
+`07e12f64924f324c994551ebb4a8f98037da9561849c9bf2796557cc9971a5e6`.
+No replacement verification job was submitted. Scheduler inspection found no
+active job; the corrected study has no D main directory or training ledger.
+The [Task 13 diagnosis](../investigations/learning-stagnation-diagnosis.md)
+analyzes all saved corrected A/B/C proposal and episode shards and recommends a
+paired representation probe before further unchanged main training.

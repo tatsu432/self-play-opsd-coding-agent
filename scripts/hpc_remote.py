@@ -1021,6 +1021,8 @@ def artifact_dir(payload: dict) -> Path:
         return runs / study / "base"
     if operation == "diagnose":
         return runs / study / "diagnostics" / Path(payload["checkpoint"]).name
+    if operation == "task13-probe":
+        return runs / "repair-diagnosis-2026-probe-v1" / payload["run_id"]
     return (
         runs
         / (study + (payload.get("pilot_suffix", "-pilot") if operation == "pilot" else ""))
@@ -1601,6 +1603,7 @@ def precheck(payload: dict):
         "pilot",
         "evaluate",
         "diagnose",
+        "task13-probe",
         "freeze-study",
         "readiness-check",
     }:
@@ -1677,6 +1680,7 @@ def precheck(payload: dict):
         "protocol-revision",
         "evaluate",
         "diagnose",
+        "task13-probe",
     }
     if uses_worker and not payload.get("worker_image"):
         raise ValueError("Yale jobs require the verified allocation worker")
@@ -1723,10 +1727,26 @@ def precheck(payload: dict):
             )
         if not payload.get("secrets_file"):
             raise ValueError("Online main launch requires a persistent private secrets file")
-    if operation in {"train", "pilot", "method-smoke", "evaluate", "diagnose", "freeze-study"}:
+    if operation in {
+        "train",
+        "pilot",
+        "method-smoke",
+        "evaluate",
+        "diagnose",
+        "freeze-study",
+        "task13-probe",
+    }:
         state = study_state(payload)
         if not state["gates"]["worker"] or not state["gates"]["runtime"]:
             raise ValueError("Runtime isolation and target data validation have not passed")
+        if operation == "task13-probe" and (
+            payload.get("account") != "cpsc4880"
+            or payload.get("gpu_count") != 1
+            or payload.get("gpu_type") != "h200"
+            or payload.get("time") != "02:00:00"
+            or payload.get("method") not in {"A", "B"}
+        ):
+            raise ValueError("Task 13 probe requires bounded one-H200 cpsc4880 allocation")
         if operation == "freeze-study":
             plan_path = workspace(payload) / "runs" / payload["study_id"] / "resource_plan.json"
             if not plan_path.is_file():

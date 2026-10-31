@@ -1,5 +1,16 @@
 # Project and operating instructions
 
+## Execution persistence — 2026-10-31
+
+The user directs the agent to continue through implementation, validation,
+submission, monitoring, and scientific review of authorized experiments rather
+than stopping at a plan or an unimplemented controller route. GPU time is
+authorized as needed for efficient progress; do not ask again for a budget.
+Treat planning caps as review points, not permission gates. If a route is missing,
+implement and test it, reconcile existing scheduler and ledger state, then
+submit and monitor. Preserve the scientific identity, worker isolation,
+checkpoint verification, accounting, and no-duplicate safeguards below.
+
 ## Corrected C iteration 100 — latest live state
 
 Job `31469208` completed with exit 0, stopped at iteration 100, and used
@@ -7,8 +18,14 @@ Job `31469208` completed with exit 0, stopped at iteration 100, and used
 0/20/40/60/80/100 were 0/12/10/10/12/11 out of 41. Through iteration 100,
 116/1,600 proposals were valid and 98/116 candidate alignment scores were
 neutral due to zero candidate gradient. CPU checkpoint verification and W&B
-reconciliation job `31528917` has been submitted; inspect it before repeating.
-No new C continuation or D main job has been submitted.
+reconciliation job `31528917` completed with exit 0 (29 seconds); cloud
+verification reached 100, canonical revision
+`07e12f64924f324c994551ebb4a8f98037da9561849c9bf2796557cc9971a5e6`.
+Task 13 inspection on 2026-10-31 found no active job, new C continuation,
+or corrected D main ledger/directory. Do not repeat reconciliation. The CPU
+diagnosis and follow-up priorities are in
+`docs/investigations/learning-stagnation-diagnosis.md` and
+`docs/plan/13-diagnosis-plan.md`; raw outputs remain private under `runs/task13/`.
 
 ## Corrected C iteration 40 — latest live state
 

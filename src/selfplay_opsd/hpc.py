@@ -353,6 +353,7 @@ def run_payload(
         "train",
         "evaluate",
         "diagnose",
+        "task13-probe",
         "image-convert",
         "image-build",
         "method-smoke",
@@ -479,6 +480,7 @@ def run_payload(
         "train",
         "evaluate",
         "diagnose",
+        "task13-probe",
     }
     count = cfg.hardware.gpu_count if gpu_operation else 0
     if not gpu_operation:
@@ -630,7 +632,8 @@ def run_payload(
         else "06:00:00"
         if operation == "pilot"
         else "02:00:00"
-        if (operation == "evaluate" and base) or operation in {"method-smoke", "protocol-check"}
+        if (operation == "evaluate" and base)
+        or operation in {"method-smoke", "protocol-check", "task13-probe"}
         else "00:15:00"
         if operation in {"worker-check", "freeze-study", "readiness-check", "wandb-verify"}
         else "01:00:00"
@@ -663,6 +666,10 @@ def run_payload(
     }
     if operation == "diagnose":
         payload["output"] = f"/runs/{cfg.study_id}/diagnostics/{checkpoint_iteration:06d}"
+    if operation == "task13-probe":
+        if method not in {"A", "B"}:
+            raise HpcError("Task 13 base probe uses A=diff and B=structured")
+        payload["output"] = f"/runs/repair-diagnosis-2026-probe-v1/{identity[:24]}"
     if (
         runtime_identity
         and cfg.sandbox.resource_backend == "slurm"
@@ -676,6 +683,7 @@ def run_payload(
             "protocol-revision",
             "evaluate",
             "diagnose",
+            "task13-probe",
         }
     ):
         payload["cpus"] += cfg.sandbox.cpus

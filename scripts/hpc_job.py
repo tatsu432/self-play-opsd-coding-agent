@@ -921,6 +921,7 @@ def execute(env: dict) -> int:
         "protocol-revision",
         "evaluate",
         "diagnose",
+        "task13-probe",
         "freeze-study",
         "readiness-check",
     }:
@@ -935,6 +936,7 @@ def execute(env: dict) -> int:
         "protocol-revision",
         "evaluate",
         "diagnose",
+        "task13-probe",
     }
     if uses_worker and not env.get("SELFPLAY_WORKER_SIF"):
         raise ValueError("Generated-code operations require the allocation worker")
@@ -1150,6 +1152,20 @@ def execute(env: dict) -> int:
             "--settings",
             "/workspace/" + env["SELFPLAY_SETTINGS"],
         ]
+        if operation == "task13-probe":
+            args = [
+                "torchrun",
+                "--standalone",
+                "--nnodes=1",
+                "--nproc-per-node=1",
+                "/workspace/scripts/task13_probe.py",
+                "--settings",
+                "/workspace/" + env["SELFPLAY_SETTINGS"],
+                "--output",
+                env["SELFPLAY_OUTPUT"],
+                "--representation",
+                "diff" if env["SELFPLAY_METHOD"] == "A" else "structured",
+            ]
         if operation in {
             "train",
             "pilot",
