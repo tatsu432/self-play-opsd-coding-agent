@@ -70,7 +70,9 @@ Job `31535783`, run `9a44124b61147aee02c685d6`, was submitted from
 cap; it was RUNNING at latest inspection. All 32 training-only tasks were
 screened: 12/32 mixed over eight rollouts, versus a 27.95% mean mixed fraction
 over all four-rollout subsets. GRPO initial development evaluation completed
-0/41 and training started. It builds and screens one verified
+0/41. At five student steps it had six batches, eight mixed groups in 48
+episodes, no proposer steps, finite nonzero gradients, and rollout/rescoring
+mismatch plus invalid-action warnings; review again at 10 steps. It builds and screens one verified
 training-only pool, then runs matched GRPO and gated-OPSD arms using the
 existing isolated worker and joint checkpoints. Inspect this existing job and
 ledger; do not duplicate it. Review actual completion and exposure per arm.

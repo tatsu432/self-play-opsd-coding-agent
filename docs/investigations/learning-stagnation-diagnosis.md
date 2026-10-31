@@ -163,6 +163,8 @@ The subsequent static-pool screen provides an observed paired comparison: 12/32 
 
 The static GRPO arm's initial development evaluation completed 0/41. Its first batch used two tasks and eight episodes, with seven successes and one mixed group, and performed one student optimizer step and zero proposer steps. This confirms the intended static update path is active; one batch does not establish learning.
 
+At the five-student-step review, GRPO had processed six batches, 12 task exposures and 48 episodes, including 29 successes and eight mixed groups; the proposer had taken no steps. Five nonzero recorded student gradient norms were finite. There were six rollout/rescoring mismatch warnings (maximum absolute sampled log-probability difference 0.991) and two rolling invalid-action warnings; 113 of 308 recorded actions were invalid. These warnings limit interpretation and their causal effects are unverified. The arm continued to its scheduled development checkpoint.
+
 Under these illustrative projections, mixed groups per rollout decrease at G=8. Whole-allocation efficiency might differ because of fixed startup/proposal costs; it must be timed. Improve the task-difficulty distribution first. Keep proposer and student group sizes separate: under an illustrative independent q=0.05 candidate acceptance model, proposer G=4→8 gives at least one accepted 18.55%→33.66%, at least two 1.40%→5.72%. Observed within-parent repetition violates independence. G=8 may provide extra reward discrimination, but does not address history-dependent duplication by itself.
 
 ## Q6. Why does development stagnate?
