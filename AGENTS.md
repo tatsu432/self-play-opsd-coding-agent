@@ -5,10 +5,14 @@
 Diff-format inference-only probes were submitted from immutable execution
 `662a7b74d91dc5bab7924c5bc911736e7918ea21`: Qwen2.5-Coder-7B job
 `31536071`, run `1b5cdead66a593d2b51829d9`; Qwen3-8B non-thinking job
-`31536072`, run `a34502e0d48191cbef4a79e6`. Each has a two-hour H200 cap and
-was pending at submission. Inspect existing jobs/ledgers before acting; never
-duplicate them. After successful compatibility and model caching, submit the
-corresponding structured-format arms once and compare matched parents/seeds.
+`31536072`, run `a34502e0d48191cbef4a79e6`. Both hung before model loading and
+were cancelled after 472 and 399 seconds, respectively. A live Python stack
+showed vLLM waiting for a nonexistent rendezvous store because torchrun exports
+`TORCHELASTIC_USE_AGENT_STORE=True`. The model-only launcher now starts Python
+directly, leaving vLLM to create its own store; regression-test and synchronize
+the fix before submitting replacement diff probes. After successful compatibility
+and model caching, submit the corresponding structured-format arms once and
+compare matched parents/seeds. Preserve the failed jobs for accounting.
 
 ## Task 13 independent extra proposer samples — 2026-10-31
 
@@ -21,8 +25,12 @@ slot flags; B's completed 160 records exactly repeat the original base samples
 and are not independent. A and D were cancelled when the error was discovered.
 Slurm charged 340, 256, and 169 seconds respectively (0.2125 H200-hours total).
 Preserve these invalid/partial runs for audit; do not count them as extra samples.
-The launcher was corrected and has an explicit command-argument regression test;
-after synchronizing a new commit, submit replacement sample runs once.
+The launcher was corrected and has an explicit command-argument regression test.
+Replacement extra-slot runs were submitted once from
+`5d92eddf3299a9a0b6ad39bdbdcbca4a0910c559`: base diff job `31536424` /
+run `ea1f43c3f981c35d767eb12f`, base structured `31536425` /
+`174d4fb895b98bd10a866aeb`, and B200 diff `31536426` /
+`346d7294a177f23792416fa7`. Inspect these existing ledgers; do not duplicate.
 
 ## Task 13 C/D counterfactual submitted — 2026-10-31
 

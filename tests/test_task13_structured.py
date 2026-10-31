@@ -118,4 +118,5 @@ def test_allocated_probe_command_preserves_checkpoint_and_extra_slots():
     model = job.task13_command_args(
         env | {"SELFPLAY_OPERATION": "task13-model-probe", "SELFPLAY_METHOD": "C"}
     )
+    assert model[:2] == ["python", "/workspace/scripts/task13_probe.py"]
     assert model[model.index("--model-choice") + 1] == "qwen3-8b" and "--checkpoint" not in model

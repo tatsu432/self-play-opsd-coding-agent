@@ -934,9 +934,11 @@ def task13_command_args(env: dict) -> list[str]:
             + ["--checkpoint", env["SELFPLAY_CHECKPOINT"]]
         )
     if operation == "task13-model-probe":
+        # vLLM owns its single-process distributed initialization. torchrun sets
+        # TORCHELASTIC_USE_AGENT_STORE, which makes vLLM connect to a store that
+        # does not exist at its independently chosen rendezvous port.
         return (
-            prefix
-            + ["/workspace/scripts/task13_probe.py"]
+            ["python", "/workspace/scripts/task13_probe.py"]
             + common
             + [
                 "--model-choice",
