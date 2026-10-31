@@ -1804,13 +1804,26 @@ def precheck(payload: dict):
                 or payload.get("gpu_type") != "h200"
                 or payload.get("time") != "06:00:00"
                 or payload.get("method") != "B"
-                or original.get("state") != "COMPLETED"
-                or original.get("exit_code") != "0:0"
-                or not (source / "stopped.json").is_file()
+                or not (
+                    (
+                        original.get("state") == "COMPLETED"
+                        and original.get("exit_code") == "0:0"
+                        and (source / "stopped.json").is_file()
+                    )
+                    or (
+                        original.get("state") == "TIMEOUT"
+                        and any(
+                            p.is_file()
+                            for p in source.glob(
+                                "repair-diagnosis-2026-static-*/B-seed2026/checkpoints/[0-9][0-9][0-9][0-9][0-9][0-9]/complete.json"
+                            )
+                        )
+                    )
+                )
                 or (source / "complete.json").exists()
             ):
                 raise ValueError(
-                    "Static continuation requires the original clean stopped allocation"
+                    "Static continuation requires the original clean stopped allocation or timeout with a joint checkpoint"
                 )
         if operation == "task13-model-probe" and (
             payload.get("account") != "cpsc4880"

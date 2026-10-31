@@ -78,8 +78,15 @@ def main() -> None:
     args = parser.parse_args()
     if not os.getenv("SLURM_JOB_ID") or not os.getenv("SELFPLAY_WORKER_TOKEN"):
         raise RuntimeError("Continuation requires an allocation and isolated worker")
-    if not (SOURCE / "stopped.json").is_file() or (SOURCE / "complete.json").exists():
-        raise RuntimeError("Original control has not stopped cleanly or is already complete")
+    checkpoints = list(
+        SOURCE.glob(
+            "repair-diagnosis-2026-static-*/B-seed2026/checkpoints/[0-9][0-9][0-9][0-9][0-9][0-9]/complete.json"
+        )
+    )
+    if (SOURCE / "complete.json").exists() or not (
+        (SOURCE / "stopped.json").is_file() or checkpoints
+    ):
+        raise RuntimeError("Original control has no recoverable checkpoint or is already complete")
     if args.output.exists():
         raise RuntimeError("Continuation output already exists")
     stop = Path(os.environ["SELFPLAY_STOP_FILE"])

@@ -91,6 +91,13 @@ def test_probe_remote_requires_worker_and_bounded_h200(tmp_path, monkeypatch):
         remote.precheck(continuation)
     monkeypatch.setattr(remote, "job_state", lambda _: {"state": "COMPLETED", "exit_code": "0:0"})
     remote.precheck(continuation)
+    monkeypatch.setattr(remote, "job_state", lambda _: {"state": "TIMEOUT", "exit_code": "0:0"})
+    with pytest.raises(ValueError, match="joint checkpoint"):
+        remote.precheck(continuation)
+    checkpoint = source / "repair-diagnosis-2026-static-test/B-seed2026/checkpoints/000019"
+    checkpoint.mkdir(parents=True)
+    (checkpoint / "complete.json").write_text("{}")
+    remote.precheck(continuation)
     (source / "complete.json").write_text("{}")
     with pytest.raises(ValueError, match="original clean stopped"):
         remote.precheck(continuation)
