@@ -70,7 +70,7 @@ git diff --check
 
 Results: **16 focused tests passed**; full CPU suite **269 passed, 33 skipped, 4 deselected**. Ruff and formatting checks passed for all 85 Python files, mypy passed for 43 source files, and diff whitespace checks passed. Four dependency warnings concern existing Typer/Click and W&B/Pydantic usage. Final artifact checks reconciled all 8,000 proposals, 439 within-run unique admitted tasks, and 1,756 episodes, and verified every recorded input hash was unchanged. CPU tests do not claim new GPU compatibility or generated-code isolation evidence.
 
-After the later runner, replay, and analysis additions, the full default suite passed **283 tests, with 37 skipped**; Ruff and format checks passed across 103 files, and scoped mypy passed for the changed controller. GPU and worker compatibility are supported by the actual allocated-node jobs rather than CPU tests.
+After the later runner, replay, analysis and continuation additions, the full default suite passed **285 tests, with 37 skipped**; Ruff and format checks passed across 104 files, and scoped mypy passed for the changed controller. GPU and worker compatibility are supported by the actual allocated-node jobs rather than CPU tests. The static continuation itself has not been exercised on a live resumed job.
 
 ## Remaining uncertainty and next action
 
