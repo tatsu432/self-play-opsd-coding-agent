@@ -94,12 +94,15 @@ matching GRPO at the same step count but with 80 versus 168 episodes. The gated
 arm reached 15 steps in 15 batches with 120 episodes, eleven mixed groups,
 finite gradients, zero proposer steps and maximum scoring difference 1.547;
 it continues toward 20 steps near the original allocation's time limit.
-Continuation code `7596b7409335293923efa7e5d62ba030d1fa3a42` is synchronized
-but has not been submitted; its live preview correctly refused while job
-`31535783` was running. If that job cleanly stops before both arms finish,
-inspect the checkpoint and scientific state, then use the scoped continuation
-route in the Task 13 plan. It verifies pool/runner/data identity and each joint
-checkpoint and refuses a running or already-complete original allocation.
+Original job `31535783` reached gated step 20 but timed out during its final
+evaluation; the last complete gated joint checkpoint was iteration 19. The
+uncheckpointed iteration and partial evaluation must be rolled back. After
+reconciliation and a passing preview, continuation job `31555806`, run
+`edb71511b52d23183f3593e5`, was submitted once from
+`6df71fd4b3cd5fad8200ab23ca76041d249b80a3`; it was pending at submission.
+Inspect this existing job and ledger; never duplicate it. The continuation
+verifies pool/runner/data identity and checkpoint checksums on the allocated
+node before resuming. Review its final gated evaluation and actual accounting.
 
 ## Task 13 checkpoint probes submitted — 2026-10-31
 

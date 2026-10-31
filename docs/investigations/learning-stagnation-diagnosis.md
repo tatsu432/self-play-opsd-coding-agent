@@ -175,6 +175,8 @@ The matched gated arm's initial development evaluation also completed **0/41**. 
 
 At 15 gated steps it had committed 15 batches, 120 episodes, 36 successes and eleven mixed groups, with finite recorded gradients and zero proposer steps. There were 15 rollout/rescoring and 11 rolling invalid-action warnings; the maximum sampled difference remained 1.547. The arm was still running near the original allocation's time limit.
 
+The original static allocation `31535783` reached gated step 20 and began its final evaluation, but Slurm timed it out before the evaluation and step-20 checkpoint completed. The last complete gated joint checkpoint was iteration 19; the partial iteration and evaluation are not a final result. After scheduler reconciliation, continuation `31555806` was submitted to verify that checkpoint on the allocated node, roll back uncheckpointed events, and repeat the final step and evaluation.
+
 Under these illustrative projections, mixed groups per rollout decrease at G=8. Whole-allocation efficiency might differ because of fixed startup/proposal costs; it must be timed. Improve the task-difficulty distribution first. Keep proposer and student group sizes separate: under an illustrative independent q=0.05 candidate acceptance model, proposer G=4→8 gives at least one accepted 18.55%→33.66%, at least two 1.40%→5.72%. Observed within-parent repetition violates independence. G=8 may provide extra reward discrimination, but does not address history-dependent duplication by itself.
 
 ## Q6. Why does development stagnate?
