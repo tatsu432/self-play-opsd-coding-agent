@@ -16,9 +16,11 @@ submitted once from `7f45eaec27986057eac62643e9e55b2cab4dec31`: coder job
 `66d86331ec30a14afb9548eb`. Inspect their existing ledgers; do not duplicate.
 The 7B diff arm initialized and generated proposals; its structured arm was
 submitted once from `fd53d2c69276ca1065de8d03f23f820a9e214644`, job
-`31537529`, run `e57c317e45dfb110b33e8a30`. After 8B compatibility and model
-caching, submit its structured arm once and compare matched parents/seeds.
-Preserve the failed jobs for accounting.
+`31537529`, run `e57c317e45dfb110b33e8a30`. The 8B diff arm also initialized
+and generated proposals; its structured arm was submitted once from
+`3a1619e19c69179c035bbbe14a8823c666535be5`, job `31537580`, run
+`09e709fd64972a2f91dcea51`. Inspect existing ledgers and compare matched
+parents/seeds. Preserve the failed jobs for accounting.
 
 ## Task 13 independent extra proposer samples — 2026-10-31
 

@@ -1037,6 +1037,8 @@ def artifact_dir(payload: dict) -> Path:
         return runs / "repair-diagnosis-2026-probe-v1" / payload["run_id"]
     if operation == "task13-model-probe":
         return runs / "repair-diagnosis-2026-model-probe-v1" / payload["run_id"]
+    if operation == "task13-header-replay":
+        return runs / "repair-diagnosis-2026-header-replay-v1" / payload["run_id"]
     if operation == "task13-static":
         return runs / "repair-diagnosis-2026-static-v1" / payload["run_id"]
     if operation == "task13-counterfactual":
@@ -1623,6 +1625,7 @@ def precheck(payload: dict):
         "diagnose",
         "task13-probe",
         "task13-model-probe",
+        "task13-header-replay",
         "task13-static",
         "task13-counterfactual",
         "freeze-study",
@@ -1703,6 +1706,7 @@ def precheck(payload: dict):
         "diagnose",
         "task13-probe",
         "task13-model-probe",
+        "task13-header-replay",
         "task13-static",
         "task13-counterfactual",
     }
@@ -1760,6 +1764,7 @@ def precheck(payload: dict):
         "freeze-study",
         "task13-probe",
         "task13-model-probe",
+        "task13-header-replay",
         "task13-static",
         "task13-counterfactual",
     }:
@@ -1775,6 +1780,14 @@ def precheck(payload: dict):
             or payload.get("iterations") not in {8, 10}
         ):
             raise ValueError("Task 13 probe requires bounded one-H200 cpsc4880 allocation")
+        if operation == "task13-header-replay" and (
+            payload.get("account") != "cpsc4880"
+            or payload.get("gpu_count") != 0
+            or payload.get("time") != "01:00:00"
+            or payload.get("method") != "C"
+            or payload.get("checkpoint")
+        ):
+            raise ValueError("Header replay requires the bounded CPU-only worker allocation")
         if operation == "task13-model-probe" and (
             payload.get("account") != "cpsc4880"
             or payload.get("gpu_count") != 1

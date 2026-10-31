@@ -68,6 +68,15 @@ def test_probe_remote_requires_worker_and_bounded_h200(tmp_path, monkeypatch):
     remote.precheck(model)
     with pytest.raises(ValueError, match="pinned manifest"):
         remote.precheck(model | {"probe_model": model["probe_model"] | {"revision": "unverified"}})
+    replay = payload | {
+        "operation": "task13-header-replay",
+        "method": "C",
+        "gpu_count": 0,
+        "time": "01:00:00",
+    }
+    remote.precheck(replay)
+    with pytest.raises(ValueError, match="CPU-only"):
+        remote.precheck(replay | {"gpu_count": 1})
 
 
 def test_structured_mutation_builds_a_valid_patch():
@@ -120,3 +129,6 @@ def test_allocated_probe_command_preserves_checkpoint_and_extra_slots():
     )
     assert model[:2] == ["python", "/workspace/scripts/task13_probe.py"]
     assert model[model.index("--model-choice") + 1] == "qwen3-8b" and "--checkpoint" not in model
+    replay = job.task13_command_args(env | {"SELFPLAY_OPERATION": "task13-header-replay"})
+    assert replay[:2] == ["python", "/workspace/scripts/task13_header_replay.py"]
+    assert "--checkpoint" not in replay

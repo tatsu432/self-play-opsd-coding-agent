@@ -949,6 +949,8 @@ def task13_command_args(env: dict) -> list[str]:
         )
     if operation == "task13-static":
         return prefix + ["/workspace/scripts/task13_static.py"] + common
+    if operation == "task13-header-replay":
+        return ["python", "/workspace/scripts/task13_header_replay.py"] + common
     raise ValueError("Unknown Task 13 allocation operation")
 
 
@@ -973,6 +975,7 @@ def execute(env: dict) -> int:
         "diagnose",
         "task13-probe",
         "task13-model-probe",
+        "task13-header-replay",
         "task13-static",
         "task13-counterfactual",
         "freeze-study",
@@ -991,6 +994,7 @@ def execute(env: dict) -> int:
         "diagnose",
         "task13-probe",
         "task13-model-probe",
+        "task13-header-replay",
         "task13-static",
         "task13-counterfactual",
     }
@@ -1214,6 +1218,7 @@ def execute(env: dict) -> int:
             "task13-probe",
             "task13-counterfactual",
             "task13-model-probe",
+            "task13-header-replay",
             "task13-static",
         }:
             args = task13_command_args(env)

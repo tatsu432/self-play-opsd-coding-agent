@@ -365,6 +365,7 @@ def run_payload(
         "diagnose",
         "task13-probe",
         "task13-model-probe",
+        "task13-header-replay",
         "task13-static",
         "task13-counterfactual",
         "image-convert",
@@ -723,6 +724,10 @@ def run_payload(
             raise HpcError("Larger-model probes cannot load a 4B checkpoint")
         payload["output"] = f"/runs/repair-diagnosis-2026-model-probe-v1/{identity[:24]}"
         payload["probe_model"] = logical["probe_model"]
+    if operation == "task13-header-replay":
+        if method != "C" or checkpoint_iteration is not None:
+            raise HpcError("Header replay is fixed to the recorded 8B diff probe")
+        payload["output"] = f"/runs/repair-diagnosis-2026-header-replay-v1/{identity[:24]}"
     if operation == "task13-counterfactual":
         payload["output"] = f"/runs/repair-diagnosis-2026-counterfactual-v1/{identity[:24]}"
     if (
@@ -740,6 +745,7 @@ def run_payload(
             "diagnose",
             "task13-probe",
             "task13-model-probe",
+            "task13-header-replay",
             "task13-static",
             "task13-counterfactual",
         }
