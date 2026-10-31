@@ -14,8 +14,11 @@ the fix before submitting replacement diff probes. Corrected diff probes were
 submitted once from `7f45eaec27986057eac62643e9e55b2cab4dec31`: coder job
 `31537201`, run `842b6c405b193624f33a826d`; Qwen3 job `31537246`, run
 `66d86331ec30a14afb9548eb`. Inspect their existing ledgers; do not duplicate.
-After successful compatibility and model caching, submit the corresponding structured-format arms once and
-compare matched parents/seeds. Preserve the failed jobs for accounting.
+The 7B diff arm initialized and generated proposals; its structured arm was
+submitted once from `fd53d2c69276ca1065de8d03f23f820a9e214644`, job
+`31537529`, run `e57c317e45dfb110b33e8a30`. After 8B compatibility and model
+caching, submit its structured arm once and compare matched parents/seeds.
+Preserve the failed jobs for accounting.
 
 ## Task 13 independent extra proposer samples — 2026-10-31
 
