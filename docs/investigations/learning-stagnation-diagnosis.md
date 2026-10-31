@@ -112,6 +112,8 @@ On the matched 40-parent probe, Qwen2.5-Coder-7B produced 4/160 verified diff ou
 
 After the post-hoc header normalization, 8B diff and the original 4B diff both produced 43 verified outputs; 8B had 30 unique parent/mutation pairs versus 20. The paired uniqueness difference was 0.25 per parent (95% parent-bootstrap interval −0.025 to +0.525), which does not establish a reliably positive difference. The normalization was selected after inspecting 8B's outputs, so a prospective comparison with both formats specified in advance remains necessary for a model-selection claim.
 
+As a descriptive throughput check, the 4B and 8B structured jobs took 242 and 196 allocated H200-seconds respectively, corresponding to about 491 and 680 unique pairs per allocated GPU-hour on this small fixed workload. Those rates include startup and differ in backend and caching; the 8B job used the cache warmed by its earlier diff arm. They are not portable throughput benchmarks or sufficient evidence to select a larger model.
+
 ## Q4. What is the proposer optimizing?
 
 Mostly binary acceptance. For rewards `[-1,-1,-1,r]`, let `d=r+1>0`. Centering gives `[-d/4,-d/4,-d/4,3d/4]`, with population standard deviation `sqrt(3)*d/4`. Ignoring epsilon, standardized advantages are `[-1/sqrt(3),-1/sqrt(3),-1/sqrt(3),sqrt(3)]`, independent of r. Production adds `1e-6` to sigma, creating tiny scale differences; this is why exact and approximate comparisons must be separated.
