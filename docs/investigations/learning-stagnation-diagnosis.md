@@ -169,6 +169,8 @@ At ten student steps, GRPO had committed 21 batches, 42 task exposures, 168 epis
 
 At 15 steps the arm had committed 31 batches, 248 episodes and 19 mixed groups. All recorded gradient norms were finite and proposer steps remained zero; the maximum sampled rollout/rescoring difference rose to 3.203. This is a health observation, not a new development evaluation.
 
+GRPO subsequently reached the planned 20 student steps after 53 batches: 106 task exposures, 424 episodes, 189 successes and 24 mixed groups, with 192,190 generated student tokens and zero proposer steps. All recorded gradient norms were finite; 48 rollout/rescoring warnings and 38 rolling invalid-action warnings were recorded, with maximum scoring difference 3.203. Its final development evaluation was started; the matched gated arm remains pending.
+
 Under these illustrative projections, mixed groups per rollout decrease at G=8. Whole-allocation efficiency might differ because of fixed startup/proposal costs; it must be timed. Improve the task-difficulty distribution first. Keep proposer and student group sizes separate: under an illustrative independent q=0.05 candidate acceptance model, proposer G=4→8 gives at least one accepted 18.55%→33.66%, at least two 1.40%→5.72%. Observed within-parent repetition violates independence. G=8 may provide extra reward discrimination, but does not address history-dependent duplication by itself.
 
 ## Q6. Why does development stagnate?

@@ -78,7 +78,8 @@ episodes, 13 mixed groups, zero proposer steps and finite recorded gradients;
 Its ten-step development evaluation completed 10/41 versus 0/41 initially;
 at 15 steps it had 31 batches, 248 episodes, 19 mixed groups, finite recorded
 gradients, zero proposer steps, and maximum scoring difference 3.203. GRPO
-continues toward 20 steps, followed by the matched gated arm. It builds and screens one verified
+reached 20 steps after 53 batches, 424 episodes and 24 mixed groups; its final
+development evaluation started, followed by the matched gated arm. It builds and screens one verified
 training-only pool, then runs matched GRPO and gated-OPSD arms using the
 existing isolated worker and joint checkpoints. Inspect this existing job and
 ledger; do not duplicate it. Review actual completion and exposure per arm.
