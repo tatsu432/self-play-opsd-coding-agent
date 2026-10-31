@@ -72,6 +72,12 @@ screened and seven showing mixed outcomes. It builds and screens one verified
 training-only pool, then runs matched GRPO and gated-OPSD arms using the
 existing isolated worker and joint checkpoints. Inspect this existing job and
 ledger; do not duplicate it. Review actual completion and exposure per arm.
+Continuation code `7596b7409335293923efa7e5d62ba030d1fa3a42` is synchronized
+but has not been submitted; its live preview correctly refused while job
+`31535783` was running. If that job cleanly stops before both arms finish,
+inspect the checkpoint and scientific state, then use the scoped continuation
+route in the Task 13 plan. It verifies pool/runner/data identity and each joint
+checkpoint and refuses a running or already-complete original allocation.
 
 ## Task 13 checkpoint probes submitted — 2026-10-31
 
