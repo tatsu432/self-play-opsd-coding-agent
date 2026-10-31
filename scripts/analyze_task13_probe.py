@@ -29,7 +29,10 @@ def load_probe(path: Path) -> dict:
             raise ValueError("Proposal parent missing from manifest")
         by_parent[row["parent_id"]].append(row)
     if any(
-        sorted(r["slot"] for r in values) != list(range(manifest["slots"]))
+        sorted(r["slot"] for r in values)
+        != list(
+            range(manifest.get("slot_start", 0), manifest.get("slot_start", 0) + manifest["slots"])
+        )
         for values in by_parent.values()
     ):
         raise ValueError("Probe slots are missing or repeated")
@@ -57,6 +60,33 @@ def summary(probe: dict) -> dict:
         ),
         "distinct_output_sequences": len({tuple(r["target_ids"]) for r in rows}),
         "reasons": dict(Counter(r["reason"] for r in rows)),
+    }
+
+
+def combine_samples(base: dict, extra: dict) -> dict:
+    """Combine the prespecified first 16 parents' disjoint sampling slots."""
+    if (
+        extra["manifest"].get("slot_start")
+        != base["manifest"].get("slot_start", 0) + base["manifest"]["slots"]
+    ):
+        raise ValueError("Additional sample slots are not contiguous")
+    for field in ("model", "manifest_hash", "representation", "checkpoint"):
+        if base["manifest"][field] != extra["manifest"][field]:
+            raise ValueError(f"Additional sample {field} differs")
+    if list(base["parents"])[: len(extra["parents"])] != list(extra["parents"]):
+        raise ValueError("Additional samples do not use the prespecified parent prefix")
+    if any(base["parents"][p] != source_hash for p, source_hash in extra["parents"].items()):
+        raise ValueError("Additional sample parent sources differ")
+    parents = extra["parents"]
+    by_parent = {p: base["by_parent"][p] + extra["by_parent"][p] for p in parents}
+    manifest = dict(base["manifest"])
+    manifest["slots"] += extra["manifest"]["slots"]
+    return {
+        "manifest": manifest,
+        "parents": parents,
+        "by_parent": by_parent,
+        "rows": [r for p in parents for r in by_parent[p]],
+        "input_sha256": {"base": base["input_sha256"], "extra": extra["input_sha256"]},
     }
 
 
@@ -105,6 +135,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--diff", type=Path, required=True)
     parser.add_argument("--structured", type=Path, required=True)
+    parser.add_argument("--diff-extra", type=Path)
+    parser.add_argument("--structured-extra", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     first, second = load_probe(args.diff), load_probe(args.structured)
@@ -119,6 +151,20 @@ def main() -> None:
         "paired": compare(first, second),
         "input_sha256": {"diff": first["input_sha256"], "structured": second["input_sha256"]},
     }
+    if bool(args.diff_extra) != bool(args.structured_extra):
+        parser.error("Provide both additional-sample directories")
+    if args.diff_extra and args.structured_extra:
+        diff_eight = combine_samples(first, load_probe(args.diff_extra))
+        structured_eight = combine_samples(second, load_probe(args.structured_extra))
+        result["eight_sample_subset"] = {
+            "diff": summary(diff_eight),
+            "structured": summary(structured_eight),
+            "paired": compare(diff_eight, structured_eight),
+            "input_sha256": {
+                "diff": diff_eight["input_sha256"],
+                "structured": structured_eight["input_sha256"],
+            },
+        }
     atomic_json(args.output, result)
     print(json.dumps(result, indent=2))
 

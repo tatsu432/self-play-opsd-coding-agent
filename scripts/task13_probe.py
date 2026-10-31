@@ -28,6 +28,7 @@ def main() -> None:
     parser.add_argument("--representation", choices=("diff", "structured"), required=True)
     parser.add_argument("--parents", type=int, default=40)
     parser.add_argument("--slots", type=int, default=4)
+    parser.add_argument("--slot-start", type=int, default=0)
     args = parser.parse_args()
     if not os.environ.get("SLURM_JOB_ID") or not os.environ.get("SELFPLAY_WORKER_TOKEN"):
         raise RuntimeError("Probe requires an allocated Slurm job and isolated worker")
@@ -38,7 +39,7 @@ def main() -> None:
     selected = sorted(repo.parents("train"), key=lambda p: digest([2026, p.parent_id]))[
         : args.parents
     ]
-    if len(selected) != args.parents or args.slots < 1:
+    if len(selected) != args.parents or args.slots < 1 or args.slot_start < 0:
         raise ValueError("Insufficient training parents or invalid slot count")
     sandbox = SandboxBackend(cfg.sandbox)
     sandbox.preflight()
@@ -72,6 +73,7 @@ def main() -> None:
             "checkpoint": checkpoint,
             "representation": args.representation,
             "slots": args.slots,
+            "slot_start": args.slot_start,
             "parents": [{"id": p.parent_id, "source_hash": digest(p.source)} for p in selected],
             "sampling": {
                 "temperature": 1,
@@ -87,7 +89,7 @@ def main() -> None:
         with policy.active("proposer"):
             for parent in selected:
                 available = sites(parent.source) if args.representation == "structured" else []
-                for slot in range(args.slots):
+                for slot in range(args.slot_start, args.slot_start + args.slots):
                     seed = keyed_seed(2026, "task13-proposer", parent.parent_id, slot)
                     messages = proposer_messages(parent)
                     if args.representation == "structured":

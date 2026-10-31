@@ -1188,6 +1188,8 @@ def execute(env: dict) -> int:
             ]
             if env.get("SELFPLAY_CHECKPOINT"):
                 args += ["--checkpoint", env["SELFPLAY_CHECKPOINT"]]
+            if env.get("SELFPLAY_ITERATIONS") == "8":
+                args += ["--parents", "16", "--slots", "4", "--slot-start", "4"]
         if operation == "task13-static":
             args = [
                 "torchrun",

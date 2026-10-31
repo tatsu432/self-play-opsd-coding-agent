@@ -519,7 +519,9 @@ def run_payload(
         "exclude_nodes": excluded,
         "study": study,
         "seed": cfg.seed,
-        "iterations": iterations if operation == "pilot" else cfg.iterations,
+        "iterations": iterations
+        if operation == "pilot" or (operation == "task13-probe" and iterations == 8)
+        else cfg.iterations,
         "base": base,
         "split": split if operation == "evaluate" else None,
         "checkpoint_iteration": checkpoint_iteration,
@@ -679,6 +681,8 @@ def run_payload(
     if operation == "diagnose":
         payload["output"] = f"/runs/{cfg.study_id}/diagnostics/{checkpoint_iteration:06d}"
     if operation == "task13-probe":
+        if iterations not in {8, 10}:
+            raise HpcError("Task 13 probe supports the standard or extra-sample batch")
         if checkpoint_iteration is None and method not in {"A", "B"}:
             raise HpcError("Task 13 base probe uses A=diff and B=structured")
         payload["output"] = f"/runs/repair-diagnosis-2026-probe-v1/{identity[:24]}"

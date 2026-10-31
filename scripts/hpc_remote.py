@@ -1767,6 +1767,7 @@ def precheck(payload: dict):
             or payload.get("gpu_type") != "h200"
             or payload.get("time") != "02:00:00"
             or payload.get("method") not in {"A", "B", "C", "D"}
+            or payload.get("iterations") not in {8, 10}
         ):
             raise ValueError("Task 13 probe requires bounded one-H200 cpsc4880 allocation")
         if operation == "task13-static" and (

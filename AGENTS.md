@@ -1,5 +1,14 @@
 # Project and operating instructions
 
+## Task 13 C/D counterfactual submitted — 2026-10-31
+
+Job `31535924`, run `913f441b4f52675eb2479c16`, was submitted once from
+`f3c290dc3d01af3af8df9b5ad926fd26b8bac850` with one H200 and a two-hour cap.
+It compares C and D candidate/proposer gradients at verified C checkpoint 99,
+using matched generated candidates and rollouts and restoring optimizer state
+after any counterfactual update. It was pending at submission. Inspect the
+existing job and ledger before any action; never duplicate it.
+
 ## Task 13 static student control submitted — 2026-10-31
 
 Job `31535783`, run `9a44124b61147aee02c685d6`, was submitted from

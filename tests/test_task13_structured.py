@@ -29,6 +29,7 @@ def test_probe_remote_requires_worker_and_bounded_h200(tmp_path, monkeypatch):
         "gpu_type": "h200",
         "time": "02:00:00",
         "method": "A",
+        "iterations": 10,
         "worker_image": str(worker),
         "worker_sha256": "a" * 64,
     }
