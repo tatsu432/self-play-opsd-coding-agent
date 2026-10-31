@@ -165,6 +165,8 @@ The static GRPO arm's initial development evaluation completed 0/41. Its first b
 
 At the five-student-step review, GRPO had processed six batches, 12 task exposures and 48 episodes, including 29 successes and eight mixed groups; the proposer had taken no steps. Five nonzero recorded student gradient norms were finite. There were six rollout/rescoring mismatch warnings (maximum absolute sampled log-probability difference 0.991) and two rolling invalid-action warnings; 113 of 308 recorded actions were invalid. These warnings limit interpretation and their causal effects are unverified. The arm continued to its scheduled development checkpoint.
 
+At ten student steps, GRPO had committed 21 batches, 42 task exposures, 168 episodes, 74 successes and 13 mixed groups, with zero proposer steps. All recorded gradient norms were finite. There were 20 rollout/rescoring mismatch warnings and 15 rolling invalid-action warnings; the maximum sampled log-probability difference was 2.535. The ten-step development evaluation is in progress. The warnings are material measurement limitations, not proof of their causal effect on the student.
+
 Under these illustrative projections, mixed groups per rollout decrease at G=8. Whole-allocation efficiency might differ because of fixed startup/proposal costs; it must be timed. Improve the task-difficulty distribution first. Keep proposer and student group sizes separate: under an illustrative independent q=0.05 candidate acceptance model, proposer G=4→8 gives at least one accepted 18.55%→33.66%, at least two 1.40%→5.72%. Observed within-parent repetition violates independence. G=8 may provide extra reward discrimination, but does not address history-dependent duplication by itself.
 
 ## Q6. Why does development stagnate?
