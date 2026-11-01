@@ -31,6 +31,12 @@ Base function-body student job `31618998` completed exit 0. Its saved
 rollouts feed numerical audit job `31619683`, run `5cfc6fa822734449d11d284d`,
 submitted once from `fd89d896774ec75e8a028b3890eb80a12ae9bc0c`. Inspect that
 ledger before action; do not duplicate it.
+The matched base diff/body student comparison completed: 7/64 versus 2/64
+repairs, while 7/160 versus 81/140 edit attempts succeeded. B200 student
+comparisons remain open. Base diff numerical audit `31619786` / run
+`50c0b26f9c555e120db54e90` and training-only diff calibration `31619788` /
+`f78ba9f3c0386e1289aafdb3` were submitted once from execution
+`5ebd956ed25c8ba28a17113e35795bdbb9ac6d31`; do not duplicate either.
 Structured base-snapshot reward counterfactual job `31619094`, run
 `e74ecdee52efe104590c60b3`, was submitted once from execution
 `ec28f24568c34468ff4f4fc67567d1be508e3532`; inspect its ledger and Slurm
