@@ -912,6 +912,13 @@ def task13_command_args(env: dict) -> list[str]:
         "--output",
         env["SELFPLAY_OUTPUT"],
     ]
+    if operation == "task14-student":
+        return (
+            prefix
+            + ["/workspace/scripts/task14_student_probe.py"]
+            + common
+            + ["--edit-protocol", "unified_diff" if method == "A" else "replace_function_body"]
+        )
     if operation in {"task13-probe", "task14-probe"}:
         args = (
             prefix
@@ -979,6 +986,7 @@ def execute(env: dict) -> int:
         "diagnose",
         "task13-probe",
         "task14-probe",
+        "task14-student",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1000,6 +1008,7 @@ def execute(env: dict) -> int:
         "diagnose",
         "task13-probe",
         "task14-probe",
+        "task14-student",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1225,6 +1234,7 @@ def execute(env: dict) -> int:
         if operation in {
             "task13-probe",
             "task14-probe",
+            "task14-student",
             "task13-counterfactual",
             "task13-model-probe",
             "task13-header-replay",

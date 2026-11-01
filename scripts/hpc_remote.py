@@ -1037,6 +1037,8 @@ def artifact_dir(payload: dict) -> Path:
         return runs / "repair-diagnosis-2026-probe-v1" / payload["run_id"]
     if operation == "task14-probe":
         return runs / "repair-diagnosis-2026-task14-probe-v1" / payload["run_id"]
+    if operation == "task14-student":
+        return runs / "repair-diagnosis-2026-task14-student-v1" / payload["run_id"]
     if operation == "task13-model-probe":
         return runs / "repair-diagnosis-2026-model-probe-v1" / payload["run_id"]
     if operation == "task13-header-replay":
@@ -1629,6 +1631,7 @@ def precheck(payload: dict):
         "diagnose",
         "task13-probe",
         "task14-probe",
+        "task14-student",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1712,6 +1715,7 @@ def precheck(payload: dict):
         "diagnose",
         "task13-probe",
         "task14-probe",
+        "task14-student",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1772,6 +1776,7 @@ def precheck(payload: dict):
         "freeze-study",
         "task13-probe",
         "task14-probe",
+        "task14-student",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1781,7 +1786,7 @@ def precheck(payload: dict):
         state = study_state(payload)
         if not state["gates"]["worker"] or not state["gates"]["runtime"]:
             raise ValueError("Runtime isolation and target data validation have not passed")
-        if operation in {"task13-probe", "task14-probe"} and (
+        if operation in {"task13-probe", "task14-probe", "task14-student"} and (
             payload.get("account") != "cpsc4880"
             or payload.get("gpu_count") != 1
             or payload.get("gpu_type") != "h200"
@@ -1790,7 +1795,7 @@ def precheck(payload: dict):
             or payload.get("iterations") not in {8, 10}
         ):
             raise ValueError("Task 13 probe requires bounded one-H200 cpsc4880 allocation")
-        if operation == "task14-probe" and (
+        if operation in {"task14-probe", "task14-student"} and (
             payload.get("method") not in {"A", "B"}
             or payload.get("iterations") != 10
             or payload.get("checkpoint")
