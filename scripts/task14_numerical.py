@@ -60,6 +60,19 @@ def outlier_logps(old, rescored, threshold=0.2):
     ]
 
 
+def select_tasks(manifest, records, prefer_mixed):
+    ordered = [task["task_id"] for task in manifest["tasks"]]
+    if not prefer_mixed:
+        return ordered[:8]
+    rewards = defaultdict(list)
+    for row in records:
+        rewards[row["task_id"]].append(row["reward"])
+    mixed = [task for task in ordered if 0 < sum(rewards[task]) < len(rewards[task])]
+    uniform = [task for task in ordered if task not in mixed]
+    chosen = mixed[:4] + uniform[:4]
+    return (chosen + [task for task in ordered if task not in chosen])[:8]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--settings", type=Path, required=True)
@@ -87,7 +100,8 @@ def main():
     ):
         raise ValueError("Student probe provenance differs")
     pool = {task.task_id: (task, oracle) for task, oracle, _ in restore_pool(SOURCE, repo)}
-    selected = {task["task_id"] for task in manifest["tasks"][:8]}
+    targeted = args.components and manifest["snapshot"] == "b200"
+    selected = set(select_tasks(manifest, records, targeted))
     episodes = [EpisodeRecord.model_validate(row) for row in records if row["task_id"] in selected]
     sandbox = SandboxBackend(cfg.sandbox)
     sandbox.preflight()
@@ -159,6 +173,9 @@ def main():
                 "source_sha256": file_hash(args.source / "episodes.json"),
                 "protocol": manifest["protocol"],
                 "tasks": len(selected),
+                "selection": "up to four mixed and four uniform, then manifest order"
+                if targeted
+                else "first eight manifest tasks",
                 "episodes": len(episodes),
                 "mismatch": stats,
                 "sign_sensitive_clipping": clipping_impact(scored, altered, cfg.objective.clip),
