@@ -44,8 +44,12 @@ def main():
     cfg = load_config(args.settings, method="B", hardware_profile="single_gpu_80gb")
     cfg.logging.mode = "disabled"
     repo = TaskRepository(cfg.data_root)
-    if manifest["manifest_hash"] != repo.hash:
-        raise ValueError("Proposal dataset differs")
+    if manifest["manifest_hash"] != repo.hash or manifest["model"] != cfg.model.model_dump(
+        mode="json"
+    ):
+        raise ValueError("Proposal dataset or model differs")
+    if sum(row["valid"] for row in rows) != complete["valid"]:
+        raise ValueError("Proposal completion count differs")
     parents = {p.parent_id: p for p in repo.parents("train")}
     source_hashes = {p["id"]: p["source_hash"] for p in manifest["parents"]}
     from selfplay_opsd.core import digest
