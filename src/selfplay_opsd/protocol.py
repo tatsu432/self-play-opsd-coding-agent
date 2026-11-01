@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 from selfplay_opsd.config import EpisodeConfig
 from selfplay_opsd.core import OracleSpec, ParentProgram, TaskSpec, canonical, digest
 
@@ -97,6 +99,24 @@ def proposer_messages(parent: ParentProgram) -> list[dict[str, str]]:
     ]
 
 
+def structured_proposer_messages(parent: ParentProgram) -> list[dict[str, str]]:
+    from selfplay_opsd.structured_mutations import sites
+
+    messages = proposer_messages(parent)
+    messages[0]["content"] = (
+        "Introduce a small semantic bug. Choose one listed AST site and operation. "
+        "Return exactly JSON with fields site (integer index) and operation (string)."
+    )
+    messages[1]["content"] = json.dumps(
+        {
+            "specification": parent.specification,
+            "correct_source": parent.source,
+            "sites": sites(parent.source),
+        }
+    )
+    return messages
+
+
 def teacher_messages(history: list[dict[str, str]], oracle: OracleSpec) -> list[dict[str, str]]:
     if not history or history[0]["role"] != "system":
         raise ValueError("Teacher history must begin with frozen system prompt")
@@ -170,7 +190,13 @@ def protocol_definition() -> dict:
         "serialization_functions": serialization,
         "version": VERSION,
         "student_template": student_messages(task, EpisodeConfig()),
+        "student_body_template": student_messages(
+            task, EpisodeConfig(edit_protocol="replace_function_body")
+        ),
         "proposer_template": proposer_messages(parent),
+        "structured_proposer_template": structured_proposer_messages(
+            parent.model_copy(update={"source": "def f(x):\n    return x + 1\n"})
+        ),
         "teacher_template": TEACHER,
         "serialization": {
             "json": "sorted-keys-compact-utf8-v1",
