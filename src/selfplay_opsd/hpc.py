@@ -369,6 +369,7 @@ def run_payload(
         "task14-counterfactual",
         "task14-calibrate",
         "task14-numerical",
+        "task14-static",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -514,6 +515,7 @@ def run_payload(
         "task14-counterfactual",
         "task14-calibrate",
         "task14-numerical",
+        "task14-static",
         "task13-model-probe",
         "task13-static",
         "task13-static-continuation",
@@ -545,7 +547,8 @@ def run_payload(
         "study": study,
         "seed": cfg.seed,
         "iterations": iterations
-        if operation == "pilot" or (operation == "task13-probe" and iterations == 8)
+        if operation in {"pilot", "task14-static"}
+        or (operation == "task13-probe" and iterations == 8)
         else cfg.iterations,
         "base": base,
         "split": split if operation == "evaluate" else None,
@@ -678,7 +681,7 @@ def run_payload(
         else "01:00:00"
         if operation in {"backend-check", "rollout-parity", "numerical-audit", "proposer-audit"}
         else "06:00:00"
-        if operation in {"pilot", "task13-static", "task13-static-continuation"}
+        if operation in {"pilot", "task13-static", "task13-static-continuation", "task14-static"}
         else "02:00:00"
         if (operation == "evaluate" and base)
         or operation
@@ -762,6 +765,16 @@ def run_payload(
         if method not in {"A", "B"} or checkpoint_iteration is not None or iterations != 10:
             raise HpcError("Task 14 numerical probe requires a completed base student arm")
         payload["output"] = f"/runs/repair-diagnosis-2026-task14-numerical-v1/{identity[:24]}"
+    if operation == "task14-static":
+        if (
+            method not in {"A", "B", "C"}
+            or checkpoint_iteration is not None
+            or iterations not in {26, 27, 28}
+        ):
+            raise HpcError(
+                "Task 14 static requires A=GRPO, B=gated or C=ungated and seed selector 26–28"
+            )
+        payload["output"] = f"/runs/repair-diagnosis-2026-task14-static-v1/{identity[:24]}"
     if operation == "task13-static":
         if method != "B":
             raise HpcError("Task 13 static job executes both GRPO and B arms")
@@ -800,6 +813,7 @@ def run_payload(
             "task14-counterfactual",
             "task14-calibrate",
             "task14-numerical",
+            "task14-static",
             "task13-model-probe",
             "task13-header-replay",
             "task13-static",

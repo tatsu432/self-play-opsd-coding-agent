@@ -940,6 +940,22 @@ def task13_command_args(env: dict) -> list[str]:
             + common
             + ["--source", "/runs/repair-diagnosis-2026-task14-student-v1/" + source]
         )
+    if operation == "task14-static":
+        seed = 2000 + int(env["SELFPLAY_ITERATIONS"])
+        arm = {"A": "GRPO", "B": "B", "C": "A"}[method]
+        return (
+            prefix
+            + ["/workspace/scripts/task14_static.py"]
+            + common
+            + [
+                "--method",
+                arm,
+                "--seed",
+                str(seed),
+                "--control",
+                "/workspace/configs/task14-static-control.json",
+            ]
+        )
     if operation == "task14-counterfactual":
         return (
             prefix
@@ -1025,6 +1041,7 @@ def execute(env: dict) -> int:
         "task14-counterfactual",
         "task14-calibrate",
         "task14-numerical",
+        "task14-static",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1050,6 +1067,7 @@ def execute(env: dict) -> int:
         "task14-counterfactual",
         "task14-calibrate",
         "task14-numerical",
+        "task14-static",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1279,6 +1297,7 @@ def execute(env: dict) -> int:
             "task14-counterfactual",
             "task14-calibrate",
             "task14-numerical",
+            "task14-static",
             "task13-counterfactual",
             "task13-model-probe",
             "task13-header-replay",

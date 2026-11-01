@@ -1045,6 +1045,8 @@ def artifact_dir(payload: dict) -> Path:
         return runs / "repair-diagnosis-2026-task14-calibrate-v1" / payload["run_id"]
     if operation == "task14-numerical":
         return runs / "repair-diagnosis-2026-task14-numerical-v1" / payload["run_id"]
+    if operation == "task14-static":
+        return runs / "repair-diagnosis-2026-task14-static-v1" / payload["run_id"]
     if operation == "task13-model-probe":
         return runs / "repair-diagnosis-2026-model-probe-v1" / payload["run_id"]
     if operation == "task13-header-replay":
@@ -1641,6 +1643,7 @@ def precheck(payload: dict):
         "task14-counterfactual",
         "task14-calibrate",
         "task14-numerical",
+        "task14-static",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1728,6 +1731,7 @@ def precheck(payload: dict):
         "task14-counterfactual",
         "task14-calibrate",
         "task14-numerical",
+        "task14-static",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1792,6 +1796,7 @@ def precheck(payload: dict):
         "task14-counterfactual",
         "task14-calibrate",
         "task14-numerical",
+        "task14-static",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1834,6 +1839,18 @@ def precheck(payload: dict):
             or payload.get("checkpoint")
         ):
             raise ValueError("Task 14 probe requires a fixed base-model arm")
+        if operation == "task14-static" and (
+            payload.get("account") != "cpsc4880"
+            or payload.get("gpu_count") != 1
+            or payload.get("gpu_type") != "h200"
+            or payload.get("time") != "06:00:00"
+            or payload.get("method") not in {"A", "B", "C"}
+            or payload.get("iterations") not in {26, 27, 28}
+            or not (paths(payload)["checkout"] / "configs/task14-static-control.json").is_file()
+        ):
+            raise ValueError(
+                "Task 14 static requires a bounded H200 arm and frozen calibration control"
+            )
         if operation == "task14-numerical":
             source_run, source_job = (
                 ("cd5dae1d517b8b78d2535071", "31618995")
