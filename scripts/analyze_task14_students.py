@@ -26,6 +26,10 @@ def load(path: Path):
     keys = [(e["task_id"], e["seed"]) for e in episodes]
     if len(set(keys)) != len(keys):
         raise ValueError("Repeated student rollout")
+    counts = Counter(e["task_id"] for e in episodes)
+    expected = {task["task_id"] for task in manifest["tasks"]}
+    if set(counts) != expected or any(count != manifest["slots"] for count in counts.values()):
+        raise ValueError("Student probe task groups are incomplete")
     return manifest, {key: e for key, e in zip(keys, episodes, strict=True)}
 
 
