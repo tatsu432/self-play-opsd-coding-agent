@@ -35,6 +35,8 @@ FIELDS = {
     "grad_norm rl_loss sd_loss kl_loss total_loss stepped clip_fraction",
     "proposer": "nonzero_advantage_count attempted_count valid_count valid_fraction "
     "distinct_parent_count generated_tokens infrastructure_retries duplicate_count "
+    "groups_with_multiple_valid groups_with_distinct_valid_rewards advantage_vs_validity_l2_mean "
+    "curriculum_parents curriculum_unique_mutations "
     "grad_norm rl_loss sd_loss kl_loss total_loss stepped clip_fraction",
     "distill": "gating_enabled mapped_tokens mapping_error_count gap_clip_fraction "
     "gate_saturation_fraction positive_gap_fraction",
