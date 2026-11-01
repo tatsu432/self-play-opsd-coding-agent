@@ -74,7 +74,11 @@ def main():
     parser.add_argument("--diff", type=Path, required=True)
     parser.add_argument("--structured", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--diff-gpu-seconds", type=float, required=True)
+    parser.add_argument("--structured-gpu-seconds", type=float, required=True)
     args = parser.parse_args()
+    if min(args.diff_gpu_seconds, args.structured_gpu_seconds) <= 0:
+        raise ValueError("Full allocation costs must be positive")
     first_manifest, first = load(args.diff)
     second_manifest, second = load(args.structured)
     if (
@@ -84,11 +88,18 @@ def main():
         raise ValueError("Unexpected representation")
     if any(first_manifest[key] != second_manifest[key] for key in ("snapshot", "student_protocol")):
         raise ValueError("Student snapshot or protocol differs")
+    diff_summary, structured_summary = summarize(first), summarize(second)
+    for summary, seconds in (
+        (diff_summary, args.diff_gpu_seconds),
+        (structured_summary, args.structured_gpu_seconds),
+    ):
+        summary["allocated_gpu_hours_including_proposal_generation"] = seconds / 3600
+        summary["mixed_groups_per_gpu_hour"] = summary["mixed_groups"] * 3600 / seconds
     atomic_json(
         args.output,
         {
-            "diff": summarize(first),
-            "structured": summarize(second),
+            "diff": diff_summary,
+            "structured": structured_summary,
             "paired_shared_parents": compare(first, second),
             "inputs": {
                 str(path): file_hash(path / "groups.json") for path in (args.diff, args.structured)
