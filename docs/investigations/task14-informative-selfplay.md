@@ -59,4 +59,10 @@ The base diff-protocol audit also completed on 32 matched training episodes. Amo
 
 The B200 diff audit completed on 32 episodes from eight fixed training tasks. Mean absolute mismatch was 0.00177, maximum 1.480, and 17 of 7,354 tokens lay outside the nominal ratio interval. All eight reward groups were uniform, so there were no advantage-bearing tokens on which to assess GRPO clipping. Combined gradient cosine was 0.7860, while the counterfactual Adam-displacement cosine was 0.99994; the loaded checkpoint optimizer state can make update directions similar despite gradient differences. This is a single fixed-snapshot observation and does not resolve mixed-group behavior.
 
+## Matched-strength static controls
+
+The diff protocol was fixed using the training-only comparisons above. On eight separately selected training tasks at the common base snapshot, gated distillation used coefficient 0.1 and had summed squared gradient norms 0.0203345. Ungated distillation at unit coefficient had summed squared gradient norms 336.4972. The prespecified square-root ratio therefore selected ungated coefficient **0.0077736624**. This calibration used no development or final held-out outcome and is frozen by `configs/task14-static-control.json`. It matches this aggregate initial gradient strength, not every per-task gradient or subsequent optimizer displacement.
+
+The GRPO, gated, and matched-strength ungated seed-2026 static arms are running or queued. Each uses the same 32-task frozen pool and schedule, four rollouts per task, and development checkpoints after 0, 80 and 160 attempted training episodes. Actual optimizer steps and scheduler allocation time are recorded separately. The two additional training seeds are pending the first matched health review.
+
 Matched-exposure controls, the remaining numerical audits, reward counterfactual, proposal-student rollouts, and online eligibility remain unfinished. Do not draw conclusions about OPSD or gradient alignment from these proposer results.
