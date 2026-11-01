@@ -37,6 +37,13 @@ comparisons remain open. Base diff numerical audit `31619786` / run
 `50c0b26f9c555e120db54e90` and training-only diff calibration `31619788` /
 `f78ba9f3c0386e1289aafdb3` were submitted once from execution
 `5ebd956ed25c8ba28a17113e35795bdbb9ac6d31`; do not duplicate either.
+Four student-rollout probes on the already verified novel proposal outputs
+were submitted once from `fa1bf8ff5fb2ad9e6022cd3f7232ad716cb0b880`:
+base diff `31619815` / `e9b9d60a8fdfa400bfb9864a`, base structured
+`31619817` / `6dfde0dc399bc11f09abe923`, B200 diff `31619819` /
+`08abe587ab5f63da1cdba245`, and B200 structured `31619820` /
+`2b9520fbe8585cd5c453abb8`. They use diff student editing and up to 32
+history-novel tasks, four rollouts each; inspect ledgers before action.
 Structured base-snapshot reward counterfactual job `31619094`, run
 `e74ecdee52efe104590c60b3`, was submitted once from execution
 `ec28f24568c34468ff4f4fc67567d1be508e3532`; inspect its ledger and Slurm
