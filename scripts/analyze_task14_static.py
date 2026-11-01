@@ -90,8 +90,31 @@ def main():
     args = parser.parse_args()
     manifest = json.loads(args.manifest.read_text())
     arms = []
+    initial_by_seed = {}
+    common_inputs = None
     for item in manifest["arms"]:
         root = Path(item["run_dir"])
+        initial = json.loads((root.parents[1] / "initial_versions.json").read_text())
+        inputs = json.loads((root.parents[1] / "input_manifest.json").read_text())
+        common = {
+            key: inputs[key]
+            for key in (
+                "pool_sha256",
+                "schedule_sha256",
+                "calibration_sha256",
+                "control_sha256",
+                "edit_protocol",
+                "episode_checkpoints",
+            )
+        }
+        if common_inputs is not None and common != common_inputs:
+            raise ValueError("Static arms have different pool, schedule or calibration")
+        common_inputs = common
+        if initial["seed"] != item["seed"]:
+            raise ValueError("Static initialization seed differs")
+        if item["seed"] in initial_by_seed and initial_by_seed[item["seed"]] != initial:
+            raise ValueError("Static arms have different initial adapters")
+        initial_by_seed[item["seed"]] = initial
         records = evaluations(active_events(root), item["allocations"])
         if {r["episodes"] for r in records} != {0, 80, 160}:
             raise ValueError("Expected complete evaluations at 0, 80 and 160 episodes")
@@ -146,7 +169,12 @@ def main():
     args.output.mkdir(parents=True, exist_ok=True)
     atomic_json(
         args.output / "comparison.json",
-        {"arms": arms, "paired": pairs, "seed_summaries": seed_summaries},
+        {
+            "arms": arms,
+            "paired": pairs,
+            "seed_summaries": seed_summaries,
+            "common_inputs": common_inputs,
+        },
     )
     fig, axes = plt.subplots(1, 2, figsize=(11, 4))
     for item in arms:
