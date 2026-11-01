@@ -26,6 +26,13 @@ Structured base-snapshot reward counterfactual job `31619094`, run
 `e74ecdee52efe104590c60b3`, was submitted once from execution
 `ec28f24568c34468ff4f4fc67567d1be508e3532`; inspect its ledger and Slurm
 state before action and never duplicate it.
+The prospectively paired B200 diagnostics were submitted once from execution
+`729e5ebb48b8824c0416fac2406ee824e38346d4`: proposer diff job `31619188` /
+run `213649b633cd16eed4c4bb85`, proposer structured `31619189` /
+`3e9f7398bbf00cb0fba4e773`, student diff `31619190` /
+`63a52b186816085f0a8fe549`, and student body `31619191` /
+`9fa54dd8953d44263f8696ed`. These load the checksum-verified corrected B200
+snapshot for inference only. Inspect each existing ledger; never duplicate.
 
 ## Task 13 CPU header replay — 2026-10-31
 
