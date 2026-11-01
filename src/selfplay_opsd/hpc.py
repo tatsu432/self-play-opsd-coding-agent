@@ -367,6 +367,7 @@ def run_payload(
         "task14-probe",
         "task14-student",
         "task14-counterfactual",
+        "task14-counterfactual-replay",
         "task14-calibrate",
         "task14-numerical",
         "task14-proposal-student",
@@ -514,6 +515,7 @@ def run_payload(
         "task14-probe",
         "task14-student",
         "task14-counterfactual",
+        "task14-counterfactual-replay",
         "task14-calibrate",
         "task14-numerical",
         "task14-proposal-student",
@@ -694,6 +696,7 @@ def run_payload(
             "task14-probe",
             "task14-student",
             "task14-counterfactual",
+            "task14-counterfactual-replay",
             "task14-calibrate",
             "task14-numerical",
             "task14-proposal-student",
@@ -760,6 +763,12 @@ def run_payload(
                 "Task 14 counterfactual requires A=diff or B=structured, at base snapshot"
             )
         payload["output"] = f"/runs/repair-diagnosis-2026-task14-counterfactual-v1/{identity[:24]}"
+    if operation == "task14-counterfactual-replay":
+        if method != "B" or checkpoint_iteration is not None or iterations != 10:
+            raise HpcError("Task 14 counterfactual replay requires the completed structured source")
+        payload["output"] = (
+            f"/runs/repair-diagnosis-2026-task14-counterfactual-replay-v1/{identity[:24]}"
+        )
     if operation == "task14-calibrate":
         if method not in {"A", "B"} or checkpoint_iteration is not None or iterations != 10:
             raise HpcError("Task 14 calibration requires A=diff or B=body at base snapshot")
@@ -828,6 +837,7 @@ def run_payload(
             "task14-probe",
             "task14-student",
             "task14-counterfactual",
+            "task14-counterfactual-replay",
             "task14-calibrate",
             "task14-numerical",
             "task14-proposal-student",

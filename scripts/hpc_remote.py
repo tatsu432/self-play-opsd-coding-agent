@@ -1041,6 +1041,8 @@ def artifact_dir(payload: dict) -> Path:
         return runs / "repair-diagnosis-2026-task14-student-v1" / payload["run_id"]
     if operation == "task14-counterfactual":
         return runs / "repair-diagnosis-2026-task14-counterfactual-v1" / payload["run_id"]
+    if operation == "task14-counterfactual-replay":
+        return runs / "repair-diagnosis-2026-task14-counterfactual-replay-v1" / payload["run_id"]
     if operation == "task14-calibrate":
         return runs / "repair-diagnosis-2026-task14-calibrate-v1" / payload["run_id"]
     if operation == "task14-numerical":
@@ -1643,6 +1645,7 @@ def precheck(payload: dict):
         "task14-probe",
         "task14-student",
         "task14-counterfactual",
+        "task14-counterfactual-replay",
         "task14-calibrate",
         "task14-numerical",
         "task14-proposal-student",
@@ -1732,6 +1735,7 @@ def precheck(payload: dict):
         "task14-probe",
         "task14-student",
         "task14-counterfactual",
+        "task14-counterfactual-replay",
         "task14-calibrate",
         "task14-numerical",
         "task14-proposal-student",
@@ -1798,6 +1802,7 @@ def precheck(payload: dict):
         "task14-probe",
         "task14-student",
         "task14-counterfactual",
+        "task14-counterfactual-replay",
         "task14-calibrate",
         "task14-numerical",
         "task14-proposal-student",
@@ -1816,6 +1821,7 @@ def precheck(payload: dict):
             "task14-probe",
             "task14-student",
             "task14-counterfactual",
+            "task14-counterfactual-replay",
             "task14-calibrate",
             "task14-numerical",
             "task14-proposal-student",
@@ -1832,6 +1838,7 @@ def precheck(payload: dict):
             "task14-probe",
             "task14-student",
             "task14-counterfactual",
+            "task14-counterfactual-replay",
             "task14-calibrate",
             "task14-numerical",
             "task14-proposal-student",
@@ -1889,6 +1896,19 @@ def precheck(payload: dict):
                 or not (source / "complete.json").is_file()
             ):
                 raise ValueError("Student rollout probe requires a completed proposer source")
+        if operation == "task14-counterfactual-replay":
+            source = (
+                paths(payload)["runs"]
+                / "repair-diagnosis-2026-task14-counterfactual-v1/e74ecdee52efe104590c60b3"
+            )
+            status = job_state("31619094")
+            if (
+                payload.get("method") != "B"
+                or status.get("state") != "COMPLETED"
+                or status.get("exit_code") != "0:0"
+                or not (source / "complete.json").is_file()
+            ):
+                raise ValueError("Counterfactual replay requires the completed structured source")
         if operation == "task13-header-replay" and (
             payload.get("account") != "cpsc4880"
             or payload.get("gpu_count") != 0

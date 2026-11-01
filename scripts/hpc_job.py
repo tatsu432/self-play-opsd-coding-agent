@@ -974,6 +974,8 @@ def task13_command_args(env: dict) -> list[str]:
                 "/workspace/configs/task14-static-control.json",
             ]
         )
+    if operation == "task14-counterfactual-replay":
+        return prefix + ["/workspace/scripts/task14_counterfactual_replay.py"] + common
     if operation == "task14-counterfactual":
         return (
             prefix
@@ -1057,6 +1059,7 @@ def execute(env: dict) -> int:
         "task14-probe",
         "task14-student",
         "task14-counterfactual",
+        "task14-counterfactual-replay",
         "task14-calibrate",
         "task14-numerical",
         "task14-proposal-student",
@@ -1084,6 +1087,7 @@ def execute(env: dict) -> int:
         "task14-probe",
         "task14-student",
         "task14-counterfactual",
+        "task14-counterfactual-replay",
         "task14-calibrate",
         "task14-numerical",
         "task14-proposal-student",
@@ -1315,6 +1319,7 @@ def execute(env: dict) -> int:
             "task14-probe",
             "task14-student",
             "task14-counterfactual",
+            "task14-counterfactual-replay",
             "task14-calibrate",
             "task14-numerical",
             "task14-proposal-student",

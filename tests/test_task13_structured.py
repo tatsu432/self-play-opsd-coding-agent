@@ -175,6 +175,11 @@ def test_allocated_probe_command_preserves_checkpoint_and_extra_slots():
     )
     assert counterfactual[counterfactual.index("--representation") + 1] == "structured_ast"
     assert counterfactual.count("/workspace/scripts/task14_counterfactual.py") == 1
+    replay = job.task13_command_args(
+        env | {"SELFPLAY_OPERATION": "task14-counterfactual-replay", "SELFPLAY_METHOD": "B"}
+    )
+    assert replay.count("/workspace/scripts/task14_counterfactual_replay.py") == 1
+    assert "--checkpoint" not in replay
     numerical = job.task13_command_args(
         env | {"SELFPLAY_OPERATION": "task14-numerical", "SELFPLAY_METHOD": "A"}
     )
