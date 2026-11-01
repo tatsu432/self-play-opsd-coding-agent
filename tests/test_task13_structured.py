@@ -213,6 +213,11 @@ def test_allocated_probe_command_preserves_checkpoint_and_extra_slots():
     assert static[static.index("--method") + 1] == "A"
     assert static[static.index("--seed") + 1] == "2027"
     assert static[static.index("--control") + 1].endswith("task14-static-control.json")
+    online = job.task13_command_args(
+        env | {"SELFPLAY_OPERATION": "task14-online", "SELFPLAY_METHOD": "B"}
+    )
+    assert online[online.index("--method") + 1] == "B"
+    assert online.count("/workspace/scripts/task14_online.py") == 1
     extra_base = job.task13_command_args(env | {"SELFPLAY_METHOD": "B", "SELFPLAY_CHECKPOINT": ""})
     assert (
         "--checkpoint" not in extra_base and extra_base[extra_base.index("--slot-start") + 1] == "4"

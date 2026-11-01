@@ -1053,6 +1053,8 @@ def artifact_dir(payload: dict) -> Path:
         return runs / "repair-diagnosis-2026-task14-proposal-student-v1" / payload["run_id"]
     if operation == "task14-static":
         return runs / "repair-diagnosis-2026-task14-static-v1" / payload["run_id"]
+    if operation == "task14-online":
+        return runs / "repair-selfplay-2026-task14-online-v1" / payload["run_id"]
     if operation == "task13-model-probe":
         return runs / "repair-diagnosis-2026-model-probe-v1" / payload["run_id"]
     if operation == "task13-header-replay":
@@ -1653,6 +1655,7 @@ def precheck(payload: dict):
         "task14-numerical-components",
         "task14-proposal-student",
         "task14-static",
+        "task14-online",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1744,6 +1747,7 @@ def precheck(payload: dict):
         "task14-numerical-components",
         "task14-proposal-student",
         "task14-static",
+        "task14-online",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1812,6 +1816,7 @@ def precheck(payload: dict):
         "task14-numerical-components",
         "task14-proposal-student",
         "task14-static",
+        "task14-online",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1879,6 +1884,7 @@ def precheck(payload: dict):
             raise ValueError(
                 "Task 14 static requires a bounded H200 arm and frozen calibration control"
             )
+<<<<<<< HEAD
         if operation in {"task14-numerical", "task14-numerical-components"}:
             if operation == "task14-numerical-components" and payload["method"] not in {"A", "C"}:
                 raise ValueError("Numerical decomposition requires a diff student arm")
@@ -1888,6 +1894,27 @@ def precheck(payload: dict):
                 "C": ("0078cd3bbbb89eb3c5282ddd", "31619326"),
                 "D": ("bce7b4ed210efe8445488fbd", "31619331"),
             }[payload["method"]]
+=======
+        if operation == "task14-online" and (
+            payload.get("account") != "cpsc4880"
+            or payload.get("gpu_count") != 1
+            or payload.get("gpu_type") != "h200"
+            or payload.get("time") != "06:00:00"
+            or payload.get("method") not in {"A", "B", "C", "D"}
+            or payload.get("iterations") != 20
+            or not payload.get("secrets_file")
+            or not state["gates"]["target"]
+        ):
+            raise ValueError(
+                "Task 14 online arm requires bounded H200, verified backend and online logging"
+            )
+        if operation == "task14-numerical":
+            source_run, source_job = (
+                ("cd5dae1d517b8b78d2535071", "31618995")
+                if payload["method"] == "A"
+                else ("6efc9d94e4f5e2e7b0b0fd04", "31618998")
+            )
+>>>>>>> be949ea (Add bounded online self-play operation)
             source = paths(payload)["runs"] / "repair-diagnosis-2026-task14-student-v1" / source_run
             state = job_state(source_job)
             if (
