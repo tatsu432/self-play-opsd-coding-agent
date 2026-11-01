@@ -846,3 +846,7 @@ Seed-2027 GRPO job `31621256`, run `5cdc4f1ee35e243d0fc63a75`, completed exit 0 
 ## Task 14 seed-2027 80-episode review — 2026-11-01
 
 All three seed-2027 arms used matching initial student/proposer SHA `a50b50c3bbbe8a358c2b81918bfc706d82b70a6fb9b1b618d50fe164e312442b`. At 80 attempted episodes, GRPO and gated OPSD each scored 13/41, ungated OPSD 11/41, all from 0/41 initially. GRPO completed its 160-episode evaluation at 13/41; gated and ungated continue. Seed-2028 GRPO and gated are running, and ungated remains queued. Inspect existing ledgers and do not duplicate.
+
+## Task 14 bounded online A/B completed — 2026-11-01
+
+Online A job `31620834` and B `31620835` both completed exit 0 at 20 iterations, consuming 10,804 and 10,175 H200-seconds. Each scored 0/41 initially, 13/41 at iteration 10 and 12/41 at iteration 20. A had 57/320 verified proposals, 228 student episodes, nine mixed groups, 16 multi-valid parent groups and three distinct-reward groups. B had 54/320, 216 episodes, 12 mixed groups, 13 multi-valid and two distinct-reward groups. Both took 18 student and proposer steps. These are single-seed unequal-exposure results. Full B artifact fetch was in progress locally; verify final checkpoint integrity and cloud history after writer exit, and never duplicate either job. The matched multi-seed controls continue independently.
