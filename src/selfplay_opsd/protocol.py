@@ -43,17 +43,37 @@ def budget(config: EpisodeConfig, turns: int = 0, tokens: int = 0) -> dict:
 
 
 def student_messages(task: TaskSpec, config: EpisodeConfig) -> list[dict[str, str]]:
+    structured = config.edit_protocol == "replace_function_body"
+    tools = (
+        TOOLS
+        if not structured
+        else [
+            TOOLS[0],
+            {
+                "action": "replace_function_body",
+                "function": "unique top-level function name",
+                "body": "unindented Python function body",
+            },
+            TOOLS[2],
+            TOOLS[3],
+        ]
+    )
     return [
-        {"role": "system", "content": STUDENT},
+        {
+            "role": "system",
+            "content": STUDENT.replace("apply_patch", "replace_function_body")
+            if structured
+            else STUDENT,
+        },
         {
             "role": "user",
             "content": canonical(
                 {
                     "specification": task.specification,
                     "allowed_files": list(task.student_files()),
-                    "tools": TOOLS,
+                    "tools": tools,
                     "budget": budget(config),
-                    "protocol_version": VERSION,
+                    "protocol_version": "repair-body-v1" if structured else VERSION,
                 }
             ),
         },

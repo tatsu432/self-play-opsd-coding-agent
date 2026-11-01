@@ -364,6 +364,7 @@ def run_payload(
         "evaluate",
         "diagnose",
         "task13-probe",
+        "task14-probe",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -504,6 +505,7 @@ def run_payload(
         "evaluate",
         "diagnose",
         "task13-probe",
+        "task14-probe",
         "task13-model-probe",
         "task13-static",
         "task13-static-continuation",
@@ -676,6 +678,7 @@ def run_payload(
             "method-smoke",
             "protocol-check",
             "task13-probe",
+            "task14-probe",
             "task13-model-probe",
             "task13-counterfactual",
         }
@@ -717,6 +720,10 @@ def run_payload(
         if checkpoint_iteration is None and method not in {"A", "B"}:
             raise HpcError("Task 13 base probe uses A=diff and B=structured")
         payload["output"] = f"/runs/repair-diagnosis-2026-probe-v1/{identity[:24]}"
+    if operation == "task14-probe":
+        if method not in {"A", "B"} or checkpoint_iteration is not None or iterations != 10:
+            raise HpcError("Task 14 base probe requires A=diff or B=structured and no checkpoint")
+        payload["output"] = f"/runs/repair-diagnosis-2026-task14-probe-v1/{identity[:24]}"
     if operation == "task13-static":
         if method != "B":
             raise HpcError("Task 13 static job executes both GRPO and B arms")
@@ -750,6 +757,7 @@ def run_payload(
             "evaluate",
             "diagnose",
             "task13-probe",
+            "task14-probe",
             "task13-model-probe",
             "task13-header-replay",
             "task13-static",

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import ast
+import textwrap
 import time
 from dataclasses import dataclass
 
@@ -19,7 +21,13 @@ from selfplay_opsd.core import (
     canonical,
     digest,
 )
-from selfplay_opsd.mutations import apply_patch, parse_action, signature, validate_source
+from selfplay_opsd.mutations import (
+    apply_patch,
+    parse_action,
+    replace_function_body,
+    signature,
+    validate_source,
+)
 from selfplay_opsd.policy import HFPolicy
 from selfplay_opsd.protocol import PROMPT_HASH, budget, student_messages, teacher_messages
 from selfplay_opsd.sandbox import SandboxBackend, Verification
@@ -84,6 +92,14 @@ class RepairEnvironment:
             except SyntaxError as exc:
                 raise ValueError(f"Invalid Python syntax: {exc.msg} (line {exc.lineno})") from exc
             if signature(tree) != signature(validate_source(self.task.initial_source)):
+                raise ValueError("Repair must preserve function APIs")
+            self.source = replacement
+            return {"ok": True, "source_hash": digest(replacement)}
+        if name == "replace_function_body":
+            replacement = replace_function_body(self.source, action["function"], action["body"])
+            if signature(validate_source(replacement)) != signature(
+                validate_source(self.task.initial_source)
+            ):
                 raise ValueError("Repair must preserve function APIs")
             self.source = replacement
             return {"ok": True, "source_hash": digest(replacement)}
@@ -202,7 +218,7 @@ def run_episode(
         if not output.ids:
             termination = "empty_response"
         try:
-            parsed = parse_action(output.text)
+            parsed = parse_action(output.text, limits.edit_protocol)
             action = parsed["action"]
             parse_status = "valid"
             observation = env.step(parsed)
@@ -389,9 +405,33 @@ def canonical_trajectory(
     env = RepairEnvironment(task, oracle, sandbox, policy)
     edit = None
     generated = 0
+    edit_action = {"action": "apply_patch", "patch": oracle.inverse_patch}
+    if limits.edit_protocol == "replace_function_body":
+        correct = ast.parse(oracle.correct_source)
+        expected = ast.dump(correct, include_attributes=False)
+        lines = oracle.correct_source.splitlines(keepends=True)
+        candidates = []
+        for node in correct.body:
+            if not isinstance(node, ast.FunctionDef) or not node.body:
+                continue
+            first, last = node.body[0], node.body[-1]
+            if first.lineno == node.lineno or last.end_lineno is None:
+                continue
+            body = textwrap.dedent("".join(lines[first.lineno - 1 : last.end_lineno])).rstrip()
+            try:
+                result = replace_function_body(task.initial_source, node.name, body)
+            except (ValueError, SyntaxError):
+                continue
+            if ast.dump(ast.parse(result), include_attributes=False) == expected:
+                candidates.append(
+                    {"action": "replace_function_body", "function": node.name, "body": body}
+                )
+        if len(candidates) != 1:
+            raise ValueError("Canonical repair requires one uniquely replaceable function body")
+        edit_action = candidates[0]
     actions = [
         {"action": "read_file", "path": "src/solution.py"},
-        {"action": "apply_patch", "patch": oracle.inverse_patch},
+        edit_action,
         {"action": "run_tests"},
         {"action": "finish"},
     ]
@@ -403,7 +443,7 @@ def canonical_trajectory(
             or generated + len(target) > limits.max_generated_tokens
         ):
             raise ValueError("Canonical action exceeds fixed episode token budget")
-        if action["action"] == "apply_patch":
+        if action["action"] in {"apply_patch", "replace_function_body"}:
             edit = {
                 "prompt": prompt,
                 "targets": target,

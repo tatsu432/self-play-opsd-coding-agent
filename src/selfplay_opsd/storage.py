@@ -70,6 +70,7 @@ def scientific_code_hash() -> str:
         "data.py",
         "evaluation.py",
         "mutations.py",
+        "structured_mutations.py",
         "trainer.py",
         "rollout.py",
         "sandbox.py",

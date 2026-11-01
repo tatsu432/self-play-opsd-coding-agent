@@ -1035,6 +1035,8 @@ def artifact_dir(payload: dict) -> Path:
         return runs / study / "diagnostics" / Path(payload["checkpoint"]).name
     if operation == "task13-probe":
         return runs / "repair-diagnosis-2026-probe-v1" / payload["run_id"]
+    if operation == "task14-probe":
+        return runs / "repair-diagnosis-2026-task14-probe-v1" / payload["run_id"]
     if operation == "task13-model-probe":
         return runs / "repair-diagnosis-2026-model-probe-v1" / payload["run_id"]
     if operation == "task13-header-replay":
@@ -1626,6 +1628,7 @@ def precheck(payload: dict):
         "evaluate",
         "diagnose",
         "task13-probe",
+        "task14-probe",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1708,6 +1711,7 @@ def precheck(payload: dict):
         "evaluate",
         "diagnose",
         "task13-probe",
+        "task14-probe",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1767,6 +1771,7 @@ def precheck(payload: dict):
         "diagnose",
         "freeze-study",
         "task13-probe",
+        "task14-probe",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1776,7 +1781,7 @@ def precheck(payload: dict):
         state = study_state(payload)
         if not state["gates"]["worker"] or not state["gates"]["runtime"]:
             raise ValueError("Runtime isolation and target data validation have not passed")
-        if operation == "task13-probe" and (
+        if operation in {"task13-probe", "task14-probe"} and (
             payload.get("account") != "cpsc4880"
             or payload.get("gpu_count") != 1
             or payload.get("gpu_type") != "h200"
@@ -1785,6 +1790,12 @@ def precheck(payload: dict):
             or payload.get("iterations") not in {8, 10}
         ):
             raise ValueError("Task 13 probe requires bounded one-H200 cpsc4880 allocation")
+        if operation == "task14-probe" and (
+            payload.get("method") not in {"A", "B"}
+            or payload.get("iterations") != 10
+            or payload.get("checkpoint")
+        ):
+            raise ValueError("Task 14 probe requires a fixed base-model arm")
         if operation == "task13-header-replay" and (
             payload.get("account") != "cpsc4880"
             or payload.get("gpu_count") != 0

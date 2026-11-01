@@ -912,7 +912,7 @@ def task13_command_args(env: dict) -> list[str]:
         "--output",
         env["SELFPLAY_OUTPUT"],
     ]
-    if operation == "task13-probe":
+    if operation in {"task13-probe", "task14-probe"}:
         args = (
             prefix
             + ["/workspace/scripts/task13_probe.py"]
@@ -921,6 +921,8 @@ def task13_command_args(env: dict) -> list[str]:
         )
         if env.get("SELFPLAY_CHECKPOINT"):
             args += ["--checkpoint", env["SELFPLAY_CHECKPOINT"]]
+        if operation == "task14-probe":
+            args += ["--task14"]
         if env.get("SELFPLAY_ITERATIONS") == "8":
             args += ["--parents", "16", "--slots", "4", "--slot-start", "4"]
         return args
@@ -976,6 +978,7 @@ def execute(env: dict) -> int:
         "evaluate",
         "diagnose",
         "task13-probe",
+        "task14-probe",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -996,6 +999,7 @@ def execute(env: dict) -> int:
         "evaluate",
         "diagnose",
         "task13-probe",
+        "task14-probe",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1220,6 +1224,7 @@ def execute(env: dict) -> int:
         ]
         if operation in {
             "task13-probe",
+            "task14-probe",
             "task13-counterfactual",
             "task13-model-probe",
             "task13-header-replay",

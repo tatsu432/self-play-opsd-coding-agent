@@ -28,6 +28,7 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--representation", choices=("diff", "structured"), required=True)
     parser.add_argument("--parents", type=int, default=40)
+    parser.add_argument("--task14", action="store_true")
     parser.add_argument("--slots", type=int, default=4)
     parser.add_argument("--slot-start", type=int, default=0)
     parser.add_argument("--model-choice", choices=tuple(MODELS))
@@ -40,9 +41,17 @@ def main() -> None:
         raise RuntimeError("Probe output already exists; preserve previous evidence")
     cfg = load_config(args.settings, method="B", hardware_profile="single_gpu_80gb")
     repo = TaskRepository(cfg.data_root)
-    selected = sorted(repo.parents("train"), key=lambda p: digest([2026, p.parent_id]))[
-        : args.parents
-    ]
+    parents = repo.parents("train")
+    if args.task14:
+        previous = {
+            p.parent_id for p in sorted(parents, key=lambda p: digest([2026, p.parent_id]))[:40]
+        }
+        parents = [p for p in parents if p.parent_id not in previous]
+        selected = sorted(parents, key=lambda p: digest([2026, "task14", p.parent_id]))[
+            : args.parents
+        ]
+    else:
+        selected = sorted(parents, key=lambda p: digest([2026, p.parent_id]))[: args.parents]
     if len(selected) != args.parents or args.slots < 1 or args.slot_start < 0:
         raise ValueError("Insufficient training parents or invalid slot count")
     sandbox = SandboxBackend(cfg.sandbox)
@@ -71,9 +80,13 @@ def main() -> None:
                 raise ValueError("Checkpoint scientific identity differs")
             policy.load_state_dict(state["policy"])
         manifest = {
-            "study": "repair-diagnosis-2026-model-probe-v1"
-            if args.model_choice
-            else "repair-diagnosis-2026-probe-v1",
+            "study": (
+                "repair-diagnosis-2026-task14-probe-v1"
+                if args.task14
+                else "repair-diagnosis-2026-model-probe-v1"
+                if args.model_choice
+                else "repair-diagnosis-2026-probe-v1"
+            ),
             "manifest_hash": repo.hash,
             "model": cfg.model.model_dump(mode="json"),
             "checkpoint": checkpoint,

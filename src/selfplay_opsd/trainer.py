@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+import json
 import os
 import random
 import signal
@@ -46,6 +47,8 @@ from selfplay_opsd.storage import (
     restore_rng,
     rng_state,
 )
+from selfplay_opsd.structured_mutations import mutation as structured_mutation
+from selfplay_opsd.structured_mutations import sites
 
 
 def student_examples(
@@ -145,6 +148,22 @@ def proposer_examples(
 
 
 class SelfPlayTrainer:
+    def proposer_prompt(self, parent):
+        messages = proposer_messages(parent)
+        if self.config.proposer_representation == "structured_ast":
+            messages[0]["content"] = (
+                "Introduce a small semantic bug. Choose one listed AST site and operation. "
+                "Return exactly JSON with fields site (integer index) and operation (string)."
+            )
+            messages[1]["content"] = json.dumps(
+                {
+                    "specification": parent.specification,
+                    "correct_source": parent.source,
+                    "sites": sites(parent.source),
+                }
+            )
+        return messages
+
     def __init__(
         self,
         config: RunConfig,
@@ -372,7 +391,7 @@ class SelfPlayTrainer:
             if self.config.hardware.proposer_batch_size > 1:
                 requests = []
                 for parent in parents:
-                    prompt = self.policy.encode_history(proposer_messages(parent))
+                    prompt = self.policy.encode_history(self.proposer_prompt(parent))
                     for slot in range(self.config.proposals_per_parent):
                         requests.append(
                             GenerationRequest(
@@ -396,7 +415,7 @@ class SelfPlayTrainer:
                     raise ExperimentError("Incomplete proposer generation batch")
                 batched = iter(outputs)
             for parent in parents:
-                messages = proposer_messages(parent)
+                messages = self.proposer_prompt(parent)
                 prompt = self.policy.encode_history(messages)
                 for slot in range(self.config.proposals_per_parent):
                     seed = keyed_seed(self.config.seed, "proposer", k, parent.parent_id, slot)
@@ -439,13 +458,22 @@ class SelfPlayTrainer:
                     )
                     try:
                         value = strict_json_object(output.text)
-                        if (
-                            not isinstance(value, dict)
-                            or set(value) != {"patch"}
-                            or not isinstance(value["patch"], str)
-                        ):
-                            raise ValueError("One patch field required")
-                        mutation = validate_mutation(parent.source, value["patch"])
+                        if self.config.proposer_representation == "structured_ast":
+                            available = sites(parent.source)
+                            if (
+                                set(value) != {"site", "operation"}
+                                or type(value["site"]) is not int
+                                or not 0 <= value["site"] < len(available)
+                                or not isinstance(value["operation"], str)
+                            ):
+                                raise ValueError("Invalid structured proposal")
+                            mutation = structured_mutation(
+                                parent.source, available[value["site"]]["path"], value["operation"]
+                            )
+                        else:
+                            if set(value) != {"patch"} or not isinstance(value["patch"], str):
+                                raise ValueError("One patch field required")
+                            mutation = validate_mutation(parent.source, value["patch"])
                         key = mutation.dedup_key
                         if key in self.history.get(parent.parent_id, set()) or key in pending.get(
                             parent.parent_id, set()

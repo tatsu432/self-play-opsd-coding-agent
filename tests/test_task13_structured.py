@@ -138,6 +138,17 @@ def test_allocated_probe_command_preserves_checkpoint_and_extra_slots():
     assert args[args.index("--parents") + 1] == "16"
     assert args[args.index("--slot-start") + 1] == "4"
     assert args[args.index("--representation") + 1] == "diff"
+    task14 = job.task13_command_args(
+        env
+        | {
+            "SELFPLAY_OPERATION": "task14-probe",
+            "SELFPLAY_METHOD": "B",
+            "SELFPLAY_ITERATIONS": "10",
+            "SELFPLAY_CHECKPOINT": "",
+        }
+    )
+    assert "--task14" in task14 and "--checkpoint" not in task14
+    assert task14[task14.index("--representation") + 1] == "structured"
     extra_base = job.task13_command_args(env | {"SELFPLAY_METHOD": "B", "SELFPLAY_CHECKPOINT": ""})
     assert (
         "--checkpoint" not in extra_base and extra_base[extra_base.index("--slot-start") + 1] == "4"
