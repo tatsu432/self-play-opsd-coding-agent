@@ -11,3 +11,7 @@ Run fixed-task GRPO, gated OPSD and training-calibrated matched-strength ungated
 Start bounded online experiments only after informative proposal and student behavior is established. Preserve original contrasts where possible; defer C/D if richer rewards do not produce distinguishable optimizer updates. Review at iterations 5, 10 and 20 and stop scientifically uninformative runs.
 
 Before each allocation reconcile live scheduler state and ledgers; use the accepted isolated worker and checksum-verified immutable sources. Account for failed attempts. Commit a reproducible report and Task 14 completion record only after tests, bounded jobs, monitoring and scientific analysis are complete.
+
+## Completion
+
+The specified probes, three-seed matched controls, bounded online A/B runs, numerical and reward counterfactuals, and final analysis are complete. See the [research decision](../investigations/task14-research-decision.md) and [completion record](../task_completion/14-implemented-informative-selfplay.md). All Task 14 allocations, including failed attempts, are reconciled; the final held-out set remains closed.

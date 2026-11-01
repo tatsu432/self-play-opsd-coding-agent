@@ -20,6 +20,9 @@ uv run selfplay smoke --output runs/local-smoke
 
 ## Documentation
 
+- [Task 14 research decision](docs/investigations/task14-research-decision.md):
+  proposal yield, matched controls, bounded online runs and costs.
+
 - [Corrected study launch](docs/task12-launch.md): frozen readiness evidence,
   launch authorization and measured costs.
 - [Task 10 online launch](docs/task10-launch.md): verified W&B setup, staged

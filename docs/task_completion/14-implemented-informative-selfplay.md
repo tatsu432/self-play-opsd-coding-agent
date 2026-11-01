@@ -1,0 +1,9 @@
+# Task 14 completion: informative self-play
+
+Task 14 is complete. The [research decision](../investigations/task14-research-decision.md) presents the three-seed matched-exposure results, bounded online A/B outcomes, uncertainty, learning curves, numerical limitations, full allocation accounting, and next-experiment recommendation. The [detailed investigation](../investigations/task14-informative-selfplay.md) retains diagnostic evidence and reproduction commands.
+
+Implemented and validated a structured AST proposer, a separately identified function-body student protocol, prospective paired probes, reward/optimizer counterfactuals, numerical replay, training-only matched-strength calibration, matched static controls, and bounded online telemetry and launch routes. Training retained unified-diff student editing and true behavior-policy probabilities. Full C/D training was not run because the measured alignment effects were too close to repeat variability on only three multi-valid groups.
+
+Nine static controls across seeds 2026–2028 completed at 160 attempted episodes; both online arms completed 20 iterations. Their final checkpoints were checksum- and identity-verified and their W&B canonical histories were cloud-verified through iteration 20. The final held-out set remained closed. All Task 14 GPU jobs consumed 96,336 H200-seconds (26.76 hours), including 88 seconds of failed/cancelled allocated attempts; final scheduler reconciliation showed no active job.
+
+The combined implementation passed the local suite (306 passed, 37 skipped) and hosted CI on the integrated code; the allocated-node runtime, isolation and GPU backend checks passed separately. CPU tests alone are not evidence of GPU fit or candidate isolation. Private tasks, trajectories, checkpoints and raw outputs remain outside Git.
