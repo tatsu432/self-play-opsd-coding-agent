@@ -17,6 +17,11 @@ Runtime validation completed exit 0. Prospective 4B diff job `31618956`, run
 `d24c09664c3ec1b83598302bfa3aae1161867617`. Both use the same 40
 prespecified training-only parents outside the Task 13 sample. Inspect their
 ledgers and live Slurm state before any action; never duplicate either job.
+Paired base-student editing probes were submitted once from execution
+`36e8247937aacef114996e6348e42ac617e7e577`: unified diff job `31618995`,
+run `cd5dae1d517b8b78d2535071`, and function-body job `31618998`, run
+`6efc9d94e4f5e2e7b0b0fd04`. Both use the same 16 training-only static tasks
+and four rollout seeds each. Inspect their ledgers; never duplicate them.
 
 ## Task 13 CPU header replay — 2026-10-31
 
