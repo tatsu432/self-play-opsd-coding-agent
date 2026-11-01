@@ -5,9 +5,12 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import random
 import re
 from pathlib import Path
 
+import numpy as np
+import torch
 from task13_static import StaticTrainer
 from task13_static_continue import SOURCE, restore_pool
 
@@ -106,6 +109,11 @@ def main():
         atomic_json(args.output / "input_manifest.json", manifest)
     sandbox = SandboxBackend(cfg.sandbox)
     sandbox.preflight()
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.seed)
     policy = make_policy(cfg)
     try:
         if not args.resume:
