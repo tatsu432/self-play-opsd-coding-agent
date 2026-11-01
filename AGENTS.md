@@ -866,3 +866,7 @@ Seed-2028 GRPO job `31621260`, run `d38b3612ed8b4eb508aa7f40`, completed exit 0 
 ## Task 14 seed-2028 80-episode review — 2026-11-01
 
 At 80 attempted episodes, seed-2028 GRPO scored 9/41, gated 10/41 and ungated 14/41, all from 0/41 initially. Gated has reached 160 episodes and started final evaluation; ungated has completed its midpoint evaluation and continues. Both are existing jobs `31621263` and `31621266`; inspect them and never duplicate.
+
+## Task 14 seed-2028 gated completion — 2026-11-01
+
+Seed-2028 gated job `31621263`, run `a9694619af3f317d27080314`, completed exit 0 after 6,543 H200-seconds. It scored 0/41 initially, 10/41 at 80 episodes and 9/41 at 160, versus matched GRPO 9/41 and 12/41. Seed-2028 ungated job `31621266` remains active; inspect its ledger and do not duplicate either job.
