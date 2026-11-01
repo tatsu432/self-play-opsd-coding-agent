@@ -33,6 +33,12 @@ run `213649b633cd16eed4c4bb85`, proposer structured `31619189` /
 `63a52b186816085f0a8fe549`, and student body `31619191` /
 `9fa54dd8953d44263f8696ed`. These load the checksum-verified corrected B200
 snapshot for inference only. Inspect each existing ledger; never duplicate.
+Job `31619188` failed because the B200 verifier contained a transcribed hash
+missing the digits `307`; jobs `31619189`, `31619190` and `31619191` were
+cancelled after discovery and their terminal scheduler states confirmed. The
+verifier was corrected and all six expected metadata fields plus model config
+were compared directly to the retained checkpoint. Preserve those attempts and
+account for any allocation; replacement attempts require the corrected commit.
 
 ## Task 13 CPU header replay — 2026-10-31
 
