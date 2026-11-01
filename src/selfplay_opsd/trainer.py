@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import dataclasses
-import json
 import os
 import random
 import signal
@@ -37,7 +36,7 @@ from selfplay_opsd.mutations import strict_json_object, validate_mutation
 from selfplay_opsd.objectives import advantages, alignment, difficulty, sd_coefficients
 from selfplay_opsd.observability import HealthMonitor, WandbSink, distribution, system_metrics
 from selfplay_opsd.policy import GenerationRequest, HFPolicy, LossExample
-from selfplay_opsd.protocol import PROMPT_HASH, proposer_messages
+from selfplay_opsd.protocol import PROMPT_HASH, proposer_messages, structured_proposer_messages
 from selfplay_opsd.sandbox import SandboxBackend
 from selfplay_opsd.storage import (
     CheckpointManager,
@@ -173,20 +172,9 @@ def proposer_reward_diagnostics(proposals, rewards, group_size):
 
 class SelfPlayTrainer:
     def proposer_prompt(self, parent):
-        messages = proposer_messages(parent)
         if self.config.proposer_representation == "structured_ast":
-            messages[0]["content"] = (
-                "Introduce a small semantic bug. Choose one listed AST site and operation. "
-                "Return exactly JSON with fields site (integer index) and operation (string)."
-            )
-            messages[1]["content"] = json.dumps(
-                {
-                    "specification": parent.specification,
-                    "correct_source": parent.source,
-                    "sites": sites(parent.source),
-                }
-            )
-        return messages
+            return structured_proposer_messages(parent)
+        return proposer_messages(parent)
 
     def __init__(
         self,

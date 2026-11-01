@@ -25,3 +25,13 @@ def test_single_valid_reward_is_nearly_validity_only():
     assert result["groups_with_multiple_valid"] == 0
     assert result["groups_with_distinct_valid_rewards"] == 0
     assert result["advantage_vs_validity_l2_mean"] < 1e-5
+
+
+def test_prompt_identity_covers_both_new_representations():
+    from selfplay_opsd.core import digest
+    from selfplay_opsd.protocol import PROMPT_HASH, protocol_definition
+
+    definition = protocol_definition()
+    assert "replace_function_body" in str(definition["student_body_template"])
+    assert "sites" in definition["structured_proposer_template"][1]["content"]
+    assert digest(definition) == PROMPT_HASH
