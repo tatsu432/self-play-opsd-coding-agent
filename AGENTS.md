@@ -52,6 +52,9 @@ submitted once from worktree branch `feat/14-online-telemetry`, execution
 `a3f9d0a446319e6e91bad1071ff89c360c8ec480`. No online training was submitted.
 Inspect this job and ledger, never duplicate it, and require the scientific
 reviews and target backend check before deciding whether online arms are useful.
+The independent online-study H200 backend check was submitted once from the
+same execution as job `31620340`, run `07da1772865ca4778a63d2c8`. Inspect its
+ledger and do not duplicate it.
 The base diff numerical audit completed exit 0: max log-probability mismatch
 1.070, sign-sensitive clipping 21/5,608 eligible tokens, combined gradient
 cosine 0.825 and Adam-update cosine 0.656 against a diagnostic rescored-
