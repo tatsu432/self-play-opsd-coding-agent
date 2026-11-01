@@ -27,6 +27,10 @@ Paired base-student editing probes were submitted once from execution
 run `cd5dae1d517b8b78d2535071`, and function-body job `31618998`, run
 `6efc9d94e4f5e2e7b0b0fd04`. Both use the same 16 training-only static tasks
 and four rollout seeds each. Inspect their ledgers; never duplicate them.
+Base function-body student job `31618998` completed exit 0. Its saved
+rollouts feed numerical audit job `31619683`, run `5cfc6fa822734449d11d284d`,
+submitted once from `fd89d896774ec75e8a028b3890eb80a12ae9bc0c`. Inspect that
+ledger before action; do not duplicate it.
 Structured base-snapshot reward counterfactual job `31619094`, run
 `e74ecdee52efe104590c60b3`, was submitted once from execution
 `ec28f24568c34468ff4f4fc67567d1be508e3532`; inspect its ledger and Slurm
