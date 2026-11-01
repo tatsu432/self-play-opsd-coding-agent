@@ -37,6 +37,12 @@ comparisons remain open. Base diff numerical audit `31619786` / run
 `50c0b26f9c555e120db54e90` and training-only diff calibration `31619788` /
 `f78ba9f3c0386e1289aafdb3` were submitted once from execution
 `5ebd956ed25c8ba28a17113e35795bdbb9ac6d31`; do not duplicate either.
+The base diff numerical audit completed exit 0: max log-probability mismatch
+1.070, sign-sensitive clipping 21/5,608 eligible tokens, combined gradient
+cosine 0.825 and Adam-update cosine 0.656 against a diagnostic rescored-
+denominator branch. Preserve behavior probabilities. Focused RL/SD and
+outlier-only replay job `31620094`, run `84f19b42553244e439b0611e`, was
+submitted once from `7cc62d3c22047e9311e1e5fdd8404dae9ec1b4e8`; do not duplicate.
 B200 paired student comparison completed: diff 20/64 repairs and 28/168 valid
 edit actions, body 1/64 and 99/147, respectively. Diff editing was selected
 for static controls using these training-only outcomes. B200 diff numerical
