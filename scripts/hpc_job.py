@@ -919,6 +919,13 @@ def task13_command_args(env: dict) -> list[str]:
             + common
             + ["--edit-protocol", "unified_diff" if method == "A" else "replace_function_body"]
         )
+    if operation == "task14-counterfactual":
+        return (
+            prefix
+            + ["/workspace/scripts/task14_counterfactual.py"]
+            + common
+            + ["--representation", "unified_diff" if method == "A" else "structured_ast"]
+        )
     if operation in {"task13-probe", "task14-probe"}:
         args = (
             prefix
@@ -987,6 +994,7 @@ def execute(env: dict) -> int:
         "task13-probe",
         "task14-probe",
         "task14-student",
+        "task14-counterfactual",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1009,6 +1017,7 @@ def execute(env: dict) -> int:
         "task13-probe",
         "task14-probe",
         "task14-student",
+        "task14-counterfactual",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1235,6 +1244,7 @@ def execute(env: dict) -> int:
             "task13-probe",
             "task14-probe",
             "task14-student",
+            "task14-counterfactual",
             "task13-counterfactual",
             "task13-model-probe",
             "task13-header-replay",
