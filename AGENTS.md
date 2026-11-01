@@ -46,6 +46,12 @@ GRPO `31620238` / `b67448ace7296c93663241b6`, gated `31620241` /
 `9cbf2d833377ebba0f78c7c9`, ungated `31620251` / `3a6083a657af90615f43cb2b`.
 They evaluate at 80 and 160 attempted episodes. Inspect each ledger; never
 duplicate. Review health and exposure before launching seeds 2027 and 2028.
+Separately, structured online candidate study `repair-selfplay-2026-task14-online-v1`
+has CPU runtime-validation job `31620333`, run `9dcb80b41bd00c7dc37ffed5`,
+submitted once from worktree branch `feat/14-online-telemetry`, execution
+`a3f9d0a446319e6e91bad1071ff89c360c8ec480`. No online training was submitted.
+Inspect this job and ledger, never duplicate it, and require the scientific
+reviews and target backend check before deciding whether online arms are useful.
 The base diff numerical audit completed exit 0: max log-probability mismatch
 1.070, sign-sensitive clipping 21/5,608 eligible tokens, combined gradient
 cosine 0.825 and Adam-update cosine 0.656 against a diagnostic rescored-
