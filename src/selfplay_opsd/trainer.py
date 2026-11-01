@@ -147,6 +147,30 @@ def proposer_examples(
     return output
 
 
+def proposer_reward_diagnostics(proposals, rewards, group_size):
+    if len(proposals) != len(rewards) or len(proposals) % group_size:
+        raise ValueError("Incomplete proposer reward groups")
+    multiple, distinct, differences = 0, 0, []
+    for start in range(0, len(proposals), group_size):
+        group = proposals[start : start + group_size]
+        scores = rewards[start : start + group_size]
+        if len({p.parent_id for p in group}) != 1:
+            raise ValueError("Proposer reward group crosses parents")
+        valid = [reward for proposal, reward in zip(group, scores, strict=True) if proposal.valid]
+        multiple += int(len(valid) >= 2)
+        distinct += int(len(set(valid)) >= 2)
+        baseline = [1.0 if proposal.valid else -1.0 for proposal in group]
+        difference = advantages(torch.tensor(scores)) - advantages(torch.tensor(baseline))
+        differences.append(float(difference.norm()))
+    return {
+        "groups_with_multiple_valid": multiple,
+        "groups_with_distinct_valid_rewards": distinct,
+        "advantage_vs_validity_l2_mean": sum(differences) / len(differences)
+        if differences
+        else 0.0,
+    }
+
+
 class SelfPlayTrainer:
     def proposer_prompt(self, parent):
         messages = proposer_messages(parent)
@@ -736,6 +760,9 @@ class SelfPlayTrainer:
                 "proposer_steps": self.proposer_steps,
             },
             "proposer": {
+                **proposer_reward_diagnostics(proposals, rewards, cfg.proposals_per_parent),
+                "curriculum_parents": len(self.history),
+                "curriculum_unique_mutations": sum(len(keys) for keys in self.history.values()),
                 "nonzero_advantage_count": sum(
                     int(value != 0)
                     for parent_id in {p.parent_id for p in proposals}
