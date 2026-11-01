@@ -369,6 +369,7 @@ def run_payload(
         "task14-counterfactual",
         "task14-calibrate",
         "task14-numerical",
+        "task14-proposal-student",
         "task14-static",
         "task13-model-probe",
         "task13-header-replay",
@@ -515,6 +516,7 @@ def run_payload(
         "task14-counterfactual",
         "task14-calibrate",
         "task14-numerical",
+        "task14-proposal-student",
         "task14-static",
         "task13-model-probe",
         "task13-static",
@@ -694,6 +696,7 @@ def run_payload(
             "task14-counterfactual",
             "task14-calibrate",
             "task14-numerical",
+            "task14-proposal-student",
             "task13-model-probe",
             "task13-counterfactual",
         }
@@ -765,6 +768,16 @@ def run_payload(
         if method not in {"A", "B"} or checkpoint_iteration is not None or iterations != 10:
             raise HpcError("Task 14 numerical probe requires a completed base student arm")
         payload["output"] = f"/runs/repair-diagnosis-2026-task14-numerical-v1/{identity[:24]}"
+    if operation == "task14-proposal-student":
+        if (
+            method not in {"A", "B", "C", "D"}
+            or checkpoint_iteration is not None
+            or iterations != 10
+        ):
+            raise HpcError("Task 14 proposal-student probe requires one fixed source arm")
+        payload["output"] = (
+            f"/runs/repair-diagnosis-2026-task14-proposal-student-v1/{identity[:24]}"
+        )
     if operation == "task14-static":
         if (
             method not in {"A", "B", "C"}
@@ -813,6 +826,7 @@ def run_payload(
             "task14-counterfactual",
             "task14-calibrate",
             "task14-numerical",
+            "task14-proposal-student",
             "task14-static",
             "task13-model-probe",
             "task13-header-replay",

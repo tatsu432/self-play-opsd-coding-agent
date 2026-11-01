@@ -1045,6 +1045,8 @@ def artifact_dir(payload: dict) -> Path:
         return runs / "repair-diagnosis-2026-task14-calibrate-v1" / payload["run_id"]
     if operation == "task14-numerical":
         return runs / "repair-diagnosis-2026-task14-numerical-v1" / payload["run_id"]
+    if operation == "task14-proposal-student":
+        return runs / "repair-diagnosis-2026-task14-proposal-student-v1" / payload["run_id"]
     if operation == "task14-static":
         return runs / "repair-diagnosis-2026-task14-static-v1" / payload["run_id"]
     if operation == "task13-model-probe":
@@ -1643,6 +1645,7 @@ def precheck(payload: dict):
         "task14-counterfactual",
         "task14-calibrate",
         "task14-numerical",
+        "task14-proposal-student",
         "task14-static",
         "task13-model-probe",
         "task13-header-replay",
@@ -1731,6 +1734,7 @@ def precheck(payload: dict):
         "task14-counterfactual",
         "task14-calibrate",
         "task14-numerical",
+        "task14-proposal-student",
         "task14-static",
         "task13-model-probe",
         "task13-header-replay",
@@ -1796,6 +1800,7 @@ def precheck(payload: dict):
         "task14-counterfactual",
         "task14-calibrate",
         "task14-numerical",
+        "task14-proposal-student",
         "task14-static",
         "task13-model-probe",
         "task13-header-replay",
@@ -1813,6 +1818,7 @@ def precheck(payload: dict):
             "task14-counterfactual",
             "task14-calibrate",
             "task14-numerical",
+            "task14-proposal-student",
         } and (
             payload.get("account") != "cpsc4880"
             or payload.get("gpu_count") != 1
@@ -1828,11 +1834,12 @@ def precheck(payload: dict):
             "task14-counterfactual",
             "task14-calibrate",
             "task14-numerical",
+            "task14-proposal-student",
         } and (
             payload.get("method")
             not in (
                 {"A", "B", "C", "D"}
-                if operation in {"task14-probe", "task14-student"}
+                if operation in {"task14-probe", "task14-student", "task14-proposal-student"}
                 else {"A", "B"}
             )
             or payload.get("iterations") != 10
@@ -1865,6 +1872,21 @@ def precheck(payload: dict):
                 or not (source / "complete.json").is_file()
             ):
                 raise ValueError("Numerical probe requires a completed student source arm")
+        if operation == "task14-proposal-student":
+            source_run, source_job = {
+                "A": ("276931a7445252e963f37b1b", "31618956"),
+                "B": ("36db89f113049ef37c32b79d", "31618960"),
+                "C": ("d113371007fb12d958f92ccf", "31619234"),
+                "D": ("5c34adbea7983c01775ef5a8", "31619324"),
+            }[payload["method"]]
+            source = paths(payload)["runs"] / "repair-diagnosis-2026-task14-probe-v1" / source_run
+            status = job_state(source_job)
+            if (
+                status.get("state") != "COMPLETED"
+                or status.get("exit_code") != "0:0"
+                or not (source / "complete.json").is_file()
+            ):
+                raise ValueError("Student rollout probe requires a completed proposer source")
         if operation == "task13-header-replay" and (
             payload.get("account") != "cpsc4880"
             or payload.get("gpu_count") != 0
