@@ -22,6 +22,10 @@ Paired base-student editing probes were submitted once from execution
 run `cd5dae1d517b8b78d2535071`, and function-body job `31618998`, run
 `6efc9d94e4f5e2e7b0b0fd04`. Both use the same 16 training-only static tasks
 and four rollout seeds each. Inspect their ledgers; never duplicate them.
+Structured base-snapshot reward counterfactual job `31619094`, run
+`e74ecdee52efe104590c60b3`, was submitted once from execution
+`ec28f24568c34468ff4f4fc67567d1be508e3532`; inspect its ledger and Slurm
+state before action and never duplicate it.
 
 ## Task 13 CPU header replay — 2026-10-31
 
