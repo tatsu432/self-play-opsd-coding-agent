@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 
 from task13_static_continue import SOURCE, restore_pool
+from task14_checkpoint import load_b200
 
 from selfplay_opsd.cli import make_policy
 from selfplay_opsd.config import load_config
@@ -14,13 +15,14 @@ from selfplay_opsd.core import digest, keyed_seed
 from selfplay_opsd.data import TaskRepository
 from selfplay_opsd.rollout import episode_wave
 from selfplay_opsd.sandbox import SandboxBackend
-from selfplay_opsd.storage import atomic_json, file_hash
+from selfplay_opsd.storage import atomic_json, file_hash, restore_rng
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--settings", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--snapshot", choices=("base", "b200"), default="base")
     parser.add_argument(
         "--edit-protocol", choices=("unified_diff", "replace_function_body"), required=True
     )
@@ -39,6 +41,11 @@ def main():
     sandbox = SandboxBackend(cfg.sandbox)
     sandbox.preflight()
     policy = make_policy(cfg)
+    checkpoint_marker = None
+    if args.snapshot == "b200":
+        state, _, checkpoint_marker = load_b200(cfg, repo)
+        policy.load_state_dict(state["policy"])
+        restore_rng(state["rng"])
     args.output.mkdir(parents=True, mode=0o700)
     atomic_json(
         args.output / "manifest.json",
@@ -46,7 +53,8 @@ def main():
             "dataset": repo.hash,
             "pool_sha256": file_hash(SOURCE / "pool.json"),
             "protocol": args.edit_protocol,
-            "snapshot": "base",
+            "snapshot": args.snapshot,
+            "checkpoint_marker_sha256": checkpoint_marker,
             "slots": 4,
             "tasks": [
                 {"task_id": t.task_id, "parent_id": t.parent_id, "source_hash": t.source_hash}

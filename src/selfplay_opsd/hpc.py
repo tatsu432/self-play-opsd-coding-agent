@@ -730,12 +730,20 @@ def run_payload(
             raise HpcError("Task 13 base probe uses A=diff and B=structured")
         payload["output"] = f"/runs/repair-diagnosis-2026-probe-v1/{identity[:24]}"
     if operation == "task14-probe":
-        if method not in {"A", "B"} or checkpoint_iteration is not None or iterations != 10:
-            raise HpcError("Task 14 base probe requires A=diff or B=structured and no checkpoint")
+        if (
+            method not in {"A", "B", "C", "D"}
+            or checkpoint_iteration is not None
+            or iterations != 10
+        ):
+            raise HpcError("Task 14 proposal probe requires a fixed base or B200 arm")
         payload["output"] = f"/runs/repair-diagnosis-2026-task14-probe-v1/{identity[:24]}"
     if operation == "task14-student":
-        if method not in {"A", "B"} or checkpoint_iteration is not None or iterations != 10:
-            raise HpcError("Task 14 student probe requires A=diff or B=body, at base snapshot")
+        if (
+            method not in {"A", "B", "C", "D"}
+            or checkpoint_iteration is not None
+            or iterations != 10
+        ):
+            raise HpcError("Task 14 student probe requires a fixed base or B200 arm")
         payload["output"] = f"/runs/repair-diagnosis-2026-task14-student-v1/{identity[:24]}"
     if operation == "task14-counterfactual":
         if method not in {"A", "B"} or checkpoint_iteration is not None or iterations != 10:

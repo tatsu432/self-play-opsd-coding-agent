@@ -913,12 +913,18 @@ def task13_command_args(env: dict) -> list[str]:
         env["SELFPLAY_OUTPUT"],
     ]
     if operation == "task14-student":
-        return (
+        args = (
             prefix
             + ["/workspace/scripts/task14_student_probe.py"]
             + common
-            + ["--edit-protocol", "unified_diff" if method == "A" else "replace_function_body"]
+            + [
+                "--edit-protocol",
+                "unified_diff" if method in {"A", "C"} else "replace_function_body",
+            ]
         )
+        if method in {"C", "D"}:
+            args += ["--snapshot", "b200"]
+        return args
     if operation == "task14-calibrate":
         return (
             prefix
@@ -938,12 +944,19 @@ def task13_command_args(env: dict) -> list[str]:
             prefix
             + ["/workspace/scripts/task13_probe.py"]
             + common
-            + ["--representation", "structured" if method == "B" else "diff"]
+            + [
+                "--representation",
+                "structured"
+                if method == "B" or (operation == "task14-probe" and method == "D")
+                else "diff",
+            ]
         )
         if env.get("SELFPLAY_CHECKPOINT"):
             args += ["--checkpoint", env["SELFPLAY_CHECKPOINT"]]
         if operation == "task14-probe":
             args += ["--task14"]
+            if method in {"C", "D"}:
+                args += ["--task14-b200"]
         if env.get("SELFPLAY_ITERATIONS") == "8":
             args += ["--parents", "16", "--slots", "4", "--slot-start", "4"]
         return args

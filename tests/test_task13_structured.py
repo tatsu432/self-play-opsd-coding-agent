@@ -149,11 +149,27 @@ def test_allocated_probe_command_preserves_checkpoint_and_extra_slots():
     )
     assert "--task14" in task14 and "--checkpoint" not in task14
     assert task14[task14.index("--representation") + 1] == "structured"
+    task14_b200 = job.task13_command_args(
+        env
+        | {
+            "SELFPLAY_OPERATION": "task14-probe",
+            "SELFPLAY_METHOD": "D",
+            "SELFPLAY_ITERATIONS": "10",
+            "SELFPLAY_CHECKPOINT": "",
+        }
+    )
+    assert "--task14-b200" in task14_b200
+    assert task14_b200[task14_b200.index("--representation") + 1] == "structured"
     student = job.task13_command_args(
         env | {"SELFPLAY_OPERATION": "task14-student", "SELFPLAY_METHOD": "B"}
     )
     assert student[student.index("--edit-protocol") + 1] == "replace_function_body"
     assert student.count("/workspace/scripts/task14_student_probe.py") == 1
+    student_b200 = job.task13_command_args(
+        env | {"SELFPLAY_OPERATION": "task14-student", "SELFPLAY_METHOD": "C"}
+    )
+    assert student_b200[student_b200.index("--snapshot") + 1] == "b200"
+    assert student_b200[student_b200.index("--edit-protocol") + 1] == "unified_diff"
     counterfactual = job.task13_command_args(
         env | {"SELFPLAY_OPERATION": "task14-counterfactual", "SELFPLAY_METHOD": "B"}
     )

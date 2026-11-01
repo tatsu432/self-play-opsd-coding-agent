@@ -1817,7 +1817,12 @@ def precheck(payload: dict):
             "task14-counterfactual",
             "task14-calibrate",
         } and (
-            payload.get("method") not in {"A", "B"}
+            payload.get("method")
+            not in (
+                {"A", "B", "C", "D"}
+                if operation in {"task14-probe", "task14-student"}
+                else {"A", "B"}
+            )
             or payload.get("iterations") != 10
             or payload.get("checkpoint")
         ):

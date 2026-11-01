@@ -29,10 +29,13 @@ def main() -> None:
     parser.add_argument("--representation", choices=("diff", "structured"), required=True)
     parser.add_argument("--parents", type=int, default=40)
     parser.add_argument("--task14", action="store_true")
+    parser.add_argument("--task14-b200", action="store_true")
     parser.add_argument("--slots", type=int, default=4)
     parser.add_argument("--slot-start", type=int, default=0)
     parser.add_argument("--model-choice", choices=tuple(MODELS))
     args = parser.parse_args()
+    if args.task14_b200 and (not args.task14 or args.checkpoint or args.model_choice):
+        raise ValueError("Task 14 B200 is a fixed, separate diagnostic snapshot")
     if args.model_choice and args.checkpoint:
         raise ValueError("Larger-model inference cannot load a 4B adapter checkpoint")
     if not os.environ.get("SLURM_JOB_ID") or not os.environ.get("SELFPLAY_WORKER_TOKEN"):
@@ -59,6 +62,12 @@ def main() -> None:
     policy = ModelProbePolicy(cfg, args.model_choice) if args.model_choice else make_policy(cfg)
     try:
         checkpoint = None
+        checkpoint_marker = None
+        if args.task14_b200:
+            from task14_checkpoint import load_b200
+
+            state, checkpoint, checkpoint_marker = load_b200(cfg, repo)
+            policy.load_state_dict(state["policy"])
         if args.checkpoint:
             state, checkpoint = CheckpointManager.load(args.checkpoint)
             if (
@@ -90,6 +99,7 @@ def main() -> None:
             "manifest_hash": repo.hash,
             "model": cfg.model.model_dump(mode="json"),
             "checkpoint": checkpoint,
+            "checkpoint_marker_sha256": checkpoint_marker,
             "representation": args.representation,
             "chat_template_non_thinking": args.model_choice == "qwen3-8b",
             "inference_backend": "vllm-inference-only" if args.model_choice else cfg.model.backend,
@@ -106,7 +116,7 @@ def main() -> None:
         }
         args.output.mkdir(parents=True, mode=0o700)
         atomic_json(args.output / "manifest.json", manifest)
-        history = state["history"] if args.checkpoint else {}
+        history = state["history"] if args.checkpoint or args.task14_b200 else {}
         records = []
         with policy.active("proposer"):
             for parent in selected:
