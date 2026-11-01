@@ -11,7 +11,7 @@ The two arms use 40 training parents selected before generation by `digest([2026
 | Unified diff | 58/160 | 22 | 589 | 134.5 |
 | Structured AST edit | 90/160 | 34 | 257 | 476.3 |
 
-The parent-paired difference in unique mutations was +0.30 per parent (2,000-resample bootstrap 95% interval −0.025 to +0.60). The verified-output fraction difference was +20 percentage points (interval +1.875 to +37.5). Structured accepted outputs covered 28 parent/location pairs and seven operator types. They use a narrower finite edit vocabulary, so acceptance and throughput do not establish equivalent coverage. Rates include all allocated startup time. The B200 checkpoint-history comparison and student mixed-reward measurements are pending.
+The parent-paired difference in unique mutations was +0.30 per parent (2,000-resample bootstrap 95% interval −0.025 to +0.60). The verified-output fraction difference was +20 percentage points (interval +1.875 to +37.5). Structured accepted outputs covered 28 parent/location pairs and seven operator types. They use a narrower finite edit vocabulary, so acceptance and throughput do not establish equivalent coverage. Rates include all allocated startup time. Student mixed-reward measurements are pending.
 
 Reproduce from private fetched artifacts and actual scheduler seconds:
 
@@ -23,4 +23,10 @@ uv run python scripts/analyze_task14_probes.py \
   --diff-gpu-hours 0.163611111111 --structured-gpu-hours 0.071388888889
 ```
 
-Student editing comparisons, numerical audit, matched-exposure controls, reward counterfactual, checkpoint-history comparison, and online eligibility remain unfinished. Do not draw conclusions about OPSD or gradient alignment from these proposer results.
+## B200 proposer snapshot and stored novelty history
+
+Both corrected B200 arms loaded and checksum-verified the retained checkpoint on the allocated node and completed exit 0 on the same 40 prospective parents and four seeds. Against an empty history, diff produced 70/160 verified outputs and 24 distinct parent/mutation pairs; structured produced 91/160 and 36. Against actual checkpoint history, 22 diff pairs and eight structured pairs were already present, leaving **2 versus 28** unique novel verified mutations. The paired difference in unique novel mutations was +0.65 per parent (2,000-resample bootstrap 95% interval +0.40 to +0.925).
+
+The diff and structured allocations used 763 and 236 H200-seconds respectively, equivalent to 9.4 and 427.1 unique history-novel mutations per allocated GPU-hour. Structured outputs covered 29 parent/location pairs and seven operator types. These inference-only figures do not establish student reward variation or benefit from online training. The first B200 attempt failed due to a transcribed identity hash, and another allocated attempt was cancelled; together they used 88 H200-seconds and are retained for accounting. Two further cancelled attempts never started. Corrected replacements were submitted after the identity was checked and the first corrected arm verified model loading and generated records.
+
+Student editing comparisons, numerical audit, matched-exposure controls, reward counterfactual, and online eligibility remain unfinished. Do not draw conclusions about OPSD or gradient alignment from these proposer results.
