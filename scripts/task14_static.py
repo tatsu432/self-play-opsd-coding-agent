@@ -37,6 +37,7 @@ def main():
     parser.add_argument("--method", choices=("GRPO", "B", "A"), required=True)
     parser.add_argument("--seed", type=int, choices=(2026, 2027, 2028), required=True)
     parser.add_argument("--ungated-lambda", type=float)
+    parser.add_argument("--resume", type=Path)
     args = parser.parse_args()
     if not os.getenv("SLURM_JOB_ID") or not os.getenv("SELFPLAY_WORKER_TOKEN"):
         raise RuntimeError("Static experiment requires an allocated isolated worker")
@@ -44,8 +45,10 @@ def main():
         raise ValueError("Ungated arm requires a positive training-calibrated coefficient")
     if args.method != "A" and args.ungated_lambda is not None:
         raise ValueError("Ungated coefficient is only valid for the ungated arm")
-    if args.output.exists():
+    if args.output.exists() and not args.resume:
         raise ValueError("Output already exists")
+    if args.resume and (not args.output.is_dir() or not args.resume.is_relative_to(args.output)):
+        raise ValueError("Resume checkpoint must belong to the existing static run")
     cfg = load_config(args.settings, method=args.method, hardware_profile="single_gpu_80gb")
     cfg.seed = args.seed
     cfg.study_id = "repair-diagnosis-2026-task14-static-v1"
@@ -62,23 +65,25 @@ def main():
     if set(schedule["order"]) != set(by_id) or len(schedule["order"]) != len(by_id):
         raise ValueError("Static schedule does not match the verified pool")
     pool = [by_id[task_id] for task_id in schedule["order"]]
-    args.output.mkdir(parents=True, mode=0o700)
-    atomic_json(
-        args.output / "input_manifest.json",
-        {
-            "pool_sha256": file_hash(SOURCE / "pool.json"),
-            "schedule_sha256": file_hash(SOURCE / "schedule.json"),
-            "method": args.method,
-            "seed": args.seed,
-            "sd_lambda": cfg.objective.sd_lambda,
-            "episode_checkpoints": [80, 160],
-        },
-    )
+    manifest = {
+        "pool_sha256": file_hash(SOURCE / "pool.json"),
+        "schedule_sha256": file_hash(SOURCE / "schedule.json"),
+        "method": args.method,
+        "seed": args.seed,
+        "sd_lambda": cfg.objective.sd_lambda,
+        "episode_checkpoints": [80, 160],
+    }
+    if args.resume:
+        if json.loads((args.output / "input_manifest.json").read_text()) != manifest:
+            raise ValueError("Static experiment input manifest changed")
+    else:
+        args.output.mkdir(parents=True, mode=0o700)
+        atomic_json(args.output / "input_manifest.json", manifest)
     sandbox = SandboxBackend(cfg.sandbox)
     sandbox.preflight()
     policy = make_policy(cfg)
     try:
-        trainer = ExposureTrainer(cfg, policy, repo, sandbox, pool=pool)
+        trainer = ExposureTrainer(cfg, policy, repo, sandbox, pool=pool, resume=args.resume)
         trainer.train()
         if trainer.total_episodes == 160:
             atomic_json(
