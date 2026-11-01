@@ -31,6 +31,7 @@ from selfplay_opsd.storage import (
 def check_backend(config: RunConfig, output: Path, *, reference: Path | None = None) -> dict:
     from selfplay_opsd.cli import make_policy
 
+    study_id = config.study_id
     config = config.model_copy(deep=True)
     config.study_id += "-backend-check"
     identity = backend_identity(config)
@@ -201,10 +202,13 @@ def check_backend(config: RunConfig, output: Path, *, reference: Path | None = N
             torch.save(full, output / "reference_gradients.pt")
             report["reference_sha256"] = file_hash(output / "reference_gradients.pt")
             atomic_json(output / "backend_report.json", report)
-            atomic_json(
-                config.output_root / BACKEND_EVIDENCE_DIRECTORY / f"{config.hardware.profile}.json",
-                report,
+            scoped = config.output_root / BACKEND_EVIDENCE_DIRECTORY / "studies" / study_id
+            proof_dir = (
+                scoped
+                if output == scoped / config.hardware.profile
+                else config.output_root / BACKEND_EVIDENCE_DIRECTORY
             )
+            atomic_json(proof_dir / f"{config.hardware.profile}.json", report)
         return report
     finally:
         policy.close()

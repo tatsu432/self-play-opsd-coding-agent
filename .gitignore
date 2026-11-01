@@ -8,6 +8,7 @@
 docs/*
 !docs/methods.md
 !docs/operations.md
+!docs/investigations/
 !docs/yale-worker-support.md
 !docs/yale-launch-runbook.md
 !docs/plan/

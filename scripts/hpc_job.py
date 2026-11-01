@@ -902,6 +902,60 @@ def method_smoke_commands(command: list[str], args: list[str], requested: str) -
     return result
 
 
+def task13_command_args(env: dict) -> list[str]:
+    """Keep each diagnostic's checkpoint and sampling flags on its own command."""
+    operation, method = env["SELFPLAY_OPERATION"], env["SELFPLAY_METHOD"]
+    prefix = ["torchrun", "--standalone", "--nnodes=1", "--nproc-per-node=1"]
+    common = [
+        "--settings",
+        "/workspace/" + env["SELFPLAY_SETTINGS"],
+        "--output",
+        env["SELFPLAY_OUTPUT"],
+    ]
+    if operation == "task13-probe":
+        args = (
+            prefix
+            + ["/workspace/scripts/task13_probe.py"]
+            + common
+            + ["--representation", "structured" if method == "B" else "diff"]
+        )
+        if env.get("SELFPLAY_CHECKPOINT"):
+            args += ["--checkpoint", env["SELFPLAY_CHECKPOINT"]]
+        if env.get("SELFPLAY_ITERATIONS") == "8":
+            args += ["--parents", "16", "--slots", "4", "--slot-start", "4"]
+        return args
+    if operation == "task13-counterfactual":
+        if not env.get("SELFPLAY_CHECKPOINT"):
+            raise ValueError("Counterfactual checkpoint missing")
+        return (
+            prefix
+            + ["/workspace/scripts/task13_counterfactual.py"]
+            + common
+            + ["--checkpoint", env["SELFPLAY_CHECKPOINT"]]
+        )
+    if operation == "task13-model-probe":
+        # vLLM owns its single-process distributed initialization. torchrun sets
+        # TORCHELASTIC_USE_AGENT_STORE, which makes vLLM connect to a store that
+        # does not exist at its independently chosen rendezvous port.
+        return (
+            ["python", "/workspace/scripts/task13_probe.py"]
+            + common
+            + [
+                "--model-choice",
+                "coder7b" if method in {"A", "B"} else "qwen3-8b",
+                "--representation",
+                "diff" if method in {"A", "C"} else "structured",
+            ]
+        )
+    if operation == "task13-static":
+        return prefix + ["/workspace/scripts/task13_static.py"] + common
+    if operation == "task13-static-continuation":
+        return prefix + ["/workspace/scripts/task13_static_continue.py"] + common
+    if operation == "task13-header-replay":
+        return ["python", "/workspace/scripts/task13_header_replay.py"] + common
+    raise ValueError("Unknown Task 13 allocation operation")
+
+
 def execute(env: dict) -> int:
     operation = env["SELFPLAY_OPERATION"]
     if operation not in {
@@ -921,6 +975,12 @@ def execute(env: dict) -> int:
         "protocol-revision",
         "evaluate",
         "diagnose",
+        "task13-probe",
+        "task13-model-probe",
+        "task13-header-replay",
+        "task13-static",
+        "task13-static-continuation",
+        "task13-counterfactual",
         "freeze-study",
         "readiness-check",
     }:
@@ -935,6 +995,12 @@ def execute(env: dict) -> int:
         "protocol-revision",
         "evaluate",
         "diagnose",
+        "task13-probe",
+        "task13-model-probe",
+        "task13-header-replay",
+        "task13-static",
+        "task13-static-continuation",
+        "task13-counterfactual",
     }
     if uses_worker and not env.get("SELFPLAY_WORKER_SIF"):
         raise ValueError("Generated-code operations require the allocation worker")
@@ -1084,6 +1150,8 @@ def execute(env: dict) -> int:
             / "state"
             / f"stop_requested.{attempt}"
         )
+        if operation in {"task13-static", "task13-static-continuation"}:
+            stop = readiness / f"task13-static-stop-{attempt}"
 
         def request_stop(*_):
             stop.parent.mkdir(parents=True, exist_ok=True)
@@ -1150,6 +1218,15 @@ def execute(env: dict) -> int:
             "--settings",
             "/workspace/" + env["SELFPLAY_SETTINGS"],
         ]
+        if operation in {
+            "task13-probe",
+            "task13-counterfactual",
+            "task13-model-probe",
+            "task13-header-replay",
+            "task13-static",
+            "task13-static-continuation",
+        }:
+            args = task13_command_args(env)
         if operation in {
             "train",
             "pilot",

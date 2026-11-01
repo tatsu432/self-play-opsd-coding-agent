@@ -41,6 +41,37 @@ def test_resource_plan_operation_is_available_in_ssh_transport(monkeypatch):
     assert "publish_resource_plan" in calls[0]
 
 
+def test_resume_cli_passes_bounded_stop_to_recovery(monkeypatch):
+    from typer.testing import CliRunner
+
+    from selfplay_opsd import hpc
+
+    calls = []
+
+    class FakeRemote:
+        def call(self, command, payload):
+            calls.append((command, payload))
+            return {"submitted": False}
+
+    monkeypatch.setattr(hpc, "YaleSSH", lambda alias: FakeRemote())
+    monkeypatch.setattr(hpc, "remote_context", lambda remote, alias: {"storage_root": "/project"})
+    result = CliRunner().invoke(
+        hpc.app, ["resume", "run1", "--continue-stopped", "--stop-after-iteration", "40"]
+    )
+    assert result.exit_code == 0, result.output
+    assert calls == [
+        (
+            "recover",
+            {
+                "storage_root": "/project",
+                "run_id": "run1",
+                "explicit_continue": True,
+                "continuation_stop": 40,
+            },
+        )
+    ]
+
+
 def test_method_smoke_launch_honors_independent_selection_and_keeps_scientific_args():
     spec = importlib.util.spec_from_file_location("job", Path("scripts/hpc_job.py"))
     module = importlib.util.module_from_spec(spec)
@@ -402,9 +433,23 @@ def test_bounded_stop_is_cleared_only_on_explicit_clean_continuation(tmp_path, m
         "manifests_hash": "data",
     }
     assert not remote.recover(payload)["submitted"]
-    assert remote.recover(payload | {"explicit_continue": True})["submitted"]
-    assert submitted[0]["stop_after_iteration"] == 0
+    with pytest.raises(ValueError, match="after the checkpoint"):
+        remote.recover(payload | {"explicit_continue": True, "continuation_stop": 20})
+    with pytest.raises(ValueError, match="after the checkpoint"):
+        remote.recover(payload | {"explicit_continue": True, "continuation_stop": 200})
+    assert remote.recover(payload | {"explicit_continue": True, "continuation_stop": 40})[
+        "submitted"
+    ]
+    assert submitted[0]["stop_after_iteration"] == 40
     assert submitted[0]["target_iterations"] == 200
+    assert json.loads(ledger.read_text())["active_stop_after_iteration"] == 40
+    saved = json.loads(ledger.read_text())
+    saved["specification"] = payload
+    saved["attempts"].append({"job_id": "456"})
+    ledger.write_text(json.dumps(saved))
+    monkeypatch.setattr(remote, "job_state", lambda _: {"state": "NODE_FAIL"})
+    assert remote.recover({"storage_root": str(tmp_path), "run_id": "run1"})["submitted"]
+    assert submitted[1]["stop_after_iteration"] == 40
 
 
 def test_operational_mounts_do_not_change_scientific_hash(monkeypatch):

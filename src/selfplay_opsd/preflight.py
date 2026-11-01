@@ -113,12 +113,12 @@ def doctor(config: RunConfig, *, isolation: bool = False) -> dict:
         blockers.append("Frozen dataset unavailable")
     if cfg.hardware.gpu_count:
         from selfplay_opsd.readiness import (
-            BACKEND_EVIDENCE_DIRECTORY,
             backend_environment,
+            backend_evidence_path,
             backend_identity,
         )
 
-        proof_path = cfg.output_root / BACKEND_EVIDENCE_DIRECTORY / f"{cfg.hardware.profile}.json"
+        proof_path = backend_evidence_path(cfg, cfg.hardware.profile)
         if not proof_path.exists():
             blockers.append("Target backend acceptance probe missing; run backend-check")
         else:

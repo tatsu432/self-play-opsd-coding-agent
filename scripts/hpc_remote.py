@@ -442,8 +442,15 @@ def recover(payload: dict) -> dict:
     ledger = read_ledger(path)
     if ledger.get("specification"):
         payload = ledger["specification"] | {
-            "explicit_continue": bool(request.get("explicit_continue"))
+            "explicit_continue": bool(request.get("explicit_continue")),
+            "stop_after_iteration": ledger.get(
+                "active_stop_after_iteration",
+                ledger["specification"].get("stop_after_iteration", 0),
+            ),
         }
+    requested_stop = request.get("continuation_stop")
+    if requested_stop is not None and not request.get("explicit_continue"):
+        raise ValueError("A continuation stop requires explicit clean continuation")
     if ledger.get("identity") != payload["identity"] or not ledger["attempts"]:
         raise ValueError("Run identity or initial submission missing")
     if ledger.get("pending_intent"):
@@ -452,6 +459,8 @@ def recover(payload: dict) -> dict:
     if state in ACTIVE or state == "UNKNOWN":
         return {"submitted": False, "state": state}
     planned = bool(payload.get("explicit_continue")) and state in {"COMPLETED", "TIMEOUT"}
+    if requested_stop is not None and not planned:
+        return {"submitted": False, "state": state, "reason": "not_a_clean_continuation"}
     if state == "COMPLETED" and not planned:
         return {"submitted": False, "state": state, "reason": "inspect_scientific_completion"}
     if not planned and state not in {"PREEMPTED", "NODE_FAIL", "BOOT_FAIL"}:
@@ -476,6 +485,19 @@ def recover(payload: dict) -> dict:
         return {"submitted": False, "state": state, "reason": "not_a_clean_stop"}
     if planned and ledger.get("continuations", 0) >= payload.get("max_continuations", 0):
         return {"submitted": False, "state": state, "reason": "continuation_limit"}
+    if requested_stop is not None and (
+        not isinstance(requested_stop, int)
+        or isinstance(requested_stop, bool)
+        or not metadata["iteration"] < requested_stop < payload.get("target_iterations", 0)
+    ):
+        raise ValueError("Continuation stop must be after the checkpoint and before the target")
+    next_stop = (
+        requested_stop
+        if requested_stop is not None
+        else 0
+        if planned and metadata["iteration"] >= payload.get("stop_after_iteration", 0)
+        else payload.get("stop_after_iteration", 0)
+    )
     # Reserve a retry under the same lock as submission; a failed reservation is
     # left auditable and cannot cause an unbounded scheduler loop.
     with locked(path.with_suffix(".lock")):
@@ -492,14 +514,13 @@ def recover(payload: dict) -> dict:
             return {"submitted": False, "state": state, "reason": "continuation_limit"}
         current[counter] = current.get(counter, 0) + 1
         current["recovery_from_job"] = previous_job
+        current["active_stop_after_iteration"] = next_stop
         write_json(path, current)
     result = submit(
         {
             **payload,
             "resume": checkpoint,
-            "stop_after_iteration": 0
-            if metadata["iteration"] >= payload.get("stop_after_iteration", 0)
-            else payload.get("stop_after_iteration", 0),
+            "stop_after_iteration": next_stop,
             "time": payload.get("continuation_time", payload["time"]),
         }
     )
@@ -582,6 +603,49 @@ def allowed(payload: dict) -> dict:
     }
 
 
+def can_supersede_empty_pilot(payload: dict, prior: dict, owner: dict, artifact: Path) -> bool:
+    """Permit an explicit replacement only for an observed preflight-only failure."""
+    ledger = prior["ledger"]
+    attempts = prior["attempts"]
+    old = ledger.get("specification", {})
+    if (
+        payload.get("supersede_empty_pilot") != owner.get("run_id")
+        or payload.get("operation") != "pilot"
+        or old.get("operation") != "pilot"
+        or ledger.get("pending_intent")
+        or len(attempts) != 1
+        or attempts[-1]["scheduler"]["state"] != "FAILED"
+        or artifact.exists()
+        or not old.get("commit")
+        or old.get("commit") == payload.get("commit")
+    ):
+        return False
+    keys = (
+        "study_id",
+        "method",
+        "seed",
+        "scientific_hash",
+        "manifests_hash",
+        "runtime_identity",
+        "image_sha256",
+        "worker_sha256",
+        "gpu_type",
+        "profile",
+    )
+    if any(key not in old or key not in payload or old[key] != payload[key] for key in keys):
+        return False
+    try:
+        tail = logs(
+            {"storage_root": payload["storage_root"], "run_id": owner["run_id"], "lines": 1000}
+        )
+    except (OSError, ValueError, KeyError):
+        return False
+    return (
+        "Pilot preflight blocked: Backend acceptance proof stale or missing single-process gradient comparison"
+        in tail.get("tail", "")
+    )
+
+
 def submit(payload: dict) -> dict:
     p = paths(payload)
     path = ledger_path(payload)
@@ -615,6 +679,18 @@ def submit(payload: dict) -> dict:
             raise ValueError("Checkpoint must be a numbered state in this run")
         host_checkpoint = p["runs"] / checkpoint.removeprefix("/runs/")
         check_checkpoint(host_checkpoint, payload)
+    if payload["operation"] in {"task13-probe", "task13-counterfactual"} and payload.get(
+        "checkpoint"
+    ):
+        checkpoint = payload["checkpoint"]
+        expected_method = {"A": "A", "B": "B", "C": "C", "D": "B"}[payload["method"]]
+        prefix = f"/runs/{payload['study_id']}/{expected_method}-seed{payload['seed']}/checkpoints/"
+        if not checkpoint.startswith(prefix) or not re.fullmatch(
+            r"\d{6}", checkpoint.removeprefix(prefix)
+        ):
+            raise ValueError("Probe checkpoint must be a numbered corrected-study checkpoint")
+        if not (p["runs"] / checkpoint.removeprefix("/runs/") / "complete.json").is_file():
+            raise ValueError("Probe checkpoint is absent or incomplete")
     if payload["gpu_count"] and (
         payload["gpu_count"] != payload["profile_gpu_count"]
         or GPU_VRAM_GB[payload["gpu_type"]] < payload["min_vram_gib"]
@@ -769,6 +845,9 @@ def submit(payload: dict) -> dict:
                         "run_id": owner["run_id"],
                     }
                 if payload["operation"] in {"train", "pilot"}:
+                    if can_supersede_empty_pilot(payload, prior, owner, artifact):
+                        ledger["supersedes_preflight_only_run"] = owner["run_id"]
+                        continue
                     raise ValueError(
                         "Existing scientific run belongs to a different immutable identity"
                     )
@@ -941,6 +1020,11 @@ def artifact_dir(payload: dict) -> Path:
         return runs / "readiness" / study
     if operation == "backend-check":
         if payload.get("backend_identity", {}).get("schema_version") == 2:
+            if (
+                payload.get("output")
+                == f"/runs/compatibility/backend-v2/studies/{study}/{payload['profile']}"
+            ):
+                return runs / "compatibility/backend-v2/studies" / study / payload["profile"]
             return runs / "compatibility/backend-v2" / payload["profile"]
         return runs / "compatibility" / payload["profile"]
     if operation == "freeze-study":
@@ -949,6 +1033,18 @@ def artifact_dir(payload: dict) -> Path:
         return runs / study / "base"
     if operation == "diagnose":
         return runs / study / "diagnostics" / Path(payload["checkpoint"]).name
+    if operation == "task13-probe":
+        return runs / "repair-diagnosis-2026-probe-v1" / payload["run_id"]
+    if operation == "task13-model-probe":
+        return runs / "repair-diagnosis-2026-model-probe-v1" / payload["run_id"]
+    if operation == "task13-header-replay":
+        return runs / "repair-diagnosis-2026-header-replay-v1" / payload["run_id"]
+    if operation == "task13-static":
+        return runs / "repair-diagnosis-2026-static-v1" / payload["run_id"]
+    if operation == "task13-static-continuation":
+        return runs / "repair-diagnosis-2026-static-continuation-v1" / payload["run_id"]
+    if operation == "task13-counterfactual":
+        return runs / "repair-diagnosis-2026-counterfactual-v1" / payload["run_id"]
     return (
         runs
         / (study + (payload.get("pilot_suffix", "-pilot") if operation == "pilot" else ""))
@@ -1318,13 +1414,17 @@ def study_state(payload: dict) -> dict:
     images = {kind: read(base / "images" / f"{kind}.json") for kind in ("worker", "trainer")}
     evidence = runs / "readiness" / study
     identity = payload.get("runtime_identity")
+
+    def backend_report(profile):
+        scoped = runs / "compatibility/backend-v2/studies" / study / f"{profile}.json"
+        legacy = runs / "compatibility/backend-v2" / f"{profile}.json"
+        return read(scoped if scoped.is_file() else legacy)
+
     reports = {
         "worker": read(evidence / "worker.json"),
         "runtime": read(evidence / "runtime.json"),
-        "single": read(runs / "compatibility/backend-v2/single_gpu_80gb.json"),
-        "target": read(
-            runs / "compatibility/backend-v2" / (payload.get("profile", "dual_gpu_80gb") + ".json")
-        ),
+        "single": backend_report("single_gpu_80gb"),
+        "target": backend_report(payload.get("profile", "dual_gpu_80gb")),
         "base": read(runs / study / "base/evaluation_complete.json"),
         "pilot": read(
             runs
@@ -1525,6 +1625,12 @@ def precheck(payload: dict):
         "pilot",
         "evaluate",
         "diagnose",
+        "task13-probe",
+        "task13-model-probe",
+        "task13-header-replay",
+        "task13-static",
+        "task13-static-continuation",
+        "task13-counterfactual",
         "freeze-study",
         "readiness-check",
     }:
@@ -1601,6 +1707,12 @@ def precheck(payload: dict):
         "protocol-revision",
         "evaluate",
         "diagnose",
+        "task13-probe",
+        "task13-model-probe",
+        "task13-header-replay",
+        "task13-static",
+        "task13-static-continuation",
+        "task13-counterfactual",
     }
     if uses_worker and not payload.get("worker_image"):
         raise ValueError("Yale jobs require the verified allocation worker")
@@ -1647,10 +1759,125 @@ def precheck(payload: dict):
             )
         if not payload.get("secrets_file"):
             raise ValueError("Online main launch requires a persistent private secrets file")
-    if operation in {"train", "pilot", "method-smoke", "evaluate", "diagnose", "freeze-study"}:
+    if operation in {
+        "train",
+        "pilot",
+        "method-smoke",
+        "evaluate",
+        "diagnose",
+        "freeze-study",
+        "task13-probe",
+        "task13-model-probe",
+        "task13-header-replay",
+        "task13-static",
+        "task13-static-continuation",
+        "task13-counterfactual",
+    }:
         state = study_state(payload)
         if not state["gates"]["worker"] or not state["gates"]["runtime"]:
             raise ValueError("Runtime isolation and target data validation have not passed")
+        if operation == "task13-probe" and (
+            payload.get("account") != "cpsc4880"
+            or payload.get("gpu_count") != 1
+            or payload.get("gpu_type") != "h200"
+            or payload.get("time") != "02:00:00"
+            or payload.get("method") not in {"A", "B", "C", "D"}
+            or payload.get("iterations") not in {8, 10}
+        ):
+            raise ValueError("Task 13 probe requires bounded one-H200 cpsc4880 allocation")
+        if operation == "task13-header-replay" and (
+            payload.get("account") != "cpsc4880"
+            or payload.get("gpu_count") != 0
+            or payload.get("time") != "01:00:00"
+            or payload.get("method") != "C"
+            or payload.get("checkpoint")
+        ):
+            raise ValueError("Header replay requires the bounded CPU-only worker allocation")
+        if operation == "task13-static-continuation":
+            source = (
+                paths(payload)["runs"] / "repair-diagnosis-2026-static-v1/9a44124b61147aee02c685d6"
+            )
+            original = job_state("31535783")
+            if (
+                payload.get("account") != "cpsc4880"
+                or payload.get("gpu_count") != 1
+                or payload.get("gpu_type") != "h200"
+                or payload.get("time") != "06:00:00"
+                or payload.get("method") != "B"
+                or not (
+                    (
+                        original.get("state") == "COMPLETED"
+                        and original.get("exit_code") == "0:0"
+                        and (source / "stopped.json").is_file()
+                    )
+                    or (
+                        original.get("state") == "TIMEOUT"
+                        and any(
+                            p.is_file()
+                            for p in source.glob(
+                                "repair-diagnosis-2026-static-*/B-seed2026/checkpoints/[0-9][0-9][0-9][0-9][0-9][0-9]/complete.json"
+                            )
+                        )
+                    )
+                )
+                or (source / "complete.json").exists()
+            ):
+                raise ValueError(
+                    "Static continuation requires the original clean stopped allocation or timeout with a joint checkpoint"
+                )
+        if operation == "task13-model-probe" and (
+            payload.get("account") != "cpsc4880"
+            or payload.get("gpu_count") != 1
+            or payload.get("gpu_type") != "h200"
+            or payload.get("time") != "02:00:00"
+            or payload.get("method") not in {"A", "B", "C", "D"}
+            or payload.get("checkpoint")
+        ):
+            raise ValueError("Task 13 model probe requires bounded base-model inference")
+        if operation == "task13-model-probe":
+            models = {
+                "A": (
+                    "Qwen/Qwen2.5-Coder-7B-Instruct",
+                    "c03e6d358207e414f1eca0bb1891e29f1db0e242",
+                    "diff",
+                ),
+                "B": (
+                    "Qwen/Qwen2.5-Coder-7B-Instruct",
+                    "c03e6d358207e414f1eca0bb1891e29f1db0e242",
+                    "structured",
+                ),
+                "C": ("Qwen/Qwen3-8B", "b968826d9c46dd6066d109eabc6255188de91218", "diff"),
+                "D": ("Qwen/Qwen3-8B", "b968826d9c46dd6066d109eabc6255188de91218", "structured"),
+            }
+            name, revision, representation = models[payload["method"]]
+            expected = {
+                "name": name,
+                "revision": revision,
+                "representation": representation,
+                "non_thinking": payload["method"] in {"C", "D"},
+                "backend": "vllm-inference-only",
+            }
+            if payload.get("probe_model") != expected:
+                raise ValueError("Task 13 model identity does not match the pinned manifest")
+        if operation == "task13-static" and (
+            payload.get("account") != "cpsc4880"
+            or payload.get("gpu_count") != 1
+            or payload.get("gpu_type") != "h200"
+            or payload.get("time") != "06:00:00"
+            or payload.get("method") != "B"
+        ):
+            raise ValueError(
+                "Task 13 static comparison requires bounded one-H200 cpsc4880 allocation"
+            )
+        if operation == "task13-counterfactual" and (
+            payload.get("account") != "cpsc4880"
+            or payload.get("gpu_count") != 1
+            or payload.get("gpu_type") != "h200"
+            or payload.get("time") != "02:00:00"
+            or payload.get("method") != "C"
+            or not payload.get("checkpoint", "").endswith("/000099")
+        ):
+            raise ValueError("Task 13 counterfactual requires one H200 and C checkpoint 99")
         if operation == "freeze-study":
             plan_path = workspace(payload) / "runs" / payload["study_id"] / "resource_plan.json"
             if not plan_path.is_file():
@@ -1765,6 +1992,71 @@ def reuse_worker(payload: dict) -> dict:
     with locked(workspace(payload) / "state/.worker-evidence.lock"):
         if target.exists() and json.loads(target.read_text()) != reused:
             raise ValueError("Destination already has different worker evidence")
+        write_json(target, reused)
+    return {"ready": True, "evidence": str(target), "provenance": reused["reuse_provenance"]}
+
+
+def reuse_telemetry(payload: dict) -> dict:
+    """Reuse the actual allocated-node cloud proof when its dependencies match."""
+    source_study, study = payload["source_study"], payload["study_id"]
+    if (
+        not SAFE_NAME.fullmatch(source_study)
+        or not SAFE_NAME.fullmatch(study)
+        or source_study == study
+    ):
+        raise ValueError("Distinct safe study names required")
+    base = workspace(payload)
+    if (base / "runs" / study / "study_frozen.json").exists():
+        raise ValueError("Target study is frozen; evidence cannot be replaced")
+    source = base / "runs/readiness" / source_study / "wandb-verification.json"
+    report = json.loads(source.read_text())
+    frozen = json.loads((base / "runs" / source_study / "study_frozen.json").read_text())
+    if (
+        not report.get("ready")
+        or not report.get("cloud_verified")
+        or report.get("sequence") != 2
+        or report.get("entity") != payload.get("entity")
+        or report.get("telemetry_identity") != payload.get("telemetry_identity")
+        or frozen.get("telemetry_identity") != payload.get("telemetry_identity")
+        or frozen.get("runtime_identity", {}).get("trainer_sha256") != payload.get("trainer_sha256")
+    ):
+        raise ValueError("Telemetry proof dependencies differ or cloud verification is incomplete")
+    reused = report | {"reuse_provenance": {"source": str(source), "sha256": sha256(source)}}
+    target = base / "runs/readiness" / study / "wandb-verification.json"
+    with locked(base / "state/.telemetry-evidence.lock"):
+        if target.exists() and json.loads(target.read_text()) != reused:
+            raise ValueError("Destination already has different telemetry evidence")
+        write_json(target, reused)
+    return {"ready": True, "evidence": str(target), "provenance": reused["reuse_provenance"]}
+
+
+def reuse_allocation(payload: dict) -> dict:
+    """Reuse allocation verification only when the image and verifier match."""
+    source_study, study, profile = payload["source_study"], payload["study_id"], payload["profile"]
+    if (
+        not all(SAFE_NAME.fullmatch(v) for v in (source_study, study, profile))
+        or source_study == study
+    ):
+        raise ValueError("Distinct safe study and profile names required")
+    base = workspace(payload)
+    if (base / "runs" / study / "study_frozen.json").exists():
+        raise ValueError("Target study is frozen; evidence cannot be replaced")
+    source = base / "runs/readiness" / source_study / f"allocation-{profile}.json"
+    proof = json.loads(source.read_text())
+    if (
+        not proof.get("ready")
+        or not proof.get("ownership_verified")
+        or proof.get("image_sha256") != payload.get("trainer_sha256")
+        or proof.get("gpu_type") != payload.get("gpu_type")
+        or proof.get("gpu_count") != payload.get("gpu_count")
+        or not allocation_compatible(proof, payload.get("allocation_code_hash"), base)
+    ):
+        raise ValueError("Allocation proof dependencies differ or ownership is unverified")
+    reused = proof | {"reuse_provenance": {"source": str(source), "sha256": sha256(source)}}
+    target = base / "runs/readiness" / study / f"allocation-{profile}.json"
+    with locked(base / "state/.allocation-evidence.lock"):
+        if target.exists() and json.loads(target.read_text()) != reused:
+            raise ValueError("Destination already has different allocation evidence")
         write_json(target, reused)
     return {"ready": True, "evidence": str(target), "provenance": reused["reuse_provenance"]}
 
@@ -1968,6 +2260,8 @@ COMMANDS = {
     "recover": recover,
     "recover_allocation": recover_allocation,
     "reuse_worker": reuse_worker,
+    "reuse_telemetry": reuse_telemetry,
+    "reuse_allocation": reuse_allocation,
     "reuse_study": reuse_study,
     "publish_resource_plan": publish_resource_plan,
 }

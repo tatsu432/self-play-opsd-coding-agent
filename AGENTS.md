@@ -1,5 +1,310 @@
 # Project and operating instructions
 
+## Task 13 CPU header replay — 2026-10-31
+
+CPU-only worker job `31537818`, run `8878e774a2d4480b5f0eba36`, was submitted
+from `c187909b9afbff4c59b4fdc250ca01087447f859` with a one-hour cap. It
+replayed the checksummed 8B diff outputs after removing one exact optional
+header, using the accepted isolated worker and the matching cached tokenizer.
+It completed exit 0 and verified 37 of 114 affected samples. With the six
+originally accepted outputs, 43/160 were valid and 30 unique under this
+post-hoc normalization. The first fetch raced filesystem visibility; a later
+fetch succeeded. Inspect the existing ledger; do not duplicate this job.
+
+## Task 13 larger-model inference probes — 2026-10-31
+
+Diff-format inference-only probes were submitted from immutable execution
+`662a7b74d91dc5bab7924c5bc911736e7918ea21`: Qwen2.5-Coder-7B job
+`31536071`, run `1b5cdead66a593d2b51829d9`; Qwen3-8B non-thinking job
+`31536072`, run `a34502e0d48191cbef4a79e6`. Both hung before model loading and
+were cancelled after 472 and 399 seconds, respectively. A live Python stack
+showed vLLM waiting for a nonexistent rendezvous store because torchrun exports
+`TORCHELASTIC_USE_AGENT_STORE=True`. The model-only launcher now starts Python
+directly, leaving vLLM to create its own store; regression-test and synchronize
+the fix before submitting replacement diff probes. Corrected diff probes were
+submitted once from `7f45eaec27986057eac62643e9e55b2cab4dec31`: coder job
+`31537201`, run `842b6c405b193624f33a826d`; Qwen3 job `31537246`, run
+`66d86331ec30a14afb9548eb`. Inspect their existing ledgers; do not duplicate.
+The 7B diff arm initialized and generated proposals; its structured arm was
+submitted once from `fd53d2c69276ca1065de8d03f23f820a9e214644`, job
+`31537529`, run `e57c317e45dfb110b33e8a30`. The 8B diff arm also initialized
+and generated proposals; its structured arm was submitted once from
+`3a1619e19c69179c035bbbe14a8823c666535be5`, job `31537580`, run
+`09e709fd64972a2f91dcea51`. All four corrected arms completed exit 0 and were
+compared on matched parents/seeds. Preserve the failed jobs for accounting.
+
+## Task 13 independent extra proposer samples — 2026-10-31
+
+Four additional slots (4–7) were submitted for the prespecified first 16
+parents from execution `f49334e6d02813716019d7312ddd481032cb3f21`:
+base diff job `31535931` / run `bbfefdccb9d1a67dfa486e0a`, base structured
+`31535971` / `522e881e218fee881e05081c`, and B200 diff `31535981` /
+`1e5f64bb179d21b06665614f`. A launcher wiring error failed to pass the extra
+slot flags; B's completed 160 records exactly repeat the original base samples
+and are not independent. A and D were cancelled when the error was discovered.
+Slurm charged 340, 256, and 169 seconds respectively (0.2125 H200-hours total).
+Preserve these invalid/partial runs for audit; do not count them as extra samples.
+The launcher was corrected and has an explicit command-argument regression test.
+Replacement extra-slot runs were submitted once from
+`5d92eddf3299a9a0b6ad39bdbdcbca4a0910c559`: base diff job `31536424` /
+run `ea1f43c3f981c35d767eb12f`, base structured `31536425` /
+`174d4fb895b98bd10a866aeb`, and B200 diff `31536426` /
+`346d7294a177f23792416fa7`. All three completed exit 0. Inspect these existing
+ledgers; do not duplicate.
+
+## Task 13 C/D counterfactual submitted — 2026-10-31
+
+Job `31535924`, run `913f441b4f52675eb2479c16`, was submitted once from
+`f3c290dc3d01af3af8df9b5ad926fd26b8bac850` with one H200 and a two-hour cap.
+It completed with exit 0. Of 64 proposals in 16 parent groups, two candidates
+in one group were accepted. Both RL candidate gradients were zero; combined
+gradients were nonzero. Normalized-advantage L2 difference was 0.13213,
+proposer-gradient cosine 0.95646 and Adam-update cosine 0.98893. Both adapters
+and optimizers were restored and verified. This is one group, not a population
+estimate. Private result: `runs/hpc/yale-hpc-cpsc4880/913f441b4f52675eb2479c16`.
+Inspect the existing job and ledger before action; never duplicate it.
+
+## Task 13 static student control submitted — 2026-10-31
+
+Job `31535783`, run `9a44124b61147aee02c685d6`, was submitted from
+`8eed8c09aa4035c7e32a9f5c11744d78b3369cc2` with one H200 and a six-hour
+cap; it later timed out during the gated final evaluation as described below.
+All 32 training-only tasks were
+screened: 12/32 mixed over eight rollouts, versus a 27.95% mean mixed fraction
+over all four-rollout subsets. GRPO initial development evaluation completed
+0/41. At five student steps it had six batches, eight mixed groups in 48
+episodes, no proposer steps, finite nonzero gradients, and rollout/rescoring
+mismatch plus invalid-action warnings. At ten steps GRPO had 21 batches, 168
+episodes, 13 mixed groups, zero proposer steps and finite recorded gradients;
+20 scoring-mismatch warnings had maximum log-probability difference 2.535.
+Its ten-step development evaluation completed 10/41 versus 0/41 initially;
+at 15 steps it had 31 batches, 248 episodes, 19 mixed groups, finite recorded
+gradients, zero proposer steps, and maximum scoring difference 3.203. GRPO
+reached 20 steps after 53 batches, 424 episodes and 24 mixed groups; its final
+development score was 12/41 (initial 0/41, ten-step 10/41). The matched gated
+arm's initial evaluation also completed 0/41. The arms used one verified
+training-only pool, the existing isolated worker and joint checkpoints. Inspect
+the existing jobs and ledgers before action; do not duplicate them.
+At five gated steps, five batches yielded 40 episodes, seven mixed groups,
+finite recorded gradients and zero proposer steps; five scoring-mismatch
+warnings had maximum difference 1.376, plus one invalid-action warning.
+At ten gated steps, ten batches yielded 80 episodes, ten mixed groups, finite
+recorded gradients and zero proposer steps; ten mismatch warnings had maximum
+difference 1.547. Its ten-step development evaluation completed 10/41,
+matching GRPO at the same step count but with 80 versus 168 episodes. The gated
+arm reached 15 steps in 15 batches with 120 episodes, eleven mixed groups,
+finite gradients, zero proposer steps and maximum scoring difference 1.547.
+Original job `31535783` reached gated step 20 but timed out during its final
+evaluation; the last complete gated joint checkpoint was iteration 19. The
+uncheckpointed iteration and partial evaluation must be rolled back. After
+reconciliation and a passing preview, continuation job `31555806`, run
+`edb71511b52d23183f3593e5`, was submitted once from
+`6df71fd4b3cd5fad8200ab23ca76041d249b80a3` and completed exit 0. It verified
+the checkpoint on the allocated node, rolled back to iteration 19, replayed the
+twentieth step and completed the gated final evaluation at 10/41 (0/41 initial,
+10/41 at ten steps). Gated used 160 training episodes; GRPO scored 12/41 at
+20 steps after 424 episodes. These are single-seed, unequal-exposure results.
+The two static allocations consumed 22,852 H200-seconds (6.3478 GPU-hours).
+All Task 13 diagnostic GPU jobs together consumed 30,491 H200-seconds (8.4697
+GPU-hours), including 1,636 seconds from launcher mistakes. The scheduler had
+no active jobs at final reconciliation; never duplicate completed jobs.
+
+## Task 13 checkpoint probes submitted — 2026-10-31
+
+Five checkpoint probes were submitted from immutable execution
+`d1d24c9904fc2e92870ad84412904abc36ad5e88`: A20 diff job `31535565`
+(`0d253ac48cd9fbac666560fe`), A200 diff `31535570`
+(`ef6ce5271c24ee8de47e2221`), B200 structured `31535572`
+(`0a78616509db9372715f7602`), C100 diff `31535578`
+(`d406303bf5b4d2eed674cb69`), B200 diff `31535584`
+(`f1b225fa1a92372f332f94a5`). All five completed with exit 0 and verified
+checkpoint checksums and scientific/data/prompt/model identity on the allocated
+node before loading. Inspect existing ledgers; never submit a duplicate.
+
+## Task 13 base proposer probe submitted — 2026-10-31
+
+Diff-format run `0cbb6df656bf96b50a81b19e`, Slurm job `31533595`, and
+structured-format run `a5eea7b65ed72d2ff4b3f70d`, job `31533597`, were
+submitted once from immutable execution `440451f9e75501b07f70542d96dc0c19a11a16ab`.
+Both completed with exit 0. Diff used 592 seconds and produced 43/160 verified
+proposals, 20 unique parent/AST pairs; structured used 242 seconds and produced
+95/160 verified proposals, 33 unique pairs. Both completed all 160 samples
+on the same 40 training parents and model. Private artifacts were fetched to
+`runs/hpc/yale-hpc-cpsc4880/<run-id>/`. These are preliminary paired base-model
+descriptive results, not checkpoint or larger-model comparisons. Inspect live
+scheduler state and these ledgers before acting; never duplicate either job.
+The task13 probe uses the accepted isolated worker.
+
+## Execution persistence — 2026-10-31
+
+The user directs the agent to continue through implementation, validation,
+submission, monitoring, and scientific review of authorized experiments rather
+than stopping at a plan or an unimplemented controller route. GPU time is
+authorized as needed for efficient progress; do not ask again for a budget.
+Treat planning caps as review points, not permission gates. If a route is missing,
+implement and test it, reconcile existing scheduler and ledger state, then
+submit and monitor. Preserve the scientific identity, worker isolation,
+checkpoint verification, accounting, and no-duplicate safeguards below.
+Older statements below that further GPU work is unauthorized or requires a new
+user approval record historical decisions and are superseded for the current
+Task 13 investigation. Scientific decision points still guide what to run; they
+do not require asking the user to restate their authorization.
+
+## Corrected C iteration 100 — latest live state
+
+Job `31469208` completed with exit 0, stopped at iteration 100, and used
+12,782 seconds (3.550556 H200 GPU-hours). C development scores at iterations
+0/20/40/60/80/100 were 0/12/10/10/12/11 out of 41. Through iteration 100,
+116/1,600 proposals were valid and 98/116 candidate alignment scores were
+neutral due to zero candidate gradient. CPU checkpoint verification and W&B
+reconciliation job `31528917` completed with exit 0 (29 seconds); cloud
+verification reached 100, canonical revision
+`07e12f64924f324c994551ebb4a8f98037da9561849c9bf2796557cc9971a5e6`.
+Task 13 inspection on 2026-10-31 found no active job, new C continuation,
+or corrected D main ledger/directory. Do not repeat reconciliation. The CPU
+diagnosis and follow-up priorities are in
+`docs/investigations/learning-stagnation-diagnosis.md` and
+`docs/plan/13-diagnosis-plan.md`; raw outputs remain private under `runs/task13/`.
+
+## Corrected C iteration 40 — latest live state
+
+Continuation job `31455833` completed successfully at the bounded iteration 40
+stop (5,063 seconds, 1.406389 H200 GPU-hours). Development evaluation scored
+10/41, versus corrected A 12/41 and B 13/41 at the same iteration. The trainer
+reports stopped; do not duplicate the completed job. CPU job `31468758`
+verified the checkpoint checksums and identity and reconciled W&B through 40;
+canonical revision is `688236f3308ee749b7e89a192165fd35fd8b2190a38cee57e9c876ea020cf5a3`.
+Continuation job `31469208` was submitted from checkpoint `000040`, with
+the scheduler export and ledger confirming the bounded stop at 100. It was
+initially pending. Inspect this existing job before any action; do not duplicate
+it. Review science and telemetry at 60, 80 and 100. The local controller watcher
+was started with `hpc watch 35bfbd1bc074a8963e916f77 --interval 60` and may
+retry only its supported transient failures, retaining the stop at 100.
+
+## Standing submission authorization — 2026-10-30
+
+The user authorizes the submissions needed to complete the corrected study,
+including main GPU allocations and necessary continuations, without asking for
+permission again. Start corrected Experiment A with one H200 allocation through
+iteration 20; review scientific health at iterations 5, 10 and 20 and verify the
+joint checkpoint before deciding on continuation. Reconcile live scheduler and
+ledger state before submissions and never duplicate an uncertain job. This
+authorization does not waive scientific identity, isolation, accounting,
+checkpoint, failure-handling or held-out-data safeguards. Historical statements
+below that main training requires a new authorization record earlier decisions
+and are superseded for work needed to complete the corrected study.
+
+Corrected study live checkpoint: A run `747bd2e097258445de647e47` started as
+job `31364215`, completed iteration 20 cleanly in 1:34:28, and continued from
+the controller-verified checkpoint `000020` in job `31372772`. Its development
+result improved from 0/41 to 14/41; 34/320 proposals were valid and 36/136
+episodes succeeded. Iteration-5 and -10 health reviews passed, and W&B cloud
+history was verified through iteration 20. Fresh corrected B run
+`f3271727f5fd25c07466e50d` completed its iteration-20 stop in job `31372774`:
+13/41 development successes versus 0/41 initially, 30/320 valid proposals and
+20/120 successful episodes. Its iteration-5, -10 and -20 health and cloud
+delivery reviews were performed. Controller-verified checkpoint `000020`
+continued in job `31381376`. Inspect these existing jobs and ledgers before
+any action; do not duplicate them. Monitor development and telemetry for
+regression. A's later development results were 12/41 at iteration 40, 11/41
+at 60, 10/41 at 80, 11/41 at both 100 and 120, 10/41 at 140, and 11/41
+at both 160 and 180,
+following 14/41 at 20.
+B was 13/41 at both 20 and 40, 12/41 at 60, 11/41 at 80, 9/41 at 100,
+10/41 at both 120 and 140, 9/41 at 160, and 11/41 at 180.
+A's iterations 98–117
+produced only 6 valid proposals out of 320 attempts, with 131 duplicates;
+monitor the declining proposal yield. A has not repeated the earlier collapse
+to zero. A's W&B delivery became intermittent after iteration 142 with repeated
+`OSError` warnings, while training and local scientific records continued; cloud
+history later reached 181, but the dashboard can incorrectly show finished. B
+also reported delivery errors; its cloud history reached at least 133. After each
+trainer writer has stopped, reconcile and cloud-verify checkpoint-backed aggregates
+as necessary with the single-writer recovery mechanism. These job
+states are a snapshot, not live state.
+
+Corrected A reached iteration 200 and Slurm job `31372772` completed with exit
+0; its final development result was 11/41. Including initial job `31364215`,
+allocated time was 29,179 seconds (8.1053 H200 GPU-hours). After its writer
+exited, CPU job `31397974` verified the final checkpoint checksums and reconciled
+the original W&B run; cloud verification reached iteration 200, canonical
+revision `292f50c216df0a7bb0bdd680e51dc459e83d88d212d67e67f6ff46637b6f3f7a`.
+Corrected B job `31381376` was running at iteration 153 at this snapshot.
+An aggregate event analysis of A finds 161/3,200 valid proposals; iterations
+141–200 contributed 17/960. Of 98 student optimizer steps, 82 had zero current
+group-relative RL signal; earlier optimizer momentum can still contribute. All
+saved A trajectory shards were subsequently fetched to the ignored private
+workspace and analyzed: at iterations 20/100/200, rejected patches examined
+had actual newlines (152/90/93) and none had literal backslash-n. Patch context
+and hunk errors remained common. This is observational, not causal evidence.
+
+Corrected B has also completed iteration 200: jobs `31372774` and `31381376`
+both exited 0 and used 29,167 allocated seconds (8.1020 H200 GPU-hours).
+Final development was 12/41 versus A's 11/41, a single-seed descriptive result.
+CPU job `31404487` verified B's final checkpoint and reconciled W&B; canonical
+revision `22ae1beb5cd0a9b7d9acfbc31d86f32b4a0e30edd006585ae9fdf5095889b810`
+was cloud-verified through 200. B yielded 162/3,200 valid proposals and 84/102
+student steps had zero current RL signal; earlier momentum can contribute.
+Both complete trajectory sets are in the ignored private local workspace. C/D
+have not been submitted; assess the documented alignment numerical sensitivity
+and scientific value before any further method. Inspect the live scheduler.
+
+Corrected C bounded stage was submitted after user direction and a passing
+preview: controller run `35bfbd1bc074a8963e916f77`, Slurm job `31429026`, one
+H200, stop at iteration 20, no automatic continuation. Inspect this existing
+job and ledger before acting; never duplicate it. Review health, alignment
+coverage, development results and W&B at iterations 5, 10 and 20, then verify
+the joint checkpoint and decide scientifically whether to continue. The earlier
+statement that C had not been submitted is historical.
+At C iteration 5, the completed review found 8/80 valid proposals, 3/32
+successful episodes, one mixed group, and five steps per optimizer. Seven of
+eight alignment scores were neutral due to zero candidate gradients; the one
+nonzero cosine was 0.000988. Cloud W&B history was verified through 5. A
+rollout-scoring mismatch warning was recorded; maximum student log-probability
+difference through 5 was 2.216, and its causal effect is unverified.
+At iteration 10, C had 16/160 valid proposals, 11/64 successful episodes,
+three mixed groups and nine steps per optimizer. Thirteen of 16 alignment
+scores were neutral; the other cosines were 0.000988, -0.001611 and 0.113171.
+Cloud W&B history was verified through 10. Continue the existing bounded job
+to its iteration-20 stop and review; do not duplicate it.
+The C job `31429026` subsequently stopped cleanly at iteration 20 and Slurm
+recorded `COMPLETED` exit 0 after 6,119 seconds (1.699722 H200 GPU-hours).
+Its development evaluation was 12/41, versus 14/41 A and 13/41 B at iteration
+20. CPU job `31444352` was submitted once to verify checkpoint checksums and
+reconcile W&B; inspect it before any further recovery. Complete the 20-iteration
+scientific health and alignment review before deciding whether to continue.
+CPU job `31444352` completed checksum verification and cloud reconciliation
+through 20; canonical revision `904d5540957132887f6432184ef60438f803983f0bdc0e9726f9aa0efe099b04`.
+The 20-iteration review found 29/320 valid proposals, 28/116 successful
+episodes, six mixed groups, 15 steps per optimizer, and 23/29 neutral
+alignments. The six non-neutral cosines were 0.000988, -0.001611, 0.113171,
+0.063790, 0.300570 and -0.162341. There were 14 rollout-scoring mismatch
+warnings; the maximum sampled student log-probability difference was 2.317.
+The stopped checkpoint is fully resumable with matching corrected identity. No
+continuation or D job was submitted. Inspect live state before future action.
+The user subsequently directed continued investigation. Controller commit
+`e194101` added an explicit clean-continuation stop that persists across
+transient retries; local tests and hosted CI `41132705970` passed. C continuation
+job `31455833` resumed verified checkpoint `000020` with an explicit stop at
+iteration 40; the scheduler export and ledger both confirm 40. Inspect this
+existing job before any action and never duplicate it. Review the complete
+iteration-40 result and alignment health, then verify its joint checkpoint.
+The standard local `hpc watch` was started for this run (local process 73899,
+2026-10-30) without `--continue-stopped`: it monitors and may retry only
+documented transient scheduler failures, preserving the iteration-40 stop.
+It does not perform the scientific review; check whether the watcher remains
+alive after any interruption and inspect the ledger and Slurm before acting.
+The resumed segment reached iteration 25: iterations 21–25 had 5/80 valid
+proposals, 7/20 successful episodes and five alignment scores, four neutral;
+the non-neutral cosine was -0.040464. Both optimizers stepped three times.
+These small-window observations are provisional; continue to the bounded 40.
+Through iteration 30, the resumed 21–30 window had 9/160 valid proposals,
+15/36 successful episodes, seven steps per optimizer and eight neutral scores
+of nine. The job remained active with stop 40 after this review.
+Through iteration 35, iterations 21–35 had 15/240 valid proposals, 27/60
+successful episodes, eleven steps per optimizer and fourteen neutral alignment
+scores of fifteen. The existing continuation remains bounded to 40.
+
 This repository studies controlled Python repair self-play with on-policy self
 distillation (OPSD), GRPO and verifiable rewards. The authoritative scientific
 specification is `docs/task/01-experiment-implementation-spec.md`; early proposal

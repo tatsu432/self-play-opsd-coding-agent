@@ -372,3 +372,41 @@ def test_worker_reuse_requires_identical_limits_and_retains_provenance(tmp_path,
     changed = cfg.execution_limits() | {"memory_mib": 2048}
     with pytest.raises(ValueError, match="limits changed"):
         remote.reuse_worker(payload | {"execution_limits": changed})
+
+
+def test_syntax_error_in_generated_patch_is_a_tool_failure():
+    from selfplay_opsd.mutations import make_patch
+
+    cfg = load_config(study_id="syntax-failure", hardware_profile="cpu_debug")
+    policy = HFPolicy(cfg)
+    task, oracle, sandbox = fake_task()
+    patch = make_patch(task.initial_source, "def f(x):\n    return (\n")
+    actions = [
+        json.dumps({"action": "apply_patch", "patch": patch}),
+        json.dumps({"action": "finish"}),
+    ]
+    calls = []
+    verified_sources = []
+
+    def verify(source, *args):
+        verified_sources.append(source)
+        return Verification(Status.OK, True, [True, True], 0, 0, 0.0)
+
+    sandbox.verify = verify
+
+    def generate(prompt, max_tokens, seed, *, greedy=False):
+        text = actions[len(calls)]
+        calls.append(text)
+        ids = policy.tokenizer.encode(text)
+        return Generation(ids, [0.0] * len(ids), text)
+
+    policy.generate = generate
+    try:
+        episode = run_episode(policy, sandbox, task, oracle, cfg.episode, 2026)
+        assert [turn.parse_status for turn in episode.turns] == ["tool_error", "valid"]
+        assert episode.termination == "finish"
+        assert episode.final_source == task.initial_source
+        assert verified_sources == [task.initial_source]
+        assert "error" in json.loads(episode.turns[1].history[-2]["content"])
+    finally:
+        policy.close()
