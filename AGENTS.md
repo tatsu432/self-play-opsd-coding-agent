@@ -43,6 +43,11 @@ Corrected B200 diff proposer replacement job `31619234`, run
 `d113371007fb12d958f92ccf`, was submitted once from execution
 `577445bdc83fbd9be6973f4e9be5edf1240a232a`. Confirm checkpoint loading and
 generated records before submitting the remaining B200 replacements.
+Checkpoint verification and generation passed. The remaining B200 replacement
+arms were submitted once from `56ce3fedd45bad9b291159b52935f5c1c4d47478`:
+structured proposer `31619324` / `5c34adbea7983c01775ef5a8`, student diff
+`31619326` / `0078cd3bbbb89eb3c5282ddd`, and student body `31619331` /
+`bce7b4ed210efe8445488fbd`. Inspect these ledgers; do not duplicate.
 
 ## Task 13 CPU header replay — 2026-10-31
 
