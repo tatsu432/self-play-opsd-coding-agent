@@ -82,6 +82,10 @@ and three parent groups with multiple valid candidates. Pairwise replay job
 `31620042`, run `4997792779c7970174458437`, was submitted once from
 `4b1d446ffff4050e777ba0100cc9a6686b9f4c41` against the saved samples; inspect
 its ledger and do not duplicate it.
+The replay completed exit 0. Standardized RL-versus-combined alignment update
+cosine was 0.99224, while an identical validity-reward repeat was 0.99542.
+Only three multi-valid groups were observed; C/D online arms remain deferred
+because their update separation is small relative to repeat variation.
 The prospectively paired B200 diagnostics were submitted once from execution
 `729e5ebb48b8824c0416fac2406ee824e38346d4`: proposer diff job `31619188` /
 run `213649b633cd16eed4c4bb85`, proposer structured `31619189` /
