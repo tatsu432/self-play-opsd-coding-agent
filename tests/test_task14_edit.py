@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import pytest
 
 from selfplay_opsd.mutations import parse_action, replace_function_body
@@ -36,3 +38,18 @@ def test_protocol_allows_only_selected_edit_action():
 def test_replacement_does_not_add_imports():
     with pytest.raises(ValueError, match="preserve imports"):
         replace_function_body("def f(x):\n    return x\n", "f", "import math\nreturn x")
+
+
+def test_environment_applies_body_and_rejects_invalid_edit_without_mutation():
+    from selfplay_opsd.environment import RepairEnvironment
+
+    source = "def f(x):\n    return x + 1\n"
+    env = RepairEnvironment(SimpleNamespace(initial_source=source), None, None, None)
+    result = env.step({"action": "replace_function_body", "function": "f", "body": "return x - 1"})
+    assert result["ok"] and "return x - 1" in env.source
+    previous = env.source
+    with pytest.raises(ValueError):
+        env.step(
+            {"action": "replace_function_body", "function": "f", "body": "import math\nreturn x"}
+        )
+    assert env.source == previous
