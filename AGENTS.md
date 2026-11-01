@@ -37,6 +37,15 @@ comparisons remain open. Base diff numerical audit `31619786` / run
 `50c0b26f9c555e120db54e90` and training-only diff calibration `31619788` /
 `f78ba9f3c0386e1289aafdb3` were submitted once from execution
 `5ebd956ed25c8ba28a17113e35795bdbb9ac6d31`; do not duplicate either.
+Diff calibration completed exit 0 and selected ungated coefficient
+`0.007773662398632436` from eight training-only tasks; its `calibration.json`
+SHA-256 is `058fac5830e8fb3114fe3dfc169296628833d15916a136a638b2773be66bc993`.
+The frozen static control is `configs/task14-static-control.json`. Seed-2026
+matched static arms were submitted once from `61cb728b540a63d26ae92f1929b2b8814a56376d`:
+GRPO `31620238` / `b67448ace7296c93663241b6`, gated `31620241` /
+`9cbf2d833377ebba0f78c7c9`, ungated `31620251` / `3a6083a657af90615f43cb2b`.
+They evaluate at 80 and 160 attempted episodes. Inspect each ledger; never
+duplicate. Review health and exposure before launching seeds 2027 and 2028.
 The base diff numerical audit completed exit 0: max log-probability mismatch
 1.070, sign-sensitive clipping 21/5,608 eligible tokens, combined gradient
 cosine 0.825 and Adam-update cosine 0.656 against a diagnostic rescored-
