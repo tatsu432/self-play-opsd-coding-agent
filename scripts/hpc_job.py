@@ -977,13 +977,10 @@ def task13_command_args(env: dict) -> list[str]:
                 "/workspace/configs/task14-static-control.json",
             ]
         )
-<<<<<<< HEAD
     if operation == "task14-counterfactual-replay":
         return prefix + ["/workspace/scripts/task14_counterfactual_replay.py"] + common
-=======
     if operation == "task14-online":
         return prefix + ["/workspace/scripts/task14_online.py"] + common + ["--method", method]
->>>>>>> be949ea (Add bounded online self-play operation)
     if operation == "task14-counterfactual":
         return (
             prefix

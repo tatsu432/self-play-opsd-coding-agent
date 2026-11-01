@@ -1884,17 +1884,6 @@ def precheck(payload: dict):
             raise ValueError(
                 "Task 14 static requires a bounded H200 arm and frozen calibration control"
             )
-<<<<<<< HEAD
-        if operation in {"task14-numerical", "task14-numerical-components"}:
-            if operation == "task14-numerical-components" and payload["method"] not in {"A", "C"}:
-                raise ValueError("Numerical decomposition requires a diff student arm")
-            source_run, source_job = {
-                "A": ("cd5dae1d517b8b78d2535071", "31618995"),
-                "B": ("6efc9d94e4f5e2e7b0b0fd04", "31618998"),
-                "C": ("0078cd3bbbb89eb3c5282ddd", "31619326"),
-                "D": ("bce7b4ed210efe8445488fbd", "31619331"),
-            }[payload["method"]]
-=======
         if operation == "task14-online" and (
             payload.get("account") != "cpsc4880"
             or payload.get("gpu_count") != 1
@@ -1908,13 +1897,15 @@ def precheck(payload: dict):
             raise ValueError(
                 "Task 14 online arm requires bounded H200, verified backend and online logging"
             )
-        if operation == "task14-numerical":
-            source_run, source_job = (
-                ("cd5dae1d517b8b78d2535071", "31618995")
-                if payload["method"] == "A"
-                else ("6efc9d94e4f5e2e7b0b0fd04", "31618998")
-            )
->>>>>>> be949ea (Add bounded online self-play operation)
+        if operation in {"task14-numerical", "task14-numerical-components"}:
+            if operation == "task14-numerical-components" and payload["method"] not in {"A", "C"}:
+                raise ValueError("Numerical decomposition requires a diff student arm")
+            source_run, source_job = {
+                "A": ("cd5dae1d517b8b78d2535071", "31618995"),
+                "B": ("6efc9d94e4f5e2e7b0b0fd04", "31618998"),
+                "C": ("0078cd3bbbb89eb3c5282ddd", "31619326"),
+                "D": ("bce7b4ed210efe8445488fbd", "31619331"),
+            }[payload["method"]]
             source = paths(payload)["runs"] / "repair-diagnosis-2026-task14-student-v1" / source_run
             state = job_state(source_job)
             if (
