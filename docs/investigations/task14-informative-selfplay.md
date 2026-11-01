@@ -29,6 +29,14 @@ Both corrected B200 arms loaded and checksum-verified the retained checkpoint on
 
 The diff and structured allocations used 763 and 236 H200-seconds respectively, equivalent to 9.4 and 427.1 unique history-novel mutations per allocated GPU-hour. Structured outputs covered 29 parent/location pairs and seven operator types. These inference-only figures do not establish student reward variation or benefit from online training. The first B200 attempt failed due to a transcribed identity hash, and another allocated attempt was cancelled; together they used 88 H200-seconds and are retained for accounting. Two further cancelled attempts never started. Corrected replacements were submitted after the identity was checked and the first corrected arm verified model loading and generated records.
 
+```bash
+uv run python scripts/analyze_task14_probes.py \
+  --diff runs/hpc/yale-hpc-cpsc4880/d113371007fb12d958f92ccf \
+  --structured runs/hpc/yale-hpc-cpsc4880/5c34adbea7983c01775ef5a8 \
+  --data data/protocol-v3 --output runs/task14/b200-proposal-comparison.json \
+  --diff-gpu-hours 0.211944444444 --structured-gpu-hours 0.065555555556
+```
+
 ## Base-student editing comparison
 
 On the same 16 training-only static tasks and four matched seeds, the base student repaired 7/64 episodes with unified diffs and 2/64 with function-body replacement. The paired success difference (body minus diff) was −7.8125 percentage points (2,000-resample parent-bootstrap 95% interval −18.75 to +1.5625). Function-body replacement made 81/140 edit attempts valid, versus 7/160 for diffs, but greater syntactic success did not translate into more verified repairs in this sample. The two arms generated 27,282 and 37,335 student tokens respectively. The B200 paired editing probe remains in progress, so protocol selection is provisional; diffs remain the default. Training-only diff calibration was started without using any held-out outcome.
