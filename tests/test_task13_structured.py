@@ -138,6 +138,86 @@ def test_allocated_probe_command_preserves_checkpoint_and_extra_slots():
     assert args[args.index("--parents") + 1] == "16"
     assert args[args.index("--slot-start") + 1] == "4"
     assert args[args.index("--representation") + 1] == "diff"
+    task14 = job.task13_command_args(
+        env
+        | {
+            "SELFPLAY_OPERATION": "task14-probe",
+            "SELFPLAY_METHOD": "B",
+            "SELFPLAY_ITERATIONS": "10",
+            "SELFPLAY_CHECKPOINT": "",
+        }
+    )
+    assert "--task14" in task14 and "--checkpoint" not in task14
+    assert task14[task14.index("--representation") + 1] == "structured"
+    task14_b200 = job.task13_command_args(
+        env
+        | {
+            "SELFPLAY_OPERATION": "task14-probe",
+            "SELFPLAY_METHOD": "D",
+            "SELFPLAY_ITERATIONS": "10",
+            "SELFPLAY_CHECKPOINT": "",
+        }
+    )
+    assert "--task14-b200" in task14_b200
+    assert task14_b200[task14_b200.index("--representation") + 1] == "structured"
+    student = job.task13_command_args(
+        env | {"SELFPLAY_OPERATION": "task14-student", "SELFPLAY_METHOD": "B"}
+    )
+    assert student[student.index("--edit-protocol") + 1] == "replace_function_body"
+    assert student.count("/workspace/scripts/task14_student_probe.py") == 1
+    student_b200 = job.task13_command_args(
+        env | {"SELFPLAY_OPERATION": "task14-student", "SELFPLAY_METHOD": "C"}
+    )
+    assert student_b200[student_b200.index("--snapshot") + 1] == "b200"
+    assert student_b200[student_b200.index("--edit-protocol") + 1] == "unified_diff"
+    counterfactual = job.task13_command_args(
+        env | {"SELFPLAY_OPERATION": "task14-counterfactual", "SELFPLAY_METHOD": "B"}
+    )
+    assert counterfactual[counterfactual.index("--representation") + 1] == "structured_ast"
+    assert counterfactual.count("/workspace/scripts/task14_counterfactual.py") == 1
+    replay = job.task13_command_args(
+        env | {"SELFPLAY_OPERATION": "task14-counterfactual-replay", "SELFPLAY_METHOD": "B"}
+    )
+    assert replay.count("/workspace/scripts/task14_counterfactual_replay.py") == 1
+    assert "--checkpoint" not in replay
+    numerical = job.task13_command_args(
+        env | {"SELFPLAY_OPERATION": "task14-numerical", "SELFPLAY_METHOD": "A"}
+    )
+    assert numerical[numerical.index("--source") + 1].endswith("cd5dae1d517b8b78d2535071")
+    numerical_b200 = job.task13_command_args(
+        env | {"SELFPLAY_OPERATION": "task14-numerical", "SELFPLAY_METHOD": "C"}
+    )
+    assert numerical_b200[numerical_b200.index("--source") + 1].endswith("0078cd3bbbb89eb3c5282ddd")
+    components = job.task13_command_args(
+        env | {"SELFPLAY_OPERATION": "task14-numerical-components", "SELFPLAY_METHOD": "A"}
+    )
+    assert "--components" in components
+    proposal_student = job.task13_command_args(
+        env | {"SELFPLAY_OPERATION": "task14-proposal-student", "SELFPLAY_METHOD": "C"}
+    )
+    assert proposal_student[proposal_student.index("--source") + 1].endswith(
+        "d113371007fb12d958f92ccf"
+    )
+    calibration = job.task13_command_args(
+        env | {"SELFPLAY_OPERATION": "task14-calibrate", "SELFPLAY_METHOD": "B"}
+    )
+    assert calibration[calibration.index("--edit-protocol") + 1] == "replace_function_body"
+    static = job.task13_command_args(
+        env
+        | {
+            "SELFPLAY_OPERATION": "task14-static",
+            "SELFPLAY_METHOD": "C",
+            "SELFPLAY_ITERATIONS": "27",
+        }
+    )
+    assert static[static.index("--method") + 1] == "A"
+    assert static[static.index("--seed") + 1] == "2027"
+    assert static[static.index("--control") + 1].endswith("task14-static-control.json")
+    online = job.task13_command_args(
+        env | {"SELFPLAY_OPERATION": "task14-online", "SELFPLAY_METHOD": "B"}
+    )
+    assert online[online.index("--method") + 1] == "B"
+    assert online.count("/workspace/scripts/task14_online.py") == 1
     extra_base = job.task13_command_args(env | {"SELFPLAY_METHOD": "B", "SELFPLAY_CHECKPOINT": ""})
     assert (
         "--checkpoint" not in extra_base and extra_base[extra_base.index("--slot-start") + 1] == "4"

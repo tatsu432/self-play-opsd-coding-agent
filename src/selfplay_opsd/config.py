@@ -38,6 +38,7 @@ class ModelConfig(Strict):
 
 
 class EpisodeConfig(Strict):
+    edit_protocol: Literal["unified_diff", "replace_function_body"] = "unified_diff"
     max_turns: int = Field(default=8, ge=1)
     max_generated_tokens: int = Field(default=4096, ge=1)
     max_turn_generated_tokens: int = Field(default=1024, ge=1)
@@ -159,6 +160,7 @@ class LoggingConfig(Strict):
 
 class RunConfig(Strict):
     study_id: str = Field(pattern=r"^[a-zA-Z0-9][a-zA-Z0-9_.-]*$")
+    proposer_representation: Literal["unified_diff", "structured_ast"] = "unified_diff"
     method: Literal["A", "B", "C", "D", "GRPO", "GRPO_KL"] = "B"
     seed: int = 2026
     iterations: int = Field(default=200, ge=1)

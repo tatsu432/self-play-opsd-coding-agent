@@ -912,15 +912,100 @@ def task13_command_args(env: dict) -> list[str]:
         "--output",
         env["SELFPLAY_OUTPUT"],
     ]
-    if operation == "task13-probe":
+    if operation == "task14-student":
+        args = (
+            prefix
+            + ["/workspace/scripts/task14_student_probe.py"]
+            + common
+            + [
+                "--edit-protocol",
+                "unified_diff" if method in {"A", "C"} else "replace_function_body",
+            ]
+        )
+        if method in {"C", "D"}:
+            args += ["--snapshot", "b200"]
+        return args
+    if operation == "task14-calibrate":
+        return (
+            prefix
+            + ["/workspace/scripts/task14_calibrate.py"]
+            + common
+            + ["--edit-protocol", "unified_diff" if method == "A" else "replace_function_body"]
+        )
+    if operation == "task14-proposal-student":
+        source = {
+            "A": "276931a7445252e963f37b1b",
+            "B": "36db89f113049ef37c32b79d",
+            "C": "d113371007fb12d958f92ccf",
+            "D": "5c34adbea7983c01775ef5a8",
+        }[method]
+        return (
+            prefix
+            + ["/workspace/scripts/task14_proposal_student.py"]
+            + common
+            + ["--source", "/runs/repair-diagnosis-2026-task14-probe-v1/" + source]
+        )
+    if operation in {"task14-numerical", "task14-numerical-components"}:
+        source = {
+            "A": "cd5dae1d517b8b78d2535071",
+            "B": "6efc9d94e4f5e2e7b0b0fd04",
+            "C": "0078cd3bbbb89eb3c5282ddd",
+            "D": "bce7b4ed210efe8445488fbd",
+        }[method]
+        args = (
+            prefix
+            + ["/workspace/scripts/task14_numerical.py"]
+            + common
+            + ["--source", "/runs/repair-diagnosis-2026-task14-student-v1/" + source]
+        )
+        if operation == "task14-numerical-components":
+            args += ["--components"]
+        return args
+    if operation == "task14-static":
+        seed = 2000 + int(env["SELFPLAY_ITERATIONS"])
+        arm = {"A": "GRPO", "B": "B", "C": "A"}[method]
+        return (
+            prefix
+            + ["/workspace/scripts/task14_static.py"]
+            + common
+            + [
+                "--method",
+                arm,
+                "--seed",
+                str(seed),
+                "--control",
+                "/workspace/configs/task14-static-control.json",
+            ]
+        )
+    if operation == "task14-counterfactual-replay":
+        return prefix + ["/workspace/scripts/task14_counterfactual_replay.py"] + common
+    if operation == "task14-online":
+        return prefix + ["/workspace/scripts/task14_online.py"] + common + ["--method", method]
+    if operation == "task14-counterfactual":
+        return (
+            prefix
+            + ["/workspace/scripts/task14_counterfactual.py"]
+            + common
+            + ["--representation", "unified_diff" if method == "A" else "structured_ast"]
+        )
+    if operation in {"task13-probe", "task14-probe"}:
         args = (
             prefix
             + ["/workspace/scripts/task13_probe.py"]
             + common
-            + ["--representation", "structured" if method == "B" else "diff"]
+            + [
+                "--representation",
+                "structured"
+                if method == "B" or (operation == "task14-probe" and method == "D")
+                else "diff",
+            ]
         )
         if env.get("SELFPLAY_CHECKPOINT"):
             args += ["--checkpoint", env["SELFPLAY_CHECKPOINT"]]
+        if operation == "task14-probe":
+            args += ["--task14"]
+            if method in {"C", "D"}:
+                args += ["--task14-b200"]
         if env.get("SELFPLAY_ITERATIONS") == "8":
             args += ["--parents", "16", "--slots", "4", "--slot-start", "4"]
         return args
@@ -976,6 +1061,16 @@ def execute(env: dict) -> int:
         "evaluate",
         "diagnose",
         "task13-probe",
+        "task14-probe",
+        "task14-student",
+        "task14-counterfactual",
+        "task14-counterfactual-replay",
+        "task14-calibrate",
+        "task14-numerical",
+        "task14-numerical-components",
+        "task14-proposal-student",
+        "task14-static",
+        "task14-online",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -996,6 +1091,16 @@ def execute(env: dict) -> int:
         "evaluate",
         "diagnose",
         "task13-probe",
+        "task14-probe",
+        "task14-student",
+        "task14-counterfactual",
+        "task14-counterfactual-replay",
+        "task14-calibrate",
+        "task14-numerical",
+        "task14-numerical-components",
+        "task14-proposal-student",
+        "task14-static",
+        "task14-online",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1220,6 +1325,16 @@ def execute(env: dict) -> int:
         ]
         if operation in {
             "task13-probe",
+            "task14-probe",
+            "task14-student",
+            "task14-counterfactual",
+            "task14-counterfactual-replay",
+            "task14-calibrate",
+            "task14-numerical",
+            "task14-numerical-components",
+            "task14-proposal-student",
+            "task14-static",
+            "task14-online",
             "task13-counterfactual",
             "task13-model-probe",
             "task13-header-replay",

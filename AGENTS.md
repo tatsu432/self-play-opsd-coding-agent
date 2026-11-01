@@ -1,5 +1,120 @@
 # Project and operating instructions
 
+## Task 14 execution authorization — 2026-11-01
+
+The user explicitly directs uninterrupted completion of Task 14, including
+implementation, validation, Yale job submissions, monitoring and analysis.
+GPU and CPU allocations needed for the work are authorized; do not ask again
+or stop at a plan or controller implementation. Reconcile Slurm and the
+ledger before each submission, preserve immutable identities and worker
+isolation, and never duplicate an uncertain or completed job. The new study is
+`repair-selfplay-2026-task14-v1`. CPU runtime-validation job `31618471`, run
+`15932a55fc1f948cd84fcda8`, was submitted once from execution
+`2c8b1615cec63f62612af3417347a8b02acb712c`; inspect it before any recovery.
+Runtime validation completed exit 0. Prospective 4B diff job `31618956`, run
+`276931a7445252e963f37b1b`, and structured job `31618960`, run
+`36db89f113049ef37c32b79d`, were each submitted once from execution
+`d24c09664c3ec1b83598302bfa3aae1161867617`. Both use the same 40
+prespecified training-only parents outside the Task 13 sample. Inspect their
+ledgers and live Slurm state before any action; never duplicate either job.
+Both completed exit 0. On 160 samples each, diff yielded 58 verified outputs
+and 22 unique parent/mutation pairs in 589 H200-seconds; structured yielded
+90 and 34 in 257 H200-seconds. The paired bootstrap interval for the unique
+difference was -0.025 to +0.60 mutations per parent. Results and reproduction
+are in `docs/investigations/task14-informative-selfplay.md`.
+Paired base-student editing probes were submitted once from execution
+`36e8247937aacef114996e6348e42ac617e7e577`: unified diff job `31618995`,
+run `cd5dae1d517b8b78d2535071`, and function-body job `31618998`, run
+`6efc9d94e4f5e2e7b0b0fd04`. Both use the same 16 training-only static tasks
+and four rollout seeds each. Inspect their ledgers; never duplicate them.
+Base function-body student job `31618998` completed exit 0. Its saved
+rollouts feed numerical audit job `31619683`, run `5cfc6fa822734449d11d284d`,
+submitted once from `fd89d896774ec75e8a028b3890eb80a12ae9bc0c`. Inspect that
+ledger before action; do not duplicate it.
+The matched base diff/body student comparison completed: 7/64 versus 2/64
+repairs, while 7/160 versus 81/140 edit attempts succeeded. B200 student
+comparisons remain open. Base diff numerical audit `31619786` / run
+`50c0b26f9c555e120db54e90` and training-only diff calibration `31619788` /
+`f78ba9f3c0386e1289aafdb3` were submitted once from execution
+`5ebd956ed25c8ba28a17113e35795bdbb9ac6d31`; do not duplicate either.
+Diff calibration completed exit 0 and selected ungated coefficient
+`0.007773662398632436` from eight training-only tasks; its `calibration.json`
+SHA-256 is `058fac5830e8fb3114fe3dfc169296628833d15916a136a638b2773be66bc993`.
+The frozen static control is `configs/task14-static-control.json`. Seed-2026
+matched static arms were submitted once from `61cb728b540a63d26ae92f1929b2b8814a56376d`:
+GRPO `31620238` / `b67448ace7296c93663241b6`, gated `31620241` /
+`9cbf2d833377ebba0f78c7c9`, ungated `31620251` / `3a6083a657af90615f43cb2b`.
+They evaluate at 80 and 160 attempted episodes. Inspect each ledger; never
+duplicate. Review health and exposure before launching seeds 2027 and 2028.
+Separately, structured online candidate study `repair-selfplay-2026-task14-online-v1`
+has CPU runtime-validation job `31620333`, run `9dcb80b41bd00c7dc37ffed5`,
+submitted once from worktree branch `feat/14-online-telemetry`, execution
+`a3f9d0a446319e6e91bad1071ff89c360c8ec480`. No online training was submitted.
+Inspect this job and ledger, never duplicate it, and require the scientific
+reviews and target backend check before deciding whether online arms are useful.
+The independent online-study H200 backend check was submitted once from the
+same execution as job `31620340`, run `07da1772865ca4778a63d2c8`. Inspect its
+ledger and do not duplicate it.
+The base diff numerical audit completed exit 0: max log-probability mismatch
+1.070, sign-sensitive clipping 21/5,608 eligible tokens, combined gradient
+cosine 0.825 and Adam-update cosine 0.656 against a diagnostic rescored-
+denominator branch. Preserve behavior probabilities. Focused RL/SD and
+outlier-only replay job `31620094`, run `84f19b42553244e439b0611e`, was
+submitted once from `7cc62d3c22047e9311e1e5fdd8404dae9ec1b4e8`; do not duplicate.
+B200 paired student comparison completed: diff 20/64 repairs and 28/168 valid
+edit actions, body 1/64 and 99/147, respectively. Diff editing was selected
+for static controls using these training-only outcomes. B200 diff numerical
+audit job `31619962`, run `aca754b0a57ee5f72b89e53e`, was submitted once from
+`a96b3503062eab8c21559f44f6f81da51d03810f`; do not duplicate it.
+B200 numerical audit completed exit 0; its eight groups were all uniform.
+Targeted B200 mixed/uniform decomposition job `31620455`, run
+`02ed9e64e46ef4269b5a3c7a`, was submitted once from
+`668f01d46136bcb072d9d05bc65512d333554238`; it includes both mixed groups
+from the saved training-only source and must not be treated as a population
+estimate. Inspect the ledger and do not duplicate it.
+Four student-rollout probes on the already verified novel proposal outputs
+were submitted once from `fa1bf8ff5fb2ad9e6022cd3f7232ad716cb0b880`:
+base diff `31619815` / `e9b9d60a8fdfa400bfb9864a`, base structured
+`31619817` / `6dfde0dc399bc11f09abe923`, B200 diff `31619819` /
+`08abe587ab5f63da1cdba245`, and B200 structured `31619820` /
+`2b9520fbe8585cd5c453abb8`. They use diff student editing and up to 32
+history-novel tasks, four rollouts each; inspect ledgers before action.
+Structured base-snapshot reward counterfactual job `31619094`, run
+`e74ecdee52efe104590c60b3`, was submitted once from execution
+`ec28f24568c34468ff4f4fc67567d1be508e3532`; inspect its ledger and Slurm
+state before action and never duplicate it.
+That counterfactual completed exit 0: 12 valid tasks, six mixed student groups,
+and three parent groups with multiple valid candidates. Pairwise replay job
+`31620042`, run `4997792779c7970174458437`, was submitted once from
+`4b1d446ffff4050e777ba0100cc9a6686b9f4c41` against the saved samples; inspect
+its ledger and do not duplicate it.
+The replay completed exit 0. Standardized RL-versus-combined alignment update
+cosine was 0.99224, while an identical validity-reward repeat was 0.99542.
+Only three multi-valid groups were observed; C/D online arms remain deferred
+because their update separation is small relative to repeat variation.
+The prospectively paired B200 diagnostics were submitted once from execution
+`729e5ebb48b8824c0416fac2406ee824e38346d4`: proposer diff job `31619188` /
+run `213649b633cd16eed4c4bb85`, proposer structured `31619189` /
+`3e9f7398bbf00cb0fba4e773`, student diff `31619190` /
+`63a52b186816085f0a8fe549`, and student body `31619191` /
+`9fa54dd8953d44263f8696ed`. These load the checksum-verified corrected B200
+snapshot for inference only. Inspect each existing ledger; never duplicate.
+Job `31619188` failed because the B200 verifier contained a transcribed hash
+missing the digits `307`; jobs `31619189`, `31619190` and `31619191` were
+cancelled after discovery and their terminal scheduler states confirmed. The
+verifier was corrected and all six expected metadata fields plus model config
+were compared directly to the retained checkpoint. Preserve those attempts and
+account for any allocation; replacement attempts require the corrected commit.
+Corrected B200 diff proposer replacement job `31619234`, run
+`d113371007fb12d958f92ccf`, was submitted once from execution
+`577445bdc83fbd9be6973f4e9be5edf1240a232a`. Confirm checkpoint loading and
+generated records before submitting the remaining B200 replacements.
+Checkpoint verification and generation passed. The remaining B200 replacement
+arms were submitted once from `56ce3fedd45bad9b291159b52935f5c1c4d47478`:
+structured proposer `31619324` / `5c34adbea7983c01775ef5a8`, student diff
+`31619326` / `0078cd3bbbb89eb3c5282ddd`, and student body `31619331` /
+`bce7b4ed210efe8445488fbd`. Inspect these ledgers; do not duplicate.
+
 ## Task 13 CPU header replay — 2026-10-31
 
 CPU-only worker job `31537818`, run `8878e774a2d4480b5f0eba36`, was submitted
@@ -679,3 +794,87 @@ The user authorized one bounded Experiment A H200 allocation through iteration 2
 ## Task 10 Experiment A completed — 2026-10-29
 
 The user authorized continuation to the frozen 200-iteration target. Initial job 31219895 and continuation 31232768 used 7.7025 allocated H200 GPU-hours in total. Slurm recorded the continuation `COMPLETED` (exit 0); trainer health is `complete` at iteration 200 and the latest checkpoint pointer is `000200`. No B–D jobs have been submitted. Scientific events report 173/3,200 valid proposals, 162/692 successful episodes, and 5/173 mixed-outcome groups. The 41-task development success was 12 at iterations 20 and 40, then declined to 0 at iteration 100 and remained 0 through iteration 200. Final held-out evaluations have not been run. W&B delivery failed after iteration 139 (86 recorded delivery errors); the cloud dashboard is stale, while local events and checkpoints are preserved. A full checkpoint-inclusive fetch/reconciliation remains outstanding; see the Task 10 completion record and `docs/task10-launch.md`. Do not interpret cloud finished status at 139 as a training stop. Do not submit B–D or new training without authorization.
+
+## Task 14 B200 downstream rollout check — 2026-11-01
+
+Structured student-rollout job `31619820`, run `2b9520fbe8585cd5c453abb8`, completed exit 0 after 1,164 seconds. It produced four mixed-reward groups in 28 structured history-novel tasks (112 episodes), versus zero in two diff tasks (eight episodes, job `31619819`). Including proposal generation, allocations were 1,400 versus 906 H200-seconds. Only one parent was shared; this is descriptive, not a reliable matched-parent comparison. Do not duplicate these jobs. Base structured rollout job `31619817` remains active at this snapshot.
+
+## Task 14 bounded structured online A/B submitted — 2026-11-01
+
+The online protocol has a separate immutable study `repair-selfplay-2026-task14-online-v1`, execution `a3f9d0a446319e6e91bad1071ff89c360c8ec480` on branch `feat/14-online-telemetry`, structured proposer and unified-diff student. CPU runtime validation `31620333` completed exit 0, and H200 backend check `31620340` completed exit 0; both actual A/B previews passed. Existing matched parent schedule is keyed by seed and iteration. The B200 structured proposal probe yielded 28 history-novel verified tasks and four mixed student groups; comparison and numerical caveats remain under review. Bounded 20-iteration A job `31620834`, run `0c1ad526d5433313c6e212ca`, and B job `31620835`, run `fcf4a2f847f261abfd316f37`, were each submitted once, with W&B online and six-hour caps. Inspect the ledgers and scheduler; never duplicate. Review initial adapter hashes, iteration health and diagnostic metrics, including numerical sensitivity, and verify checkpoints and cloud delivery after writers stop. Do not submit C/D without evidence of meaningful optimizer differences. Static controls and numerical decompositions remain active independently.
+
+## Task 14 base numerical decomposition — 2026-11-01
+
+Job `31620094`, run `84f19b42553244e439b0611e`, completed exit 0 in 1,366 H200-seconds. On 32 saved base-diff episodes, replacing behavior log probabilities only at the 84/17,180 tokens with absolute mismatch above 0.2 yielded combined gradient/Adam-update cosines 0.8250/0.6560 versus true behavior, close to replacing every denominator (0.8254/0.6551). RL-only cosines were 0.8195/0.6529 and SD-only 0.9311/0.8058 for outliers. These diagnostic changes also alter the SD gap, so do not infer a proven root cause or change true behavior-policy logging. Targeted B200 replay `31620455` remains active. Do not duplicate this job.
+
+## Task 14 base downstream rollout check — 2026-11-01
+
+Structured job `31619817`, run `6dfde0dc399bc11f09abe923`, completed exit 0 in 2,231 H200-seconds. Both base formats produced seven mixed groups: diff 7/22 tasks, structured 7/32 capped tasks. Including proposer allocations, mixed-group yields were 15.0 versus 10.1 per H200-hour. Across 12 shared parents the structured-minus-diff parent-macro difference was 0.00 (bootstrap 95% interval −0.33 to +0.33). Candidate tasks differ and structured was capped at 32, so do not claim proof of a general mixed-group increase. Do not duplicate this job.
+
+## Task 14 additional matched static seeds submitted — 2026-11-01
+
+After all three seed-2026 arms entered training with finite gradients and mixed groups, the remaining prespecified seeds were submitted once using the same immutable `61cb728b540a63d26ae92f1929b2b8814a56376d` execution, frozen pool, schedule and calibration. Seed 2027: GRPO job `31621256` / run `5cdc4f1ee35e243d0fc63a75`, gated `31621258` / `7fceb25129c8c7fcaee6a52e`, ungated `31621259` / `9eec00179b5e0c745c4d1a35`. Seed 2028: GRPO `31621260` / `d38b3612ed8b4eb508aa7f40`, gated `31621263` / `a9694619af3f317d27080314`, ungated `31621266` / `9b02fd0f80661f5672631b42`. Each is capped at six hours, with 80/160-episode evaluations. Inspect the existing ledgers and scheduler, verify matching initial adapters within each seed and do not duplicate them. They were queued at submission because six GPU jobs were active.
+
+## Task 14 targeted B200 numerical decomposition — 2026-11-01
+
+Job `31620455`, run `02ed9e64e46ef4269b5a3c7a`, completed exit 0 after 835 H200-seconds. It used two available mixed and six uniform groups: six of 2,854 eligible tokens were sign-sensitive clipped; 26/8,870 had absolute mismatch over 0.2. The outlier-only combined gradient and Adam-update cosines were 0.9304 and 0.9969, RL-only 0.9402/0.9971, and distillation-only 0.9454/0.99995. Results depend on checkpoint optimizer state and do not negate base-initialization sensitivity. Do not duplicate this job.
+
+## Task 14 matched control interim at 80 episodes — 2026-11-01
+
+All three seed-2026 static arms completed their 80-episode development evaluation: GRPO 12/41 with seven student steps, gated OPSD 10/41 with ten steps, and matched-strength ungated OPSD 9/41 with ten steps. Initial scores were 0/41; all had zero proposer steps. These are single-seed interim observations, not a final comparative finding. All three jobs continue to 160 attempted episodes; the two extra seeds are submitted and must be monitored, never duplicated.
+
+## Task 14 online initial health review — 2026-11-01
+
+Online A/B jobs `31620834`/`31620835` both initialized student and proposer adapters to SHA `1e30ec499be6c996f0d4889c6bf74490e3fadc8f9b9f850b3eebda35f4c4e55d`, authenticated W&B, and completed six iterations at this snapshot. A had 20/96 valid proposals, 80 student episodes, six student/proposer steps, six parent groups with multiple valid proposals and three with distinct valid rewards. B had 17/96 valid, 68 episodes, six steps per optimizer, three multi-valid groups and two distinct-reward groups. Both emitted health warnings, including the already-investigated rollout-scoring mismatch; inspect their full records and verify gradient/checkpoint/cloud health before final conclusions. Continue the existing 20-iteration jobs; do not duplicate.
+
+## Task 14 seed-2026 matched static completion — 2026-11-01
+
+All three seed-2026 jobs completed exit 0 with 160 attempted episodes and complete final evaluations. GRPO `31620238`: 11/41, eight student steps, 6,565 H200-seconds. Gated `31620241`: 10/41, 20 steps, 6,808 seconds. Ungated `31620251`: 8/41, 20 steps, 6,135 seconds. Baselines were 0/41; 80-episode scores were 12/10/9. Gated-minus-GRPO parent-macro difference at 160 was −0.0435 (parent bootstrap 95% [−0.1304, 0]); ungated-minus-GRPO −0.0870 ([−0.2174, 0]). One-seed task-parent intervals are not between-seed uncertainty. Private reproducible manifest/results are under `runs/task14/static-seed2026*`. All three seed-2027 jobs were running and seed-2028 jobs queued at this snapshot. Never duplicate.
+
+## Task 14 online iteration 10 — 2026-11-01
+
+Online A and B completed iteration 10 and began their 41-task development evaluations. A had 32/160 verified proposals, 128 student episodes, seven mixed student groups, nine parent groups with multiple valid candidates and three with distinct valid rewards. B had 29/160, 116 episodes, seven mixed groups, six multi-valid parent groups and two with distinct rewards. Both had ten student and ten proposer optimizer steps. Matched parent schedules and initial adapters are verified; student exposure differs. Evaluations and bounded jobs continue; inspect before action and do not duplicate.
+
+## Task 14 online iteration-10 development review — 2026-11-01
+
+Both structured online arms completed their iteration-10 development evaluations at 13/41 versus 0/41 initially. A had 128 and B 116 training episodes at this point; these are unequal-exposure single-seed observations. Both bounded jobs continue toward iteration 20; inspect live Slurm and existing ledgers before action, and never duplicate.
+
+## Task 14 seed-2027 GRPO completion — 2026-11-01
+
+Seed-2027 GRPO job `31621256`, run `5cdc4f1ee35e243d0fc63a75`, completed exit 0 after 6,867 H200-seconds. It scored 0/41 initially, 13/41 at 80 attempted episodes and 13/41 at 160. The seed-2027 gated and ungated arms remain active, as do online A/B and seed-2028 GRPO; the other seed-2028 arms are queued. Never duplicate the completed job.
+
+## Task 14 seed-2027 80-episode review — 2026-11-01
+
+All three seed-2027 arms used matching initial student/proposer SHA `a50b50c3bbbe8a358c2b81918bfc706d82b70a6fb9b1b618d50fe164e312442b`. At 80 attempted episodes, GRPO and gated OPSD each scored 13/41, ungated OPSD 11/41, all from 0/41 initially. GRPO completed its 160-episode evaluation at 13/41; gated and ungated continue. Seed-2028 GRPO and gated are running, and ungated remains queued. Inspect existing ledgers and do not duplicate.
+
+## Task 14 bounded online A/B completed — 2026-11-01
+
+Online A job `31620834` and B `31620835` both completed exit 0 at 20 iterations, consuming 10,804 and 10,175 H200-seconds. Each scored 0/41 initially, 13/41 at iteration 10 and 12/41 at iteration 20. A had 57/320 verified proposals, 228 student episodes, nine mixed groups, 16 multi-valid parent groups and three distinct-reward groups. B had 54/320, 216 episodes, 12 mixed groups, 13 multi-valid and two distinct-reward groups. Both took 18 student and proposer steps. These are single-seed unequal-exposure results. Full B artifact fetch was in progress locally; verify final checkpoint integrity and cloud history after writer exit, and never duplicate either job. The matched multi-seed controls continue independently.
+
+## Task 14 seed-2027 matched static completion — 2026-11-01
+
+Gated job `31621258` and ungated `31621259` completed exit 0 in 6,092 and 6,211 H200-seconds. Along with previously completed GRPO `31621256`, seed 2027 finished 160 episodes: GRPO 13/41, gated 13/41, ungated 11/41; student steps 9, 20 and 20. Midpoint scores were the same, and initial scores 0/41. The two-seed private analysis is `runs/task14/static-seeds2026-27`; all three seed-2028 arms continue, never duplicate any completed job. Online final checkpoints are being fetched selectively for checksum verification.
+
+## Task 14 online final checkpoint and W&B verified — 2026-11-01
+
+Both final online iteration-20 checkpoints were selectively fetched, every completion-manifest SHA-256 verified, and runtime, scientific and dataset identities matched their submitted ledgers. After both writers stopped, local checkpoint-backed W&B reconciliation succeeded and cloud verification reached 20 for A canonical revision `7df6282f8fbd5b695699593baa7418da4751b2954c73fb80a83d6c222485f16f`, and B `1c32d34b8ecb281e608a11a6e0e2cb025cc319d528b4a38873ab470a2c030e80`. Do not repeat reconciliation. The three seed-2028 controls remain running.
+
+## Task 14 seed-2028 GRPO completion — 2026-11-01
+
+Seed-2028 GRPO job `31621260`, run `d38b3612ed8b4eb508aa7f40`, completed exit 0 after 6,634 H200-seconds, scoring 0/41 initially, 9/41 at 80 episodes and 12/41 at 160 episodes, with ten student steps. Seed-2028 gated `31621263` and ungated `31621266` remain running; both initialized with the same `dfd0429860472a64d24db09e9e04f8f98a85712c86ef86ea147f6fbed1fa1126` student/proposer SHA as GRPO. Never duplicate the completed job.
+
+## Task 14 seed-2028 80-episode review — 2026-11-01
+
+At 80 attempted episodes, seed-2028 GRPO scored 9/41, gated 10/41 and ungated 14/41, all from 0/41 initially. Gated has reached 160 episodes and started final evaluation; ungated has completed its midpoint evaluation and continues. Both are existing jobs `31621263` and `31621266`; inspect them and never duplicate.
+
+## Task 14 seed-2028 gated completion — 2026-11-01
+
+Seed-2028 gated job `31621263`, run `a9694619af3f317d27080314`, completed exit 0 after 6,543 H200-seconds. It scored 0/41 initially, 10/41 at 80 episodes and 9/41 at 160, versus matched GRPO 9/41 and 12/41. Seed-2028 ungated job `31621266` remains active; inspect its ledger and do not duplicate either job.
+
+## Task 14 final active job — 2026-11-01
+
+All Task 14 GPU experiments except seed-2028 ungated are completed. The last job `31621266`, run `9b02fd0f80661f5672631b42`, has reached exactly 160 attempted episodes and started the final 41-task development evaluation. It is the only active job; inspect and never duplicate. Both online iteration-20 checkpoints and W&B canonical revisions have been verified. After this job exits, fetch its records, reconcile all Slurm elapsed times including failures, run `scripts/analyze_task14_static.py` on all nine arms, publish the learning curves and complete the research decision report and Task 14 completion record.
+
+## Task 14 complete — 2026-11-01
+
+The final ungated seed-2028 job `31621266`, run `9b02fd0f80661f5672631b42`, completed exit 0 after 6,509 H200-seconds; it scored 0/41, 14/41 and 12/41 at 0, 80 and 160 episodes. All nine matched controls and both bounded online arms are complete; do not duplicate. At 160 episodes, across seeds 2026/2027/2028, GRPO scored 11/13/12, gated 10/13/9 and matched-strength ungated 8/11/12 out of 41. The gated-minus-GRPO mean parent-macro difference is −0.0435 (three-seed t 95% interval [−0.1515, +0.0645]); ungated-minus-GRPO is −0.0507 ([−0.1332, +0.0318]). These wide intervals are based on only three seeds. The final report and figures are in `docs/investigations/task14-research-decision.md`; the completion record is `docs/task_completion/14-implemented-informative-selfplay.md`. Online final checkpoints and W&B canonical histories were verified through iteration 20. Final Slurm reconciliation found no active job; all 36 Task 14 GPU jobs used 96,336 H200-seconds (26.76 GPU-hours), including 88 seconds of failed/cancelled allocated attempts. Final held-out data remain closed.

@@ -1035,6 +1035,26 @@ def artifact_dir(payload: dict) -> Path:
         return runs / study / "diagnostics" / Path(payload["checkpoint"]).name
     if operation == "task13-probe":
         return runs / "repair-diagnosis-2026-probe-v1" / payload["run_id"]
+    if operation == "task14-probe":
+        return runs / "repair-diagnosis-2026-task14-probe-v1" / payload["run_id"]
+    if operation == "task14-student":
+        return runs / "repair-diagnosis-2026-task14-student-v1" / payload["run_id"]
+    if operation == "task14-counterfactual":
+        return runs / "repair-diagnosis-2026-task14-counterfactual-v1" / payload["run_id"]
+    if operation == "task14-counterfactual-replay":
+        return runs / "repair-diagnosis-2026-task14-counterfactual-replay-v1" / payload["run_id"]
+    if operation == "task14-calibrate":
+        return runs / "repair-diagnosis-2026-task14-calibrate-v1" / payload["run_id"]
+    if operation == "task14-numerical":
+        return runs / "repair-diagnosis-2026-task14-numerical-v1" / payload["run_id"]
+    if operation == "task14-numerical-components":
+        return runs / "repair-diagnosis-2026-task14-numerical-components-v1" / payload["run_id"]
+    if operation == "task14-proposal-student":
+        return runs / "repair-diagnosis-2026-task14-proposal-student-v1" / payload["run_id"]
+    if operation == "task14-static":
+        return runs / "repair-diagnosis-2026-task14-static-v1" / payload["run_id"]
+    if operation == "task14-online":
+        return runs / "repair-selfplay-2026-task14-online-v1" / payload["run_id"]
     if operation == "task13-model-probe":
         return runs / "repair-diagnosis-2026-model-probe-v1" / payload["run_id"]
     if operation == "task13-header-replay":
@@ -1626,6 +1646,16 @@ def precheck(payload: dict):
         "evaluate",
         "diagnose",
         "task13-probe",
+        "task14-probe",
+        "task14-student",
+        "task14-counterfactual",
+        "task14-counterfactual-replay",
+        "task14-calibrate",
+        "task14-numerical",
+        "task14-numerical-components",
+        "task14-proposal-student",
+        "task14-static",
+        "task14-online",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1708,6 +1738,16 @@ def precheck(payload: dict):
         "evaluate",
         "diagnose",
         "task13-probe",
+        "task14-probe",
+        "task14-student",
+        "task14-counterfactual",
+        "task14-counterfactual-replay",
+        "task14-calibrate",
+        "task14-numerical",
+        "task14-numerical-components",
+        "task14-proposal-student",
+        "task14-static",
+        "task14-online",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1767,6 +1807,16 @@ def precheck(payload: dict):
         "diagnose",
         "freeze-study",
         "task13-probe",
+        "task14-probe",
+        "task14-student",
+        "task14-counterfactual",
+        "task14-counterfactual-replay",
+        "task14-calibrate",
+        "task14-numerical",
+        "task14-numerical-components",
+        "task14-proposal-student",
+        "task14-static",
+        "task14-online",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1776,7 +1826,17 @@ def precheck(payload: dict):
         state = study_state(payload)
         if not state["gates"]["worker"] or not state["gates"]["runtime"]:
             raise ValueError("Runtime isolation and target data validation have not passed")
-        if operation == "task13-probe" and (
+        if operation in {
+            "task13-probe",
+            "task14-probe",
+            "task14-student",
+            "task14-counterfactual",
+            "task14-counterfactual-replay",
+            "task14-calibrate",
+            "task14-numerical",
+            "task14-numerical-components",
+            "task14-proposal-student",
+        } and (
             payload.get("account") != "cpsc4880"
             or payload.get("gpu_count") != 1
             or payload.get("gpu_type") != "h200"
@@ -1785,6 +1845,103 @@ def precheck(payload: dict):
             or payload.get("iterations") not in {8, 10}
         ):
             raise ValueError("Task 13 probe requires bounded one-H200 cpsc4880 allocation")
+        if operation in {
+            "task14-probe",
+            "task14-student",
+            "task14-counterfactual",
+            "task14-counterfactual-replay",
+            "task14-calibrate",
+            "task14-numerical",
+            "task14-numerical-components",
+            "task14-proposal-student",
+        } and (
+            payload.get("method")
+            not in (
+                {"A", "B", "C", "D"}
+                if operation
+                in {
+                    "task14-probe",
+                    "task14-student",
+                    "task14-proposal-student",
+                    "task14-numerical",
+                    "task14-numerical-components",
+                }
+                else {"A", "B"}
+            )
+            or payload.get("iterations") != 10
+            or payload.get("checkpoint")
+        ):
+            raise ValueError("Task 14 probe requires a fixed base-model arm")
+        if operation == "task14-static" and (
+            payload.get("account") != "cpsc4880"
+            or payload.get("gpu_count") != 1
+            or payload.get("gpu_type") != "h200"
+            or payload.get("time") != "06:00:00"
+            or payload.get("method") not in {"A", "B", "C"}
+            or payload.get("iterations") not in {26, 27, 28}
+            or not (paths(payload)["checkout"] / "configs/task14-static-control.json").is_file()
+        ):
+            raise ValueError(
+                "Task 14 static requires a bounded H200 arm and frozen calibration control"
+            )
+        if operation == "task14-online" and (
+            payload.get("account") != "cpsc4880"
+            or payload.get("gpu_count") != 1
+            or payload.get("gpu_type") != "h200"
+            or payload.get("time") != "06:00:00"
+            or payload.get("method") not in {"A", "B", "C", "D"}
+            or payload.get("iterations") != 20
+            or not payload.get("secrets_file")
+            or not state["gates"]["target"]
+        ):
+            raise ValueError(
+                "Task 14 online arm requires bounded H200, verified backend and online logging"
+            )
+        if operation in {"task14-numerical", "task14-numerical-components"}:
+            if operation == "task14-numerical-components" and payload["method"] not in {"A", "C"}:
+                raise ValueError("Numerical decomposition requires a diff student arm")
+            source_run, source_job = {
+                "A": ("cd5dae1d517b8b78d2535071", "31618995"),
+                "B": ("6efc9d94e4f5e2e7b0b0fd04", "31618998"),
+                "C": ("0078cd3bbbb89eb3c5282ddd", "31619326"),
+                "D": ("bce7b4ed210efe8445488fbd", "31619331"),
+            }[payload["method"]]
+            source = paths(payload)["runs"] / "repair-diagnosis-2026-task14-student-v1" / source_run
+            state = job_state(source_job)
+            if (
+                state.get("state") != "COMPLETED"
+                or state.get("exit_code") != "0:0"
+                or not (source / "complete.json").is_file()
+            ):
+                raise ValueError("Numerical probe requires a completed student source arm")
+        if operation == "task14-proposal-student":
+            source_run, source_job = {
+                "A": ("276931a7445252e963f37b1b", "31618956"),
+                "B": ("36db89f113049ef37c32b79d", "31618960"),
+                "C": ("d113371007fb12d958f92ccf", "31619234"),
+                "D": ("5c34adbea7983c01775ef5a8", "31619324"),
+            }[payload["method"]]
+            source = paths(payload)["runs"] / "repair-diagnosis-2026-task14-probe-v1" / source_run
+            status = job_state(source_job)
+            if (
+                status.get("state") != "COMPLETED"
+                or status.get("exit_code") != "0:0"
+                or not (source / "complete.json").is_file()
+            ):
+                raise ValueError("Student rollout probe requires a completed proposer source")
+        if operation == "task14-counterfactual-replay":
+            source = (
+                paths(payload)["runs"]
+                / "repair-diagnosis-2026-task14-counterfactual-v1/e74ecdee52efe104590c60b3"
+            )
+            status = job_state("31619094")
+            if (
+                payload.get("method") != "B"
+                or status.get("state") != "COMPLETED"
+                or status.get("exit_code") != "0:0"
+                or not (source / "complete.json").is_file()
+            ):
+                raise ValueError("Counterfactual replay requires the completed structured source")
         if operation == "task13-header-replay" and (
             payload.get("account") != "cpsc4880"
             or payload.get("gpu_count") != 0

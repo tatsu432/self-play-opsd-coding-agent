@@ -28,10 +28,14 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--representation", choices=("diff", "structured"), required=True)
     parser.add_argument("--parents", type=int, default=40)
+    parser.add_argument("--task14", action="store_true")
+    parser.add_argument("--task14-b200", action="store_true")
     parser.add_argument("--slots", type=int, default=4)
     parser.add_argument("--slot-start", type=int, default=0)
     parser.add_argument("--model-choice", choices=tuple(MODELS))
     args = parser.parse_args()
+    if args.task14_b200 and (not args.task14 or args.checkpoint or args.model_choice):
+        raise ValueError("Task 14 B200 is a fixed, separate diagnostic snapshot")
     if args.model_choice and args.checkpoint:
         raise ValueError("Larger-model inference cannot load a 4B adapter checkpoint")
     if not os.environ.get("SLURM_JOB_ID") or not os.environ.get("SELFPLAY_WORKER_TOKEN"):
@@ -40,9 +44,17 @@ def main() -> None:
         raise RuntimeError("Probe output already exists; preserve previous evidence")
     cfg = load_config(args.settings, method="B", hardware_profile="single_gpu_80gb")
     repo = TaskRepository(cfg.data_root)
-    selected = sorted(repo.parents("train"), key=lambda p: digest([2026, p.parent_id]))[
-        : args.parents
-    ]
+    parents = repo.parents("train")
+    if args.task14:
+        previous = {
+            p.parent_id for p in sorted(parents, key=lambda p: digest([2026, p.parent_id]))[:40]
+        }
+        parents = [p for p in parents if p.parent_id not in previous]
+        selected = sorted(parents, key=lambda p: digest([2026, "task14", p.parent_id]))[
+            : args.parents
+        ]
+    else:
+        selected = sorted(parents, key=lambda p: digest([2026, p.parent_id]))[: args.parents]
     if len(selected) != args.parents or args.slots < 1 or args.slot_start < 0:
         raise ValueError("Insufficient training parents or invalid slot count")
     sandbox = SandboxBackend(cfg.sandbox)
@@ -50,6 +62,12 @@ def main() -> None:
     policy = ModelProbePolicy(cfg, args.model_choice) if args.model_choice else make_policy(cfg)
     try:
         checkpoint = None
+        checkpoint_marker = None
+        if args.task14_b200:
+            from task14_checkpoint import load_b200
+
+            state, checkpoint, checkpoint_marker = load_b200(cfg, repo)
+            policy.load_state_dict(state["policy"])
         if args.checkpoint:
             state, checkpoint = CheckpointManager.load(args.checkpoint)
             if (
@@ -71,12 +89,17 @@ def main() -> None:
                 raise ValueError("Checkpoint scientific identity differs")
             policy.load_state_dict(state["policy"])
         manifest = {
-            "study": "repair-diagnosis-2026-model-probe-v1"
-            if args.model_choice
-            else "repair-diagnosis-2026-probe-v1",
+            "study": (
+                "repair-diagnosis-2026-task14-probe-v1"
+                if args.task14
+                else "repair-diagnosis-2026-model-probe-v1"
+                if args.model_choice
+                else "repair-diagnosis-2026-probe-v1"
+            ),
             "manifest_hash": repo.hash,
             "model": cfg.model.model_dump(mode="json"),
             "checkpoint": checkpoint,
+            "checkpoint_marker_sha256": checkpoint_marker,
             "representation": args.representation,
             "chat_template_non_thinking": args.model_choice == "qwen3-8b",
             "inference_backend": "vllm-inference-only" if args.model_choice else cfg.model.backend,
@@ -93,7 +116,7 @@ def main() -> None:
         }
         args.output.mkdir(parents=True, mode=0o700)
         atomic_json(args.output / "manifest.json", manifest)
-        history = state["history"] if args.checkpoint else {}
+        history = state["history"] if args.checkpoint or args.task14_b200 else {}
         records = []
         with policy.active("proposer"):
             for parent in selected:

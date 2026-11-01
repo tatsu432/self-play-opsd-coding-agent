@@ -104,6 +104,57 @@ def normalized_ast(source: str) -> str:
     return ast.dump(tree, include_attributes=False)
 
 
+def replace_function_body(source: str, function: str, body: str) -> str:
+    """Replace one top-level function body while preserving all other source text."""
+    import textwrap
+
+    tree = ast.parse(source)
+    matches = [
+        node
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == function
+    ]
+    if len(matches) != 1:
+        raise ValueError("Function must identify exactly one top-level definition")
+    node = matches[0]
+    if not body.strip() or textwrap.dedent(body) != body:
+        raise ValueError("Function body must be nonempty and unindented")
+    try:
+        parsed = ast.parse(
+            "def __replacement__():\n" + textwrap.indent(body.rstrip() + "\n", "    ")
+        )
+    except SyntaxError as exc:
+        raise ValueError(f"Invalid function body: {exc.msg}") from exc
+    replacement = parsed.body[0]
+    assert isinstance(replacement, ast.FunctionDef)
+    if not replacement.body:
+        raise ValueError("Empty function body")
+    lines = source.splitlines(keepends=True)
+    first = node.body[0]
+    last = node.body[-1]
+    if first.lineno == node.lineno:
+        raise ValueError("Single-line function bodies are unsupported")
+    assert last.end_lineno is not None
+    indent = " " * first.col_offset
+    result = "".join(lines[: first.lineno - 1]) + textwrap.indent(body.rstrip() + "\n", indent)
+    result += "".join(lines[last.end_lineno :])
+    after = validate_source(result)
+    before = validate_source(source)
+    if signature(after) != signature(before):
+        raise ValueError("Repair must preserve function APIs")
+
+    def imports(tree):
+        return [
+            ast.dump(node)
+            for node in ast.walk(tree)
+            if isinstance(node, (ast.Import, ast.ImportFrom))
+        ]
+
+    if imports(before) != imports(after):
+        raise ValueError("Repair must preserve imports")
+    return result
+
+
 def normalized_family(source: str) -> str:
     """Alpha-normalized AST for transparent exact family grouping."""
     tree = ast.parse(source)
@@ -447,7 +498,7 @@ def strict_json_object(raw: str) -> dict:
     return value
 
 
-def parse_action(raw: str) -> dict:
+def parse_action(raw: str, edit_protocol: str = "unified_diff") -> dict:
     value = strict_json_object(raw)
     action = value.get("action")
     if not isinstance(action, str):
@@ -458,6 +509,11 @@ def parse_action(raw: str) -> dict:
         "run_tests": {"action"},
         "finish": {"action"},
     }
+    if edit_protocol == "replace_function_body":
+        del fields["apply_patch"]
+        fields["replace_function_body"] = {"action", "function", "body"}
+    elif edit_protocol != "unified_diff":
+        raise ValueError("Unknown edit protocol")
     if (
         action not in fields
         or set(value) != fields[action]
