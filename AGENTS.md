@@ -806,3 +806,7 @@ The online protocol has a separate immutable study `repair-selfplay-2026-task14-
 ## Task 14 base numerical decomposition — 2026-11-01
 
 Job `31620094`, run `84f19b42553244e439b0611e`, completed exit 0 in 1,366 H200-seconds. On 32 saved base-diff episodes, replacing behavior log probabilities only at the 84/17,180 tokens with absolute mismatch above 0.2 yielded combined gradient/Adam-update cosines 0.8250/0.6560 versus true behavior, close to replacing every denominator (0.8254/0.6551). RL-only cosines were 0.8195/0.6529 and SD-only 0.9311/0.8058 for outliers. These diagnostic changes also alter the SD gap, so do not infer a proven root cause or change true behavior-policy logging. Targeted B200 replay `31620455` remains active. Do not duplicate this job.
+
+## Task 14 base downstream rollout check — 2026-11-01
+
+Structured job `31619817`, run `6dfde0dc399bc11f09abe923`, completed exit 0 in 2,231 H200-seconds. Both base formats produced seven mixed groups: diff 7/22 tasks, structured 7/32 capped tasks. Including proposer allocations, mixed-group yields were 15.0 versus 10.1 per H200-hour. Across 12 shared parents the structured-minus-diff parent-macro difference was 0.00 (bootstrap 95% interval −0.33 to +0.33). Candidate tasks differ and structured was capped at 32, so do not claim proof of a general mixed-group increase. Do not duplicate this job.
