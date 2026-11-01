@@ -834,3 +834,7 @@ All three seed-2026 jobs completed exit 0 with 160 attempted episodes and comple
 ## Task 14 online iteration 10 — 2026-11-01
 
 Online A and B completed iteration 10 and began their 41-task development evaluations. A had 32/160 verified proposals, 128 student episodes, seven mixed student groups, nine parent groups with multiple valid candidates and three with distinct valid rewards. B had 29/160, 116 episodes, seven mixed groups, six multi-valid parent groups and two with distinct rewards. Both had ten student and ten proposer optimizer steps. Matched parent schedules and initial adapters are verified; student exposure differs. Evaluations and bounded jobs continue; inspect before action and do not duplicate.
+
+## Task 14 online iteration-10 development review — 2026-11-01
+
+Both structured online arms completed their iteration-10 development evaluations at 13/41 versus 0/41 initially. A had 128 and B 116 training episodes at this point; these are unequal-exposure single-seed observations. Both bounded jobs continue toward iteration 20; inspect live Slurm and existing ledgers before action, and never duplicate.
