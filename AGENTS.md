@@ -1,5 +1,17 @@
 # Project and operating instructions
 
+## Task 14 execution authorization — 2026-11-01
+
+The user explicitly directs uninterrupted completion of Task 14, including
+implementation, validation, Yale job submissions, monitoring and analysis.
+GPU and CPU allocations needed for the work are authorized; do not ask again
+or stop at a plan or controller implementation. Reconcile Slurm and the
+ledger before each submission, preserve immutable identities and worker
+isolation, and never duplicate an uncertain or completed job. The new study is
+`repair-selfplay-2026-task14-v1`. CPU runtime-validation job `31618471`, run
+`15932a55fc1f948cd84fcda8`, was submitted once from execution
+`2c8b1615cec63f62612af3417347a8b02acb712c`; inspect it before any recovery.
+
 ## Task 13 CPU header replay — 2026-10-31
 
 CPU-only worker job `31537818`, run `8878e774a2d4480b5f0eba36`, was submitted
