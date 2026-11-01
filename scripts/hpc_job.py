@@ -919,6 +919,13 @@ def task13_command_args(env: dict) -> list[str]:
             + common
             + ["--edit-protocol", "unified_diff" if method == "A" else "replace_function_body"]
         )
+    if operation == "task14-calibrate":
+        return (
+            prefix
+            + ["/workspace/scripts/task14_calibrate.py"]
+            + common
+            + ["--edit-protocol", "unified_diff" if method == "A" else "replace_function_body"]
+        )
     if operation == "task14-counterfactual":
         return (
             prefix
@@ -995,6 +1002,7 @@ def execute(env: dict) -> int:
         "task14-probe",
         "task14-student",
         "task14-counterfactual",
+        "task14-calibrate",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1018,6 +1026,7 @@ def execute(env: dict) -> int:
         "task14-probe",
         "task14-student",
         "task14-counterfactual",
+        "task14-calibrate",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1245,6 +1254,7 @@ def execute(env: dict) -> int:
             "task14-probe",
             "task14-student",
             "task14-counterfactual",
+            "task14-calibrate",
             "task13-counterfactual",
             "task13-model-probe",
             "task13-header-replay",

@@ -1041,6 +1041,8 @@ def artifact_dir(payload: dict) -> Path:
         return runs / "repair-diagnosis-2026-task14-student-v1" / payload["run_id"]
     if operation == "task14-counterfactual":
         return runs / "repair-diagnosis-2026-task14-counterfactual-v1" / payload["run_id"]
+    if operation == "task14-calibrate":
+        return runs / "repair-diagnosis-2026-task14-calibrate-v1" / payload["run_id"]
     if operation == "task13-model-probe":
         return runs / "repair-diagnosis-2026-model-probe-v1" / payload["run_id"]
     if operation == "task13-header-replay":
@@ -1635,6 +1637,7 @@ def precheck(payload: dict):
         "task14-probe",
         "task14-student",
         "task14-counterfactual",
+        "task14-calibrate",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1720,6 +1723,7 @@ def precheck(payload: dict):
         "task14-probe",
         "task14-student",
         "task14-counterfactual",
+        "task14-calibrate",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1782,6 +1786,7 @@ def precheck(payload: dict):
         "task14-probe",
         "task14-student",
         "task14-counterfactual",
+        "task14-calibrate",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1796,6 +1801,7 @@ def precheck(payload: dict):
             "task14-probe",
             "task14-student",
             "task14-counterfactual",
+            "task14-calibrate",
         } and (
             payload.get("account") != "cpsc4880"
             or payload.get("gpu_count") != 1
@@ -1805,7 +1811,12 @@ def precheck(payload: dict):
             or payload.get("iterations") not in {8, 10}
         ):
             raise ValueError("Task 13 probe requires bounded one-H200 cpsc4880 allocation")
-        if operation in {"task14-probe", "task14-student", "task14-counterfactual"} and (
+        if operation in {
+            "task14-probe",
+            "task14-student",
+            "task14-counterfactual",
+            "task14-calibrate",
+        } and (
             payload.get("method") not in {"A", "B"}
             or payload.get("iterations") != 10
             or payload.get("checkpoint")
