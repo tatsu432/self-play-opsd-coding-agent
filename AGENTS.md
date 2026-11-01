@@ -39,6 +39,10 @@ cancelled after discovery and their terminal scheduler states confirmed. The
 verifier was corrected and all six expected metadata fields plus model config
 were compared directly to the retained checkpoint. Preserve those attempts and
 account for any allocation; replacement attempts require the corrected commit.
+Corrected B200 diff proposer replacement job `31619234`, run
+`d113371007fb12d958f92ccf`, was submitted once from execution
+`577445bdc83fbd9be6973f4e9be5edf1240a232a`. Confirm checkpoint loading and
+generated records before submitting the remaining B200 replacements.
 
 ## Task 13 CPU header replay — 2026-10-31
 
