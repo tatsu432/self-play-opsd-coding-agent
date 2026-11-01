@@ -822,3 +822,7 @@ Job `31620455`, run `02ed9e64e46ef4269b5a3c7a`, completed exit 0 after 835 H200-
 ## Task 14 matched control interim at 80 episodes — 2026-11-01
 
 All three seed-2026 static arms completed their 80-episode development evaluation: GRPO 12/41 with seven student steps, gated OPSD 10/41 with ten steps, and matched-strength ungated OPSD 9/41 with ten steps. Initial scores were 0/41; all had zero proposer steps. These are single-seed interim observations, not a final comparative finding. All three jobs continue to 160 attempted episodes; the two extra seeds are submitted and must be monitored, never duplicated.
+
+## Task 14 online initial health review — 2026-11-01
+
+Online A/B jobs `31620834`/`31620835` both initialized student and proposer adapters to SHA `1e30ec499be6c996f0d4889c6bf74490e3fadc8f9b9f850b3eebda35f4c4e55d`, authenticated W&B, and completed six iterations at this snapshot. A had 20/96 valid proposals, 80 student episodes, six student/proposer steps, six parent groups with multiple valid proposals and three with distinct valid rewards. B had 17/96 valid, 68 episodes, six steps per optimizer, three multi-valid groups and two distinct-reward groups. Both emitted health warnings, including the already-investigated rollout-scoring mismatch; inspect their full records and verify gradient/checkpoint/cloud health before final conclusions. Continue the existing 20-iteration jobs; do not duplicate.
