@@ -810,3 +810,7 @@ Job `31620094`, run `84f19b42553244e439b0611e`, completed exit 0 in 1,366 H200-s
 ## Task 14 base downstream rollout check — 2026-11-01
 
 Structured job `31619817`, run `6dfde0dc399bc11f09abe923`, completed exit 0 in 2,231 H200-seconds. Both base formats produced seven mixed groups: diff 7/22 tasks, structured 7/32 capped tasks. Including proposer allocations, mixed-group yields were 15.0 versus 10.1 per H200-hour. Across 12 shared parents the structured-minus-diff parent-macro difference was 0.00 (bootstrap 95% interval −0.33 to +0.33). Candidate tasks differ and structured was capped at 32, so do not claim proof of a general mixed-group increase. Do not duplicate this job.
+
+## Task 14 additional matched static seeds submitted — 2026-11-01
+
+After all three seed-2026 arms entered training with finite gradients and mixed groups, the remaining prespecified seeds were submitted once using the same immutable `61cb728b540a63d26ae92f1929b2b8814a56376d` execution, frozen pool, schedule and calibration. Seed 2027: GRPO job `31621256` / run `5cdc4f1ee35e243d0fc63a75`, gated `31621258` / `7fceb25129c8c7fcaee6a52e`, ungated `31621259` / `9eec00179b5e0c745c4d1a35`. Seed 2028: GRPO `31621260` / `d38b3612ed8b4eb508aa7f40`, gated `31621263` / `a9694619af3f317d27080314`, ungated `31621266` / `9b02fd0f80661f5672631b42`. Each is capped at six hours, with 80/160-episode evaluations. Inspect the existing ledgers and scheduler, verify matching initial adapters within each seed and do not duplicate them. They were queued at submission because six GPU jobs were active.
