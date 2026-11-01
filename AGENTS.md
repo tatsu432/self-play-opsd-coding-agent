@@ -870,3 +870,7 @@ At 80 attempted episodes, seed-2028 GRPO scored 9/41, gated 10/41 and ungated 14
 ## Task 14 seed-2028 gated completion — 2026-11-01
 
 Seed-2028 gated job `31621263`, run `a9694619af3f317d27080314`, completed exit 0 after 6,543 H200-seconds. It scored 0/41 initially, 10/41 at 80 episodes and 9/41 at 160, versus matched GRPO 9/41 and 12/41. Seed-2028 ungated job `31621266` remains active; inspect its ledger and do not duplicate either job.
+
+## Task 14 final active job — 2026-11-01
+
+All Task 14 GPU experiments except seed-2028 ungated are completed. The last job `31621266`, run `9b02fd0f80661f5672631b42`, has reached exactly 160 attempted episodes and started the final 41-task development evaluation. It is the only active job; inspect and never duplicate. Both online iteration-20 checkpoints and W&B canonical revisions have been verified. After this job exits, fetch its records, reconcile all Slurm elapsed times including failures, run `scripts/analyze_task14_static.py` on all nine arms, publish the learning curves and complete the research decision report and Task 14 completion record.
