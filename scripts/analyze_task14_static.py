@@ -12,6 +12,7 @@ import numpy as np
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from scipy.stats import t
 
 from selfplay_opsd.storage import active_events, atomic_json
 
@@ -121,8 +122,32 @@ def main():
                         **paired_interval(a[count]["tasks"], b[count]["tasks"]),
                     }
                 )
+    seed_summaries = []
+    for comparison in sorted({row["comparison"] for row in pairs}):
+        for count in (80, 160):
+            rows = [r for r in pairs if r["comparison"] == comparison and r["episodes"] == count]
+            values = np.array([r["mean_parent_macro_difference"] for r in rows])
+            if not len(values):
+                continue
+            interval = None
+            if len(values) > 1:
+                error = t.ppf(0.975, len(values) - 1) * values.std(ddof=1) / np.sqrt(len(values))
+                interval = [float(values.mean() - error), float(values.mean() + error)]
+            seed_summaries.append(
+                {
+                    "comparison": comparison,
+                    "episodes": count,
+                    "seeds": len(values),
+                    "mean_difference": float(values.mean()),
+                    "seed_t_95_interval": interval,
+                    "seed_differences": values.tolist(),
+                }
+            )
     args.output.mkdir(parents=True, exist_ok=True)
-    atomic_json(args.output / "comparison.json", {"arms": arms, "paired": pairs})
+    atomic_json(
+        args.output / "comparison.json",
+        {"arms": arms, "paired": pairs, "seed_summaries": seed_summaries},
+    )
     fig, axes = plt.subplots(1, 2, figsize=(11, 4))
     for item in arms:
         rows = sorted(item["evaluations"], key=lambda row: row["episodes"])
