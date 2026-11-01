@@ -838,3 +838,7 @@ Online A and B completed iteration 10 and began their 41-task development evalua
 ## Task 14 online iteration-10 development review — 2026-11-01
 
 Both structured online arms completed their iteration-10 development evaluations at 13/41 versus 0/41 initially. A had 128 and B 116 training episodes at this point; these are unequal-exposure single-seed observations. Both bounded jobs continue toward iteration 20; inspect live Slurm and existing ledgers before action, and never duplicate.
+
+## Task 14 seed-2027 GRPO completion — 2026-11-01
+
+Seed-2027 GRPO job `31621256`, run `5cdc4f1ee35e243d0fc63a75`, completed exit 0 after 6,867 H200-seconds. It scored 0/41 initially, 13/41 at 80 attempted episodes and 13/41 at 160. The seed-2027 gated and ungated arms remain active, as do online A/B and seed-2028 GRPO; the other seed-2028 arms are queued. Never duplicate the completed job.
