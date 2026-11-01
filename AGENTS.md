@@ -53,6 +53,11 @@ Structured base-snapshot reward counterfactual job `31619094`, run
 `e74ecdee52efe104590c60b3`, was submitted once from execution
 `ec28f24568c34468ff4f4fc67567d1be508e3532`; inspect its ledger and Slurm
 state before action and never duplicate it.
+That counterfactual completed exit 0: 12 valid tasks, six mixed student groups,
+and three parent groups with multiple valid candidates. Pairwise replay job
+`31620042`, run `4997792779c7970174458437`, was submitted once from
+`4b1d446ffff4050e777ba0100cc9a6686b9f4c41` against the saved samples; inspect
+its ledger and do not duplicate it.
 The prospectively paired B200 diagnostics were submitted once from execution
 `729e5ebb48b8824c0416fac2406ee824e38346d4`: proposer diff job `31619188` /
 run `213649b633cd16eed4c4bb85`, proposer structured `31619189` /
