@@ -818,3 +818,7 @@ After all three seed-2026 arms entered training with finite gradients and mixed 
 ## Task 14 targeted B200 numerical decomposition — 2026-11-01
 
 Job `31620455`, run `02ed9e64e46ef4269b5a3c7a`, completed exit 0 after 835 H200-seconds. It used two available mixed and six uniform groups: six of 2,854 eligible tokens were sign-sensitive clipped; 26/8,870 had absolute mismatch over 0.2. The outlier-only combined gradient and Adam-update cosines were 0.9304 and 0.9969, RL-only 0.9402/0.9971, and distillation-only 0.9454/0.99995. Results depend on checkpoint optimizer state and do not negate base-initialization sensitivity. Do not duplicate this job.
+
+## Task 14 matched control interim at 80 episodes — 2026-11-01
+
+All three seed-2026 static arms completed their 80-episode development evaluation: GRPO 12/41 with seven student steps, gated OPSD 10/41 with ten steps, and matched-strength ungated OPSD 9/41 with ten steps. Initial scores were 0/41; all had zero proposer steps. These are single-seed interim observations, not a final comparative finding. All three jobs continue to 160 attempted episodes; the two extra seeds are submitted and must be monitored, never duplicated.
