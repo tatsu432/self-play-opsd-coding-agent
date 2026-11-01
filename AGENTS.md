@@ -11,6 +11,12 @@ isolation, and never duplicate an uncertain or completed job. The new study is
 `repair-selfplay-2026-task14-v1`. CPU runtime-validation job `31618471`, run
 `15932a55fc1f948cd84fcda8`, was submitted once from execution
 `2c8b1615cec63f62612af3417347a8b02acb712c`; inspect it before any recovery.
+Runtime validation completed exit 0. Prospective 4B diff job `31618956`, run
+`276931a7445252e963f37b1b`, and structured job `31618960`, run
+`36db89f113049ef37c32b79d`, were each submitted once from execution
+`d24c09664c3ec1b83598302bfa3aae1161867617`. Both use the same 40
+prespecified training-only parents outside the Task 13 sample. Inspect their
+ledgers and live Slurm state before any action; never duplicate either job.
 
 ## Task 13 CPU header replay — 2026-10-31
 
