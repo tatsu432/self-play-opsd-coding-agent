@@ -854,3 +854,7 @@ Online A job `31620834` and B `31620835` both completed exit 0 at 20 iterations,
 ## Task 14 seed-2027 matched static completion — 2026-11-01
 
 Gated job `31621258` and ungated `31621259` completed exit 0 in 6,092 and 6,211 H200-seconds. Along with previously completed GRPO `31621256`, seed 2027 finished 160 episodes: GRPO 13/41, gated 13/41, ungated 11/41; student steps 9, 20 and 20. Midpoint scores were the same, and initial scores 0/41. The two-seed private analysis is `runs/task14/static-seeds2026-27`; all three seed-2028 arms continue, never duplicate any completed job. Online final checkpoints are being fetched selectively for checksum verification.
+
+## Task 14 online final checkpoint and W&B verified — 2026-11-01
+
+Both final online iteration-20 checkpoints were selectively fetched, every completion-manifest SHA-256 verified, and runtime, scientific and dataset identities matched their submitted ledgers. After both writers stopped, local checkpoint-backed W&B reconciliation succeeded and cloud verification reached 20 for A canonical revision `7df6282f8fbd5b695699593baa7418da4751b2954c73fb80a83d6c222485f16f`, and B `1c32d34b8ecb281e608a11a6e0e2cb025cc319d528b4a38873ab470a2c030e80`. Do not repeat reconciliation. The three seed-2028 controls remain running.
