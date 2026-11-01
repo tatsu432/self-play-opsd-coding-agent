@@ -17,6 +17,11 @@ Runtime validation completed exit 0. Prospective 4B diff job `31618956`, run
 `d24c09664c3ec1b83598302bfa3aae1161867617`. Both use the same 40
 prespecified training-only parents outside the Task 13 sample. Inspect their
 ledgers and live Slurm state before any action; never duplicate either job.
+Both completed exit 0. On 160 samples each, diff yielded 58 verified outputs
+and 22 unique parent/mutation pairs in 589 H200-seconds; structured yielded
+90 and 34 in 257 H200-seconds. The paired bootstrap interval for the unique
+difference was -0.025 to +0.60 mutations per parent. Results and reproduction
+are in `docs/investigations/task14-informative-selfplay.md`.
 Paired base-student editing probes were submitted once from execution
 `36e8247937aacef114996e6348e42ac617e7e577`: unified diff job `31618995`,
 run `cd5dae1d517b8b78d2535071`, and function-body job `31618998`, run
