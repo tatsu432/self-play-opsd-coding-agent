@@ -1047,6 +1047,8 @@ def artifact_dir(payload: dict) -> Path:
         return runs / "repair-diagnosis-2026-task14-calibrate-v1" / payload["run_id"]
     if operation == "task14-numerical":
         return runs / "repair-diagnosis-2026-task14-numerical-v1" / payload["run_id"]
+    if operation == "task14-numerical-components":
+        return runs / "repair-diagnosis-2026-task14-numerical-components-v1" / payload["run_id"]
     if operation == "task14-proposal-student":
         return runs / "repair-diagnosis-2026-task14-proposal-student-v1" / payload["run_id"]
     if operation == "task14-static":
@@ -1648,6 +1650,7 @@ def precheck(payload: dict):
         "task14-counterfactual-replay",
         "task14-calibrate",
         "task14-numerical",
+        "task14-numerical-components",
         "task14-proposal-student",
         "task14-static",
         "task13-model-probe",
@@ -1738,6 +1741,7 @@ def precheck(payload: dict):
         "task14-counterfactual-replay",
         "task14-calibrate",
         "task14-numerical",
+        "task14-numerical-components",
         "task14-proposal-student",
         "task14-static",
         "task13-model-probe",
@@ -1805,6 +1809,7 @@ def precheck(payload: dict):
         "task14-counterfactual-replay",
         "task14-calibrate",
         "task14-numerical",
+        "task14-numerical-components",
         "task14-proposal-student",
         "task14-static",
         "task13-model-probe",
@@ -1824,6 +1829,7 @@ def precheck(payload: dict):
             "task14-counterfactual-replay",
             "task14-calibrate",
             "task14-numerical",
+            "task14-numerical-components",
             "task14-proposal-student",
         } and (
             payload.get("account") != "cpsc4880"
@@ -1841,13 +1847,20 @@ def precheck(payload: dict):
             "task14-counterfactual-replay",
             "task14-calibrate",
             "task14-numerical",
+            "task14-numerical-components",
             "task14-proposal-student",
         } and (
             payload.get("method")
             not in (
                 {"A", "B", "C", "D"}
                 if operation
-                in {"task14-probe", "task14-student", "task14-proposal-student", "task14-numerical"}
+                in {
+                    "task14-probe",
+                    "task14-student",
+                    "task14-proposal-student",
+                    "task14-numerical",
+                    "task14-numerical-components",
+                }
                 else {"A", "B"}
             )
             or payload.get("iterations") != 10
@@ -1866,7 +1879,9 @@ def precheck(payload: dict):
             raise ValueError(
                 "Task 14 static requires a bounded H200 arm and frozen calibration control"
             )
-        if operation == "task14-numerical":
+        if operation in {"task14-numerical", "task14-numerical-components"}:
+            if operation == "task14-numerical-components" and payload["method"] not in {"A", "C"}:
+                raise ValueError("Numerical decomposition requires a diff student arm")
             source_run, source_job = {
                 "A": ("cd5dae1d517b8b78d2535071", "31618995"),
                 "B": ("6efc9d94e4f5e2e7b0b0fd04", "31618998"),

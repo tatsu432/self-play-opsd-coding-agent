@@ -53,11 +53,19 @@ def clipping_impact(original, rescored, clip):
     }
 
 
+def outlier_logps(old, rescored, threshold=0.2):
+    return [
+        new if abs(new - previous) > threshold else previous
+        for previous, new in zip(old, rescored, strict=True)
+    ]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--settings", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--source", type=Path, required=True)
+    parser.add_argument("--components", action="store_true")
     args = parser.parse_args()
     if not os.getenv("SLURM_JOB_ID") or not os.getenv("SELFPLAY_WORKER_TOKEN"):
         raise RuntimeError("Numerical diagnostic requires an allocated isolated worker")
@@ -107,35 +115,46 @@ def main():
                 cfg.objective.clip,
             )
             altered = []
+            outliers = []
             cursor = 0
             for episode in scored:
                 changed = turns[cursor : cursor + len(episode.turns)]
                 cursor += len(episode.turns)
                 altered.append(episode.model_copy(update={"turns": changed}))
+                selective = []
+                for first, second in zip(episode.turns, changed, strict=True):
+                    values = outlier_logps(first.old_logps, second.old_logps)
+                    selective.append(first.model_copy(update={"old_logps": values}))
+                outliers.append(episode.model_copy(update={"turns": selective}))
             branches = {}
-            for label, data in (("behavior", scored), ("rescored_diagnostic", altered)):
-                policy.load_state_dict(copy.deepcopy(original))
-                restore_rng(original_rng)
-                grouped = defaultdict(list)
-                for episode in data:
-                    grouped[episode.task_id].append(episode)
-                examples = []
-                for group in grouped.values():
-                    current, _ = student_examples(group, cfg, tasks=len(grouped), kind="combined")
-                    examples.extend(current)
-                gradient, metrics = policy.gradients(examples)
-                policy.gradients(examples, step=True)
-                after = policy.state_dict()
-                delta = {
-                    name: tensor.double() - original["adapters"][name].double()
-                    for name, tensor in after["adapters"].items()
-                    if ".student." in name
-                }
-                branches[label] = {
-                    "gradient": gradient,
-                    "gradient_norm": metrics["grad_norm"],
-                    "delta": delta,
-                }
+            datasets = [("behavior", scored), ("rescored_diagnostic", altered)]
+            if args.components:
+                datasets.append(("outliers_only_diagnostic", outliers))
+            kinds = ("combined", "rl", "sd") if args.components else ("combined",)
+            for kind in kinds:
+                for label, data in datasets:
+                    policy.load_state_dict(copy.deepcopy(original))
+                    restore_rng(original_rng)
+                    grouped = defaultdict(list)
+                    for episode in data:
+                        grouped[episode.task_id].append(episode)
+                    examples = []
+                    for group in grouped.values():
+                        current, _ = student_examples(group, cfg, tasks=len(grouped), kind=kind)
+                        examples.extend(current)
+                    gradient, metrics = policy.gradients(examples)
+                    policy.gradients(examples, step=True)
+                    after = policy.state_dict()
+                    delta = {
+                        name: tensor.double() - original["adapters"][name].double()
+                        for name, tensor in after["adapters"].items()
+                        if ".student." in name
+                    }
+                    branches[(kind, label)] = {
+                        "gradient": gradient,
+                        "gradient_norm": metrics["grad_norm"],
+                        "delta": delta,
+                    }
             report = {
                 "source_sha256": file_hash(args.source / "episodes.json"),
                 "protocol": manifest["protocol"],
@@ -145,17 +164,40 @@ def main():
                 "sign_sensitive_clipping": clipping_impact(scored, altered, cfg.objective.clip),
                 "gradient_comparison": dataclasses.asdict(
                     alignment(
-                        branches["behavior"]["gradient"],
-                        branches["rescored_diagnostic"]["gradient"],
+                        branches[("combined", "behavior")]["gradient"],
+                        branches[("combined", "rescored_diagnostic")]["gradient"],
                         cfg.objective.near_zero,
                         policy.distributed,
                     )
                 ),
                 "adam_update_comparison": delta_comparison(
-                    branches["behavior"]["delta"], branches["rescored_diagnostic"]["delta"]
+                    branches[("combined", "behavior")]["delta"],
+                    branches[("combined", "rescored_diagnostic")]["delta"],
                 ),
                 "note": "Rescored denominators are diagnostic only; training retains behavior probabilities.",
             }
+            if args.components:
+                report["component_comparisons"] = {}
+                for kind in kinds:
+                    baseline = branches[(kind, "behavior")]
+                    for label in ("rescored_diagnostic", "outliers_only_diagnostic"):
+                        comparison = branches[(kind, label)]
+                        report["component_comparisons"][f"{kind}:{label}"] = {
+                            "gradient": dataclasses.asdict(
+                                alignment(
+                                    baseline["gradient"],
+                                    comparison["gradient"],
+                                    cfg.objective.near_zero,
+                                    policy.distributed,
+                                )
+                            ),
+                            "adam_update": delta_comparison(baseline["delta"], comparison["delta"]),
+                            "gradient_norms": [
+                                baseline["gradient_norm"],
+                                comparison["gradient_norm"],
+                            ],
+                        }
+                report["outlier_threshold_absolute_logprob"] = 0.2
         policy.load_state_dict(original)
         restore_rng(original_rng)
         if not state_equal(policy.state_dict(), original):

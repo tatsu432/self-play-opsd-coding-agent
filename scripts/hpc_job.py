@@ -945,19 +945,22 @@ def task13_command_args(env: dict) -> list[str]:
             + common
             + ["--source", "/runs/repair-diagnosis-2026-task14-probe-v1/" + source]
         )
-    if operation == "task14-numerical":
+    if operation in {"task14-numerical", "task14-numerical-components"}:
         source = {
             "A": "cd5dae1d517b8b78d2535071",
             "B": "6efc9d94e4f5e2e7b0b0fd04",
             "C": "0078cd3bbbb89eb3c5282ddd",
             "D": "bce7b4ed210efe8445488fbd",
         }[method]
-        return (
+        args = (
             prefix
             + ["/workspace/scripts/task14_numerical.py"]
             + common
             + ["--source", "/runs/repair-diagnosis-2026-task14-student-v1/" + source]
         )
+        if operation == "task14-numerical-components":
+            args += ["--components"]
+        return args
     if operation == "task14-static":
         seed = 2000 + int(env["SELFPLAY_ITERATIONS"])
         arm = {"A": "GRPO", "B": "B", "C": "A"}[method]
@@ -1062,6 +1065,7 @@ def execute(env: dict) -> int:
         "task14-counterfactual-replay",
         "task14-calibrate",
         "task14-numerical",
+        "task14-numerical-components",
         "task14-proposal-student",
         "task14-static",
         "task13-model-probe",
@@ -1090,6 +1094,7 @@ def execute(env: dict) -> int:
         "task14-counterfactual-replay",
         "task14-calibrate",
         "task14-numerical",
+        "task14-numerical-components",
         "task14-proposal-student",
         "task14-static",
         "task13-model-probe",
@@ -1322,6 +1327,7 @@ def execute(env: dict) -> int:
             "task14-counterfactual-replay",
             "task14-calibrate",
             "task14-numerical",
+            "task14-numerical-components",
             "task14-proposal-student",
             "task14-static",
             "task13-counterfactual",
