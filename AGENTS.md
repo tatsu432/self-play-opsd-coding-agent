@@ -842,3 +842,7 @@ Both structured online arms completed their iteration-10 development evaluations
 ## Task 14 seed-2027 GRPO completion — 2026-11-01
 
 Seed-2027 GRPO job `31621256`, run `5cdc4f1ee35e243d0fc63a75`, completed exit 0 after 6,867 H200-seconds. It scored 0/41 initially, 13/41 at 80 attempted episodes and 13/41 at 160. The seed-2027 gated and ungated arms remain active, as do online A/B and seed-2028 GRPO; the other seed-2028 arms are queued. Never duplicate the completed job.
+
+## Task 14 seed-2027 80-episode review — 2026-11-01
+
+All three seed-2027 arms used matching initial student/proposer SHA `a50b50c3bbbe8a358c2b81918bfc706d82b70a6fb9b1b618d50fe164e312442b`. At 80 attempted episodes, GRPO and gated OPSD each scored 13/41, ungated OPSD 11/41, all from 0/41 initially. GRPO completed its 160-episode evaluation at 13/41; gated and ungated continue. Seed-2028 GRPO and gated are running, and ungated remains queued. Inspect existing ledgers and do not duplicate.
