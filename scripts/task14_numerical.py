@@ -14,6 +14,7 @@ from pathlib import Path
 import torch
 from task13_counterfactual import delta_comparison, state_equal
 from task13_static_continue import SOURCE, restore_pool
+from task14_checkpoint import load_b200
 
 from selfplay_opsd.cli import make_policy
 from selfplay_opsd.config import load_config
@@ -74,7 +75,7 @@ def main():
     if (
         manifest["dataset"] != repo.hash
         or manifest["pool_sha256"] != file_hash(SOURCE / "pool.json")
-        or manifest["snapshot"] != "base"
+        or manifest["snapshot"] not in {"base", "b200"}
     ):
         raise ValueError("Student probe provenance differs")
     pool = {task.task_id: (task, oracle) for task, oracle, _ in restore_pool(SOURCE, repo)}
@@ -84,6 +85,12 @@ def main():
     sandbox.preflight()
     policy = make_policy(cfg)
     try:
+        if manifest["snapshot"] == "b200":
+            state, _, marker = load_b200(cfg, repo)
+            if marker != manifest["checkpoint_marker_sha256"]:
+                raise ValueError("Student probe checkpoint marker differs")
+            policy.load_state_dict(state["policy"])
+            restore_rng(state["rng"])
         original = copy.deepcopy(policy.state_dict())
         original_rng = rng_state()
         with policy.active("student"):

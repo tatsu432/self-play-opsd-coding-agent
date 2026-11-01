@@ -1839,7 +1839,8 @@ def precheck(payload: dict):
             payload.get("method")
             not in (
                 {"A", "B", "C", "D"}
-                if operation in {"task14-probe", "task14-student", "task14-proposal-student"}
+                if operation
+                in {"task14-probe", "task14-student", "task14-proposal-student", "task14-numerical"}
                 else {"A", "B"}
             )
             or payload.get("iterations") != 10
@@ -1859,11 +1860,12 @@ def precheck(payload: dict):
                 "Task 14 static requires a bounded H200 arm and frozen calibration control"
             )
         if operation == "task14-numerical":
-            source_run, source_job = (
-                ("cd5dae1d517b8b78d2535071", "31618995")
-                if payload["method"] == "A"
-                else ("6efc9d94e4f5e2e7b0b0fd04", "31618998")
-            )
+            source_run, source_job = {
+                "A": ("cd5dae1d517b8b78d2535071", "31618995"),
+                "B": ("6efc9d94e4f5e2e7b0b0fd04", "31618998"),
+                "C": ("0078cd3bbbb89eb3c5282ddd", "31619326"),
+                "D": ("bce7b4ed210efe8445488fbd", "31619331"),
+            }[payload["method"]]
             source = paths(payload)["runs"] / "repair-diagnosis-2026-task14-student-v1" / source_run
             state = job_state(source_job)
             if (

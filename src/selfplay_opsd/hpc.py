@@ -765,8 +765,12 @@ def run_payload(
             raise HpcError("Task 14 calibration requires A=diff or B=body at base snapshot")
         payload["output"] = f"/runs/repair-diagnosis-2026-task14-calibrate-v1/{identity[:24]}"
     if operation == "task14-numerical":
-        if method not in {"A", "B"} or checkpoint_iteration is not None or iterations != 10:
-            raise HpcError("Task 14 numerical probe requires a completed base student arm")
+        if (
+            method not in {"A", "B", "C", "D"}
+            or checkpoint_iteration is not None
+            or iterations != 10
+        ):
+            raise HpcError("Task 14 numerical probe requires a completed student arm")
         payload["output"] = f"/runs/repair-diagnosis-2026-task14-numerical-v1/{identity[:24]}"
     if operation == "task14-proposal-student":
         if (

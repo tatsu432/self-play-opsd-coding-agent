@@ -179,6 +179,10 @@ def test_allocated_probe_command_preserves_checkpoint_and_extra_slots():
         env | {"SELFPLAY_OPERATION": "task14-numerical", "SELFPLAY_METHOD": "A"}
     )
     assert numerical[numerical.index("--source") + 1].endswith("cd5dae1d517b8b78d2535071")
+    numerical_b200 = job.task13_command_args(
+        env | {"SELFPLAY_OPERATION": "task14-numerical", "SELFPLAY_METHOD": "C"}
+    )
+    assert numerical_b200[numerical_b200.index("--source") + 1].endswith("0078cd3bbbb89eb3c5282ddd")
     proposal_student = job.task13_command_args(
         env | {"SELFPLAY_OPERATION": "task14-proposal-student", "SELFPLAY_METHOD": "C"}
     )

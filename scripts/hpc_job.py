@@ -946,7 +946,12 @@ def task13_command_args(env: dict) -> list[str]:
             + ["--source", "/runs/repair-diagnosis-2026-task14-probe-v1/" + source]
         )
     if operation == "task14-numerical":
-        source = "cd5dae1d517b8b78d2535071" if method == "A" else "6efc9d94e4f5e2e7b0b0fd04"
+        source = {
+            "A": "cd5dae1d517b8b78d2535071",
+            "B": "6efc9d94e4f5e2e7b0b0fd04",
+            "C": "0078cd3bbbb89eb3c5282ddd",
+            "D": "bce7b4ed210efe8445488fbd",
+        }[method]
         return (
             prefix
             + ["/workspace/scripts/task14_numerical.py"]
