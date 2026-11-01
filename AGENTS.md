@@ -858,3 +858,7 @@ Gated job `31621258` and ungated `31621259` completed exit 0 in 6,092 and 6,211 
 ## Task 14 online final checkpoint and W&B verified — 2026-11-01
 
 Both final online iteration-20 checkpoints were selectively fetched, every completion-manifest SHA-256 verified, and runtime, scientific and dataset identities matched their submitted ledgers. After both writers stopped, local checkpoint-backed W&B reconciliation succeeded and cloud verification reached 20 for A canonical revision `7df6282f8fbd5b695699593baa7418da4751b2954c73fb80a83d6c222485f16f`, and B `1c32d34b8ecb281e608a11a6e0e2cb025cc319d528b4a38873ab470a2c030e80`. Do not repeat reconciliation. The three seed-2028 controls remain running.
+
+## Task 14 seed-2028 GRPO completion — 2026-11-01
+
+Seed-2028 GRPO job `31621260`, run `d38b3612ed8b4eb508aa7f40`, completed exit 0 after 6,634 H200-seconds, scoring 0/41 initially, 9/41 at 80 episodes and 12/41 at 160 episodes, with ten student steps. Seed-2028 gated `31621263` and ungated `31621266` remain running; both initialized with the same `dfd0429860472a64d24db09e9e04f8f98a85712c86ef86ea147f6fbed1fa1126` student/proposer SHA as GRPO. Never duplicate the completed job.
