@@ -830,3 +830,7 @@ Online A/B jobs `31620834`/`31620835` both initialized student and proposer adap
 ## Task 14 seed-2026 matched static completion — 2026-11-01
 
 All three seed-2026 jobs completed exit 0 with 160 attempted episodes and complete final evaluations. GRPO `31620238`: 11/41, eight student steps, 6,565 H200-seconds. Gated `31620241`: 10/41, 20 steps, 6,808 seconds. Ungated `31620251`: 8/41, 20 steps, 6,135 seconds. Baselines were 0/41; 80-episode scores were 12/10/9. Gated-minus-GRPO parent-macro difference at 160 was −0.0435 (parent bootstrap 95% [−0.1304, 0]); ungated-minus-GRPO −0.0870 ([−0.2174, 0]). One-seed task-parent intervals are not between-seed uncertainty. Private reproducible manifest/results are under `runs/task14/static-seed2026*`. All three seed-2027 jobs were running and seed-2028 jobs queued at this snapshot. Never duplicate.
+
+## Task 14 online iteration 10 — 2026-11-01
+
+Online A and B completed iteration 10 and began their 41-task development evaluations. A had 32/160 verified proposals, 128 student episodes, seven mixed student groups, nine parent groups with multiple valid candidates and three with distinct valid rewards. B had 29/160, 116 episodes, seven mixed groups, six multi-valid parent groups and two with distinct rewards. Both had ten student and ten proposer optimizer steps. Matched parent schedules and initial adapters are verified; student exposure differs. Evaluations and bounded jobs continue; inspect before action and do not duplicate.
