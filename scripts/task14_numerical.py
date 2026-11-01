@@ -6,10 +6,12 @@ import argparse
 import copy
 import dataclasses
 import json
+import math
 import os
 from collections import defaultdict
 from pathlib import Path
 
+import torch
 from task13_counterfactual import delta_comparison, state_equal
 from task13_static_continue import SOURCE, restore_pool
 
@@ -19,10 +21,35 @@ from selfplay_opsd.core import EpisodeRecord
 from selfplay_opsd.data import TaskRepository
 from selfplay_opsd.environment import score_teacher
 from selfplay_opsd.numerical_audit import score_role
-from selfplay_opsd.objectives import alignment
+from selfplay_opsd.objectives import advantages, alignment
 from selfplay_opsd.sandbox import SandboxBackend
 from selfplay_opsd.storage import atomic_json, file_hash, restore_rng, rng_state
 from selfplay_opsd.trainer import student_examples
+
+
+def clipping_impact(original, rescored, clip):
+    groups = defaultdict(list)
+    for index, episode in enumerate(original):
+        groups[episode.task_id].append(index)
+    affected = eligible = 0
+    for indices in groups.values():
+        values = advantages(torch.tensor([original[i].reward for i in indices])).tolist()
+        for index, advantage in zip(indices, values, strict=True):
+            if advantage == 0:
+                continue
+            for first, second in zip(original[index].turns, rescored[index].turns, strict=True):
+                for old, current in zip(first.old_logps, second.old_logps, strict=True):
+                    delta = current - old
+                    eligible += 1
+                    affected += int(
+                        (advantage > 0 and delta > math.log1p(clip))
+                        or (advantage < 0 and delta < math.log1p(-clip))
+                    )
+    return {
+        "eligible_tokens": eligible,
+        "clipped_tokens": affected,
+        "clipped_fraction": affected / eligible if eligible else None,
+    }
 
 
 def main():
@@ -108,6 +135,7 @@ def main():
                 "tasks": len(selected),
                 "episodes": len(episodes),
                 "mismatch": stats,
+                "sign_sensitive_clipping": clipping_impact(scored, altered, cfg.objective.clip),
                 "gradient_comparison": dataclasses.asdict(
                     alignment(
                         branches["behavior"]["gradient"],
