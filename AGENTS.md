@@ -66,6 +66,12 @@ edit actions, body 1/64 and 99/147, respectively. Diff editing was selected
 for static controls using these training-only outcomes. B200 diff numerical
 audit job `31619962`, run `aca754b0a57ee5f72b89e53e`, was submitted once from
 `a96b3503062eab8c21559f44f6f81da51d03810f`; do not duplicate it.
+B200 numerical audit completed exit 0; its eight groups were all uniform.
+Targeted B200 mixed/uniform decomposition job `31620455`, run
+`02ed9e64e46ef4269b5a3c7a`, was submitted once from
+`668f01d46136bcb072d9d05bc65512d333554238`; it includes both mixed groups
+from the saved training-only source and must not be treated as a population
+estimate. Inspect the ledger and do not duplicate it.
 Four student-rollout probes on the already verified novel proposal outputs
 were submitted once from `fa1bf8ff5fb2ad9e6022cd3f7232ad716cb0b880`:
 base diff `31619815` / `e9b9d60a8fdfa400bfb9864a`, base structured
