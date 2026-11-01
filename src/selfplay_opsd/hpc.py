@@ -368,6 +368,7 @@ def run_payload(
         "task14-student",
         "task14-counterfactual",
         "task14-calibrate",
+        "task14-numerical",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -512,6 +513,7 @@ def run_payload(
         "task14-student",
         "task14-counterfactual",
         "task14-calibrate",
+        "task14-numerical",
         "task13-model-probe",
         "task13-static",
         "task13-static-continuation",
@@ -688,6 +690,7 @@ def run_payload(
             "task14-student",
             "task14-counterfactual",
             "task14-calibrate",
+            "task14-numerical",
             "task13-model-probe",
             "task13-counterfactual",
         }
@@ -755,6 +758,10 @@ def run_payload(
         if method not in {"A", "B"} or checkpoint_iteration is not None or iterations != 10:
             raise HpcError("Task 14 calibration requires A=diff or B=body at base snapshot")
         payload["output"] = f"/runs/repair-diagnosis-2026-task14-calibrate-v1/{identity[:24]}"
+    if operation == "task14-numerical":
+        if method not in {"A", "B"} or checkpoint_iteration is not None or iterations != 10:
+            raise HpcError("Task 14 numerical probe requires a completed base student arm")
+        payload["output"] = f"/runs/repair-diagnosis-2026-task14-numerical-v1/{identity[:24]}"
     if operation == "task13-static":
         if method != "B":
             raise HpcError("Task 13 static job executes both GRPO and B arms")
@@ -792,6 +799,7 @@ def run_payload(
             "task14-student",
             "task14-counterfactual",
             "task14-calibrate",
+            "task14-numerical",
             "task13-model-probe",
             "task13-header-replay",
             "task13-static",

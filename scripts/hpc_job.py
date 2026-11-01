@@ -932,6 +932,14 @@ def task13_command_args(env: dict) -> list[str]:
             + common
             + ["--edit-protocol", "unified_diff" if method == "A" else "replace_function_body"]
         )
+    if operation == "task14-numerical":
+        source = "cd5dae1d517b8b78d2535071" if method == "A" else "6efc9d94e4f5e2e7b0b0fd04"
+        return (
+            prefix
+            + ["/workspace/scripts/task14_numerical.py"]
+            + common
+            + ["--source", "/runs/repair-diagnosis-2026-task14-student-v1/" + source]
+        )
     if operation == "task14-counterfactual":
         return (
             prefix
@@ -1016,6 +1024,7 @@ def execute(env: dict) -> int:
         "task14-student",
         "task14-counterfactual",
         "task14-calibrate",
+        "task14-numerical",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1040,6 +1049,7 @@ def execute(env: dict) -> int:
         "task14-student",
         "task14-counterfactual",
         "task14-calibrate",
+        "task14-numerical",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1268,6 +1278,7 @@ def execute(env: dict) -> int:
             "task14-student",
             "task14-counterfactual",
             "task14-calibrate",
+            "task14-numerical",
             "task13-counterfactual",
             "task13-model-probe",
             "task13-header-replay",

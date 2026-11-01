@@ -1043,6 +1043,8 @@ def artifact_dir(payload: dict) -> Path:
         return runs / "repair-diagnosis-2026-task14-counterfactual-v1" / payload["run_id"]
     if operation == "task14-calibrate":
         return runs / "repair-diagnosis-2026-task14-calibrate-v1" / payload["run_id"]
+    if operation == "task14-numerical":
+        return runs / "repair-diagnosis-2026-task14-numerical-v1" / payload["run_id"]
     if operation == "task13-model-probe":
         return runs / "repair-diagnosis-2026-model-probe-v1" / payload["run_id"]
     if operation == "task13-header-replay":
@@ -1638,6 +1640,7 @@ def precheck(payload: dict):
         "task14-student",
         "task14-counterfactual",
         "task14-calibrate",
+        "task14-numerical",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1724,6 +1727,7 @@ def precheck(payload: dict):
         "task14-student",
         "task14-counterfactual",
         "task14-calibrate",
+        "task14-numerical",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1787,6 +1791,7 @@ def precheck(payload: dict):
         "task14-student",
         "task14-counterfactual",
         "task14-calibrate",
+        "task14-numerical",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1802,6 +1807,7 @@ def precheck(payload: dict):
             "task14-student",
             "task14-counterfactual",
             "task14-calibrate",
+            "task14-numerical",
         } and (
             payload.get("account") != "cpsc4880"
             or payload.get("gpu_count") != 1
@@ -1816,6 +1822,7 @@ def precheck(payload: dict):
             "task14-student",
             "task14-counterfactual",
             "task14-calibrate",
+            "task14-numerical",
         } and (
             payload.get("method")
             not in (
@@ -1827,6 +1834,20 @@ def precheck(payload: dict):
             or payload.get("checkpoint")
         ):
             raise ValueError("Task 14 probe requires a fixed base-model arm")
+        if operation == "task14-numerical":
+            source_run, source_job = (
+                ("cd5dae1d517b8b78d2535071", "31618995")
+                if payload["method"] == "A"
+                else ("6efc9d94e4f5e2e7b0b0fd04", "31618998")
+            )
+            source = paths(payload)["runs"] / "repair-diagnosis-2026-task14-student-v1" / source_run
+            state = job_state(source_job)
+            if (
+                state.get("state") != "COMPLETED"
+                or state.get("exit_code") != "0:0"
+                or not (source / "complete.json").is_file()
+            ):
+                raise ValueError("Numerical probe requires a completed student source arm")
         if operation == "task13-header-replay" and (
             payload.get("account") != "cpsc4880"
             or payload.get("gpu_count") != 0

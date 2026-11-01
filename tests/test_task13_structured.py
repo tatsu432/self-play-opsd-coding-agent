@@ -175,6 +175,14 @@ def test_allocated_probe_command_preserves_checkpoint_and_extra_slots():
     )
     assert counterfactual[counterfactual.index("--representation") + 1] == "structured_ast"
     assert counterfactual.count("/workspace/scripts/task14_counterfactual.py") == 1
+    numerical = job.task13_command_args(
+        env | {"SELFPLAY_OPERATION": "task14-numerical", "SELFPLAY_METHOD": "A"}
+    )
+    assert numerical[numerical.index("--source") + 1].endswith("cd5dae1d517b8b78d2535071")
+    calibration = job.task13_command_args(
+        env | {"SELFPLAY_OPERATION": "task14-calibrate", "SELFPLAY_METHOD": "B"}
+    )
+    assert calibration[calibration.index("--edit-protocol") + 1] == "replace_function_body"
     extra_base = job.task13_command_args(env | {"SELFPLAY_METHOD": "B", "SELFPLAY_CHECKPOINT": ""})
     assert (
         "--checkpoint" not in extra_base and extra_base[extra_base.index("--slot-start") + 1] == "4"
