@@ -37,6 +37,11 @@ comparisons remain open. Base diff numerical audit `31619786` / run
 `50c0b26f9c555e120db54e90` and training-only diff calibration `31619788` /
 `f78ba9f3c0386e1289aafdb3` were submitted once from execution
 `5ebd956ed25c8ba28a17113e35795bdbb9ac6d31`; do not duplicate either.
+B200 paired student comparison completed: diff 20/64 repairs and 28/168 valid
+edit actions, body 1/64 and 99/147, respectively. Diff editing was selected
+for static controls using these training-only outcomes. B200 diff numerical
+audit job `31619962`, run `aca754b0a57ee5f72b89e53e`, was submitted once from
+`a96b3503062eab8c21559f44f6f81da51d03810f`; do not duplicate it.
 Four student-rollout probes on the already verified novel proposal outputs
 were submitted once from `fa1bf8ff5fb2ad9e6022cd3f7232ad716cb0b880`:
 base diff `31619815` / `e9b9d60a8fdfa400bfb9864a`, base structured
