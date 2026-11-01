@@ -1047,6 +1047,8 @@ def artifact_dir(payload: dict) -> Path:
         return runs / "repair-diagnosis-2026-task14-numerical-v1" / payload["run_id"]
     if operation == "task14-static":
         return runs / "repair-diagnosis-2026-task14-static-v1" / payload["run_id"]
+    if operation == "task14-online":
+        return runs / "repair-selfplay-2026-task14-online-v1" / payload["run_id"]
     if operation == "task13-model-probe":
         return runs / "repair-diagnosis-2026-model-probe-v1" / payload["run_id"]
     if operation == "task13-header-replay":
@@ -1644,6 +1646,7 @@ def precheck(payload: dict):
         "task14-calibrate",
         "task14-numerical",
         "task14-static",
+        "task14-online",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1732,6 +1735,7 @@ def precheck(payload: dict):
         "task14-calibrate",
         "task14-numerical",
         "task14-static",
+        "task14-online",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1797,6 +1801,7 @@ def precheck(payload: dict):
         "task14-calibrate",
         "task14-numerical",
         "task14-static",
+        "task14-online",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1850,6 +1855,19 @@ def precheck(payload: dict):
         ):
             raise ValueError(
                 "Task 14 static requires a bounded H200 arm and frozen calibration control"
+            )
+        if operation == "task14-online" and (
+            payload.get("account") != "cpsc4880"
+            or payload.get("gpu_count") != 1
+            or payload.get("gpu_type") != "h200"
+            or payload.get("time") != "06:00:00"
+            or payload.get("method") not in {"A", "B", "C", "D"}
+            or payload.get("iterations") != 20
+            or not payload.get("secrets_file")
+            or not state["gates"]["target"]
+        ):
+            raise ValueError(
+                "Task 14 online arm requires bounded H200, verified backend and online logging"
             )
         if operation == "task14-numerical":
             source_run, source_job = (

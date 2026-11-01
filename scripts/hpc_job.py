@@ -956,6 +956,8 @@ def task13_command_args(env: dict) -> list[str]:
                 "/workspace/configs/task14-static-control.json",
             ]
         )
+    if operation == "task14-online":
+        return prefix + ["/workspace/scripts/task14_online.py"] + common + ["--method", method]
     if operation == "task14-counterfactual":
         return (
             prefix
@@ -1042,6 +1044,7 @@ def execute(env: dict) -> int:
         "task14-calibrate",
         "task14-numerical",
         "task14-static",
+        "task14-online",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1068,6 +1071,7 @@ def execute(env: dict) -> int:
         "task14-calibrate",
         "task14-numerical",
         "task14-static",
+        "task14-online",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1298,6 +1302,7 @@ def execute(env: dict) -> int:
             "task14-calibrate",
             "task14-numerical",
             "task14-static",
+            "task14-online",
             "task13-counterfactual",
             "task13-model-probe",
             "task13-header-replay",

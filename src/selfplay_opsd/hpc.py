@@ -370,6 +370,7 @@ def run_payload(
         "task14-calibrate",
         "task14-numerical",
         "task14-static",
+        "task14-online",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -516,6 +517,7 @@ def run_payload(
         "task14-calibrate",
         "task14-numerical",
         "task14-static",
+        "task14-online",
         "task13-model-probe",
         "task13-static",
         "task13-static-continuation",
@@ -681,7 +683,14 @@ def run_payload(
         else "01:00:00"
         if operation in {"backend-check", "rollout-parity", "numerical-audit", "proposer-audit"}
         else "06:00:00"
-        if operation in {"pilot", "task13-static", "task13-static-continuation", "task14-static"}
+        if operation
+        in {
+            "pilot",
+            "task13-static",
+            "task13-static-continuation",
+            "task14-static",
+            "task14-online",
+        }
         else "02:00:00"
         if (operation == "evaluate" and base)
         or operation
@@ -775,6 +784,15 @@ def run_payload(
                 "Task 14 static requires A=GRPO, B=gated or C=ungated and seed selector 26–28"
             )
         payload["output"] = f"/runs/repair-diagnosis-2026-task14-static-v1/{identity[:24]}"
+    if operation == "task14-online":
+        if (
+            method not in {"A", "B", "C", "D"}
+            or checkpoint_iteration is not None
+            or iterations != 20
+            or cfg.iterations != 20
+        ):
+            raise HpcError("Task 14 online arm requires a fixed 20-iteration study")
+        payload["output"] = f"/runs/repair-selfplay-2026-task14-online-v1/{identity[:24]}"
     if operation == "task13-static":
         if method != "B":
             raise HpcError("Task 13 static job executes both GRPO and B arms")
@@ -814,6 +832,7 @@ def run_payload(
             "task14-calibrate",
             "task14-numerical",
             "task14-static",
+            "task14-online",
             "task13-model-probe",
             "task13-header-replay",
             "task13-static",
