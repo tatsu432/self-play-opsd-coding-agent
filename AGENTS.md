@@ -850,3 +850,7 @@ All three seed-2027 arms used matching initial student/proposer SHA `a50b50c3bbb
 ## Task 14 bounded online A/B completed — 2026-11-01
 
 Online A job `31620834` and B `31620835` both completed exit 0 at 20 iterations, consuming 10,804 and 10,175 H200-seconds. Each scored 0/41 initially, 13/41 at iteration 10 and 12/41 at iteration 20. A had 57/320 verified proposals, 228 student episodes, nine mixed groups, 16 multi-valid parent groups and three distinct-reward groups. B had 54/320, 216 episodes, 12 mixed groups, 13 multi-valid and two distinct-reward groups. Both took 18 student and proposer steps. These are single-seed unequal-exposure results. Full B artifact fetch was in progress locally; verify final checkpoint integrity and cloud history after writer exit, and never duplicate either job. The matched multi-seed controls continue independently.
+
+## Task 14 seed-2027 matched static completion — 2026-11-01
+
+Gated job `31621258` and ungated `31621259` completed exit 0 in 6,092 and 6,211 H200-seconds. Along with previously completed GRPO `31621256`, seed 2027 finished 160 episodes: GRPO 13/41, gated 13/41, ungated 11/41; student steps 9, 20 and 20. Midpoint scores were the same, and initial scores 0/41. The two-seed private analysis is `runs/task14/static-seeds2026-27`; all three seed-2028 arms continue, never duplicate any completed job. Online final checkpoints are being fetched selectively for checksum verification.
