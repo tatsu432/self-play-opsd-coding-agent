@@ -909,3 +909,7 @@ The final ungated seed-2028 job `31621266`, run `9b02fd0f80661f5672631b42`, comp
 ## Task 15 corrected score-only replay — current
 
 Corrected CPU runtime-validation job `31666385` / run `55c483c196553d97126b7553` completed exit 0 in 491 CPU-seconds. The distinct score-only H200 replay was submitted once as job `31666580` / run `cfad4570ff5b9dfe45e18ad4` from execution `126966be1b6d5945de1ad48700615b492bab6ab7`, with `--iterations 8`. It measures training-mode versus frozen scorer probabilities on the same saved training-only tokens, without repeating optimizer updates. Inspect its ledger and Slurm before any action; never duplicate.
+
+## Task 15 B200 factorial replay — current
+
+The base factorial audit demonstrated material denominator sensitivity, while the earlier B200 audit coupled denominator and SD-gap changes. To determine whether that sensitivity persists at a trained snapshot and inform the backend decision, corrected B200 factorial replay job `31666603` / run `bb2dd180614566fc324e36b5` was submitted once from execution `69bc3267c616662afb1c053900f6ec8c489bafb0` against saved training-only source `0078cd3bbbb89eb3c5282ddd`, which completed exit 0. It includes the available mixed groups and is a targeted diagnostic, not a population estimate. Inspect its ledger and Slurm; never duplicate.
