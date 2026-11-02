@@ -564,3 +564,51 @@ def test_task15_payload_carries_seed_exposure_and_bounded_continuation(monkeypat
     assert payload["stop_after_iteration"] == 2
     assert payload["time"] == payload["continuation_time"] == "06:00:00"
     assert payload["max_continuations"] == 64
+
+
+def test_fallback_uses_only_realized_budget_and_never_gets_proposer_credit(monkeypatch):
+    from selfplay_opsd.core import OracleSpec, TaskSpec
+
+    trainer = supply_trainer()
+    trainer.policy = object()
+    task = TaskSpec(
+        task_id="cached",
+        parent_id="p",
+        split="train",
+        specification="f",
+        initial_source="def f(x):\n    return x - 1\n",
+        entry_point="f",
+        public_tests="",
+        source_hash="fixture",
+        mutation_seed=1,
+    )
+    oracle = OracleSpec(
+        task_id="cached",
+        correct_source="def f(x):\n    return x + 1\n",
+        inverse_patch="fixture",
+        public_cases=[],
+        hidden_cases=[],
+        provenance={},
+    )
+    trainer.supply_state["reservoir"] = {
+        "key": {"task": task.model_dump(), "oracle": oracle.model_dump(), "admitted_group": 0}
+    }
+    monkeypatch.setattr("selfplay_opsd.task15.check_admission", lambda *args: None)
+    monkeypatch.setattr(
+        SelfPlayTrainer,
+        "proposals",
+        lambda self, k: ([proposal(None, i, valid=False) for i in range(4)], {}),
+    )
+    trainer.supply_state["task_groups"] = 2
+    _, tasks = trainer.proposals(1)
+    assert not tasks  # Cannot borrow exposure from hypothetical future batches.
+    assert trainer.supply_state["fallback_groups"] == 0
+    trainer.supply_state["task_groups"] = 3
+    proposals, tasks = trainer.proposals(2)
+    assert set(tasks) == {"cached"}
+    assert trainer.supply_state["metrics"]["task_sources"] == {"cached": "fallback"}
+    assert trainer.supply_state["metrics"]["fallback_fraction"] == 0.25
+    assert all(not p.valid and p.task_id is None for p in proposals)
+    examples = proposer_examples(proposals, [-1.0] * len(proposals), trainer.config)
+    assert all(e.advantage == 0 for e in examples)
+    assert len(examples) == len(proposals) == 64
