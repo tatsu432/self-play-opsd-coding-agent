@@ -1007,12 +1007,15 @@ def task13_command_args(env: dict) -> list[str]:
             else ["--checkpoint", env["SELFPLAY_CHECKPOINT"]]
         )
     if operation == "task15-numerical":
-        return (
+        args = (
             prefix
             + ["/workspace/scripts/task15_numerical.py"]
             + common
             + ["--source", env["SELFPLAY_AUDIT_SOURCE"]]
         )
+        if env.get("SELFPLAY_ITERATIONS") == "8":
+            args += ["--score-only"]
+        return args
     if operation in {"task15-online", "task15-stabilize"}:
         args = (
             prefix

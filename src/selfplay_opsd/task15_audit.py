@@ -52,33 +52,14 @@ def intervention_examples(
     return examples
 
 
-def audit_updates(policy, cfg, episodes):
-    if not episodes or any(e.policy_version != policy.version("student") for e in episodes):
-        raise ExperimentError("Saved episodes do not match the audit snapshot")
-    initial, initial_rng = copy.deepcopy(policy.state_dict()), rng_state()
-    branches = {}
-    # A second real same-prefix scoring operation measures no-privilege repeat
-    # error. Do not manufacture a zero gap by subtracting one array from itself.
-    no_privilege_episodes = []
-    repeat_deltas: list[float] = []
-    with policy.active("student"):
-        for episode in episodes:
-            scores = policy.score_many([(t.prompt_ids, t.target_ids) for t in episode.turns])
-            turns = []
-            for turn, score in zip(episode.turns, scores, strict=True):
-                values = score.detach().float().tolist()
-                repeat_deltas.extend(
-                    a - b for a, b in zip(values, turn.frozen_unprivileged_logps, strict=True)
-                )
-                turns.append(turn.model_copy(update={"teacher_logps": values}))
-            no_privilege_episodes.append(episode.model_copy(update={"turns": turns}))
+def gradient_mode_probe(policy, cfg, episodes):
     # Match the gradient-bearing forward's training/checkpointing mode while
     # retaining the same frozen snapshot and target IDs. This does not backprop.
     gradient_mode_deltas: list[float] = []
-    was_training = policy.model.training
-    try:
-        policy.model.train()
-        with policy.active("student"):
+    with policy.active("student"):
+        was_training = policy.model.training
+        try:
+            policy.model.train()
             turns = [turn for episode in episodes for turn in episode.turns if turn.target_ids]
             size = cfg.hardware.microbatch_episodes
             for start in range(0, len(turns), size):
@@ -100,8 +81,32 @@ def audit_updates(policy, cfg, episodes):
                 if scores:
                     del score
                 del scores
-    finally:
-        policy.model.train(was_training)
+        finally:
+            policy.model.train(was_training)
+    return error_statistics(gradient_mode_deltas, cfg.objective.clip)
+
+
+def audit_updates(policy, cfg, episodes):
+    if not episodes or any(e.policy_version != policy.version("student") for e in episodes):
+        raise ExperimentError("Saved episodes do not match the audit snapshot")
+    initial, initial_rng = copy.deepcopy(policy.state_dict()), rng_state()
+    branches = {}
+    # A second real same-prefix scoring operation measures no-privilege repeat
+    # error. Do not manufacture a zero gap by subtracting one array from itself.
+    no_privilege_episodes = []
+    repeat_deltas: list[float] = []
+    with policy.active("student"):
+        for episode in episodes:
+            scores = policy.score_many([(t.prompt_ids, t.target_ids) for t in episode.turns])
+            turns = []
+            for turn, score in zip(episode.turns, scores, strict=True):
+                values = score.detach().float().tolist()
+                repeat_deltas.extend(
+                    a - b for a, b in zip(values, turn.frozen_unprivileged_logps, strict=True)
+                )
+                turns.append(turn.model_copy(update={"teacher_logps": values}))
+            no_privilege_episodes.append(episode.model_copy(update={"turns": turns}))
+    gradient_mode_stats = gradient_mode_probe(policy, cfg, episodes)
     cases = [
         ("behavior:behavior", "behavior", "behavior", False),
         ("scorer:behavior", "scorer", "behavior", False),
@@ -153,9 +158,7 @@ def audit_updates(policy, cfg, episodes):
         return {
             "available": True,
             "no_privilege_scorer_repeat": error_statistics(repeat_deltas, cfg.objective.clip),
-            "gradient_mode_vs_frozen_scorer": error_statistics(
-                gradient_mode_deltas, cfg.objective.clip
-            ),
+            "gradient_mode_vs_frozen_scorer": gradient_mode_stats,
             "metrics": {name: value["metrics"] for name, value in branches.items()},
             "comparisons": comparisons,
             "note": "Denominator substitutions are diagnostic only. Main PPO retains actual behavior probabilities.",

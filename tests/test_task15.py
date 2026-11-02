@@ -669,3 +669,53 @@ def test_stabilization_reuses_only_matching_backend_proof(tmp_path, monkeypatch)
     assert not remote.study_state(payload | {"backend_identity": {"code_hash": "different"}})[
         "gates"
     ]["target"]
+
+
+def test_gradient_mode_probe_uses_train_mode_and_restores_eval(monkeypatch):
+    from selfplay_opsd.policy import HFPolicy
+    from selfplay_opsd.task15_audit import gradient_mode_probe
+
+    cfg = config()
+    policy = HFPolicy(cfg)
+    with policy.active("student"):
+        values = policy.score([1], [2, 3]).tolist()
+        data = [
+            episode.model_copy(
+                update={
+                    "policy_version": policy.version("student"),
+                    "turns": [turn().model_copy(update={"frozen_unprivileged_logps": values})],
+                }
+            )
+            for episode in episodes()
+        ]
+        score_many = policy.score_many
+        modes = []
+
+        def measured(requests, *, gradients=False):
+            if gradients:
+                modes.append(policy.model.training)
+            return score_many(requests, gradients=gradients)
+
+        monkeypatch.setattr(policy, "score_many", measured)
+        report = gradient_mode_probe(policy, cfg, data)
+        assert report["tokens"] == 8
+        assert modes and all(modes)
+        assert not policy.model.training
+    policy.close()
+
+
+def test_score_only_remote_command_preserves_sampling_source():
+    job = script("hpc_job")
+    env = {
+        "SELFPLAY_OPERATION": "task15-numerical",
+        "SELFPLAY_METHOD": "A",
+        "SELFPLAY_SETTINGS": "configs/task15.yaml",
+        "SELFPLAY_OUTPUT": "/runs/audit",
+        "SELFPLAY_AUDIT_SOURCE": "/runs/source",
+        "SELFPLAY_ITERATIONS": "8",
+    }
+    args = job.task13_command_args(env)
+    assert "--score-only" in args
+    assert args[args.index("--source") + 1] == "/runs/source"
+    env["SELFPLAY_ITERATIONS"] = "10"
+    assert "--score-only" not in job.task13_command_args(env)

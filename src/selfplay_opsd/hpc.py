@@ -572,7 +572,7 @@ def run_payload(
         "study": study,
         "seed": cfg.seed,
         "iterations": iterations
-        if operation in {"pilot", "task14-static"}
+        if operation in {"pilot", "task14-static", "task15-numerical"}
         or (operation == "task13-probe" and iterations == 8)
         else cfg.iterations,
         "base": base,
@@ -852,6 +852,8 @@ def run_payload(
             raise HpcError("Task 15 evaluation requires frozen A/B primary endpoints")
         payload["task15_freeze"] = f"/runs/{cfg.study_id}/freeze.json"
     if operation == "task15-numerical":
+        if iterations not in {8, 10}:
+            raise HpcError("Task 15 numerical audit supports full (10) or score-only (8) mode")
         if method not in {"A", "B"} or checkpoint_iteration is not None:
             raise HpcError(
                 "Task 15 audit uses existing base/B200 diff probes with diagnostic settings"

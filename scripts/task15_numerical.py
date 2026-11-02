@@ -18,7 +18,11 @@ from selfplay_opsd.data import TaskRepository
 from selfplay_opsd.environment import score_teacher
 from selfplay_opsd.sandbox import SandboxBackend
 from selfplay_opsd.storage import atomic_json, file_hash, restore_rng
-from selfplay_opsd.task15_audit import audit_updates, teacher_action_discrimination
+from selfplay_opsd.task15_audit import (
+    audit_updates,
+    gradient_mode_probe,
+    teacher_action_discrimination,
+)
 
 
 def main():
@@ -26,6 +30,7 @@ def main():
     parser.add_argument("--settings", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--source", type=Path, required=True)
+    parser.add_argument("--score-only", action="store_true")
     args = parser.parse_args()
     if not os.getenv("SLURM_JOB_ID") or not os.getenv("SELFPLAY_WORKER_TOKEN"):
         raise RuntimeError("Numerical audit requires an allocated isolated worker")
@@ -65,10 +70,17 @@ def main():
             score_teacher(policy, episode, pool[episode.task_id][1], cfg.episode)[0]
             for episode in episodes
         ]
-        report = audit_updates(policy, cfg, scored)
-        report["teacher_action_discrimination"] = teacher_action_discrimination(
-            policy, cfg, scored, {task_id: oracle for task_id, (_, oracle) in pool.items()}
-        )
+        if args.score_only:
+            report = {
+                "available": True,
+                "gradient_mode_vs_frozen_scorer": gradient_mode_probe(policy, cfg, scored),
+                "targeted_score_only": True,
+            }
+        else:
+            report = audit_updates(policy, cfg, scored)
+            report["teacher_action_discrimination"] = teacher_action_discrimination(
+                policy, cfg, scored, {task_id: oracle for task_id, (_, oracle) in pool.items()}
+            )
         atomic_json(
             args.output / "audit.json",
             report
