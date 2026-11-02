@@ -1,8 +1,8 @@
 # Task 15 status and next action
 
-Task 15 is in implementation/validation. Main A/B training and final evaluation are **not complete**. Worktree: `/private/tmp/selfplay-task15`, branch `feat/15-stabilize-ab`; baseline `1c8e190`. Three Task 15 acceptance jobs were submitted once from `f11de62a2a848e0c8819f50e313de32892c0a51c`: main runtime `31665807` / `d417ec2cb88d51d18c70e710`, H200 backend `31665819` / `24b2aa8b8ef849d0fe0779c1`, and stabilization runtime `31665837` / `70c594198915015caf75a97d`. Inspect their ledgers and Slurm before action; never duplicate. Main runtime and backend completed exit 0; stabilization runtime was active at this snapshot. Saved-rollout audit job `31665993` / run `d1c5f8d2cfc62a5ffa4ee3a5` was submitted once from `aa01dcf5781c5f6932eb51bbefc573fd72ca2c67`; inspect its ledger and never duplicate. Stabilization job `31666009` / run `efb2e712a0484dc3d39e52ff` was submitted once from `1413994815ffc954a0153480b40b24d2c0ba17e8`, with a 128-episode target and a two-iteration stop. Never duplicate. A local controller watcher is running at `runs/task15/stabilization-watch.log`, without automatic clean continuation; review its ledger and logs before resuming.
+Task 15 is in implementation/validation. Main A/B training and final evaluation are **not complete**. Worktree: `/private/tmp/selfplay-task15`, branch `feat/15-stabilize-ab`; baseline `1c8e190`. Three Task 15 acceptance jobs were submitted once from `f11de62a2a848e0c8819f50e313de32892c0a51c`: main runtime `31665807` / `d417ec2cb88d51d18c70e710`, H200 backend `31665819` / `24b2aa8b8ef849d0fe0779c1`, and stabilization runtime `31665837` / `70c594198915015caf75a97d`. Inspect their ledgers and Slurm before action; never duplicate. All three acceptance jobs completed exit 0; backend used 215 H200-seconds. Saved-rollout audit job `31665993` / run `d1c5f8d2cfc62a5ffa4ee3a5` was submitted once from `aa01dcf5781c5f6932eb51bbefc573fd72ca2c67`; inspect its ledger and never duplicate. Stabilization job `31666009` / run `efb2e712a0484dc3d39e52ff` was submitted once from `1413994815ffc954a0153480b40b24d2c0ba17e8`, with a 128-episode target and a two-iteration stop. Never duplicate. A controller watcher is running in exec session 48079 without automatic clean continuation; check whether it remains alive after interruption and review the ledger and logs before resuming.
 
-Yale MFA succeeded. The live queue was empty before the first submission, prior Task 14 A/B, runtime, and backend jobs completed exit 0, and unchanged worker evidence was reused for both Task 15 studies. The three new acceptance jobs above were running at the latest check. Historical queue snapshots are not live verification; recheck before every submission. No new GPU authorization is needed.
+Yale MFA succeeded. The live queue was empty before the first submission, prior Task 14 A/B, runtime, and backend jobs completed exit 0, and unchanged worker evidence was reused for both Task 15 studies. The acceptance jobs above completed successfully. The saved-rollout audit and bounded stabilization jobs were running at the latest check. Historical queue snapshots are not live verification; recheck before every submission. No new GPU authorization is needed.
 
 ## Verified state and reused evidence
 
@@ -24,19 +24,20 @@ Implementation commit `234d443` passed the frozen local CPU suite: **326 passed,
 
 The controller's local snapshot check passed with prepared/executed data validation, clean Git, and manifest SHA-256 `4be6da81532938b3e03bf5e7e839c200335e2b3728b5bcbfbc7c7161c39288cf`. The ignored `data/protocol-v3` link points to the original immutable prepared dataset; no private data was copied into Git.
 
-Local Docker is not running, so sandbox integration remains explicitly unverified locally. [Hosted CI 41367241355](https://github.com/tatsu432/self-play-opsd-coding-agent/actions/runs/41367241355) checks the exact implementation commit and is running at this handoff. Superseded CI attempts were cancelled to avoid redundant work; they are not passing evidence. No H200 numerical, memory, runtime, resume, stabilization, or main result is claimed.
+Local Docker is not running, so sandbox integration remains explicitly unverified locally. [Hosted CI 41367241355](https://github.com/tatsu432/self-play-opsd-coding-agent/actions/runs/41367241355) checks the exact implementation commit and passed. Later changes to the audit routing and backend-proof reuse passed focused local tests; their hosted CI runs remain in progress. Superseded CI attempts were cancelled to avoid redundant work; they are not passing evidence. No H200 numerical, memory, runtime, resume, stabilization, or main result is claimed.
 
 ## Next concrete action
 
-Finish hosted validation of implementation `234d443`, authenticate, and inspect live Yale state. Exact restart commands:
+Inspect live scheduler and ledger state for audit `d1c5f8d2cfc62a5ffa4ee3a5` and stabilization `efb2e712a0484dc3d39e52ff` before any action. The audit is evaluating saved training-only rollouts. Stabilization was evaluating its 41-task initial development baseline; at 14 tasks it had zero successes, a partial observation. Inspect the complete audit for factorial denominator/gap effects, identical-operation variation, no-privilege spurious SD, and teacher discrimination. Investigate a reproduced defect before freezing.
+
+On the clean two-iteration stop, verify the joint checkpoint and the supply, RNG, exposure, and milestone state; use `uv run selfplay hpc resume efb2e712a0484dc3d39e52ff --continue-stopped` to exercise the authorized resume, then monitor through 128 episodes. Account for all allocations. Review end-to-end yield, diversity, mixed groups, finite gradients and phase cost; preserve a concrete resume-comparison report. Run a second bounded correction only for a demonstrated defect, freeze the common protocol from actual evidence, and submit the paired 2026 A/B runs followed by 2027 and 2028.
 
 ```bash
 cd /private/tmp/selfplay-task15
-uv run selfplay hpc login
-uv run selfplay hpc inspect
-gh run view 41367241355 --log-failed
+uv run selfplay hpc status d1c5f8d2cfc62a5ffa4ee3a5
+uv run selfplay hpc status efb2e712a0484dc3d39e52ff
+uv run selfplay hpc logs d1c5f8d2cfc62a5ffa4ee3a5
+uv run selfplay hpc logs efb2e712a0484dc3d39e52ff
 ```
 
-The login command requires the user's normal Yale MFA; it is not a request for a new scientific or GPU authorization. Synchronize the committed candidate; reuse unchanged worker evidence; run only changed runtime/backend acceptance and the saved-rollout Task 15 factorial audit. Run the separately identified 128-episode stabilization arm and one dependency-relevant interruption/resume check. Review numerical effects, teacher discrimination, actual task diversity/mixed groups, and phase cost. Repair only a localized defect if needed, freeze one common route, then submit and monitor the seed-2026 A/B pair toward 4,096 episodes each and complete seeds 2027–2028.
-
-Keep this file current with exact jobs, ledgers, checks and the next command. Never restart the diagnosis from its beginning after interruption.
+Reauthenticate with `uv run selfplay hpc login` only if normal Yale MFA expires. Never repeat an uncertain or completed job. No main Task 15 arm or final held-out evaluation has been submitted.
