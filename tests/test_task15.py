@@ -719,3 +719,14 @@ def test_score_only_remote_command_preserves_sampling_source():
     assert args[args.index("--source") + 1] == "/runs/source"
     env["SELFPLAY_ITERATIONS"] = "10"
     assert "--score-only" not in job.task13_command_args(env)
+
+
+def test_completed_task15_run_requires_verified_resume_to_continue():
+    remote = script("hpc_remote")
+    for operation in ("task15-online", "task15-stabilize"):
+        assert remote.completed_job_is_final({"operation": operation})
+        assert not remote.completed_job_is_final(
+            {"operation": operation, "resume": "/verified/checkpoint"}
+        )
+    assert remote.completed_job_is_final({"operation": "task15-numerical", "resume": "/ignored"})
+    assert not remote.completed_job_is_final({"operation": "train"})

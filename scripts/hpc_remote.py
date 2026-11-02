@@ -660,6 +660,14 @@ def can_supersede_empty_pilot(payload: dict, prior: dict, owner: dict, artifact:
     )
 
 
+def completed_job_is_final(payload: dict) -> bool:
+    """Task 15 training may continue only with an explicitly verified checkpoint."""
+    operation = payload["operation"]
+    return operation not in {"pilot", "train"} and not (
+        operation in {"task15-online", "task15-stabilize"} and payload.get("resume")
+    )
+
+
 def submit(payload: dict) -> dict:
     p = paths(payload)
     path = ledger_path(payload)
@@ -734,7 +742,7 @@ def submit(payload: dict) -> dict:
                     "job_id": latest["job_id"],
                     "scheduler": state,
                 }
-            if state["state"] == "COMPLETED" and payload["operation"] not in {"pilot", "train"}:
+            if state["state"] == "COMPLETED" and completed_job_is_final(payload):
                 return {
                     "submitted": False,
                     "reason": "already_completed",
