@@ -1,8 +1,8 @@
 # Task 15 status and next action
 
-Task 15 is in implementation/validation. Main A/B training and final evaluation are **not complete**. Worktree: `/private/tmp/selfplay-task15`, branch `feat/15-stabilize-ab`; baseline `1c8e190`. This execution submitted no Task 15 jobs. Live Yale scheduler/ledger state remains unknown until authentication succeeds; no Yale watcher is running.
+Task 15 is in implementation/validation. Main A/B training and final evaluation are **not complete**. Worktree: `/private/tmp/selfplay-task15`, branch `feat/15-stabilize-ab`; baseline `1c8e190`. Three Task 15 acceptance jobs were submitted once from `f11de62a2a848e0c8819f50e313de32892c0a51c`: main runtime `31665807` / `d417ec2cb88d51d18c70e710`, H200 backend `31665819` / `24b2aa8b8ef849d0fe0779c1`, and stabilization runtime `31665837` / `70c594198915015caf75a97d`. Inspect their ledgers and Slurm before action; never duplicate. No Yale watcher is running.
 
-**External blocker:** read-only SSH to `yale-hpc-cpsc4880` returns `Permission denied (keyboard-interactive)`. Complete `uv run selfplay hpc login` with normal Yale MFA. Once access works, reconcile Slurm, durable ledgers and account limits before any submission. Historical queue-empty statements are not live verification. There is no new GPU authorization request.
+Yale MFA succeeded. The live queue was empty before the first submission, prior Task 14 A/B, runtime, and backend jobs completed exit 0, and unchanged worker evidence was reused for both Task 15 studies. The three new acceptance jobs above were running at the latest check. Historical queue snapshots are not live verification; recheck before every submission. No new GPU authorization is needed.
 
 ## Verified state and reused evidence
 

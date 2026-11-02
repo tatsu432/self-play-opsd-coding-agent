@@ -852,11 +852,7 @@ def run_payload(
             raise HpcError("Task 15 evaluation requires frozen A/B primary endpoints")
         payload["task15_freeze"] = f"/runs/{cfg.study_id}/freeze.json"
     if operation == "task15-numerical":
-        if (
-            cfg.online_supply is not None
-            or method not in {"A", "B"}
-            or checkpoint_iteration is not None
-        ):
+        if method not in {"A", "B"} or checkpoint_iteration is not None:
             raise HpcError(
                 "Task 15 audit uses existing base/B200 diff probes with diagnostic settings"
             )

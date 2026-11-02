@@ -37,8 +37,8 @@ def main():
     if complete["episodes"] != len(records) or len(records) != len(manifest["tasks"]) * 4:
         raise ValueError("Saved source probe is incomplete")
     cfg = load_config(args.settings, method="B", hardware_profile="single_gpu_80gb")
-    if cfg.online_supply or manifest["protocol"] != "unified_diff":
-        raise ValueError("Replay uses diagnostic settings and the existing diff probe")
+    if manifest["protocol"] != "unified_diff":
+        raise ValueError("Replay requires the existing training-only diff probe")
     cfg.logging.mode = "disabled"
     cfg.output_root = args.output  # Isolate adapter exports from historical study directories.
     repo = TaskRepository(cfg.data_root)

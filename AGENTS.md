@@ -12,8 +12,12 @@ Use `docs/task/15-Codex_Stabilize_Training_Complete_AB_Prompt.md`, the Task 15 p
 and `docs/investigations/task15-status.md`. The successor defaults are in
 `configs/task15.yaml`; the separate 128-episode stabilization configuration is
 `configs/task15-stabilization.yaml`. These are candidates, not a scientific freeze.
-No Task 15 job has been submitted at this snapshot. Yale SSH requires normal
-interactive MFA; reconcile scheduler and durable ledgers once access returns.
+Yale MFA succeeded and three Task 15 acceptance jobs were submitted from
+`f11de62a2a848e0c8819f50e313de32892c0a51c`: main runtime `31665807` /
+`d417ec2cb88d51d18c70e710`, H200 backend `31665819` /
+`24b2aa8b8ef849d0fe0779c1`, and stabilization runtime `31665837` /
+`70c594198915015caf75a97d`. Inspect their ledgers and Slurm before action;
+never duplicate. Their results and scientific review remain pending.
 
 Preserve actual behavior probabilities, immutable scientific identities,
 checksummed joint checkpoints, accepted worker isolation, all attempt accounting,

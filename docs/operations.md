@@ -481,8 +481,8 @@ The new operations use existing controller safeguards, approved `cpsc4880`, one 
 ```bash
 uv run selfplay hpc submit --operation runtime-check --method A --profile single_gpu_80gb --settings configs/task15.yaml
 uv run selfplay hpc submit --operation backend-check --method A --profile single_gpu_80gb --gpu-type h200 --settings configs/task15.yaml
-uv run selfplay hpc submit --operation task15-numerical --method A --profile single_gpu_80gb --gpu-type h200 --settings configs/task14.yaml
-uv run selfplay hpc submit --operation task15-numerical --method B --profile single_gpu_80gb --gpu-type h200 --settings configs/task14.yaml
+uv run selfplay hpc submit --operation task15-numerical --method A --profile single_gpu_80gb --gpu-type h200 --settings configs/task15.yaml
+uv run selfplay hpc submit --operation task15-numerical --method B --profile single_gpu_80gb --gpu-type h200 --settings configs/task15.yaml
 uv run selfplay hpc submit --operation task15-stabilize --method A --profile single_gpu_80gb --gpu-type h200 --settings configs/task15-stabilization.yaml --stop-after-iteration 2 --secrets-file /PRIVATE/EXISTING/SECRETS
 ```
 
