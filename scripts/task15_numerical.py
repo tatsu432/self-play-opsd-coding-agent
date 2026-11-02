@@ -40,6 +40,7 @@ def main():
     if cfg.online_supply or manifest["protocol"] != "unified_diff":
         raise ValueError("Replay uses diagnostic settings and the existing diff probe")
     cfg.logging.mode = "disabled"
+    cfg.output_root = args.output  # Isolate adapter exports from historical study directories.
     repo = TaskRepository(cfg.data_root)
     if manifest["dataset"] != repo.hash or manifest["pool_sha256"] != file_hash(
         SOURCE / "pool.json"
