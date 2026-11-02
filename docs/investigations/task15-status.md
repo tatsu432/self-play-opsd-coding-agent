@@ -1,6 +1,6 @@
 # Task 15 status and next action
 
-Task 15 is in implementation/validation. Main A/B training and final evaluation are **not complete**. Worktree: `/private/tmp/selfplay-task15`, branch `feat/15-stabilize-ab`; baseline `1c8e190`. No Task 15 jobs have been submitted, and no watcher is running.
+Task 15 is in implementation/validation. Main A/B training and final evaluation are **not complete**. Worktree: `/private/tmp/selfplay-task15`, branch `feat/15-stabilize-ab`; baseline `1c8e190`. This execution submitted no Task 15 jobs. Live Yale scheduler/ledger state remains unknown until authentication succeeds; no Yale watcher is running.
 
 **External blocker:** read-only SSH to `yale-hpc-cpsc4880` returns `Permission denied (keyboard-interactive)`. Complete `uv run selfplay hpc login` with normal Yale MFA. Once access works, reconcile Slurm, durable ledgers and account limits before any submission. Historical queue-empty statements are not live verification. There is no new GPU authorization request.
 
@@ -20,10 +20,23 @@ Defaults, limits, statistical interpretation and execution commands are in [the 
 
 ## Validation snapshot
 
-The integrated local CPU suite passed **322 tests, 34 skipped, 4 deselected** on implementation commit `61354ce`; subsequent deterministic parent eligibility/coverage changes passed the focused suite. Focused Task 15 tests also exercise real tiny-model counterfactual optimizer updates and checksum-verified supply restoration. Ruff lint/format and mypy passed. Local Docker is not running, so worker integration is explicitly unverified locally; hosted CI must exercise it. No H200 numerical, memory, runtime or resume result is claimed.
+Implementation commit `234d443` passed the frozen local CPU suite: **326 passed, 34 skipped, 4 deselected**. Ruff lint and formatting, mypy (47 source files), and `git diff --check` passed. Focused Task 15 checks include real tiny-model counterfactual optimizer updates, independent gradient-mode scoring, checksum-verified supply restoration, fallback credit/caps, final evaluation guards, and timeout recovery.
+
+The controller's local snapshot check passed with prepared/executed data validation, clean Git, and manifest SHA-256 `4be6da81532938b3e03bf5e7e839c200335e2b3728b5bcbfbc7c7161c39288cf`. The ignored `data/protocol-v3` link points to the original immutable prepared dataset; no private data was copied into Git.
+
+Local Docker is not running, so sandbox integration remains explicitly unverified locally. [Hosted CI 41367241355](https://github.com/tatsu432/self-play-opsd-coding-agent/actions/runs/41367241355) checks the exact implementation commit and is running at this handoff. Superseded CI attempts were cancelled to avoid redundant work; they are not passing evidence. No H200 numerical, memory, runtime, resume, stabilization, or main result is claimed.
 
 ## Next concrete action
 
-Finish hosted validation of branch `feat/15-stabilize-ab`, then authenticate and inspect live Yale state. Synchronize the committed candidate; reuse unchanged worker evidence; run only changed runtime/backend acceptance and the saved-rollout Task 15 factorial audit. Run the separately identified 128-episode stabilization arm and one dependency-relevant interruption/resume check. Review numerical effects, teacher discrimination, actual task diversity/mixed groups, and phase cost. Repair only a localized defect if needed, freeze one common route, then submit and monitor the seed-2026 A/B pair toward 4,096 episodes each and complete seeds 2027–2028.
+Finish hosted validation of implementation `234d443`, authenticate, and inspect live Yale state. Exact restart commands:
+
+```bash
+cd /private/tmp/selfplay-task15
+uv run selfplay hpc login
+uv run selfplay hpc inspect
+gh run view 41367241355 --log-failed
+```
+
+The login command requires the user's normal Yale MFA; it is not a request for a new scientific or GPU authorization. Synchronize the committed candidate; reuse unchanged worker evidence; run only changed runtime/backend acceptance and the saved-rollout Task 15 factorial audit. Run the separately identified 128-episode stabilization arm and one dependency-relevant interruption/resume check. Review numerical effects, teacher discrimination, actual task diversity/mixed groups, and phase cost. Repair only a localized defect if needed, freeze one common route, then submit and monitor the seed-2026 A/B pair toward 4,096 episodes each and complete seeds 2027–2028.
 
 Keep this file current with exact jobs, ledgers, checks and the next command. Never restart the diagnosis from its beginning after interruption.
