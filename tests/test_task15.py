@@ -10,13 +10,26 @@ import torch
 
 from selfplay_opsd.config import OnlineSupplyConfig, load_config
 from selfplay_opsd.core import ExperimentError, TokenTurn
-from selfplay_opsd.task15 import OnlineExposureTrainer
+from selfplay_opsd.task15 import OnlineExposureTrainer, eligible_training_parents
 from selfplay_opsd.task15_audit import intervention_examples
 from selfplay_opsd.trainer import SelfPlayTrainer, proposer_examples, student_examples
 
 
 def config():
     return load_config(Path("configs/task15.yaml"), hardware_profile="cpu_debug")
+
+
+def test_frozen_parent_exclusions_are_training_only_and_leave_eligible_schedule():
+    parents = [
+        SimpleNamespace(parent_id="good", source="def f(x):\n return x + 1\n"),
+        SimpleNamespace(parent_id="bad", source="def f(x):\n return x - 1\n"),
+        SimpleNamespace(parent_id="no_sites", source="def f(x):\n return x\n"),
+    ]
+    assert [p.parent_id for p in eligible_training_parents(parents, ["bad"])] == ["good"]
+    with pytest.raises(ExperimentError, match="training split"):
+        eligible_training_parents(parents, ["held_out"])
+    with pytest.raises(ValueError, match="unique"):
+        OnlineSupplyConfig(excluded_parent_ids=["bad", "bad"])
 
 
 def turn():
@@ -127,6 +140,7 @@ def supply_trainer():
         "task_groups": 0,
         "fallback_parent_uses": {},
         "evaluated_milestones": [],
+        "excluded_training_parents": 0,
     }
     return trainer
 

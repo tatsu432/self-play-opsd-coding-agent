@@ -169,9 +169,12 @@ class OnlineSupplyConfig(Strict):
     reservoir_per_parent: int = Field(default=16, ge=1)
     max_fallback_fraction: float = Field(default=0.25, ge=0, lt=1)
     gradient_diagnostic_every: int = Field(default=20, ge=1)
+    excluded_parent_ids: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def milestones(self):
+        if len(set(self.excluded_parent_ids)) != len(self.excluded_parent_ids):
+            raise ValueError("Excluded training parents must be unique")
         if self.evaluation_episodes != sorted(set(self.evaluation_episodes)) or any(
             value <= 0 or value > self.target_episodes for value in self.evaluation_episodes
         ):

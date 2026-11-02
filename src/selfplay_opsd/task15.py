@@ -25,6 +25,15 @@ from selfplay_opsd.structured_mutations import sites
 from selfplay_opsd.trainer import SelfPlayTrainer
 
 
+def eligible_training_parents(parents, excluded_parent_ids):
+    """Apply a frozen, training-only exclusion before the balanced schedule."""
+    excluded = set(excluded_parent_ids)
+    unknown = excluded - {parent.parent_id for parent in parents}
+    if unknown:
+        raise ExperimentError("Excluded parent is not in the training split")
+    return [p for p in parents if p.parent_id not in excluded and sites(p.source)]
+
+
 class OnlineExposureTrainer(SelfPlayTrainer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -38,12 +47,14 @@ class OnlineExposureTrainer(SelfPlayTrainer):
         self.supply_state.setdefault("fallback_parent_uses", {})
         self.supply_state.setdefault("evaluated_milestones", [])
         self._verification_cache: dict = {}
-        all_parents = len(self.parents)
-        self.parents = [parent for parent in self.parents if sites(parent.source)]
+        excluded = self.config.online_supply.excluded_parent_ids
+        without_sites = sum(not sites(parent.source) for parent in self.parents)
+        self.parents = eligible_training_parents(self.parents, excluded)
         if not self.parents:
             raise ExperimentError("No training parent has a legal structured mutation site")
         self.supply_state["eligible_parents"] = len(self.parents)
-        self.supply_state["parents_without_legal_sites"] = all_parents - len(self.parents)
+        self.supply_state["parents_without_legal_sites"] = without_sites
+        self.supply_state["excluded_training_parents"] = len(excluded)
 
     def proposer_prompt(self, parent):
         messages = super().proposer_prompt(parent)
@@ -177,6 +188,7 @@ class OnlineExposureTrainer(SelfPlayTrainer):
             "reservoir_tasks": len(state["reservoir"]),
             "parent_coverage": len({v["task"]["parent_id"] for v in state["reservoir"].values()}),
             "eligible_parents": len(self.parents),
+            "excluded_training_parents": self.supply_state["excluded_training_parents"],
             "parents_without_legal_sites": state.get("parents_without_legal_sites", 0),
             "distinct_parent_sites": len({(parent, edit["site"]) for parent, edit in edits}),
             "operator_counts": dict(Counter(edit["operation"] for _, edit in edits)),

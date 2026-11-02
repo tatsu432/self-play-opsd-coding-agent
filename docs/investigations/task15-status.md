@@ -1,5 +1,33 @@
 # Task 15 status and next action
 
+## Current: common parent-verification correction, 2026-11-02
+
+V1 freeze job 31669915 succeeded; A/B for seeds 2026–2028 were launched once
+as 31669950/31669951, 31669958/31669961 and 31669962/31669964. All baselines
+were 0/41; first ~256-episode development results A/B were 12/12, 12/12 and
+10/13. These are interim and not final. A-2028, B-2027 and B-2028 failed with
+`Restoring original did not pass`; never retry them. Watchers were stopped for
+A-2026, B-2026 and A-2027 and clean stop markers placed at their active attempts.
+Inspect their live state. Exact allocations and checksums must be reconciled.
+
+A targeted, separately isolated CPU replay checked the 16 possible parent
+groups after A-2028 checkpoint 24: parent Mbpp/590 failed two prepared cases
+twice; other parents passed. A follow-up audited all 128 structurally eligible
+training parents and found exactly this one failing parent. Private reports live
+under the v1 Yale run directory; checksums are recorded in AGENTS.md. The initial
+CPU replay's preflight helper was killed before testing a parent; it used an
+existing allocation step and did not change scientific state.
+
+New branch `feat/15-verified-parent-successor`, worktree
+`/private/tmp/selfplay-task15-v2`, config `configs/task15-v2.yaml`, study
+`repair-selfplay-2026-task15-ab-v2`: exclude Mbpp/590 from both methods before
+balanced sampling. Data and held-out splits remain immutable. This scientific
+change requires a new freeze and fresh dependency-matching validation; v1
+checkpoints cannot resume. Reuse the targeted numerical and stabilization
+results only for unchanged dependencies and describe that limitation. Validate,
+submit the six fresh paired runs, monitor/recover, evaluate and analyze them.
+
+
 Task 15 is in implementation/validation. Main A/B training and final evaluation are **not complete**. Worktree: `/private/tmp/selfplay-task15`, branch `feat/15-stabilize-ab`; baseline `1c8e190`. Three Task 15 acceptance jobs were submitted once from `f11de62a2a848e0c8819f50e313de32892c0a51c`: main runtime `31665807` / `d417ec2cb88d51d18c70e710`, H200 backend `31665819` / `24b2aa8b8ef849d0fe0779c1`, and stabilization runtime `31665837` / `70c594198915015caf75a97d`. Inspect their ledgers and Slurm before action; never duplicate. All three acceptance jobs completed exit 0; backend used 215 H200-seconds. Saved-rollout audit job `31665993` / run `d1c5f8d2cfc62a5ffa4ee3a5` was submitted once from `aa01dcf5781c5f6932eb51bbefc573fd72ca2c67`; inspect its ledger and never duplicate. Stabilization job `31666009` / run `efb2e712a0484dc3d39e52ff` was submitted once from `1413994815ffc954a0153480b40b24d2c0ba17e8`, with a 128-episode target and a two-iteration stop. Never duplicate. The first bounded watcher stopped as intended. After verified continuation, controller watcher session 99529 runs with clean continuation enabled toward the frozen 128-episode stabilization target; check whether it remains alive after any interruption.
 
 Yale MFA succeeded. The live queue was empty before the first submission, prior Task 14 A/B, runtime, and backend jobs completed exit 0, and unchanged worker evidence was reused for both Task 15 studies. The acceptance jobs above completed successfully. The saved-rollout audit and bounded stabilization jobs were running at the latest check. Historical queue snapshots are not live verification; recheck before every submission. No new GPU authorization is needed.

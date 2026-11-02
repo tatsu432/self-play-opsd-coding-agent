@@ -1,31 +1,30 @@
 # Project and operating instructions
 
-## CURRENT — Task 15 (2026-11-01)
+## CURRENT — Task 15 successor (2026-11-02)
 
-Task 15 supersedes historical approval gates and the Task 14 recommendation to
-prioritize C/D diagnostics. Complete common stabilization, then online A/B for
-seeds 2026–2028 through the frozen episode endpoint and final evaluation. Necessary
-commits, Yale CPU/H200 allocations, continuations, recovery and analysis are
-already authorized. Do not substitute static controls or require B to win.
-
-Use `docs/task/15-Codex_Stabilize_Training_Complete_AB_Prompt.md`, the Task 15 plan,
-and `docs/investigations/task15-status.md`. The successor defaults are in
-`configs/task15.yaml`; the separate 128-episode stabilization configuration is
-`configs/task15-stabilization.yaml`. These are candidates, not a scientific freeze.
-Yale MFA succeeded and three Task 15 acceptance jobs were submitted from
-`f11de62a2a848e0c8819f50e313de32892c0a51c`: main runtime `31665807` /
-`d417ec2cb88d51d18c70e710`, H200 backend `31665819` /
-`24b2aa8b8ef849d0fe0779c1`, and stabilization runtime `31665837` /
-`70c594198915015caf75a97d`. Inspect their ledgers and Slurm before action;
-never duplicate. All three acceptance jobs completed exit 0 (main runtime 452 CPU-seconds; backend 215 H200-seconds; stabilization runtime 450 CPU-seconds). Saved-rollout numerical audit job `31665993`, run `d1c5f8d2cfc62a5ffa4ee3a5`, was submitted once from execution `aa01dcf5781c5f6932eb51bbefc573fd72ca2c67`. Inspect its ledger and Slurm; never duplicate. Stabilization job `31666009`, run `efb2e712a0484dc3d39e52ff`, was submitted once from execution `1413994815ffc954a0153480b40b24d2c0ba17e8`, with target 128 episodes and stop after iteration 2. Inspect its ledger and Slurm; never duplicate. The initial watcher stopped at the bounded checkpoint; checkpoint verification and the first audit review were completed before the separately recorded continuation. The new watcher runs with clean continuation enabled toward 128 episodes; inspect its process and ledger after interruptions. The original audit's gradient-mode-only summary is invalid: activating the adapter reset it to evaluation mode. Its factorial optimizer comparisons remain separately usable. The job completed exit 0 in 1,338 H200-seconds: holding the SD gap fixed, diagnostic denominator substitution changed the Adam update cosine to 0.642 versus a 0.996 identical-operation repeat; same-scorer no-privilege SD gradient was zero, versus 0.00957 with behavior/scorer mixing. Privilege improved repair-versus-finish discrimination on 6/8 targeted tasks. These are diagnostic interventions on 32 training-only episodes, not permission to substitute behavior probabilities. Local audit SHA-256 is `da3ae515cde0d5e760833fff86ebadf1f2180f6a5a98b6e0d015ccf7ad4b08cf`. The defect is fixed in execution `d655f24a5491850eb6083000e2111e5a5e1abc06`; matching CPU runtime-validation job `31666385` / run `55c483c196553d97126b7553` was submitted once. Inspect its ledger and never duplicate. Run the prespecified score-only mode (`--iterations 8`) after this validation succeeds. Continue the existing stabilization only from its original immutable execution. Numerical and scientific reviews remain pending.
-
-Preserve actual behavior probabilities, immutable scientific identities,
-checksummed joint checkpoints, accepted worker isolation, all attempt accounting,
-and held-out boundaries. Never duplicate uncertain or completed jobs. Continue
-clean wall-time stops under the frozen Task 15 exposure rule. Numerical/oracle/
-sampling defects require repair; unfavorable scores do not justify restarts.
-C/D is deferred until A/B outputs exist. Historical sections below are provenance,
-not current scheduler state or additional authorization requirements.
+Task 15 is authorized through A/B training, continuations and final evaluation;
+never ask for new GPU approval. The frozen v1 six-arm run encountered a verified
+training-parent oracle defect and must not be resumed under changed science.
+A-2028 job 31669962, B-2027 job 31669961 and B-2028 job 31669964 failed with
+`Restoring original did not pass`; inspect their ledgers and never duplicate.
+The remaining A-2026 job 31669950, B-2026 job 31669951 and A-2027 job 31669958
+were requested to stop at complete checkpoints; their watchers were stopped to
+prevent automatic resubmission. Reconcile their actual state and allocation.
+A CPU-only isolated audit checked all 128 eligible training parents and found
+one parent, `Mbpp/590`, with two reproducible semantic failures; reports are
+`runs/repair-selfplay-2026-task15-ab-v1/eligible-parent-audit.json` (SHA-256
+`c95ffb5ca3d161adca88ecf68180506bf0e5ed9c9b2f523b191c545b39c23a6e`)
+and `parent-replay-results.json` (SHA-256
+`8644dd88030ffeef1e34851efccfffa73050071506fa4c1e09834c806573a18e`).
+The successor uses `configs/task15-v2.yaml`, excludes that one training parent
+from both arms before sampling, and keeps the model, loss, budget, worker and
+data manifest unchanged. Worktree `/private/tmp/selfplay-task15-v2`, branch
+`feat/15-verified-parent-successor`; finish tests and fresh dependency-matching
+runtime/backend evidence, freeze the new study, submit and monitor all six arms.
+Never mix incompatible v1 checkpoints into the successor. Historical reports
+and earlier checkpoints remain auditable; held-out data stays closed until the
+frozen endpoints. C/D is deferred. Consult `docs/investigations/task15-status.md`
+and live Slurm/ledgers; no duplicate uncertain or completed job.
 
 ## Task 14 execution authorization — 2026-11-01
 
