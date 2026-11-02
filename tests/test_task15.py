@@ -401,7 +401,18 @@ def test_task15_final_analysis_reports_missing_and_refuses_unpaired_tasks(monkey
         analysis.paired_clustered(a, [b[0] | {"task_id": "other"}], {"p": "family"})
 
 
-def test_task15_recovery_stops_at_episode_endpoint_before_iteration_ceiling(tmp_path, monkeypatch):
+@pytest.mark.parametrize(
+    "scheduler_state,total,phase,reason",
+    [
+        ("COMPLETED", 4096, "complete", "scientifically_complete"),
+        ("TIMEOUT", 128, "rollout_reward", "resumed"),
+        ("COMPLETED", 128, "rollout_reward", "not_a_clean_stop"),
+        ("TIMEOUT", 128, "failed", "training_reported_failure"),
+    ],
+)
+def test_task15_recovery_stops_at_episode_endpoint_before_iteration_ceiling(
+    tmp_path, monkeypatch, scheduler_state, total, phase, reason
+):
     import hashlib
     import json
 
@@ -415,7 +426,7 @@ def test_task15_recovery_stops_at_episode_endpoint_before_iteration_ceiling(tmp_
         json.dumps(
             {
                 "iteration": 300,
-                "total_episodes": 4096,
+                "total_episodes": total,
                 "scientific_hash": "science",
                 "manifests_hash": "data",
             }
@@ -426,16 +437,17 @@ def test_task15_recovery_stops_at_episode_endpoint_before_iteration_ceiling(tmp_
     )
     (checkpoint.parent / "latest.json").write_text(json.dumps({"path": "000300", "iteration": 300}))
     (run / "state").mkdir()
-    (run / "state/health.json").write_text(json.dumps({"phase": "complete"}))
+    (run / "state/health.json").write_text(json.dumps({"phase": phase}))
     ledger = tmp_path / "ledger.json"
     ledger.write_text(
         json.dumps({"identity": "id", "attempts": [{"job_id": "123"}], "run_dir": str(run)})
     )
     monkeypatch.setattr(remote, "paths", lambda _: {"runs": tmp_path / "runs"})
     monkeypatch.setattr(remote, "ledger_path", lambda _: ledger)
-    monkeypatch.setattr(remote, "job_state", lambda _: {"state": "COMPLETED"})
+    monkeypatch.setattr(remote, "job_state", lambda _: {"state": scheduler_state})
+    submitted = []
     monkeypatch.setattr(
-        remote, "submit", lambda _: pytest.fail("Completed exposure was submitted again")
+        remote, "submit", lambda payload: submitted.append(payload) or {"submitted": True}
     )
     result = remote.recover(
         {
@@ -449,9 +461,16 @@ def test_task15_recovery_stops_at_episode_endpoint_before_iteration_ceiling(tmp_
             "scientific_hash": "science",
             "manifests_hash": "data",
             "explicit_continue": True,
+            "max_continuations": 64,
+            "time": "06:00:00",
         }
     )
-    assert result["reason"] == "scientifically_complete"
+    if reason == "resumed":
+        assert result["submitted"]
+        assert submitted[0]["resume"] == str(checkpoint)
+    else:
+        assert result["reason"] == reason
+        assert not submitted
 
 
 @pytest.mark.sandbox

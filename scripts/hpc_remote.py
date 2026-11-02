@@ -484,8 +484,17 @@ def recover(payload: dict) -> dict:
         "target_iterations", payload.get("iterations", 0)
     ):
         return {"submitted": False, "state": state, "reason": "scientifically_complete"}
-    if planned and (
-        not health_path.is_file() or json.loads(health_path.read_text()).get("phase") != "stopped"
+    task15_timeout = state == "TIMEOUT" and payload["operation"] in {
+        "task15-online",
+        "task15-stabilize",
+    }
+    if (
+        planned
+        and not task15_timeout
+        and (
+            not health_path.is_file()
+            or json.loads(health_path.read_text()).get("phase") != "stopped"
+        )
     ):
         return {"submitted": False, "state": state, "reason": "not_a_clean_stop"}
     if planned and ledger.get("continuations", 0) >= payload.get("max_continuations", 0):
