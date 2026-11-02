@@ -41,3 +41,7 @@ uv run selfplay hpc logs efb2e712a0484dc3d39e52ff
 ```
 
 Reauthenticate with `uv run selfplay hpc login` only if normal Yale MFA expires. Never repeat an uncertain or completed job. No main Task 15 arm or final held-out evaluation has been submitted.
+
+## Task 15 corrected score-only replay — current
+
+Corrected CPU runtime-validation job `31666385` / run `55c483c196553d97126b7553` completed exit 0 in 491 CPU-seconds. The distinct score-only H200 replay was submitted once as job `31666580` / run `cfad4570ff5b9dfe45e18ad4` from execution `126966be1b6d5945de1ad48700615b492bab6ab7`, with `--iterations 8`. It measures training-mode versus frozen scorer probabilities on the same saved training-only tokens, without repeating optimizer updates. Inspect its ledger and Slurm before any action; never duplicate.
