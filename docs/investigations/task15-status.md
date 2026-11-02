@@ -49,3 +49,7 @@ Corrected CPU runtime-validation job `31666385` / run `55c483c196553d97126b7553`
 ## Task 15 B200 factorial replay — current
 
 The base factorial audit demonstrated material denominator sensitivity, while the earlier B200 audit coupled denominator and SD-gap changes. To determine whether that sensitivity persists at a trained snapshot and inform the backend decision, corrected B200 factorial replay job `31666603` / run `bb2dd180614566fc324e36b5` was submitted once from execution `69bc3267c616662afb1c053900f6ec8c489bafb0` against saved training-only source `0078cd3bbbb89eb3c5282ddd`, which completed exit 0. It includes the available mixed groups and is a targeted diagnostic, not a population estimate. Inspect its ledger and Slurm; never duplicate.
+
+## Task 15 corrected score-only result — current
+
+Job `31666580` / run `cfad4570ff5b9dfe45e18ad4` completed exit 0 in 117 H200-seconds. Its corrected training-mode versus frozen-scorer comparison matched exactly across 17,180 saved tokens from eight targeted base-snapshot training tasks. This localizes the observed discrepancy to the rollout-versus-scorer side for this sample; it does not establish root cause, population behavior, or justify replacing true behavior probabilities. Local report SHA-256: `3b78a55ce02321da3c9e0485b74f64b22440c6702627959d34aa709d111b6434`. The B200 factorial replay and stabilization remain active; inspect their existing ledgers and never duplicate.
