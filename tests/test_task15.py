@@ -277,6 +277,7 @@ def test_audit_runs_real_tiny_model_updates_and_restores_full_state():
         report = audit_updates(policy, cfg, sample)
         assert report["available"]
         assert report["no_privilege_scorer_repeat"]["max_absolute"] == 0
+        assert report["gradient_mode_vs_frozen_scorer"]["max_absolute"] == 0
         assert report["metrics"]["no_privilege:scorer"]["grad_norm"] == 0
         assert report["metrics"]["no_privilege:behavior"]["grad_norm"] > 0
         assert _optimizer_digest(policy.state_dict()) == before
@@ -323,6 +324,8 @@ def test_checkpoint_restores_supply_and_pending_snapshot_state(tmp_path, monkeyp
     repo = TaskRepository(cfg.data_root)
     policy = HFPolicy(cfg)
     trainer = OnlineExposureTrainer(cfg, policy, repo, object(), development_enabled=False)
+    assert len(trainer.parents) == 1
+    assert trainer.supply_state["parents_without_legal_sites"] == 1
     trainer.supply_state.update(
         {
             "proposal_groups": 19,

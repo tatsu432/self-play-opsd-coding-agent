@@ -72,6 +72,36 @@ def audit_updates(policy, cfg, episodes):
                 )
                 turns.append(turn.model_copy(update={"teacher_logps": values}))
             no_privilege_episodes.append(episode.model_copy(update={"turns": turns}))
+    # Match the gradient-bearing forward's training/checkpointing mode while
+    # retaining the same frozen snapshot and target IDs. This does not backprop.
+    gradient_mode_deltas: list[float] = []
+    was_training = policy.model.training
+    try:
+        policy.model.train()
+        with policy.active("student"):
+            turns = [turn for episode in episodes for turn in episode.turns if turn.target_ids]
+            size = cfg.hardware.microbatch_episodes
+            for start in range(0, len(turns), size):
+                batch = turns[start : start + size]
+                scores = policy.score_many(
+                    [(turn.prompt_ids, turn.target_ids) for turn in batch], gradients=True
+                )
+                for turn, score in zip(batch, scores, strict=True):
+                    gradient_mode_deltas.extend(
+                        a - b
+                        for a, b in zip(
+                            score.detach().float().tolist(),
+                            turn.frozen_unprivileged_logps,
+                            strict=True,
+                        )
+                    )
+                # Release each graph at the same bounded microbatch boundary as
+                # the actual backward path; do not retain an episode's graphs.
+                if scores:
+                    del score
+                del scores
+    finally:
+        policy.model.train(was_training)
     cases = [
         ("behavior:behavior", "behavior", "behavior", False),
         ("scorer:behavior", "scorer", "behavior", False),
@@ -123,6 +153,9 @@ def audit_updates(policy, cfg, episodes):
         return {
             "available": True,
             "no_privilege_scorer_repeat": error_statistics(repeat_deltas, cfg.objective.clip),
+            "gradient_mode_vs_frozen_scorer": error_statistics(
+                gradient_mode_deltas, cfg.objective.clip
+            ),
             "metrics": {name: value["metrics"] for name, value in branches.items()},
             "comparisons": comparisons,
             "note": "Denominator substitutions are diagnostic only. Main PPO retains actual behavior probabilities.",
