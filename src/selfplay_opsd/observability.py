@@ -152,6 +152,7 @@ class WandbSink:
                 for group in (
                     "student/*",
                     "proposer/*",
+                    "supply/*",
                     "distill/*",
                     "alignment/*",
                     "perf/*",

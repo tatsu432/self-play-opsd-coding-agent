@@ -469,3 +469,42 @@ bounded plain-text tables are emitted. No account dashboard is assumed created.
 Main launches require finalized data, real backend acceptance, a measured target
 pilot and frozen common settings. CPU tests do not establish CUDA memory fit,
 online W&B, Yale isolation or measured 200-iteration runtime.
+
+## Task 15 online A/B successor
+
+Task 15 is authorized through training, continuations and final evaluation. Its candidate configuration is `configs/task15.yaml`, with separate `configs/task15-stabilization.yaml`. Neither is a freeze. Consult [current status](investigations/task15-status.md) before acting. Work from the clean committed Task 15 worktree with the existing prepared data available at `data/protocol-v3`; do not copy private data into Git.
+
+Authenticate with `uv run selfplay hpc login`. Reconcile `hpc inspect`, actual job/ledger state and account resources before every submission. Synchronize with `hpc sync --settings configs/task15.yaml` (see command help for supported options). Reuse unchanged containment with `hpc reuse-worker repair-selfplay-2026-task14-online-v1 --settings configs/task15.yaml`. Run changed runtime/backend acceptance for the candidate identities; do not repeat unrelated distributed or D-pilot readiness work. The stabilization study requires its own dependency-matching runtime evidence. Runtime compatibility for Task 15 is neutral to training seed, but checkpoint/run identity still includes the actual seed.
+
+The new operations use existing controller safeguards, approved `cpsc4880`, one H200 and six-hour training segments. Use the existing private compute-visible secrets file; never put its contents in commands/logs/Git. Obtain image paths/hashes and the secrets-file path from verified existing ledgers, rather than copying stale values. Command forms after reconciliation (runtime/backend checks explicitly use method A with the Task 15 settings; their CLI default D is outside this successor):
+
+```bash
+uv run selfplay hpc submit --operation runtime-check --method A --profile single_gpu_80gb --settings configs/task15.yaml
+uv run selfplay hpc submit --operation backend-check --method A --profile single_gpu_80gb --gpu-type h200 --settings configs/task15.yaml
+uv run selfplay hpc submit --operation task15-numerical --method A --profile single_gpu_80gb --gpu-type h200 --settings configs/task14.yaml
+uv run selfplay hpc submit --operation task15-numerical --method B --profile single_gpu_80gb --gpu-type h200 --settings configs/task14.yaml
+uv run selfplay hpc submit --operation task15-stabilize --method A --profile single_gpu_80gb --gpu-type h200 --settings configs/task15-stabilization.yaml --stop-after-iteration 2 --secrets-file /PRIVATE/EXISTING/SECRETS
+```
+
+The numerical operations reuse the completed base/B200 diff sources, respectively. They include both available mixed and uniform saved groups, report targeted sampling, restore both optimizers/adapters, and never write main checkpoints. Do not submit both automatically if the first resolves the relevant configuration decision. The stabilization operation is capped at 128 episodes in a separate study. Exercise its changed-state interruption/resume with the supported stop marker or scheduler signal and `hpc resume RUN_ID --continue-stopped`; compare restored snapshots/counters/milestones and retain all allocation costs.
+
+After scientific review, write the private `/runs/repair-selfplay-2026-task15-ab-v1/stabilization-decision.json` with `ready`, `causal_decisions`, measured six-arm `resource_plan`, and evidence entries `{kind,path}` for runtime, backend, numerical, resume and completed stabilization. Paths must refer to actual compute-visible JSON reports. A `resume` report records a passed real interruption/resume comparison, not a CPU mock. Freeze through the existing immutable controller:
+
+```bash
+uv run selfplay hpc submit --operation task15-freeze --method A --profile single_gpu_80gb --settings configs/task15.yaml
+uv run selfplay hpc submit --operation task15-online --method A --seed 2026 --profile single_gpu_80gb --gpu-type h200 --settings configs/task15.yaml --secrets-file /PRIVATE/EXISTING/SECRETS
+uv run selfplay hpc submit --operation task15-online --method B --seed 2026 --profile single_gpu_80gb --gpu-type h200 --settings configs/task15.yaml --secrets-file /PRIVATE/EXISTING/SECRETS
+uv run selfplay hpc watch RUN_ID --interval 60 --continue-stopped
+```
+
+Start actual supported watchers for both run IDs; do not claim monitoring after they exit. Repeat the same A/B forms for seeds 2027 and 2028 under live account limits. The configured 16,384 iteration ceiling bounds proposal attempts; **4096 attempted student episodes** is the scientific completion condition. A clean segment stop is not completion. Inspect checkpoint-backed episode counts, supply limits, actual updates and numerical health. Resume retains immutable settings; supply-budget exhaustion and scientific failures do not automatically retry. W&B delivery failures leave valid local training running.
+
+Only after frozen endpoints are complete, use `--operation task15-evaluate` with the same method, `--seed`, settings and the actual endpoint `--checkpoint-iteration`, once for each of `--split final_id` and `--split external`. Evaluate the common base once per split with `--base`. These operations use the Task 15 freeze and episode endpoint guard, without an obsolete D-pilot prerequisite. No secondary checkpoint is selected. Fetch checksummed checkpoints and per-task outcomes with the existing fetch route, retaining private artifacts.
+
+Create a private allocation/run manifest containing six `{method,seed,run_dir,allocations}` entries; allocation intervals have `start`, `end` UTC epoch seconds and `gpus`, including failed/abandoned attempts. Analyze locally:
+
+```bash
+uv run python scripts/analyze_task15.py --manifest runs/task15/manifest.json --data data/protocol-v3 --output runs/task15/analysis
+```
+
+The analysis validates paired common settings, initialization and task sets, emits missing/incomplete arms explicitly, and separates family/parent task uncertainty from paired training-seed variation. Local raw events, allocation accounting and checkpoints remain authoritative. The current machine lacks a running Docker daemon, so local sandbox tests may skip; hosted worker tests and actual Yale containment/backend checks must be reported separately.

@@ -374,7 +374,20 @@ def score_teacher(
                 if policy.config.method == "GRPO_KL"
                 else []
             )
-            scored.append(turn.model_copy(update={"teacher_logps": teacher, "base_logps": base}))
+            scored.append(
+                turn.model_copy(
+                    update={
+                        "teacher_logps": teacher,
+                        "base_logps": base,
+                        "frozen_unprivileged_logps": unprivileged.detach().float().tolist(),
+                        "scorer_identity": {
+                            "adapter": episode.policy_version,
+                            "backend": policy.config.model.backend,
+                            "gap_schema": policy.config.sd_gap_definition,
+                        },
+                    }
+                )
+            )
     return (
         episode.model_copy(update={"turns": scored, "token_target_maps": mappings}),
         mappings,

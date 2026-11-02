@@ -350,6 +350,7 @@ def run_payload(
     partition: str | None = None,
     exclude_nodes: list[str] | None = None,
     stop_after_iteration: int | None = None,
+    seed: int | None = None,
 ) -> dict:
     if operation not in {
         "backend-check",
@@ -374,6 +375,11 @@ def run_payload(
         "task14-proposal-student",
         "task14-static",
         "task14-online",
+        "task15-online",
+        "task15-stabilize",
+        "task15-evaluate",
+        "task15-numerical",
+        "task15-freeze",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -411,9 +417,11 @@ def run_payload(
         raise HpcError("Diagnostics require a checkpoint iteration")
     if operation == "task13-counterfactual" and (method != "C" or checkpoint_iteration != 99):
         raise HpcError("Task 13 counterfactual requires corrected C checkpoint 99")
-    if operation == "evaluate" and not base and checkpoint_iteration is None:
+    if operation in {"evaluate", "task15-evaluate"} and not base and checkpoint_iteration is None:
         raise HpcError("Evaluation requires --base or --checkpoint-iteration")
-    if base and (operation != "evaluate" or checkpoint_iteration is not None):
+    if base and (
+        operation not in {"evaluate", "task15-evaluate"} or checkpoint_iteration is not None
+    ):
         raise HpcError("--base is only valid for evaluation without a checkpoint")
     if secrets_file and not re.fullmatch(r"/[A-Za-z0-9_./-]+", secrets_file):
         raise HpcError("Secrets file must be an absolute remote path")
@@ -440,9 +448,12 @@ def run_payload(
     ):
         raise HpcError("Node exclusions require trusted diagnostics and explicit node names")
     partition = partition or GPU_PARTITIONS[chosen_gpu]
-    cfg = load_config(settings, method=method, hardware_profile=profile)
+    cfg = load_config(settings, method=method, hardware_profile=profile, seed=seed)
+    if seed is not None and (not operation.startswith("task15-") or seed not in {2026, 2027, 2028}):
+        raise HpcError("Explicit training seed is supported only for Task 15 paired seeds")
     if stop_after_iteration is not None and (
-        operation != "train" or not 1 <= stop_after_iteration < cfg.iterations
+        operation not in {"train", "task15-online", "task15-stabilize"}
+        or not 1 <= stop_after_iteration < cfg.iterations
     ):
         raise HpcError("A bounded stop requires training and an iteration below the frozen budget")
     state = remote.call("study", {"storage_root": storage, "study_id": cfg.study_id})
@@ -488,6 +499,8 @@ def run_payload(
     )
     pilot_suffix = "-pilot" if chosen_gpu == "h100" else "-pilot-" + chosen_gpu
     checkpoint_cfg = cfg.model_copy(deep=True)
+    if operation == "task15-numerical":
+        checkpoint_cfg.method = "B"  # A/B CLI labels select saved base/B200 sources here.
     if operation == "task13-probe" and checkpoint_iteration is not None:
         checkpoint_cfg = load_config(
             settings,
@@ -524,6 +537,10 @@ def run_payload(
         "task14-proposal-student",
         "task14-static",
         "task14-online",
+        "task15-online",
+        "task15-stabilize",
+        "task15-evaluate",
+        "task15-numerical",
         "task13-model-probe",
         "task13-static",
         "task13-static-continuation",
@@ -559,9 +576,9 @@ def run_payload(
         or (operation == "task13-probe" and iterations == 8)
         else cfg.iterations,
         "base": base,
-        "split": split if operation == "evaluate" else None,
+        "split": split if operation in {"evaluate", "task15-evaluate"} else None,
         "checkpoint_iteration": checkpoint_iteration,
-        "endpoint": endpoint if operation == "evaluate" else None,
+        "endpoint": endpoint if operation in {"evaluate", "task15-evaluate"} else None,
     }
     if operation == "task13-model-probe":
         name, revision, representation = TASK13_MODELS[method]
@@ -615,6 +632,8 @@ def run_payload(
         "stop_after_iteration": stop_after_iteration or 0,
         "max_continuations": 1
         if operation == "pilot"
+        else 64
+        if operation in {"task15-online", "task15-stabilize"}
         else planning.get(
             "max_continuations",
             min(
@@ -647,7 +666,7 @@ def run_payload(
             "method-smoke",
             "protocol-check",
         }
-        or (operation == "evaluate" and base)
+        or (operation in {"evaluate", "task15-evaluate"} and base)
         else None,
         "run_id": identity[:24],
         "scientific_hash": checkpoint_cfg.scientific_hash,
@@ -696,9 +715,13 @@ def run_payload(
             "task13-static-continuation",
             "task14-static",
             "task14-online",
+            "task15-online",
+            "task15-stabilize",
+            "task15-evaluate",
+            "task15-numerical",
         }
         else "02:00:00"
-        if (operation == "evaluate" and base)
+        if (operation in {"evaluate", "task15-evaluate"} and base)
         or operation
         in {
             "method-smoke",
@@ -819,6 +842,43 @@ def run_payload(
                 "Task 14 static requires A=GRPO, B=gated or C=ungated and seed selector 26–28"
             )
         payload["output"] = f"/runs/repair-diagnosis-2026-task14-static-v1/{identity[:24]}"
+    if operation == "task15-freeze":
+        if cfg.online_supply is None or method != "A":
+            raise HpcError("Task 15 freeze requires the common main A configuration")
+        payload["output"] = f"/runs/{cfg.study_id}/freeze.json"
+        payload["decision"] = f"/runs/{cfg.study_id}/stabilization-decision.json"
+    if operation == "task15-evaluate":
+        if cfg.online_supply is None or method not in {"A", "B"} or endpoint != "primary":
+            raise HpcError("Task 15 evaluation requires frozen A/B primary endpoints")
+        payload["task15_freeze"] = f"/runs/{cfg.study_id}/freeze.json"
+    if operation == "task15-numerical":
+        if (
+            cfg.online_supply is not None
+            or method not in {"A", "B"}
+            or checkpoint_iteration is not None
+        ):
+            raise HpcError(
+                "Task 15 audit uses existing base/B200 diff probes with diagnostic settings"
+            )
+        source = "cd5dae1d517b8b78d2535071" if method == "A" else "0078cd3bbbb89eb3c5282ddd"
+        payload["audit_source"] = f"/runs/repair-diagnosis-2026-task14-student-v1/{source}"
+        payload["output"] = f"/runs/repair-diagnosis-2026-task15-numerical-v1/{identity[:24]}"
+        payload["time"] = "02:00:00"
+    if operation in {"task15-online", "task15-stabilize"}:
+        if (
+            method not in {"A", "B"}
+            or cfg.online_supply is None
+            or checkpoint_iteration is not None
+        ):
+            raise HpcError("Task 15 requires an A/B exposure configuration")
+        if chosen_gpu != "h200" or count != 1 or selected_account != "cpsc4880":
+            raise HpcError("Task 15 uses the authorized one-H200 course allocation")
+        payload["output"] = "/runs"
+        payload["iterations"] = cfg.iterations
+        payload["target_episodes"] = cfg.online_supply.target_episodes
+        payload["exposure_policy"] = cfg.online_supply.model_dump(mode="json")
+        payload["task15_freeze"] = f"/runs/{cfg.study_id}/freeze.json"
+        payload["continuation_time"] = "06:00:00"
     if operation == "task14-online":
         if (
             method not in {"A", "B", "C", "D"}
@@ -871,6 +931,10 @@ def run_payload(
             "task14-proposal-student",
             "task14-static",
             "task14-online",
+            "task15-online",
+            "task15-stabilize",
+            "task15-evaluate",
+            "task15-numerical",
             "task13-model-probe",
             "task13-header-replay",
             "task13-static",
@@ -1318,6 +1382,7 @@ def submit_command(
     endpoint: str = "primary",
     secrets_file: str | None = None,
     stop_after_iteration: int | None = None,
+    seed: int | None = None,
     dry_run: bool = False,
     alias: str = ALIASES[0],
 ):
@@ -1341,6 +1406,7 @@ def submit_command(
         endpoint=endpoint,
         secrets_file=secrets_file,
         stop_after_iteration=stop_after_iteration,
+        seed=seed,
     )
     output(remote.call("preview" if dry_run else "submit", payload))
 

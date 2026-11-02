@@ -979,6 +979,54 @@ def task13_command_args(env: dict) -> list[str]:
         )
     if operation == "task14-counterfactual-replay":
         return prefix + ["/workspace/scripts/task14_counterfactual_replay.py"] + common
+    if operation == "task15-freeze":
+        return (
+            ["python", "/workspace/scripts/freeze_task15.py"]
+            + common
+            + ["--decision", env["SELFPLAY_DECISION"]]
+        )
+    if operation == "task15-evaluate":
+        args = prefix + [
+            "-m",
+            "selfplay_opsd.cli",
+            "evaluate",
+            "--settings",
+            "/workspace/" + env["SELFPLAY_SETTINGS"],
+            "--config",
+            method,
+            "--hardware",
+            env["SELFPLAY_HARDWARE"],
+            "--split",
+            env["SELFPLAY_SPLIT"],
+            "--seed",
+            env["SELFPLAY_SEED"],
+        ]
+        return args + (
+            ["--base"]
+            if env.get("SELFPLAY_BASE") == "1"
+            else ["--checkpoint", env["SELFPLAY_CHECKPOINT"]]
+        )
+    if operation == "task15-numerical":
+        return (
+            prefix
+            + ["/workspace/scripts/task15_numerical.py"]
+            + common
+            + ["--source", env["SELFPLAY_AUDIT_SOURCE"]]
+        )
+    if operation in {"task15-online", "task15-stabilize"}:
+        args = (
+            prefix
+            + ["/workspace/scripts/task15_online.py"]
+            + common
+            + ["--method", method, "--seed", env["SELFPLAY_SEED"]]
+        )
+        if operation == "task15-stabilize":
+            args += ["--stabilization"]
+        else:
+            args += ["--freeze", env["SELFPLAY_TASK15_FREEZE"]]
+        if env.get("SELFPLAY_RESUME"):
+            args += ["--resume", env["SELFPLAY_RESUME"]]
+        return args
     if operation == "task14-online":
         return prefix + ["/workspace/scripts/task14_online.py"] + common + ["--method", method]
     if operation == "task14-counterfactual":
@@ -1071,6 +1119,11 @@ def execute(env: dict) -> int:
         "task14-proposal-student",
         "task14-static",
         "task14-online",
+        "task15-online",
+        "task15-stabilize",
+        "task15-evaluate",
+        "task15-numerical",
+        "task15-freeze",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1101,6 +1154,10 @@ def execute(env: dict) -> int:
         "task14-proposal-student",
         "task14-static",
         "task14-online",
+        "task15-online",
+        "task15-stabilize",
+        "task15-evaluate",
+        "task15-numerical",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1335,6 +1392,11 @@ def execute(env: dict) -> int:
             "task14-proposal-student",
             "task14-static",
             "task14-online",
+            "task15-online",
+            "task15-stabilize",
+            "task15-evaluate",
+            "task15-numerical",
+            "task15-freeze",
             "task13-counterfactual",
             "task13-model-probe",
             "task13-header-replay",

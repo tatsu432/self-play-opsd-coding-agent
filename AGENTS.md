@@ -1,5 +1,28 @@
 # Project and operating instructions
 
+## CURRENT — Task 15 (2026-11-01)
+
+Task 15 supersedes historical approval gates and the Task 14 recommendation to
+prioritize C/D diagnostics. Complete common stabilization, then online A/B for
+seeds 2026–2028 through the frozen episode endpoint and final evaluation. Necessary
+commits, Yale CPU/H200 allocations, continuations, recovery and analysis are
+already authorized. Do not substitute static controls or require B to win.
+
+Use `docs/task/15-Codex_Stabilize_Training_Complete_AB_Prompt.md`, the Task 15 plan,
+and `docs/investigations/task15-status.md`. The successor defaults are in
+`configs/task15.yaml`; the separate 128-episode stabilization configuration is
+`configs/task15-stabilization.yaml`. These are candidates, not a scientific freeze.
+No Task 15 job has been submitted at this snapshot. Yale SSH requires normal
+interactive MFA; reconcile scheduler and durable ledgers once access returns.
+
+Preserve actual behavior probabilities, immutable scientific identities,
+checksummed joint checkpoints, accepted worker isolation, all attempt accounting,
+and held-out boundaries. Never duplicate uncertain or completed jobs. Continue
+clean wall-time stops under the frozen Task 15 exposure rule. Numerical/oracle/
+sampling defects require repair; unfavorable scores do not justify restarts.
+C/D is deferred until A/B outputs exist. Historical sections below are provenance,
+not current scheduler state or additional authorization requirements.
+
 ## Task 14 execution authorization — 2026-11-01
 
 The user explicitly directs uninterrupted completion of Task 14, including

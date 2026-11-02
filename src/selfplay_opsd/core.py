@@ -108,6 +108,9 @@ class TokenTurn(Record):
     raw_text: str
     action: str
     parse_status: str
+    # old_logps remain actual behavior probabilities, including sampled EOS.
+    frozen_unprivileged_logps: list[float] = []
+    scorer_identity: dict[str, str] = {}
     teacher_logps: list[float] = []
     base_logps: list[float] = []
 
@@ -195,6 +198,7 @@ class CheckpointMetadata(Record):
     code_hash: str
     scientific_code_hash: str
     world_size: int
+    total_episodes: int = 0
     artifact_kind: str = "fully_resumable"
     best_development: tuple[float, int] | None = None
     resolved_config: dict[str, Any]

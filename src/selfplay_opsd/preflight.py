@@ -244,6 +244,11 @@ def freeze_study(config: RunConfig, pilot: Path) -> dict:
 
 
 def check_frozen(config: RunConfig, repository: TaskRepository) -> None:
+    if config.online_supply is not None:
+        from selfplay_opsd.task15_freeze import check_freeze
+
+        check_freeze(config, repository)
+        return
     from selfplay_opsd.readiness import execution_identity, readiness_report
 
     path = config.output_root / config.study_id / "study_frozen.json"

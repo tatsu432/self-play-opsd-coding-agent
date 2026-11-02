@@ -50,6 +50,14 @@ from selfplay_opsd.structured_mutations import mutation as structured_mutation
 from selfplay_opsd.structured_mutations import sites
 
 
+def gap_baseline(turn: TokenTurn, config: RunConfig) -> list[float]:
+    if config.sd_gap_definition == "same_scorer_v2":
+        if len(turn.frozen_unprivileged_logps) != len(turn.target_ids):
+            raise ExperimentError("Missing same-scorer frozen unprivileged probabilities")
+        return turn.frozen_unprivileged_logps
+    return turn.old_logps
+
+
 def student_examples(
     episodes: list[EpisodeRecord], config: RunConfig, *, tasks: int = 1, kind: str = "combined"
 ) -> tuple[list[LossExample], dict]:
@@ -62,7 +70,7 @@ def student_examples(
                 continue
             gap, gate, coefficient = sd_coefficients(
                 torch.tensor(turn.teacher_logps),
-                torch.tensor(turn.old_logps),
+                torch.tensor(gap_baseline(turn, config)),
                 config.gate != "none",
                 config.objective.gate_beta,
                 config.objective.gap_clip,
@@ -119,8 +127,17 @@ def reference_examples(anchors: list[dict]) -> list[LossExample]:
 def proposer_examples(
     proposals: list[ProposalRecord], rewards: list[float], config: RunConfig
 ) -> list[LossExample]:
-    expected = config.parents_per_iteration * config.proposals_per_parent
-    if len(proposals) != expected or len(rewards) != expected:
+    expected = (
+        len(proposals)
+        if config.online_supply
+        else config.parents_per_iteration * config.proposals_per_parent
+    )
+    if (
+        not expected
+        or expected % config.proposals_per_parent
+        or len(proposals) != expected
+        or len(rewards) != expected
+    ):
         raise ValueError("Incomplete attempted-proposal batch")
     output = []
     for start in range(0, len(proposals), config.proposals_per_parent):
@@ -195,6 +212,7 @@ class SelfPlayTrainer:
         )
         self.iteration, self.student_steps, self.proposer_steps = 0, 0, 0
         self.history: dict[str, set[str]] = {}
+        self.supply_state: dict[str, Any] = {}
         self.best: tuple[float, int] | None = None
         self.development_enabled = development_enabled
         self.stop_requested = False
@@ -237,6 +255,7 @@ class SelfPlayTrainer:
                 state["proposer_steps"],
             )
             self.history = {k: set(v) for k, v in state["history"].items()}
+            self.supply_state = state.get("supply_state", {})
             self.total_tokens = state.get("total_tokens", 0)
             self.total_episodes = state.get("total_episodes", 0)
             self.best = tuple(state["best"]) if state["best"] is not None else None
@@ -278,7 +297,15 @@ class SelfPlayTrainer:
             def check_initialization():
                 import fcntl
 
-                path = config.output_root / config.study_id / "initial_adapters.json"
+                path = (
+                    config.output_root
+                    / config.study_id
+                    / (
+                        f"initial_adapters-seed{config.seed}.json"
+                        if config.online_supply
+                        else "initial_adapters.json"
+                    )
+                )
                 with path.with_suffix(".lock").open("a+") as lock:
                     fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
                     if path.exists() and read_json(path) != initialization:
@@ -286,6 +313,8 @@ class SelfPlayTrainer:
                     atomic_json(path, initialization)
 
             policy.coordinator_call(check_initialization)
+            if config.online_supply and self.store:
+                atomic_json(self.root / "initial_versions.json", initialization)
         self.resume_history = (
             list(state.get("resume_history", [])) + [self.iteration] if resume else []
         )
@@ -340,6 +369,7 @@ class SelfPlayTrainer:
                 "student_steps": self.student_steps,
                 "proposer_steps": self.proposer_steps,
                 "history": {k: sorted(v) for k, v in self.history.items()},
+                "supply_state": self.supply_state,
                 "best": self.best,
                 "total_tokens": self.total_tokens,
                 "total_episodes": self.total_episodes,
@@ -366,6 +396,7 @@ class SelfPlayTrainer:
                 "logical_run_id": self.store.identity["logical_run_id"] if self.store else None,
                 "segment_id": self.store.segment if self.store else None,
                 "artifact_kind": "fully_resumable",
+                "total_episodes": self.total_episodes,
             }
             path = (
                 self.checkpoints.save(
@@ -379,7 +410,10 @@ class SelfPlayTrainer:
             if self.checkpoints:
                 if path is not None and self.sink is not None:
                     self.sink.checkpoint(path, self.iteration)
-                self.checkpoints.prune({0, self.iteration, self.best[1] if self.best else 0})
+                self.checkpoints.prune(
+                    {0, self.iteration, self.best[1] if self.best else 0}
+                    | set(self.supply_state.get("milestone_iterations", []))
+                )
                 for pending in (self.root / "state/pending").glob("*.json"):
                     if (
                         pending.name.split("-", 1)[0].isdigit()
@@ -388,13 +422,27 @@ class SelfPlayTrainer:
                         pending.unlink()
         return path
 
+    def proposal_parents(self, k):
+        schedule = random.Random(keyed_seed(self.config.seed, "parents", k))
+        return schedule.sample(
+            sorted(self.parents, key=lambda p: p.parent_id), self.config.parents_per_iteration
+        )
+
+    def reject_duplicate(self, parent_id, key, pending):
+        return key in self.history.get(parent_id, set()) or key in pending.get(parent_id, set())
+
+    def verified_task(self, parent, mutation, seed):
+        public, hidden = self.repository.parent_cases(parent.parent_id)
+        task, oracle = self.policy.coordinator_call(
+            partial(build_task, parent, mutation, public, hidden, "train", seed, self.sandbox)
+        )
+        check_admission(self.policy, task, oracle, self.config.episode)
+        return task, oracle
+
     def proposals(
         self, k: int
     ) -> tuple[list[ProposalRecord], dict[str, tuple[TaskSpec, OracleSpec]]]:
-        schedule = random.Random(keyed_seed(self.config.seed, "parents", k))
-        parents = schedule.sample(
-            sorted(self.parents, key=lambda p: p.parent_id), self.config.parents_per_iteration
-        )
+        parents = self.proposal_parents(k)
         proposals, tasks = [], {}
         pending: dict[str, set[str]] = {}
         with self.policy.active("proposer"):
@@ -487,25 +535,9 @@ class SelfPlayTrainer:
                                 raise ValueError("One patch field required")
                             mutation = validate_mutation(parent.source, value["patch"])
                         key = mutation.dedup_key
-                        if key in self.history.get(parent.parent_id, set()) or key in pending.get(
-                            parent.parent_id, set()
-                        ):
+                        if self.reject_duplicate(parent.parent_id, key, pending):
                             raise ValueError("duplicate")
-                        public, hidden = self.repository.parent_cases(parent.parent_id)
-                        result = self.policy.coordinator_call(
-                            partial(
-                                build_task,
-                                parent,
-                                mutation,
-                                public,
-                                hidden,
-                                "train",
-                                seed,
-                                self.sandbox,
-                            )
-                        )
-                        task, oracle = result
-                        check_admission(self.policy, task, oracle, self.config.episode)
+                        task, oracle = self.verified_task(parent, mutation, seed)
                         task_id, valid, reason = task.task_id, True, "valid"
                         nodes, lines, family = (
                             mutation.changed_nodes,
@@ -578,13 +610,17 @@ class SelfPlayTrainer:
                     },
                     "episodes": {},
                 }
+                stage["supply_state"] = self.supply_state
                 if self.store:
                     atomic_json(cache, stage)
+        self.supply_state = stage.get("supply_state", self.supply_state)
         # Canonical JSON sorts mapping keys. Restore scientific candidate order
         # from proposal slots, never from serialized mapping iteration order.
-        tasks = {
-            p.task_id: tasks[p.task_id] for p in proposals if p.valid and p.task_id is not None
-        }
+        ordered_ids = list(
+            dict.fromkeys(p.task_id for p in proposals if p.valid and p.task_id is not None)
+        )
+        ordered_ids.extend(sorted(set(tasks) - set(ordered_ids)))
+        tasks = {task_id: tasks[task_id] for task_id in ordered_ids}
         groups: dict[str, list[EpisodeRecord]] = {}
         mapping_metrics = []
         with self.policy.active("student"), self.phase("rollout_reward"):
@@ -691,7 +727,10 @@ class SelfPlayTrainer:
             all_examples.extend(examples)
             distill.append(metrics)
         interaction: dict[str, Any] = {"sampled": False, "ratio": None, "cosine": None}
-        if all_examples and (k % 20 == 0 or cfg.gradient_diagnostics):
+        if all_examples and (
+            k % (cfg.online_supply.gradient_diagnostic_every if cfg.online_supply else 20) == 0
+            or cfg.gradient_diagnostics
+        ):
             with self.policy.active("student"), self.phase("gradient_diagnostic"):
                 rl_grad, rl_info = self.policy.gradients(
                     [dataclasses.replace(e, kind="rl") for e in all_examples]
@@ -734,7 +773,7 @@ class SelfPlayTrainer:
             for group in groups.values()
             for episode in group
             for turn in episode.turns
-            for x in (torch.tensor(turn.teacher_logps) - torch.tensor(turn.old_logps))
+            for x in (torch.tensor(turn.teacher_logps) - torch.tensor(gap_baseline(turn, cfg)))
         ]
         gates = (
             torch.sigmoid(torch.tensor(gaps) * cfg.objective.gate_beta).tolist()
@@ -747,6 +786,7 @@ class SelfPlayTrainer:
                 "student_steps": self.student_steps,
                 "proposer_steps": self.proposer_steps,
             },
+            "supply": self.supply_state.get("metrics", {}),
             "proposer": {
                 **proposer_reward_diagnostics(proposals, rewards, cfg.proposals_per_parent),
                 "curriculum_parents": len(self.history),
@@ -765,8 +805,9 @@ class SelfPlayTrainer:
                     ).tolist()
                 ),
                 "attempted_count": len(proposals),
-                "valid_count": len(tasks),
-                "valid_fraction": len(tasks) / len(proposals),
+                "valid_count": sum(p.valid for p in proposals),
+                "valid_fraction": sum(p.valid for p in proposals) / len(proposals),
+                "unique_task_count": len(tasks),
                 "rewards": distribution(rewards),
                 "invalid_reasons": dict(counts),
                 "distinct_parent_count": len({p.parent_id for p in proposals}),
@@ -1001,8 +1042,23 @@ class SelfPlayTrainer:
                 self.checkpoint()
                 self.evaluate_development()
             for k in range(self.iteration + 1, self.config.iterations + 1):
+                if (
+                    self.config.online_supply
+                    and self.total_episodes >= self.config.online_supply.target_episodes
+                ):
+                    break
                 self.run_iteration(k)
-                if k % self.config.evaluate_every == 0:
+                if self.config.online_supply:
+                    milestones = self.config.online_supply.evaluation_episodes
+                    evaluated = self.supply_state.setdefault("evaluated_milestones", [])
+                    crossed = [
+                        n for n in milestones if n <= self.total_episodes and n not in evaluated
+                    ]
+                    if crossed:
+                        self.evaluate_development()
+                        evaluated.extend(crossed)
+                        self.supply_state.setdefault("milestone_iterations", []).append(k)
+                elif k % self.config.evaluate_every == 0:
                     self.evaluate_development()
                 stop_file = Path(
                     os.environ.get("SELFPLAY_STOP_FILE", str(self.root / "state/stop_requested"))
@@ -1017,18 +1073,39 @@ class SelfPlayTrainer:
                     self.config.max_gpu_hours is not None
                     and self.allocated_gpu_hours >= self.config.max_gpu_hours
                 )
+                complete = bool(
+                    self.config.online_supply
+                    and self.total_episodes >= self.config.online_supply.target_episodes
+                )
+                supply_exhausted = bool(
+                    self.config.online_supply
+                    and self.supply_state.get("proposal_attempts", 0)
+                    >= self.config.online_supply.max_total_proposals
+                )
                 if (
-                    k % self.config.checkpoint_every == 0
+                    complete
+                    or supply_exhausted
+                    or k % self.config.checkpoint_every == 0
                     or self.stop_requested
                     or exhausted
                     or k == self.config.iterations
                 ):
                     self.checkpoint()
-                if self.stop_requested or exhausted:
+                if supply_exhausted and not complete:
+                    raise ExperimentError(
+                        "Frozen online proposal budget exhausted before episode target"
+                    )
+                if self.stop_requested or exhausted or complete:
                     break
             if self.store:
                 self.store.health(
-                    "stopped" if self.iteration < self.config.iterations else "complete"
+                    "complete"
+                    if (
+                        self.total_episodes >= self.config.online_supply.target_episodes
+                        if self.config.online_supply
+                        else self.iteration >= self.config.iterations
+                    )
+                    else "stopped"
                 )
         except BaseException as exc:
             if self.store:

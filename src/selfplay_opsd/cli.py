@@ -390,6 +390,7 @@ def evaluate(
     endpoint: str = "primary",
     base: bool = False,
     protocol: str = "frozen",
+    seed: int | None = None,
     config: str | None = None,
     hardware: str | None = None,
 ):
@@ -398,7 +399,7 @@ def evaluate(
     from selfplay_opsd.preflight import check_frozen
 
     cfg = load_config(
-        settings, method=config, **({"hardware_profile": hardware} if hardware else {})
+        settings, method=config, seed=seed, **({"hardware_profile": hardware} if hardware else {})
     )
     if protocol != "frozen" or endpoint not in {"primary", "secondary"}:
         raise ValueError("Only frozen protocol and primary/secondary endpoints supported")
@@ -425,12 +426,21 @@ def evaluate(
             if (
                 split in {"final_id", "external"}
                 and endpoint == "primary"
-                and metadata["iteration"] != cfg.iterations
+                and (
+                    not cfg.online_supply
+                    and metadata["iteration"] != cfg.iterations
+                    or cfg.online_supply
+                    and not cfg.online_supply.target_episodes
+                    <= metadata.get("total_episodes", 0)
+                    <= cfg.online_supply.target_episodes + 12
+                )
             ):
                 raise ExperimentError(
                     "Primary final evaluation requires final common-budget checkpoint"
                 )
             if endpoint == "secondary":
+                if cfg.online_supply:
+                    raise ExperimentError("Task 15 has no secondary held-out endpoint")
                 final = cfg.run_dir / "checkpoints" / f"{cfg.iterations:06d}"
                 if not final.exists():
                     raise ExperimentError(

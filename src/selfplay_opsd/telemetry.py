@@ -25,6 +25,9 @@ METHOD_NAMES = {
 DISTRIBUTION_FIELDS = {"count", "mean", "std", "min", "max", "p05", "p50", "p90", "p95"}
 # Deliberately explicit: neither arbitrary metric names nor strings are uploaded.
 FIELDS = {
+    "supply": "cumulative_proposal_attempts cumulative_task_groups cumulative_fallback_groups "
+    "fallback_fraction online_tasks fallback_tasks historical_replay_samples "
+    "within_update_repeated_samples reservoir_tasks parent_coverage",
     "train": "outer_iteration student_steps proposer_steps",
     "compute": "active_seconds allocated_gpu_hours",
     "student": "repair_success_fraction public_pass_fraction hidden_full_pass_fraction "

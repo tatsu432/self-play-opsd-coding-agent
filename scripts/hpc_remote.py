@@ -475,6 +475,11 @@ def recover(payload: dict) -> dict:
     except (OSError, KeyError, ValueError) as exc:
         return {"submitted": False, "state": state, "reason": f"checkpoint_unavailable: {exc}"}
     metadata = check_checkpoint(Path(checkpoint), payload)
+    if (
+        payload.get("target_episodes")
+        and metadata.get("total_episodes", 0) >= payload["target_episodes"]
+    ):
+        return {"submitted": False, "state": state, "reason": "scientifically_complete"}
     if metadata.get("iteration", 0) >= payload.get(
         "target_iterations", payload.get("iterations", 0)
     ):
@@ -844,7 +849,7 @@ def submit(payload: dict) -> dict:
                         "state": states[-1] if states else "UNKNOWN",
                         "run_id": owner["run_id"],
                     }
-                if payload["operation"] in {"train", "pilot"}:
+                if payload["operation"] in {"train", "pilot", "task15-online", "task15-stabilize"}:
                     if can_supersede_empty_pilot(payload, prior, owner, artifact):
                         ledger["supersedes_preflight_only_run"] = owner["run_id"]
                         continue
@@ -906,6 +911,9 @@ def submit(payload: dict) -> dict:
             "SELFPLAY_RUN_ID": payload["run_id"],
             "SELFPLAY_RESUME": (payload.get("resume") or "").replace(str(p["runs"]), "/runs", 1),
             "SELFPLAY_OUTPUT": payload.get("output") or "",
+            "SELFPLAY_TASK15_FREEZE": payload.get("task15_freeze") or "",
+            "SELFPLAY_AUDIT_SOURCE": payload.get("audit_source") or "",
+            "SELFPLAY_DECISION": payload.get("decision") or "",
             "SELFPLAY_REFERENCE": payload.get("reference") or "",
             "SELFPLAY_ITERATIONS": str(payload.get("iterations") or 10),
             "SELFPLAY_BASE": "1" if payload.get("base") else "0",
@@ -1027,7 +1035,7 @@ def artifact_dir(payload: dict) -> Path:
                 return runs / "compatibility/backend-v2/studies" / study / payload["profile"]
             return runs / "compatibility/backend-v2" / payload["profile"]
         return runs / "compatibility" / payload["profile"]
-    if operation == "freeze-study":
+    if operation in {"freeze-study", "task15-freeze"}:
         return runs / study
     if operation == "evaluate" and payload.get("base"):
         return runs / study / "base"
@@ -1053,6 +1061,8 @@ def artifact_dir(payload: dict) -> Path:
         return runs / "repair-diagnosis-2026-task14-proposal-student-v1" / payload["run_id"]
     if operation == "task14-static":
         return runs / "repair-diagnosis-2026-task14-static-v1" / payload["run_id"]
+    if operation == "task15-numerical":
+        return runs / "repair-diagnosis-2026-task15-numerical-v1" / payload["run_id"]
     if operation == "task14-online":
         return runs / "repair-selfplay-2026-task14-online-v1" / payload["run_id"]
     if operation == "task13-model-probe":
@@ -1606,7 +1616,10 @@ def precheck(payload: dict):
         or stop < 0
         or (
             stop
-            and (operation not in {"train", "pilot"} or stop >= payload.get("target_iterations", 0))
+            and (
+                operation not in {"train", "pilot", "task15-online", "task15-stabilize"}
+                or stop >= payload.get("target_iterations", 0)
+            )
         )
     ):
         raise ValueError("Invalid bounded iteration stop")
@@ -1656,6 +1669,11 @@ def precheck(payload: dict):
         "task14-proposal-student",
         "task14-static",
         "task14-online",
+        "task15-online",
+        "task15-stabilize",
+        "task15-evaluate",
+        "task15-numerical",
+        "task15-freeze",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1748,6 +1766,10 @@ def precheck(payload: dict):
         "task14-proposal-student",
         "task14-static",
         "task14-online",
+        "task15-online",
+        "task15-stabilize",
+        "task15-evaluate",
+        "task15-numerical",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1817,6 +1839,10 @@ def precheck(payload: dict):
         "task14-proposal-student",
         "task14-static",
         "task14-online",
+        "task15-online",
+        "task15-stabilize",
+        "task15-evaluate",
+        "task15-numerical",
         "task13-model-probe",
         "task13-header-replay",
         "task13-static",
@@ -1884,6 +1910,70 @@ def precheck(payload: dict):
             raise ValueError(
                 "Task 14 static requires a bounded H200 arm and frozen calibration control"
             )
+        if operation == "task15-numerical":
+            run, job = (
+                ("cd5dae1d517b8b78d2535071", "31618995")
+                if payload["method"] == "A"
+                else ("0078cd3bbbb89eb3c5282ddd", "31619326")
+            )
+            expected = f"/runs/repair-diagnosis-2026-task14-student-v1/{run}"
+            source = paths(payload)["runs"] / expected.removeprefix("/runs/")
+            prior = job_state(job)
+            if (
+                payload.get("audit_source") != expected
+                or prior.get("state") != "COMPLETED"
+                or prior.get("exit_code") != "0:0"
+                or not (source / "complete.json").is_file()
+            ):
+                raise ValueError(
+                    "Task 15 numerical source is not the completed training-only probe"
+                )
+        if operation == "task15-evaluate":
+            frozen = json.loads(
+                (paths(payload)["runs"] / payload["study_id"] / "freeze.json").read_text()
+            )
+            if (
+                frozen.get("status") != "frozen"
+                or frozen.get("execution_commit") != payload["commit"]
+                or frozen.get("common_configs", {}).get(str(payload["seed"]))
+                != payload["common_config"]
+            ):
+                raise ValueError("Task 15 final evaluation differs from the frozen study")
+            if not payload.get("base"):
+                checkpoint = paths(payload)["runs"] / payload["checkpoint"].removeprefix("/runs/")
+                metadata = check_checkpoint(checkpoint, payload)
+                target = payload["common_config"]["online_supply"]["target_episodes"]
+                if not target <= metadata.get("total_episodes", 0) <= target + 12:
+                    raise ValueError(
+                        "Task 15 final evaluation requires the completed exposure endpoint"
+                    )
+        if operation in {"task15-online", "task15-stabilize"}:
+            if payload.get("logging_mode") == "online" and not payload.get("secrets_file"):
+                raise ValueError(
+                    "Online Task 15 logging requires the existing private secrets-file path"
+                )
+            if (
+                payload.get("account") != "cpsc4880"
+                or payload.get("gpu_count") != 1
+                or payload.get("gpu_type") != "h200"
+                or payload.get("time") != "06:00:00"
+                or payload.get("method") not in {"A", "B"}
+                or not state["gates"]["target"]
+                or not payload.get("target_episodes")
+                or payload.get("exposure_policy", {}).get("target_episodes")
+                != payload["target_episodes"]
+            ):
+                raise ValueError("Task 15 requires accepted bounded H200 and an exposure policy")
+            if operation == "task15-online":
+                freeze_path = paths(payload)["runs"] / payload["study_id"] / "freeze.json"
+                frozen = json.loads(freeze_path.read_text())
+                if (
+                    frozen.get("status") != "frozen"
+                    or frozen.get("common_configs", {}).get(str(payload["seed"]))
+                    != payload["common_config"]
+                    or frozen.get("execution_commit") != payload["commit"]
+                ):
+                    raise ValueError("Task 15 main launch does not match its immutable freeze")
         if operation == "task14-online" and (
             payload.get("account") != "cpsc4880"
             or payload.get("gpu_count") != 1

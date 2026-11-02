@@ -136,7 +136,11 @@ def execution_identity(config: RunConfig, *, repository: TaskRepository | None =
         "code_hash": scientific_code_hash(),
         "allocation_code_hash": allocation_code_hash(),
         "scientific_code_hash": scientific_code_hash(),
-        "common_hash": digest(config.scientific_settings(common=True, calibration=True)),
+        "common_hash": digest(
+            (
+                config.model_copy(update={"seed": 2026}) if config.online_supply else config
+            ).scientific_settings(common=True, calibration=True)
+        ),
         "manifest_hash": repository.hash,
         "prompt_hash": PROMPT_HASH,
         "model_revision": config.model.revision,

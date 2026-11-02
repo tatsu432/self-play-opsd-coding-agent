@@ -158,10 +158,35 @@ class LoggingConfig(Strict):
     upload_checkpoints: bool = False
 
 
+class OnlineSupplyConfig(Strict):
+    """Task 15's bounded on-policy refill and disclosed task replay."""
+
+    target_episodes: int = Field(default=4096, ge=4)
+    evaluation_episodes: list[int] = [256, 1024, 2048, 4096]
+    tasks_per_update: int = Field(default=4, ge=1)
+    max_proposals_per_update: int = Field(default=64, ge=4)
+    max_total_proposals: int = Field(default=65536, ge=4)
+    reservoir_per_parent: int = Field(default=16, ge=1)
+    max_fallback_fraction: float = Field(default=0.25, ge=0, lt=1)
+    gradient_diagnostic_every: int = Field(default=20, ge=1)
+
+    @model_validator(mode="after")
+    def milestones(self):
+        if self.evaluation_episodes != sorted(set(self.evaluation_episodes)) or any(
+            value <= 0 or value > self.target_episodes for value in self.evaluation_episodes
+        ):
+            raise ValueError("Episode milestones must be unique, increasing, and within target")
+        if self.target_episodes not in self.evaluation_episodes:
+            raise ValueError("The final episode target must be evaluated")
+        return self
+
+
 class RunConfig(Strict):
     study_id: str = Field(pattern=r"^[a-zA-Z0-9][a-zA-Z0-9_.-]*$")
     proposer_representation: Literal["unified_diff", "structured_ast"] = "unified_diff"
     method: Literal["A", "B", "C", "D", "GRPO", "GRPO_KL"] = "B"
+    sd_gap_definition: Literal["teacher_behavior_v1", "same_scorer_v2"] = "teacher_behavior_v1"
+    online_supply: OnlineSupplyConfig | None = None
     seed: int = 2026
     iterations: int = Field(default=200, ge=1)
     parents_per_iteration: int = Field(default=4, ge=1)
@@ -185,6 +210,25 @@ class RunConfig(Strict):
 
     @model_validator(mode="after")
     def named_variants(self):
+        if self.online_supply is not None:
+            supply = self.online_supply
+            if (
+                self.method not in {"A", "B"}
+                or self.proposer_representation != "structured_ast"
+                or self.sd_gap_definition != "same_scorer_v2"
+                or self.parents_per_iteration != 1
+                or self.proposals_per_parent != 4
+                or self.episodes_per_task != 4
+                or self.episode.edit_protocol != "unified_diff"
+                or self.iterations < supply.max_total_proposals // self.proposals_per_parent
+                or supply.max_total_proposals % self.proposals_per_parent
+                or supply.max_proposals_per_update % self.proposals_per_parent
+                or supply.max_proposals_per_update > supply.max_total_proposals
+                or supply.target_episodes % self.episodes_per_task
+            ):
+                raise ValueError(
+                    "Task 15 requires paired A/B structured groups and bounded exposure"
+                )
         if self.method == "GRPO_KL" and self.objective.fixed_base_kl <= 0:
             raise ValueError("GRPO_KL requires an explicit positive fixed_base_kl coefficient")
         if self.method != "GRPO_KL" and self.objective.fixed_base_kl != 0:
