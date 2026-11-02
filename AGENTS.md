@@ -17,7 +17,7 @@ Yale MFA succeeded and three Task 15 acceptance jobs were submitted from
 `d417ec2cb88d51d18c70e710`, H200 backend `31665819` /
 `24b2aa8b8ef849d0fe0779c1`, and stabilization runtime `31665837` /
 `70c594198915015caf75a97d`. Inspect their ledgers and Slurm before action;
-never duplicate. Their results and scientific review remain pending.
+never duplicate. Main runtime and backend completed exit 0; stabilization runtime remains active at this snapshot. Saved-rollout numerical audit job `31665993`, run `d1c5f8d2cfc62a5ffa4ee3a5`, was submitted once from execution `aa01dcf5781c5f6932eb51bbefc573fd72ca2c67`. Inspect its ledger and Slurm; never duplicate. Numerical and scientific reviews remain pending.
 
 Preserve actual behavior probabilities, immutable scientific identities,
 checksummed joint checkpoints, accepted worker isolation, all attempt accounting,
