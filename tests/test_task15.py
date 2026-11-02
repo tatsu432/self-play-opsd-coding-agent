@@ -138,7 +138,7 @@ def proposal(task_id, index, *, valid=True, parent="p"):
         task_id=task_id,
         dedup_key=task_id,
         bug_family="arithmetic",
-        turn=turn(),
+        turn=turn().model_copy(update={"raw_text": '{"site":0,"operation":"Sub"}'}),
         slot=index,
     )
 
@@ -304,7 +304,17 @@ def test_checkpoint_restores_supply_and_pending_snapshot_state(tmp_path, monkeyp
     )
     atomic_json(
         cfg.data_root / "private/parents.json",
-        [{"parent": parent.model_dump(), "split": "train", "public": [], "hidden": []}],
+        [
+            {"parent": parent.model_dump(), "split": "train", "public": [], "hidden": []},
+            {
+                "parent": parent.model_copy(
+                    update={"parent_id": "fixture/no-sites", "source": "def f(x):\n    return x\n"}
+                ).model_dump(),
+                "split": "train",
+                "public": [],
+                "hidden": [],
+            },
+        ],
     )
     atomic_json(
         cfg.data_root / "manifest.json",

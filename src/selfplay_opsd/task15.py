@@ -20,6 +20,8 @@ from selfplay_opsd.core import (
     keyed_seed,
 )
 from selfplay_opsd.environment import check_admission
+from selfplay_opsd.mutations import strict_json_object
+from selfplay_opsd.structured_mutations import sites
 from selfplay_opsd.trainer import SelfPlayTrainer
 
 
@@ -36,6 +38,12 @@ class OnlineExposureTrainer(SelfPlayTrainer):
         self.supply_state.setdefault("fallback_parent_uses", {})
         self.supply_state.setdefault("evaluated_milestones", [])
         self._verification_cache: dict = {}
+        all_parents = len(self.parents)
+        self.parents = [parent for parent in self.parents if sites(parent.source)]
+        if not self.parents:
+            raise ExperimentError("No training parent has a legal structured mutation site")
+        self.supply_state["eligible_parents"] = len(self.parents)
+        self.supply_state["parents_without_legal_sites"] = all_parents - len(self.parents)
 
     def proposer_prompt(self, parent):
         messages = super().proposer_prompt(parent)
@@ -76,7 +84,11 @@ class OnlineExposureTrainer(SelfPlayTrainer):
             # Only deterministic semantic/admission rejection; infrastructure errors propagate.
             self._verification_cache[key] = {"rejection": str(exc)}
             raise
-        value = {"task": task.model_dump(mode="json"), "oracle": oracle.model_dump(mode="json")}
+        value = {
+            "task": task.model_dump(mode="json"),
+            "oracle": oracle.model_dump(mode="json"),
+            "admitted_group": self.supply_state["proposal_groups"],
+        }
         self._verification_cache[key] = value
         supply = self.config.online_supply
         assert supply is not None
@@ -147,6 +159,11 @@ class OnlineExposureTrainer(SelfPlayTrainer):
                 state["fallback_groups"] += 1
                 uses[task.parent_id] = uses.get(task.parent_id, 0) + 1
         state["task_groups"] += len(tasks)
+        edits = [(p.parent_id, strict_json_object(p.turn.raw_text)) for p in proposals if p.valid]
+        ages = [
+            state["proposal_groups"] - value.get("admitted_group", state["proposal_groups"])
+            for value in state["reservoir"].values()
+        ]
         state["metrics"] = {
             "cumulative_proposal_attempts": state["proposal_attempts"],
             "cumulative_task_groups": state["task_groups"],
@@ -159,7 +176,12 @@ class OnlineExposureTrainer(SelfPlayTrainer):
             - len(online_task_ids),
             "reservoir_tasks": len(state["reservoir"]),
             "parent_coverage": len({v["task"]["parent_id"] for v in state["reservoir"].values()}),
-            "operator_counts": dict(Counter(p.bug_family for p in proposals if p.valid)),
+            "eligible_parents": len(self.parents),
+            "parents_without_legal_sites": state.get("parents_without_legal_sites", 0),
+            "distinct_parent_sites": len({(parent, edit["site"]) for parent, edit in edits}),
+            "operator_counts": dict(Counter(edit["operation"] for _, edit in edits)),
+            "reservoir_age_groups_max": max(ages, default=0),
+            "reservoir_age_groups_mean": sum(ages) / max(1, len(ages)),
             "task_sources": {
                 task_id: "fallback" if task_id == fallback else "online" for task_id in tasks
             },
