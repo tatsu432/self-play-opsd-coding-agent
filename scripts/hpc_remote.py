@@ -1457,6 +1457,16 @@ def study_state(payload: dict) -> dict:
     def backend_report(profile):
         scoped = runs / "compatibility/backend-v2/studies" / study / f"{profile}.json"
         legacy = runs / "compatibility/backend-v2" / f"{profile}.json"
+        if not scoped.is_file() and study == "repair-selfplay-2026-task15-stabilization-v1":
+            source = (
+                runs
+                / "compatibility/backend-v2/studies/repair-selfplay-2026-task15-ab-v1"
+                / f"{profile}.json"
+            )
+            if source.is_file():
+                # The normal identity, hardware and ready gates below still apply.
+                # Return the immutable source proof without changing its contents.
+                return read(source) | {"reused_from": str(source), "reused_sha256": sha256(source)}
         return read(scoped if scoped.is_file() else legacy)
 
     reports = {

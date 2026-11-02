@@ -631,3 +631,41 @@ def test_fallback_uses_only_realized_budget_and_never_gets_proposer_credit(monke
     examples = proposer_examples(proposals, [-1.0] * len(proposals), trainer.config)
     assert all(e.advantage == 0 for e in examples)
     assert len(examples) == len(proposals) == 64
+
+
+def test_stabilization_reuses_only_matching_backend_proof(tmp_path, monkeypatch):
+    import json
+
+    remote = script("hpc_remote")
+    monkeypatch.setattr(remote, "workspace", lambda _: tmp_path)
+    source = (
+        tmp_path
+        / "runs/compatibility/backend-v2/studies/repair-selfplay-2026-task15-ab-v1/single_gpu_80gb.json"
+    )
+    source.parent.mkdir(parents=True)
+    identity = {"code_hash": "fixture"}
+    source.write_text(
+        json.dumps(
+            {
+                "ready": True,
+                "backend_identity": identity,
+                "gpu_type": "h200",
+                "gpu_count": 1,
+                "hardware_profile": "single_gpu_80gb",
+                "objective_probes": list("ABCD"),
+            }
+        )
+    )
+    payload = {
+        "study_id": "repair-selfplay-2026-task15-stabilization-v1",
+        "backend_identity": identity,
+        "profile": "single_gpu_80gb",
+        "profile_gpu_count": 1,
+        "gpu_type": "h200",
+    }
+    result = remote.study_state(payload)
+    assert result["gates"]["target"]
+    assert result["reports"]["target"]["reused_from"] == str(source)
+    assert not remote.study_state(payload | {"backend_identity": {"code_hash": "different"}})[
+        "gates"
+    ]["target"]
