@@ -19,6 +19,7 @@ import sys
 import uuid
 from collections import deque
 from contextlib import contextmanager
+from datetime import datetime
 from pathlib import Path
 
 GPU_VRAM_GB = {"h100": 80, "h200": 141, "rtx_pro_6000_blackwell": 96}
@@ -436,6 +437,29 @@ def check_checkpoint(checkpoint: Path, payload: dict) -> dict:
     return metadata
 
 
+def timeout_disconnect_evidence(job_id: str, health: dict) -> dict | None:
+    """Recognize only an RPC disconnect contemporaneous with a Slurm timeout."""
+    message = health.get("error", "")
+    if not re.fullmatch(
+        r"vLLM RPC closed before a response; see /runs/[A-Za-z0-9_./-]+/state/vllm\.log \(child exit status None\)",
+        message,
+    ) or not isinstance(health.get("timestamp"), (int, float)):
+        return None
+    result = capture(["sacct", "-n", "-P", "-j", job_id, "--format", "JobIDRaw,State,End"])
+    if result["exit_code"] != 0:
+        return None
+    for line in result["stdout"].splitlines():
+        fields = line.split("|")
+        if len(fields) >= 3 and fields[0] == job_id and fields[1].split()[0].rstrip("+") == "TIMEOUT":
+            try:
+                end = datetime.fromisoformat(fields[2]).timestamp()
+            except ValueError:
+                return None
+            if abs(health["timestamp"] - end) <= 2:
+                return {"job_id": job_id, "scheduler_end": fields[2], "health": health}
+    return None
+
+
 def recover(payload: dict) -> dict:
     request = payload
     path = ledger_path(payload)
@@ -468,8 +492,14 @@ def recover(payload: dict) -> dict:
     if not planned and ledger.get("retries", 0) >= 2:
         return {"submitted": False, "state": state, "reason": "retry_limit"}
     health_path = Path(ledger.get("run_dir", "")) / "state/health.json"
-    if health_path.is_file() and json.loads(health_path.read_text()).get("phase") == "failed":
-        return {"submitted": False, "state": state, "reason": "training_reported_failure"}
+    timeout_evidence = None
+    if health_path.is_file():
+        health = json.loads(health_path.read_text())
+        if health.get("phase") == "failed":
+            if planned and state == "TIMEOUT" and payload["operation"] == "task15-online":
+                timeout_evidence = timeout_disconnect_evidence(ledger["attempts"][-1]["job_id"], health)
+            if timeout_evidence is None:
+                return {"submitted": False, "state": state, "reason": "training_reported_failure"}
     try:
         checkpoint = verified_checkpoint(payload)
     except (OSError, KeyError, ValueError) as exc:
@@ -528,6 +558,10 @@ def recover(payload: dict) -> dict:
             return {"submitted": False, "state": state, "reason": "continuation_limit"}
         current[counter] = current.get(counter, 0) + 1
         current["recovery_from_job"] = previous_job
+        if timeout_evidence is not None:
+            current.setdefault("timeout_disconnect_recoveries", []).append(
+                {**timeout_evidence, "checkpoint": checkpoint}
+            )
         current["active_stop_after_iteration"] = next_stop
         write_json(path, current)
     result = submit(

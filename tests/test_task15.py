@@ -744,3 +744,22 @@ def test_completed_task15_run_requires_verified_resume_to_continue():
         )
     assert remote.completed_job_is_final({"operation": "task15-numerical", "resume": "/ignored"})
     assert not remote.completed_job_is_final({"operation": "train"})
+
+
+def test_timeout_disconnect_requires_matching_slurm_end(monkeypatch):
+    from datetime import datetime
+
+    remote = script("hpc_remote")
+    end = "2026-11-02T13:03:14"
+    timestamp = datetime.fromisoformat(end).timestamp()
+    health = {
+        "phase": "failed",
+        "timestamp": timestamp + 0.2,
+        "error": "vLLM RPC closed before a response; see /runs/study/A/state/vllm.log (child exit status None)",
+    }
+    monkeypatch.setattr(remote, "capture", lambda _: {"exit_code": 0, "stdout": f"123|TIMEOUT|{end}\n"})
+    assert remote.timeout_disconnect_evidence("123", health)["health"] == health
+    assert remote.timeout_disconnect_evidence("123", health | {"timestamp": timestamp - 10}) is None
+    assert remote.timeout_disconnect_evidence("123", health | {"error": "scientific failure"}) is None
+    monkeypatch.setattr(remote, "capture", lambda _: {"exit_code": 0, "stdout": f"123|FAILED|{end}\n"})
+    assert remote.timeout_disconnect_evidence("123", health) is None
