@@ -1,5 +1,14 @@
 # Task 15 status and next action
 
+## CURRENT — completed 2026-11-04
+
+All six V2 A/B training endpoints and the 14 prescribed held-out evaluations
+are complete. Joint checkpoints and all six canonical W&B revisions were
+verified; no study job remains active. See [the completion record](../task_completion/15-implemented-stabilize-training-complete-ab.md)
+and [final investigation](task15-final-results.md) for results, costs,
+reproduction and limitations. The following dated sections are historical
+snapshots and must not be used to resume or duplicate completed work.
+
 ## Current: common parent-verification correction, 2026-11-02
 
 V1 freeze job 31669915 succeeded; A/B for seeds 2026–2028 were launched once

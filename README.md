@@ -20,8 +20,8 @@ uv run selfplay smoke --output runs/local-smoke
 
 ## Documentation
 
-- [Task 15 status and execution](docs/investigations/task15-status.md):
-  stabilization, episode-budget online A/B, validation and next action.
+- [Task 15 completed A/B results](docs/investigations/task15-final-results.md):
+  held-out comparisons, uncertainty, training health and allocated cost.
 
 - [Task 14 research decision](docs/investigations/task14-research-decision.md):
   proposal yield, matched controls, bounded online runs and costs.

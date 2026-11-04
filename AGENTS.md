@@ -1,6 +1,19 @@
 # Project and operating instructions
 
-## CURRENT — Task 15 successor (2026-11-02)
+## CURRENT — Task 15 A/B complete (2026-11-04)
+
+Frozen study `repair-selfplay-2026-task15-ab-v2` completed all six A/B arms
+and prescribed held-out evaluations. All endpoints were checksum-verified;
+CPU job 32037439 reconciled and cloud-verified all six W&B runs. See
+`docs/task_completion/15-implemented-stabilize-training-complete-ab.md` and
+`docs/investigations/task15-final-results.md` for results, costs and limits.
+The immutable training execution remains `0ac77cde4bc5f70ba2b3eb9e457749e3106a2bc5`;
+operational recovery changes are on `fix/task15-timeout-recovery`. Preserve
+private artifacts, historical failed V1 attempts and no-duplicate safeguards.
+Do not relaunch completed work. C/D are separate deferred research questions.
+Reconcile live Slurm and ledgers before any new submission.
+
+## Historical — Task 15 successor launch snapshot (2026-11-02)
 
 Task 15 is authorized through A/B training, continuations and final evaluation;
 never ask for new GPU approval. The frozen v1 six-arm run encountered a verified
