@@ -757,9 +757,31 @@ def test_timeout_disconnect_requires_matching_slurm_end(monkeypatch):
         "timestamp": timestamp + 0.2,
         "error": "vLLM RPC closed before a response; see /runs/study/A/state/vllm.log (child exit status None)",
     }
-    monkeypatch.setattr(remote, "capture", lambda _: {"exit_code": 0, "stdout": f"123|TIMEOUT|{end}\n"})
+    monkeypatch.setattr(
+        remote, "capture", lambda _: {"exit_code": 0, "stdout": f"123|TIMEOUT|{end}\n"}
+    )
     assert remote.timeout_disconnect_evidence("123", health)["health"] == health
     assert remote.timeout_disconnect_evidence("123", health | {"timestamp": timestamp - 10}) is None
-    assert remote.timeout_disconnect_evidence("123", health | {"error": "scientific failure"}) is None
-    monkeypatch.setattr(remote, "capture", lambda _: {"exit_code": 0, "stdout": f"123|FAILED|{end}\n"})
+    assert (
+        remote.timeout_disconnect_evidence("123", health | {"error": "scientific failure"}) is None
+    )
+    monkeypatch.setattr(
+        remote, "capture", lambda _: {"exit_code": 0, "stdout": f"123|FAILED|{end}\n"}
+    )
     assert remote.timeout_disconnect_evidence("123", health) is None
+
+
+def test_rejected_submission_allows_only_cpu_reduction():
+    remote = script("hpc_remote")
+    previous = {"cpus": 8, "identity": "frozen", "checkpoint": "endpoint"}
+    ledger = {"specification": previous.copy(), "attempts": [], "last_rejection": "CPU limit"}
+    updated = previous | {"cpus": 6}
+    remote.reconcile_rejected_specification(ledger, updated)
+    assert ledger["specification"] == updated
+    assert ledger["rejected_resource_revisions"][0]["before"] == 8
+    assert ledger["rejected_resource_revisions"][0]["after"] == 6
+    ledger = {"specification": previous.copy(), "attempts": [], "last_rejection": "CPU limit"}
+    with pytest.raises(ValueError, match="only reduce CPUs"):
+        remote.reconcile_rejected_specification(ledger, updated | {"checkpoint": "other"})
+    with pytest.raises(ValueError, match="only reduce CPUs"):
+        remote.reconcile_rejected_specification(ledger, previous | {"cpus": 10})

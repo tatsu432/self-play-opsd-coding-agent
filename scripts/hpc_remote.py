@@ -450,7 +450,11 @@ def timeout_disconnect_evidence(job_id: str, health: dict) -> dict | None:
         return None
     for line in result["stdout"].splitlines():
         fields = line.split("|")
-        if len(fields) >= 3 and fields[0] == job_id and fields[1].split()[0].rstrip("+") == "TIMEOUT":
+        if (
+            len(fields) >= 3
+            and fields[0] == job_id
+            and fields[1].split()[0].rstrip("+") == "TIMEOUT"
+        ):
             try:
                 end = datetime.fromisoformat(fields[2]).timestamp()
             except ValueError:
@@ -458,6 +462,29 @@ def timeout_disconnect_evidence(job_id: str, health: dict) -> dict | None:
             if abs(health["timestamp"] - end) <= 2:
                 return {"job_id": job_id, "scheduler_end": fields[2], "health": health}
     return None
+
+
+def reconcile_rejected_specification(ledger: dict, specification: dict) -> None:
+    if ledger.get("last_rejection") and not ledger.get("attempts") and ledger.get("specification"):
+        previous = ledger["specification"]
+        changed = {
+            key
+            for key in previous.keys() | specification.keys()
+            if previous.get(key) != specification.get(key)
+        }
+        if changed == {"cpus"} and 1 <= specification["cpus"] < previous["cpus"]:
+            ledger.setdefault("rejected_resource_revisions", []).append(
+                {
+                    "field": "cpus",
+                    "before": previous["cpus"],
+                    "after": specification["cpus"],
+                    "rejection": ledger["last_rejection"],
+                }
+            )
+            ledger["specification"] = specification
+        elif changed:
+            raise ValueError("Rejected submission may only reduce CPUs before retry")
+    ledger.setdefault("specification", specification)
 
 
 def recover(payload: dict) -> dict:
@@ -497,7 +524,9 @@ def recover(payload: dict) -> dict:
         health = json.loads(health_path.read_text())
         if health.get("phase") == "failed":
             if planned and state == "TIMEOUT" and payload["operation"] == "task15-online":
-                timeout_evidence = timeout_disconnect_evidence(ledger["attempts"][-1]["job_id"], health)
+                timeout_evidence = timeout_disconnect_evidence(
+                    ledger["attempts"][-1]["job_id"], health
+                )
             if timeout_evidence is None:
                 return {"submitted": False, "state": state, "reason": "training_reported_failure"}
     try:
@@ -907,12 +936,12 @@ def submit(payload: dict) -> dict:
                     raise ValueError(
                         "Existing scientific run belongs to a different immutable identity"
                     )
+        specification = {
+            k: v for k, v in payload.items() if k not in {"resume", "explicit_continue"}
+        }
+        reconcile_rejected_specification(ledger, specification)
         reserve_budget(payload, token)
         write_json(slot, {"run_id": payload["run_id"], "identity": payload["identity"]})
-        ledger.setdefault(
-            "specification",
-            {k: v for k, v in payload.items() if k not in {"resume", "explicit_continue"}},
-        )
         ledger["run_dir"] = str(artifact)
         ledger["pending_intent"] = token
         ledger["pending_resume"] = payload.get("resume")
