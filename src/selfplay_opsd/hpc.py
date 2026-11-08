@@ -182,9 +182,52 @@ class YaleSSH:
         if result.returncode:
             raise HpcError(f"Rsync failed ({result.returncode}): {result.stderr.strip()[-1200:]}")
 
-    def fetch(self, source: str, destination: Path, *, full: bool = False) -> None:
+    def fetch(
+        self,
+        source: str,
+        destination: Path,
+        *,
+        full: bool = False,
+        trajectory_paths: list[str] | None = None,
+    ) -> None:
         if not re.fullmatch(r"/[A-Za-z0-9_./-]+", source):
             raise HpcError("Unsafe remote artifact path")
+        if trajectory_paths is not None:
+            if full:
+                raise HpcError("Selective trajectory fetch cannot include full checkpoints")
+            for name in trajectory_paths:
+                if (
+                    not re.fullmatch(r"trajectories/[A-Za-z0-9_-]+/[A-Za-z0-9_.-]+\.json", name)
+                    or ".." in Path(name).parts
+                ):
+                    raise HpcError("Unsafe trajectory path")
+            destination.mkdir(parents=True, exist_ok=True, mode=0o700)
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".txt") as paths:
+                paths.write("\n".join(sorted(set(trajectory_paths))) + "\n")
+                paths.flush()
+                result = subprocess.run(
+                    [
+                        "rsync",
+                        "-rlt",
+                        "--checksum",
+                        "--no-links",
+                        "--chmod=Du=rwx,Dgo=,Fu=rw,Fgo=",
+                        "--files-from=" + paths.name,
+                        "-e",
+                        self.rsync_ssh,
+                        f"{self.alias}:{source}/",
+                        str(destination) + "/",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=1800,
+                    check=False,
+                )
+            if result.returncode:
+                raise HpcError(
+                    f"Selective trajectory retrieval failed ({result.returncode}): {result.stderr.strip()[-1200:]}"
+                )
+            return
         destination.mkdir(parents=True, exist_ok=True, mode=0o700)
         excludes = (
             []
@@ -1430,7 +1473,9 @@ def logs_command(run_id: str, lines: int = 100, alias: str = ALIASES[0]):
 
 
 @app.command("fetch")
-def fetch_command(run_id: str, full: bool = False, alias: str = ALIASES[0]):
+def fetch_command(
+    run_id: str, full: bool = False, alias: str = ALIASES[0], trajectory_list: Path | None = None
+):
     """Copy run records locally; include checkpoints only with --full."""
     remote = YaleSSH(alias)
     context = remote_context(remote, alias)
@@ -1444,7 +1489,12 @@ def fetch_command(run_id: str, full: bool = False, alias: str = ALIASES[0]):
     ):
         raise HpcError("Ledger run directory lies outside managed runs")
     target = ROOT / "runs/hpc" / alias / run_id
-    remote.fetch(str(run_dir), target, full=full)
+    selected = json.loads(trajectory_list.read_text()) if trajectory_list else None
+    if selected is not None and (
+        not isinstance(selected, list) or any(not isinstance(p, str) for p in selected)
+    ):
+        raise HpcError("Trajectory list must be a JSON array of relative paths")
+    remote.fetch(str(run_dir), target, full=full, trajectory_paths=selected)
     output({"run_id": run_id, "local": str(target), "includes_checkpoints": full})
 
 

@@ -1,5 +1,19 @@
 # Project and operating instructions
 
+## CURRENT — Task 16 local analysis (2026-11-07)
+
+Task 16 analysis implementation and independent local analyses are complete;
+trajectory-dependent trained action attribution remains incomplete. See
+`docs/investigations/task16-generalization-checkpoint-decision.md` and the Task 16
+completion record. All six monitoring-parent-macro selectors choose the original
+final checkpoint, so no checkpoint pilot or new GPU work was submitted. Preserve
+Task 15 results. Yale DNS resolution failed during inspection; restore normal
+network/VPN access before live scheduler/checkpoint reconciliation and selective
+trajectory fetching. Base trajectories and all final outcome/event metrics were
+analyzed locally. The generated private fetch lists and input hashes are under
+`runs/task16/analysis/` in `/private/tmp/selfplay-task16`; use the analysis command's
+`--run-root` option after fetching. Do not relaunch training or duplicate jobs.
+
 ## CURRENT — Task 15 A/B complete (2026-11-04)
 
 Frozen study `repair-selfplay-2026-task15-ab-v2` completed all six A/B arms

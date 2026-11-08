@@ -20,6 +20,9 @@ uv run selfplay smoke --output runs/local-smoke
 
 ## Documentation
 
+- [Task 16 generalization and checkpoint analysis](docs/investigations/task16-generalization-checkpoint-decision.md):
+  transfer behavior, retrospective selection, compute efficiency and remaining evidence gaps.
+
 - [Task 15 completed A/B results](docs/investigations/task15-final-results.md):
   held-out comparisons, uncertainty, training health and allocated cost.
 

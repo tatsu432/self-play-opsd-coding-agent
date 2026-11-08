@@ -508,3 +508,22 @@ uv run python scripts/analyze_task15.py --manifest runs/task15/manifest.json --d
 ```
 
 The analysis validates paired common settings, initialization and task sets, emits missing/incomplete arms explicitly, and separates family/parent task uncertainty from paired training-seed variation. Local raw events, allocation accounting and checkpoints remain authoritative. The current machine lacks a running Docker daemon, so local sandbox tests may skip; hosted worker tests and actual Yale containment/backend checks must be reported separately.
+
+
+## Task 16 retrospective analysis
+
+Task 16 reads the immutable Task 15 records without training or W&B writes. See
+[the investigation](investigations/task16-generalization-checkpoint-decision.md)
+for reproduction commands, current coverage, selection policy and caveats. The
+CLI is `uv run python scripts/analyze_task16.py --help`; supply the Task 15
+manifest, frozen data, common base directory, private output and local frozen
+tokenizer snapshot. It never downloads a tokenizer or executes candidate code.
+
+Default `hpc fetch` excludes trajectories. To fetch only referenced JSON shards,
+use `hpc fetch RUN_ID --trajectory-list PATH.json`; the analysis exports these
+relative-path arrays under `analysis/fetch/`. This option is mutually exclusive
+with `--full` and transfers no checkpoints or model weights. Fetch the ordinary
+run records separately, then use `--run-root runs/hpc/yale-hpc-cpsc4880` to analyze
+these copies without editing the original manifest. Restore normal Yale access
+and reconcile ledgers before any recovery. All six measured development selectors
+choose final checkpoints; no additional evaluation is currently justified.
