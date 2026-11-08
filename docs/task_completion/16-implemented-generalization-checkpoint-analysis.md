@@ -57,9 +57,9 @@ proposer JSON shards only. All 231 base trajectories are available; none of the
 
 | Artifact | SHA-256 |
 |---|---|
-| Task 16 canonical consumed-input mapping identity | `d41e9bd12af7647830c73e53757df7bccca90c6235b83636eccd2d741dbfcd74` |
-| Task 16 `input-manifest.json` | `17c856717ecee133e4ed3697b3bea1ed575a158766e75f44e8873c174cb6d8ab` |
-| Task 16 `summary.json` | `20c4e8ccbb23f3b113c100cbe8906f63f5f9fa342c4454b5b064bf37c2067dd1` |
+| Task 16 canonical consumed-input mapping identity | `915fd3ba4bedd8252452a685d1e59574941e87bcf6cdea73b95cf9baab2b44bc` |
+| Task 16 `input-manifest.json` | `7e4db427e954cb9207191e712f627e36940f536473be164642294f2294fb745e` |
+| Task 16 `summary.json` | `1b869a0dc7e215816a5e80fff19074a177352d3343358ca53c23eeaf4c0cbae4` |
 | Unchanged Task 15 allocation manifest | `d6c038d223659d1da1458508395b35608af10c1c5a474eba1c4639b199864263` |
 | Unchanged Task 15 analysis summary | `6c1fe6e719a1a2781a40dec520d9cb4c511b2a29091d28ea047e9fc8e818f3aa` |
 
@@ -74,7 +74,7 @@ remaining initial detection profiles need isolated verification.
 
 - Full local CPU suite: **354 passed, 34 skipped, 4 deselected**. The final added
   source-change attribution case and Task 16 contracts subsequently passed:
-  **22 focused tests**. Synthetic tests validate implementation, not scientific
+  **44 focused tests across Task 16, HPC and storage**. Synthetic tests validate implementation, not scientific
   claims or Yale containment.
 - Ruff lint and formatting pass across source, tests and scripts; mypy passes
   all 48 source files. `git diff --check` passes.

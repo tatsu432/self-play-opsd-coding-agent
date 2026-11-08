@@ -295,3 +295,20 @@ def test_missing_checkpoint_does_not_change_selector(tmp_path):
     with pytest.raises(FileNotFoundError):
         CheckpointManager.verify(tmp_path / "000001")
     assert select_checkpoint(rows) is selected
+
+
+def test_saved_proposer_reward_groups_reconstruct_information():
+    from selfplay_opsd.task16_analysis import proposer_group_information
+
+    proposals = [{"parent_id": "p", "task_id": str(i), "valid": i < 2} for i in range(4)]
+    episodes = [{"task_id": "0", "reward": r} for r in [0, 0, 0, 0]] + [
+        {"task_id": "1", "reward": r} for r in [0, 0, 1, 1]
+    ]
+    assert proposer_group_information(proposals, episodes) == {
+        "nonzero_advantage_proposer_groups": 1,
+        "reconstructed_distinct_reward_groups": 1,
+    }
+    with pytest.raises(ValueError, match="four matched"):
+        proposer_group_information(proposals, episodes[:-1])
+    with pytest.raises(ValueError, match="crossed parent"):
+        proposer_group_information(proposals[:-1] + [proposals[-1] | {"parent_id": "q"}], episodes)

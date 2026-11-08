@@ -18,6 +18,8 @@ Parent-macro means avoid counting multiple mutations from one parent as independ
 |---|---:|---:|
 | Source lines, including docstrings | 5.00 | 17.63 |
 | Source lines after removing docstrings | 5.00 | 7.25 |
+| Source tokens (frozen tokenizer) | 48.45 | 181.74 |
+| Specification tokens (frozen tokenizer) | 19.97 | 127.31 |
 | AST nodes | 48.78 | 66.26 |
 | Branch/loop/comprehension nodes | 1.33 | 2.22 |
 | Public cases | 3.12 | 2.98 |

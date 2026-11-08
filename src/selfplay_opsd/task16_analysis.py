@@ -568,6 +568,38 @@ def dataset_audit(
     return summary, features, expected
 
 
+def proposer_group_information(proposals: list[dict], episodes: list[dict]) -> dict:
+    """Reconstruct A/B difficulty discrimination from matched saved rollouts."""
+    if len(proposals) % 4:
+        raise ValueError("Incomplete four-proposal group")
+    rewards_by_task: dict[str, list[float]] = defaultdict(list)
+    for episode in episodes:
+        rewards_by_task[episode["task_id"]].append(episode["reward"])
+    nonzero, distinct = 0, 0
+    for start in range(0, len(proposals), 4):
+        group = proposals[start : start + 4]
+        if len({p["parent_id"] for p in group}) != 1:
+            raise ValueError("Proposer group crossed parent identities")
+        rewards, valid_rewards = [], []
+        for proposal in group:
+            if not proposal["valid"]:
+                rewards.append(-1.0)
+                continue
+            outcomes = rewards_by_task.get(proposal["task_id"], [])
+            if len(outcomes) != 4 or any(r not in {0.0, 1.0} for r in outcomes):
+                raise ValueError("Valid proposal lacks four matched binary student rollouts")
+            rate = sum(outcomes) / 4
+            value = 4 * rate * (1 - rate)
+            rewards.append(value)
+            valid_rewards.append(value)
+        nonzero += len(set(rewards)) > 1
+        distinct += len(set(valid_rewards)) > 1
+    return {
+        "nonzero_advantage_proposer_groups": nonzero,
+        "reconstructed_distinct_reward_groups": distinct,
+    }
+
+
 def training_health(
     events: list[dict],
     allocations: list[dict],
@@ -647,12 +679,14 @@ def training_health(
             "nonzero_advantage_proposer_groups": None,
             "valid_actions_by_type": None,
         }
+        raw: dict[str, list[dict]] = {}
         for name in ("episodes_path", "proposals_path"):
             path = relative_artifact(root, p[name])
             requested.append(p[name])
             if not inputs.track(path):
                 continue
             records = inputs.read(path)
+            raw[name] = records
             if name == "episodes_path":
                 if (
                     len(records) != episodes
@@ -684,6 +718,14 @@ def training_health(
                 keys = {(v["parent_id"], v["dedup_key"]) for v in records if v["valid"]}
                 row["new_mutations"] = len(keys - seen_mutations)
                 seen_mutations.update(keys)
+        if len(raw) == 2:
+            information = proposer_group_information(raw["proposals_path"], raw["episodes_path"])
+            if (
+                information["reconstructed_distinct_reward_groups"]
+                != prop["groups_with_distinct_valid_rewards"]
+            ):
+                raise ValueError("Recorded/reconstructed proposer reward discrimination differs")
+            row.update(information)
         # The nonzero counter is per candidate, not per contiguous parent group.
         # Do not infer group counts from it when refill uses multiple parents.
         rows.append(row)
@@ -711,7 +753,12 @@ def training_health(
         "unique_training_task_identities": len(seen_tasks)
         if all(r["proposal_trajectory_available"] for r in rows)
         else None,
-        "nonzero_advantage_proposer_group_fraction": None,
+        "nonzero_advantage_proposer_group_fraction": sum(
+            r["nonzero_advantage_proposer_groups"] for r in rows
+        )
+        / totals["attempted_proposer_groups"]
+        if all(r["nonzero_advantage_proposer_groups"] is not None for r in rows)
+        else None,
         "distinct_valid_reward_group_fraction": totals["distinct_reward_proposer_groups"]
         / totals["attempted_proposer_groups"],
         "phase_seconds_committed_only": {
