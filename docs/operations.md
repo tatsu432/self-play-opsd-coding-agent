@@ -524,6 +524,6 @@ use `hpc fetch RUN_ID --trajectory-list PATH.json`; the analysis exports these
 relative-path arrays under `analysis/fetch/`. This option is mutually exclusive
 with `--full` and transfers no checkpoints or model weights. Fetch the ordinary
 run records separately, then use `--run-root runs/hpc/yale-hpc-cpsc4880` to analyze
-these copies without editing the original manifest. Restore normal Yale access
-and reconcile ledgers before any recovery. All six measured development selectors
+these copies without editing the original manifest. Reconcile live Yale state and ledgers before any further recovery. The six trajectory sets have been fetched and the recovered analysis is under
+`runs/task16/recovered-analysis-verified/`. All six measured development selectors
 choose final checkpoints; no additional evaluation is currently justified.

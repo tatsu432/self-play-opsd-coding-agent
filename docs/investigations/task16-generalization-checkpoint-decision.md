@@ -1,12 +1,10 @@
 # Task 16: generalization, checkpoints, and the next experiment
 
-The completed A/B study establishes strong improvement on held-out MBPP+-derived repairs and almost no aggregate improvement on HumanEval+-derived repairs. The strongest newly measured transfer difference is that **HumanEval+ episodes almost always retain the initial buggy source and almost never call public tests**, while MBPP+ episodes frequently change the source. The exact trained-model patch/parser mechanism remains unresolved because their trajectory shards are unavailable locally and Yale DNS access failed.
+**Recovered trajectory analysis identifies patch rejection as a dominant observed obstacle on HumanEval+-derived repairs.** Across the six trained runs, only 0–6 patches per run were accepted on 116 external tasks, while 628–811 patches per run were rejected. On MBPP+-derived repairs, 93–111 patches were accepted and 262–364 rejected per 115-task run. A task can contain several attempts. These are observed tool outcomes, not a causal intervention.
 
-The requested development selector chooses **the final checkpoint in all six arms**. These observations do not support an earlier-checkpoint intervention or a diagnosis of terminal validation overtraining. No GPU job was submitted. Compute evidence is budget-dependent: B has a better available-checkpoint frontier at the largest common allocated-hour budget in each seed, but it does not dominate every earlier budget, threshold, token budget, or development endpoint.
+All 1,617 final/base trajectories and all 1,447 committed training/proposal trajectory pairs are now available and analyzed. The original [local-only analysis](task16-initial-local-analysis.md) is retained as historical evidence. The final checkpoint remains the monitoring-development selection in all six arms; no additional GPU evaluation is justified. A/B trajectories evolve independently and equal nominal OPSD coefficients do not imply equal effective distillation strength. No Task 15 full-run matched GRPO-only control exists.
 
-This is a retrospective exploratory analysis of frozen study `repair-selfplay-2026-task15-ab-v2`, execution `0ac77cde4bc5f70ba2b3eb9e457749e3106a2bc5`. Historical Task 15 results and W&B runs were not modified. Implementation and all independent local analyses are finished; trained action-subtype attribution and live checkpoint/scheduler reconciliation remain incomplete pending Yale access.
-
-Each arm evolves its proposer and student independently. The A/B contrast therefore combines gating with different trajectories and task supply; it does not isolate the gate on identical data. Both nominal OPSD coefficients are 0.1, which does not match effective distillation strength. There is no matched full-run Task 15 GRPO-only baseline. These limits apply to both ID gains and compute comparisons.
+This retrospective analysis uses frozen study `repair-selfplay-2026-task15-ab-v2`, scientific execution `0ac77cde4bc5f70ba2b3eb9e457749e3106a2bc5`. No training, held-out rerun, GPU job or W&B modification was performed.
 
 ## Dataset and evaluation audit
 
@@ -50,7 +48,7 @@ Trained ID episodes average 5.83–6.59 turns and 460–815 generated tokens. Ex
 
 The terminal taxonomy prioritizes success, confirmed infrastructure failure, public-pass/hidden-fail, recorded budget exhaustion, no-edit patch rejection, no-edit parsing failure, other no-edit failure, edited semantic/runtime failure, then unknown. It describes terminal evidence, not a causal root cause. All observed action errors remain separate flags. A failed `finish` is not automatically labeled premature. Public-pass/hidden-fail can occur on the untouched initial mutant and does not imply that a valid patch was applied.
 
-| Model | ID: success / public-pass-hidden-fail / budget / other-or-unknown | External: success / public-pass-hidden-fail / budget / other-or-unknown |
+| Model | ID: success / public-pass-hidden-fail / budget / other | External: success / public-pass-hidden-fail / budget / other |
 |---|---|---|
 | Base | 7 / 11 / 48 / 49 | 2 / 20 / 42 / 52 |
 | A 2026 | 61 / 10 / 44 / 0 | 2 / 19 / 95 / 0 |
@@ -60,7 +58,20 @@ The terminal taxonomy prioritizes success, confirmed infrastructure failure, pub
 | A 2028 | 64 / 9 / 42 / 0 | 1 / 20 / 95 / 0 |
 | B 2028 | 71 / 8 / 11 / 25 | 0 / 20 / 18 / 78 |
 
-There are no recorded final infrastructure failures and no denominator exclusions. Trained exact action counts, rejected patches and final-turn tool-error subtypes are unavailable. Base trajectories are complete: ID has seven valid patch applications versus 331 rejected applications and 172 parsing failures; external has two versus 408 and 166. These base measurements establish a substantial interface bottleneck for the base; they do not establish its exact trained-model contribution. The failure figure visibly distinguishes categories unavailable for trained episodes.
+There are no recorded final infrastructure failures and no denominator exclusions. All trained evaluation and training trajectories are now available. Final-turn tool-error subtypes can still be unavailable because the observation is not stored in a subsequent history. Base trajectories show: ID has seven valid patch applications versus 331 rejected applications and 172 parsing failures; external has two versus 408 and 166. These base measurements establish a substantial interface bottleneck for the base; they do not establish its exact trained-model contribution. The updated failure figure uses the recovered action categories; its terminal-category precedence means a budget outcome can coexist with rejected patches.
+
+### Recovered patch outcomes
+
+| Arm | ID accepted / rejected patches | External accepted / rejected patches | External tasks with a rejected patch /116 | External context / malformed-hunk / unknown rejection details |
+|---|---:|---:|---:|---:|
+| A 2026 | 102 / 267 | 3 / 628 | 96 | 424 / 118 / 86 |
+| B 2026 | 93 / 337 | 3 / 745 | 114 | 508 / 149 / 88 |
+| A 2027 | 111 / 327 | 6 / 747 | 114 | 350 / 320 / 77 |
+| B 2027 | 100 / 279 | 0 / 698 | 115 | 526 / 136 / 36 |
+| A 2028 | 111 / 364 | 1 / 811 | 116 | 258 / 438 / 115 |
+| B 2028 | 96 / 262 | 0 / 672 | 111 | 603 / 50 / 19 |
+
+Error subtypes are inferred from saved tool observations using recorded error text; category labels are descriptive and mutually exclusive. The final turn's error observation is not always retained, so unknown is not zero. Syntax and path categories are not a complete audit of all possible parsing failures. Many episodes have both budget exhaustion and rejected patches: terminal precedence does not measure the total frequency of patch failures. Public-pass/hidden-fail can reflect the original unedited mutant.
 
 Within-seed A/B ID overlaps (both / only A / only B / neither) are 54/7/16/38, 43/14/25/33, and 54/10/17/34. A retains all seven base ID successes in every seed. B retains seven, six and six, adding 63, 62 and 65 previously unsolved tasks. On external tasks, A retains one, zero and zero of the base's two successes and gains one new task per seed; B retains one, zero and zero and gains two, zero and zero. This is task-level regression evidence on very few successes, not proof of broad catastrophic forgetting.
 
@@ -91,7 +102,7 @@ Exactly five evaluations per arm are observed: baseline and the four actual mile
 
 The selected-minus-final effect is exactly zero on these observations because they identify the same checkpoint. B's development-selected endpoint exceeds A in seeds 2026 and 2027, but A is higher in 2028. There is no observed terminal development decline in any arm. Earlier dips occur (for example B-2028 falls from 8/23 parent-equivalent successes at 1,028 episodes to 6.5/23 at 2,048 before ending at 9/23); they do not establish persistent overtraining.
 
-Joint family resampling reruns the selector across all checkpoints. Final selection is much less stable for A-2026/A-2027 than for several other arms; the 41 tasks are not 41 independent parents. Out-of-bootstrap selected-minus-final mean differences range from −0.35 to −7.50 percentage points. These are selection-stability diagnostics with small, variable omitted-family sets, not independent holdout estimates or bias-free confidence intervals. Searching a few milestones cannot establish a globally optimal checkpoint. No earlier-checkpoint GPU evaluation is warranted by the specified rule. Current checkpoint files are not local; their historical checksum verification remains documented in Task 15, while fresh Yale verification is blocked.
+Joint family resampling reruns the selector across all checkpoints. Final selection is much less stable for A-2026/A-2027 than for several other arms; the 41 tasks are not 41 independent parents. Out-of-bootstrap selected-minus-final mean differences range from −0.35 to −7.50 percentage points. These are selection-stability diagnostics with small, variable omitted-family sets, not independent holdout estimates or bias-free confidence intervals. Searching a few milestones cannot establish a globally optimal checkpoint. No earlier-checkpoint GPU evaluation is warranted by the specified rule. Current checkpoint files remain on Yale and their historical checksum verification is documented in Task 15; fresh checkpoint checksum verification was not repeated.
 
 ## Sample and compute efficiency
 
@@ -126,52 +137,39 @@ All six arms have zero fallback groups. Cumulative curriculum mutation counters 
 
 Proposal validity rises from 72.8–81.2% in the first measured window to 87.4–89.2% in the last. Student repair success rises from 27.7–32.0% initially to 52.5–63.3% in the last window. Mixed-group fractions fluctuate and mostly decline from early values; B supplies more mixed groups per allocated hour than A in each seed. Training success and mixed-group yield are different quantities.
 
-B has fewer invalid training actions than A in every seed: invalid fractions A/B are 49.30/45.41%, 46.30/43.61%, and 52.17/44.09%. Total action counts are recovered from the recorded turn-distribution mean × count; action-type and successful/rejected-patch breakdowns still require trajectories. OPSD can update on uniform groups, so their zero current GRPO advantage does not imply zero total gradient or zero optimizer displacement. The per-candidate nonzero-advantage counter cannot reconstruct nonzero proposer-group fractions; those remain missing.
+B has fewer invalid training actions than A in every seed: invalid fractions A/B are 49.30/45.41%, 46.30/43.61%, and 52.17/44.09%. Total action counts are recovered from the recorded turn-distribution mean × count; action-type and patch breakdowns are reconstructed from the recovered trajectories. OPSD can update on uniform groups, so their zero current GRPO advantage does not imply zero total gradient or zero optimizer displacement. The recovered candidate groups and matched student rewards reconstruct nonzero proposer-group fractions of 11.79–15.56%; the per-candidate counter alone could not establish these fractions.
 
 These observations show increasing validity and repair proficiency on the realized narrow curriculum. They do not identify a causal contribution from proposer learning: there is no matched frozen-proposer comparison, and repetitions dominate valid samples. Only 5.1–7.7% of attempted proposer groups distinguish difficulty rewards among valid candidates. Increased structured validity has not removed the reward-identifiability concern underlying deferred C/D.
 
 ## Ranked explanations and research decision
 
-1. **Failure to achieve a useful final edit on external tasks is the best-supported behavioral mechanism.** Only 0–3 external final sources change per run; public-test actions are 0–4 versus 91–103 on ID. Base traces directly exhibit extensive patch rejection. Counterevidence/limits: trained traces are missing, and unchanged final code does not prove that every attempted patch was rejected. Exact parser, hunk/context and transient-edit mechanisms remain unresolved.
-2. **Distribution shift in representation and task structure is a plausible contributor.** External programs carry much longer specifications/docstrings, somewhat more executable structure and far more hidden cases. Public-case counts are similar and 96/116 initial mutants visibly fail public tests, so wholesale hidden-only bugs or missing public examples cannot explain the floor. Specification usefulness and patch-context effects need a controlled comparison.
-3. **A weak base floor and a narrow repeated curriculum constrain transfer.** The base solves only two external tasks; training gains ID proficiency largely on repeated MBPP-derived mutations. There are small observed external regressions and gains, but too little initial capability to establish broad forgetting. A causal curriculum benefit or deficiency requires matched snapshots/tasks, not these evolving runs alone.
-4. **Public-test insufficiency explains a subset, not the overall failure.** Twenty external initial mutants already pass public tests; trained public-pass/hidden-fail counts remain about 19–20. Most external final sources are untouched, so this pattern is not evidence that many valid semantic repairs overfit public tests.
-5. **Terminal overtraining and infrastructure failure lack supporting evidence here.** Final development points maximize the specified selector, and every final denominator is complete. Sparse development evaluations cannot exclude unmeasured peaks or subtler forgetting. No recorded infrastructure failures does not prove equal task difficulty.
+1. **Patch protocol failures are a directly observed obstacle.** The six trained external runs contain 4,301 rejected patches and 13 accepted applications, with 96–116 of 116 tasks per run having at least one rejected patch. Context mismatches and malformed hunks dominate identifiable saved error messages. Budget exhaustion overlaps with these errors; it is not evidence of a separate exclusive cause. The observational comparison does not establish whether repairing the interface alone would yield successful semantic repairs.
+2. **Representation and task structure plausibly contribute.** External specifications and docstrings are longer, and the patch-context error burden is high. Public-case counts are similar, and 96/116 external initial mutants fail public tests. Which representation feature causes the problem requires a controlled training-only comparison.
+3. **A weak baseline and narrow repeated curriculum limit what can be inferred about transfer.** The base solved 2/116 external repairs; per-task regressions are measurable but too few to establish broad forgetting. The evolving proposer/student comparison does not identify the proposer's causal contribution.
+4. **Public-test insufficiency explains a subset.** Twenty external initial mutants pass public tests while failing hidden tests. This is not evidence that the majority of accepted patches overfit public tests.
+5. **Terminal overtraining and infrastructure failures lack support in these records.** The selected checkpoint is the final checkpoint in all six arms and final denominators are complete. Sparse evaluation cannot rule out unmeasured peaks.
 
-The next step is to recover the existing trained trajectories, then conduct a **narrow repair-interface investigation on training-only tasks** in a separate future study. Freeze one trained B snapshot and the common base; use the same prespecified parent/task/rollout seeds to compare the current interface with one representation change motivated by the recovered failure subtype. Preserve public/hidden oracles and budgets, measure accepted edit actions separately from verified repairs, and hold final test sets out of interface tuning. Saved-output parser/context replay should precede new model sampling wherever possible. Do not repeat the already negative function-body replacement comparison without a distinct supported hypothesis.
-
-Write up the completed A/B findings now, including the external failure and causal limits. Defer full C/D: Task 14's RL-versus-combined proposer update cosine (~0.992) was close to an identical-reward repeat (~0.995), and the current counts still show limited valid-reward discrimination. A later C/D pilot would need identical frozen snapshots/tasks, restored optimizer state, repeated counterfactual updates and disjoint reference estimates before any full training recommendation. No such pilot, training or generation study was launched here.
+The next experiment should be a small training-only, matched-snapshot repair-interface study informed by the recovered error subtypes. Preserve the current task oracles and compare accepted edits and verified repairs under identical tasks and rollout seeds; investigate patch context and hunk formatting before changing the curriculum. Keep both final splits out of design and tuning. Defer full C/D training: Task 14's RL-versus-combined update cosine (~0.992) was close to the identical-reward repeat (~0.995), and Task 16's difficulty-reward discrimination remains sparse. A future C/D pilot would require matched frozen snapshots/tasks, repeated updates, restored optimizer state, and disjoint reference-gradient estimates.
 
 ## Reproduction, coverage, and limitations
 
-Run from this repository with the pinned environment and local frozen tokenizer:
+All six run ledgers and selected trajectory shards were fetched through the authenticated Yale controller without model checkpoints. The read-only controller inspection succeeded; no job was submitted. The analysis uses the existing execution and frozen data, with the recovered copies selected by `--run-root`:
 
 ```bash
 uv run python scripts/analyze_task16.py \
   --manifest /private/tmp/selfplay-task15-v2/runs/task15/manifest.json \
   --data data/protocol-v3 \
   --base /private/tmp/selfplay-task15-v2/runs/task15/base \
-  --output runs/task16/analysis \
-  --figures docs/figures/task16 \
+  --run-root runs/hpc/yale-hpc-cpsc4880 \
+  --output runs/task16/recovered-analysis-verified \
   --tokenizer "$HOME/.cache/huggingface/hub/models--Qwen--Qwen3-4B-Instruct-2507/snapshots/cdbee75f17c01a7cc42f958dc650907174af0554"
 ```
 
-The default is 2,000 bootstrap replicates with seed 2026. The command hashes every consumed file; the private manifest records exact sources and missing dependencies. All 1,617 final/base outcome records and 1,447 active training commits are analyzed. Local trajectory coverage is 231/1,617 final/base episodes (the complete base only); trained proposal/student trajectory coverage is zero. Complete final outcome metrics support the source/test/termination comparisons without those shards. Missing action detail remains null rather than being converted into a failure or a zero.
-
-Yale inspection failed with `Could not resolve hostname bouchet.ycrc.yale.edu`. Current Slurm/account state and fresh checkpoint integrity therefore remain unverified. Restoring Yale network/VPN/DNS access, then normal `uv run selfplay hpc login` if necessary, is the external dependency. No job was submitted or duplicated. After access is restored, reconcile `hpc inspect` and each existing ledger, then fetch records and the generated validated relative-path lists. For example:
-
-```bash
-uv run selfplay hpc inspect
-uv run selfplay hpc fetch 033b9d537c8ee9c23dc09038
-uv run selfplay hpc fetch 033b9d537c8ee9c23dc09038 \
-  --trajectory-list runs/task16/analysis/fetch/033b9d537c8ee9c23dc09038.json
-```
-
-Repeat the two fetch commands for the six run IDs in `trajectory-fetch-manifest.json`; no `--full` is needed. Re-run the analysis with `--run-root runs/hpc/yale-hpc-cpsc4880` to use those fetched copies. Inspect the retained checkpoints on Yale rather than bulk-copying model weights. A new unchanged analysis run can fill the action-dependent gaps; no retraining or test-based checkpoint selection is needed.
+The private output directory contains per-task records, input hashes, taxonomy, training health and bootstrap results. It must remain ignored. Final evaluation trajectory coverage is 1,617/1,617; all 1,447 active training and proposer iteration shards were available. Six checkpoint files remain on Yale; their historical checksum validation was not repeated in this analysis. Initial public/hidden outcomes remain unknown for seven ID mutants and unobserved reference/development tasks unless separately replayed through the accepted isolated worker. The final test comparisons remain exploratory.
 
 ## Figures
 
-Circles mark actual measured development evaluations. Connecting segments guide the eye and are not additional measured points. Allocation axes include training-job initialization/evaluation and interrupted work. The checkpoint availability and threshold tables above use measured checkpoints without interpolation. All figure data are privacy-safe aggregates.
+Markers on development curves are actual evaluations; connecting lines are visual guides. All figure data are privacy-safe aggregates.
 
 ![Development accuracy by episode exposure](../figures/task16/development-episodes.png)
 
@@ -179,10 +177,10 @@ Circles mark actual measured development evaluations. Connecting segments guide 
 
 ![Monitoring-selected and final checkpoints](../figures/task16/checkpoint-selection.png)
 
-![Terminal categories with explicit missing subtype evidence](../figures/task16/failure-categories.png)
+![Recovered terminal failure categories](../figures/task16/failure-categories.png)
 
 ![Final ID paired effects and family uncertainty](../figures/task16/final-id-paired.png)
 
 ![Proposal and student training-signal diagnostics](../figures/task16/training-signal.png)
 
-Each figure also has a vector PDF alongside its PNG. Validation, artifact hashes, exact execution status and remaining work are in the [completion record](../task_completion/16-implemented-generalization-checkpoint-analysis.md).
+The [completion record](../task_completion/16-implemented-generalization-checkpoint-analysis.md) records validation, provenance and remaining limitations.

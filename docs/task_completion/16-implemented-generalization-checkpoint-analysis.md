@@ -1,5 +1,17 @@
 # Task 16: generalization and checkpoint analysis
 
+## Recovered-trajectory update — 2026-11-08
+
+Yale authentication and read-only inspection succeeded. Six existing run ledgers and their selected private trajectory shards were fetched without checkpoints. The recovered analysis covers **1,617/1,617** final/base episodes and all **1,447** committed training/proposer trajectory pairs. It confirms 4,301 rejected and 13 accepted patches across the six trained HumanEval+ evaluations; contextual and malformed-hunk errors dominate identifiable saved rejection details. Some final-turn error details remain unknown. No GPU or CPU job was submitted, and no training or held-out evaluation was rerun. All six development selectors still choose final checkpoints.
+
+The updated private output is `runs/task16/recovered-analysis-verified/` in the main workspace. Its `input-manifest.json` records 4,589 consumed file hashes and six missing local checkpoint markers; actual checkpoint files remain on Yale and historical verification was not repeated. Input mapping digest `3fa126602ae6f33efe208f5a12bfb1d7b234f11640aa010eab943b1535256cd5`; input-manifest SHA-256 `2a4668f06ac9788cd645c9335ec5a5714095fe86b2f688bb62d047c41cab016c`; summary SHA-256 `c8757f91f87378d11845c82f751d6d86a461d321bcc7b82e93853d5dd40b4986`.
+
+The recovered analysis completed successfully; 23 focused Task 16 tests, Ruff lint and formatting passed. The updated failure figure was visually inspected. The prior hosted 389-test CI covered the analysis implementation; the only code change in this update adjusts the figure title according to trajectory coverage.
+
+The updated [research report](../investigations/task16-generalization-checkpoint-decision.md) includes the recovered failure table and figure. The original [local-only report](../investigations/task16-initial-local-analysis.md) is preserved as a historical snapshot. The earlier sections below document the initial 2026-11-07 execution and its then-current limitations; they are superseded where they say trajectories or Yale access were unavailable.
+
+## Historical initial analysis — 2026-11-07
+
 ## Execution status
 
 Implemented the deterministic analysis CLI, reusable analysis functions, selective

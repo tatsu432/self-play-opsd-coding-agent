@@ -121,7 +121,13 @@ def figures(summary, output, destination):
         )
     handles, labels = axes[0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="outside right center", fontsize=8)
-    fig.suptitle("Terminal attribution; trained action subtypes unavailable locally", fontsize=10)
+    fig.suptitle(
+        "Terminal attribution; full saved trajectory coverage"
+        if summary["trajectory_coverage"]["evaluation_available"]
+        == summary["trajectory_coverage"]["evaluation_expected"]
+        else "Terminal attribution; trained action subtypes unavailable locally",
+        fontsize=10,
+    )
     save(fig, "failure-categories")
     rows = [
         r for r in summary["paired"] if r["comparison"] == "B-minus-A" and r["split"] == "final_id"

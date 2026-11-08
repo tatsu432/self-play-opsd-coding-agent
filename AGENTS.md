@@ -1,18 +1,16 @@
 # Project and operating instructions
 
-## CURRENT — Task 16 local analysis (2026-11-07)
+## CURRENT — Task 16 recovered trajectory analysis (2026-11-08)
 
-Task 16 analysis implementation and independent local analyses are complete;
-trajectory-dependent trained action attribution remains incomplete. See
-`docs/investigations/task16-generalization-checkpoint-decision.md` and the Task 16
-completion record. All six monitoring-parent-macro selectors choose the original
-final checkpoint, so no checkpoint pilot or new GPU work was submitted. Preserve
-Task 15 results. Yale DNS resolution failed during inspection; restore normal
-network/VPN access before live scheduler/checkpoint reconciliation and selective
-trajectory fetching. Base trajectories and all final outcome/event metrics were
-analyzed locally. The generated private fetch lists and input hashes are under
-`runs/task16/analysis/` in `/private/tmp/selfplay-task16`; use the analysis command's
-`--run-root` option after fetching. Do not relaunch training or duplicate jobs.
+Yale authentication and inspection succeeded and all six Task 15 run trajectory
+sets were fetched. Task 16 now analyzes all 1,617 final/base trajectories and
+1,447 committed training/proposer pairs. The trained external episodes contain
+4,301 rejected versus 13 accepted patch actions across six runs. See
+`docs/investigations/task16-generalization-checkpoint-decision.md` and its completion
+record. The private recovered outputs are in `runs/task16/recovered-analysis-verified/`.
+No new jobs were submitted. All six monitoring-selected checkpoints remain final;
+no GPU evaluation is indicated. Historical checkpoint verification remains valid;
+fresh checksum verification was not repeated. Keep private shards out of Git.
 
 ## CURRENT — Task 15 A/B complete (2026-11-04)
 
