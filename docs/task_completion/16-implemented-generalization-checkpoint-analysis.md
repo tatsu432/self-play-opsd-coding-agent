@@ -89,7 +89,8 @@ remaining initial detection profiles need isolated verification.
   dependency, not a scheduler or scientific failure.
 - Hosted CI [42447563385](https://github.com/tatsu432/self-play-opsd-coding-agent/actions/runs/42447563385)
   passed for implementation commit `856025b0de3fb91ca2606970203c0554f17ae593`,
-  including the Linux worker-image build and full CPU/worker suite. The final
+  including the Linux worker-image build and full CPU/worker suite: **389 passed,
+  1 skipped, 4 deselected** in 870.28 seconds. The final
   follow-up changes only research/validation documentation; its commit skips a
   redundant CI rerun. All implementation code is identical to the tested commit.
 
