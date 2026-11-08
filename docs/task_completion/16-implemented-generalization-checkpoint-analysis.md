@@ -48,8 +48,9 @@ Frozen study: `repair-selfplay-2026-task15-ab-v2`; scientific execution
 `fd47b9117ffa627531a24b938999d9e063f1e6eee47e4b0b91b1bbf46c4ed714`.
 Model/tokenizer revision: `cdbee75f17c01a7cc42f958dc650907174af0554`.
 
-Private outputs are under `/private/tmp/selfplay-task16/runs/task16/analysis/`.
-They remain ignored. `input-manifest.json` hashes 309 consumed files and lists
+Private outputs are preserved under `runs/task16/analysis/` in the main workspace,
+with the original execution copy under `/private/tmp/selfplay-task16/runs/task16/analysis/`.
+Both remain ignored. `input-manifest.json` hashes 309 consumed files and lists
 4,286 missing dependencies (trained final/training shards and local checkpoint
 markers). Generated fetch lists contain referenced final-evaluation, student and
 proposer JSON shards only. All 231 base trajectories are available; none of the
@@ -86,7 +87,11 @@ remaining initial detection profiles need isolated verification.
 - No actual Yale backend/isolation validation is newly claimed. The evaluator's
   retained historical oracle evidence is reused. The network failure is a DNS
   dependency, not a scheduler or scientific failure.
-- Hosted CI status is recorded below after the implementation push.
+- Hosted CI [42447563385](https://github.com/tatsu432/self-play-opsd-coding-agent/actions/runs/42447563385)
+  passed for implementation commit `856025b0de3fb91ca2606970203c0554f17ae593`,
+  including the Linux worker-image build and full CPU/worker suite. The final
+  follow-up changes only research/validation documentation; its commit skips a
+  redundant CI rerun. All implementation code is identical to the tested commit.
 
 ## Reproduction and remaining work
 

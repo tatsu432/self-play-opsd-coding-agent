@@ -6,6 +6,8 @@ The requested development selector chooses **the final checkpoint in all six arm
 
 This is a retrospective exploratory analysis of frozen study `repair-selfplay-2026-task15-ab-v2`, execution `0ac77cde4bc5f70ba2b3eb9e457749e3106a2bc5`. Historical Task 15 results and W&B runs were not modified. Implementation and all independent local analyses are finished; trained action-subtype attribution and live checkpoint/scheduler reconciliation remain incomplete pending Yale access.
 
+Each arm evolves its proposer and student independently. The A/B contrast therefore combines gating with different trajectories and task supply; it does not isolate the gate on identical data. Both nominal OPSD coefficients are 0.1, which does not match effective distillation strength. There is no matched full-run Task 15 GRPO-only baseline. These limits apply to both ID gains and compute comparisons.
+
 ## Dataset and evaluation audit
 
 All 306 frozen reference/development/final tasks regenerate exactly with their recorded deterministic mutation seeds. The parent/family audit passes; parents were assigned before mutation generation. The reserved training population has 186 parents, of which 127 have eligible structured mutation sites after the frozen exclusion. Admitted reference, monitoring, diagnostic, final ID and external task counts are 14, 41, 20, 115 and 116; their covered parent counts are 14, 23, 10, 60 and 116. Reservations and actually admitted tasks are different quantities.
@@ -70,7 +72,7 @@ Paired ID parent-macro B-minus-A effects and family-bootstrap 95% intervals (2,0
 | 2027 | 8.33 | [-5.30, 22.31] |
 | 2028 | 5.83 | [-4.31, 16.67] |
 
-The separate three-seed mean is +7.50 percentage points, with a t-based 95% interval [+3.91, +11.09]. Three seeds provide weak support for the interval's population assumptions. Family/parent uncertainty and seed uncertainty answer different questions. External results remain near the base floor; point estimates cannot identify an intrinsic benchmark difficulty or a causal gating effect.
+The separate three-seed mean is +7.50 percentage points, with a t-based 95% interval [+3.91, +11.09]. Three seeds provide weak support for the interval's population assumptions. Family/parent uncertainty and seed uncertainty answer different questions. External results remain near the base floor: the paired seed mean B-minus-A is −0.29 percentage points, with a separate seed-t 95% interval [−2.76, +2.19]. Point estimates cannot identify an intrinsic benchmark difficulty or a causal gating effect.
 
 Descriptive mutation/operator, public-case, line-count and structural-complexity strata are exported privately. Successes remain too sparse externally for a credible unregularized multivariable explanation. Post-outcome action variables are analyzed as behavioral diagnostics, not causal pre-task predictors.
 
