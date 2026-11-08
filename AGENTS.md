@@ -1,5 +1,11 @@
 # Project and operating instructions
 
+## README maintenance
+
+After completing each task, update `README.md` to concisely describe the research
+problem, approaches, current progress and results. Link detailed evidence and
+procedures to the relevant Markdown documents; keep the README short and current.
+
 ## CURRENT — Task 16 recovered trajectory analysis (2026-11-08)
 
 Yale authentication and inspection succeeded and all six Task 15 run trajectory
