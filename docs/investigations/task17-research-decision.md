@@ -29,11 +29,11 @@ base strict/text repairs 6/56 versus 26/56, and trained strict/text 36/56 versus
 they do not establish the prespecified primary effects or their uncertainty.
 
 H1 (edit acceptance), H2 (verified repair gain), H3 (length/structure interaction)
-and H4 (fewer wasted actions) await paired original-task analysis. H5, interpreted
-as semantic inability being the sole explanation of the historical failures, is
-contradicted by verified correct reconstructed states. The relative causal shares
-of syntax and semantics remain unmeasured. Keep the primary strict control
-unchanged; no new training interface has been selected.
+and H4 (fewer wasted actions) await paired original-task analysis. H5 (failure
+being mainly semantic) remains unresolved. Correct reconstructed states rule out
+semantic inability as the sole explanation for 242 recorded failures, without
+measuring the relative causal shares of syntax and semantics. Keep the primary
+strict control unchanged; no new training interface has been selected.
 
 Trained strict diff solved 5/8 originals versus 1/8 source-comment variants,
 while specification repetition preserved 8/8. These small exploratory results

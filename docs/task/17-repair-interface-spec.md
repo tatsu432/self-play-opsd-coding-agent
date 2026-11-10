@@ -20,8 +20,8 @@ schema. It first uses the unchanged strict parser. After a parser failure only,
 it may locate complete old hunk text at a unique exact span, ignoring hunk
 coordinates/counts without changing added or removed content. Ambiguous or
 inadmissible candidates retain the original rejection and unchanged source.
-Recovered edits additionally preserve import declarations. Successful actions
-are recorded as `strict` or `metadata_recovered`, without changing the student
+Recovered edits retain the historical source/API/import-allowlist admission.
+Successful actions are recorded as `strict` or `metadata_recovered`, without changing the student
 tool observation. The oracle never selects an edit. This implementation is
 locally tested but has not been selected or run as a model experiment; any future
 `task17-normalized` operation is separate from the primary four-cell comparison.
