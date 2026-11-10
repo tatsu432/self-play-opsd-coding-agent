@@ -420,3 +420,41 @@ def test_sequential_gpu_cells_use_native_afterok_without_parallel_allocation():
     ):
         with pytest.raises(ValueError, match="dependency"):
             remote.sequential_dependency(payload)
+
+
+def test_cell_analysis_binds_actual_provenance_to_scheduler_science():
+    from selfplay_opsd.task17_analysis import verify_cell_execution
+
+    cell = {
+        "arm": "A",
+        "study_id": "study",
+        "seed": 2026,
+        "prompt_hash": "prompt",
+        "dataset_hash": "data",
+        "provenance": {"git_commit": "commit", "allocation": {"SLURM_JOB_ID": "123"}},
+    }
+    status = {
+        "attempts": [{"job_id": "123"}],
+        "ledger": {
+            "specification": {
+                "operation": "task17-interface",
+                "method": "A",
+                "study_id": "study",
+                "seed": 2026,
+                "commit": "commit",
+                "runtime_identity": {
+                    "prompt_hash": "prompt",
+                    "manifest_hash": "data",
+                    "scientific_code_hash": "science",
+                },
+            }
+        },
+    }
+    assert verify_cell_execution(cell, status) == "science"
+    # Actual provenance has a full code_hash, not scientific_code_hash: the
+    # latter is obtained from the verified immutable scheduler specification.
+    changed = cell | {"provenance": cell["provenance"] | {"git_commit": "wrong"}}
+    with pytest.raises(ValueError, match="specification"):
+        verify_cell_execution(changed, status)
+    with pytest.raises(ValueError, match="allocation"):
+        verify_cell_execution(cell | {"prompt_hash": "wrong"}, status)

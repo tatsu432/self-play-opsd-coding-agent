@@ -10,7 +10,7 @@ import numpy as np
 from selfplay_opsd.analysis import write_csv
 from selfplay_opsd.storage import atomic_json, file_hash, provenance
 from selfplay_opsd.task16_analysis import ast_features, paired_statistics
-from selfplay_opsd.task17_analysis import compare_interfaces, episode_metrics
+from selfplay_opsd.task17_analysis import compare_interfaces, episode_metrics, verify_cell_execution
 from selfplay_opsd.task17_recovery import error_category
 
 
@@ -57,7 +57,7 @@ def main():
         "--manifest",
         type=Path,
         required=True,
-        help="JSON with cells [{arm,run_dir,allocated_gpu_hours}]",
+        help="JSON with cells [{arm,run_dir,status_path,allocated_gpu_hours}]",
     )
     parser.add_argument("--pool", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
@@ -72,11 +72,27 @@ def main():
         [],
         {str(args.manifest): file_hash(args.manifest), str(args.pool): file_hash(args.pool)},
     )
+    scientific_code_hashes, execution_dependencies = [], []
     for item in manifest["cells"]:
         root = Path(item["run_dir"])
         for name in ("manifest.json", "complete.json", "episodes.json"):
             hashes[str(root / name)] = file_hash(root / name)
         cell = json.loads((root / "manifest.json").read_text())
+        status_path = Path(item["status_path"])
+        hashes[str(status_path)] = file_hash(status_path)
+        status = json.loads(status_path.read_text())
+        scientific_code_hashes.append(verify_cell_execution(cell, status))
+        spec = status["ledger"]["specification"]
+        execution_dependencies.append(
+            {
+                "runtime": {
+                    k: v for k, v in spec["runtime_identity"].items() if k != "common_hash"
+                },
+                "worker_config": spec["worker_config"],
+                "gpu_type": spec["gpu_type"],
+                "gpu_count": spec["gpu_count"],
+            }
+        )
         complete = json.loads((root / "complete.json").read_text())
         episodes = json.loads((root / "episodes.json").read_text())
         if (
@@ -102,8 +118,10 @@ def main():
         rows.extend(r | {"arm": item["arm"]} for r in cell["records"])
         cells.append(cell)
     result = compare_interfaces(cells, families)
-    if len({c["provenance"]["scientific_code_hash"] for c in cells}) != 1:
+    if len(set(scientific_code_hashes)) != 1:
         raise ValueError("Frozen interface cells use different scientific implementations")
+    if any(item != execution_dependencies[0] for item in execution_dependencies[1:]):
+        raise ValueError("Paired runtime, isolation or hardware dependencies differ")
     source_root = Path(__file__).resolve().parents[1]
     for name in (
         "scripts/analyze_task17_interfaces.py",

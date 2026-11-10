@@ -9,6 +9,28 @@ from selfplay_opsd.mutations import strict_json_object
 from selfplay_opsd.task16_analysis import paired_statistics
 
 
+def verify_cell_execution(cell: dict, status: dict) -> str:
+    """Bind allocated-node provenance to its controller's immutable specification."""
+    spec = status["ledger"]["specification"]
+    expected = {
+        "operation": "task17-interface",
+        "method": cell["arm"],
+        "study_id": cell["study_id"],
+        "seed": cell["seed"],
+        "commit": cell["provenance"]["git_commit"],
+    }
+    if any(spec[key] != value for key, value in expected.items()):
+        raise ValueError("Cell execution differs from immutable scheduler specification")
+    identity = spec["runtime_identity"]
+    if (
+        identity["prompt_hash"] != cell["prompt_hash"]
+        or identity["manifest_hash"] != cell["dataset_hash"]
+        or str(status["attempts"][-1]["job_id"]) != cell["provenance"]["allocation"]["SLURM_JOB_ID"]
+    ):
+        raise ValueError("Cell prompt/data/allocation identity differs")
+    return identity["scientific_code_hash"]
+
+
 def episode_metrics(episode: dict) -> dict:
     turns = episode["turns"]
     raw_actions: list[dict | None] = []

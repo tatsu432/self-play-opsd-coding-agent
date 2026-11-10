@@ -57,7 +57,7 @@ settings. This CPU operation verifies each reconstructed edit independently at
 its historical source state; it does not continue counterfactual trajectories.
 
 Fetch each operation with the existing `hpc fetch RUN_ID` route. Create a private
-cell manifest with `cells: [{arm,run_dir,allocated_gpu_hours}]`, including actual
+cell manifest with `cells: [{arm,run_dir,status_path,allocated_gpu_hours}]`, where status_path points to the final fetched `hpc status` JSON, including actual
 failed/partial allocation costs, then analyze:
 
 ```bash
