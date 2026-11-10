@@ -14,7 +14,8 @@ establish Yale worker acceptance, model performance or training improvement.
 ## Phase 1 execution
 
 Normal Yale access is restored. Preparation and semantic replay are complete;
-base strict-diff job 32805621 is submitted. Inspect current Slurm/ledgers and
+base strict-diff job 32805621 completed. The other three cells are submitted
+with sequential dependencies; inspect their existing run IDs before acting. Inspect current Slurm/ledgers and
 `runs/task17/execution-progress.json` before any action. Do not repeat completed
 preparation/replay or duplicate the active cell.
 Commands below assume a clean committed checkout and verified existing images:

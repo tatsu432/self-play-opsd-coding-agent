@@ -3,12 +3,14 @@
 ## Current decision (2026-11-10, execution in progress)
 
 Mechanical replay establishes a substantial encoding bottleneck in the saved
-trajectories. It does not measure a new agent's end-to-end accuracy. The required
-matched frozen-model comparison is next; exact replacement has not yet been
-selected for training. Full C/D remains deferred. No Task 17 GPU allocation has
-yet started. The first submission was rejected before allocation because H200
-permits at most six CPUs per GPU. Task 17 now requests five trainer CPUs plus
-one isolated-worker CPU; science and runtime compatibility are unchanged.
+trajectories. It does not measure a new agent's end-to-end accuracy. The matched frozen-model comparison is in progress: the base strict cell is
+complete, the trained strict cell is active, and both text cells are sequentially
+queued. Exact replacement has not yet been selected for training. Full C/D
+remains deferred. The completed base allocation used 0.342778 H200-hours; the
+active allocation and queued reservations remain in the separate Phase 1 ledger.
+The first GPU submission was rejected before allocation because H200 permits
+six CPUs per GPU; the corrected profile uses five trainer CPUs plus one worker.
+
 
 ## Retrospective evidence
 

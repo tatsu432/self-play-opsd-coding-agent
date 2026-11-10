@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 
 from selfplay_opsd.analysis import write_csv
-from selfplay_opsd.storage import atomic_json, file_hash
+from selfplay_opsd.storage import atomic_json, file_hash, provenance
 from selfplay_opsd.task16_analysis import ast_features, paired_statistics
 from selfplay_opsd.task17_analysis import compare_interfaces, episode_metrics
 from selfplay_opsd.task17_recovery import error_category
@@ -102,6 +102,19 @@ def main():
         rows.extend(r | {"arm": item["arm"]} for r in cell["records"])
         cells.append(cell)
     result = compare_interfaces(cells, families)
+    if len({c["provenance"]["scientific_code_hash"] for c in cells}) != 1:
+        raise ValueError("Frozen interface cells use different scientific implementations")
+    source_root = Path(__file__).resolve().parents[1]
+    for name in (
+        "scripts/analyze_task17_interfaces.py",
+        "src/selfplay_opsd/task17_analysis.py",
+        "src/selfplay_opsd/task16_analysis.py",
+        "src/selfplay_opsd/analysis.py",
+        "uv.lock",
+    ):
+        path = source_root / name
+        hashes[str(path)] = file_hash(path)
+    result["analysis_provenance"] = provenance()
     result["allocated_gpu_hours"] = sum(item["allocated_gpu_hours"] for item in manifest["cells"])
     result["cells"] = {
         c["arm"]: {
