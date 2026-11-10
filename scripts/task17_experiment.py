@@ -171,21 +171,27 @@ def main():
             t.task_id: (t, o) for split in ("final_id", "external") for t, o in repo.tasks(split)
         }
         rows = []
+        verified_sources = {}
         for candidate in candidates:
             task, oracle = tasks[candidate["task_id"]]
             if digest(candidate["source"]) != candidate["source_hash"]:
                 raise ValueError("Replay source hash differs")
             admit_repair(candidate["source"], task.initial_source)
-            result = sandbox.verify(
-                candidate["source"],
-                task.entry_point,
-                oracle.public_cases + oracle.hidden_cases,
-                task.verifier_seconds,
-            )
+            key = (task.task_id, candidate["source_hash"])
+            reused = key in verified_sources
+            if not reused:
+                verified_sources[key] = sandbox.verify(
+                    candidate["source"],
+                    task.entry_point,
+                    oracle.public_cases + oracle.hidden_cases,
+                    task.verifier_seconds,
+                )
+            result = verified_sources[key]
             rows.append(
                 {k: candidate[k] for k in ("episode_id", "task_id", "turn", "source_hash")}
                 | {
                     "passed": result.passed,
+                    "reused_identical_source": reused,
                     "status": result.status.value,
                     "semantic_failures": result.semantic_failures,
                     "runtime_failures": result.runtime_failures,

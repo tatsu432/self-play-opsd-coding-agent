@@ -6,22 +6,23 @@ After completing each task, update `README.md` to concisely describe the researc
 problem, approaches, current progress and results. Link detailed evidence and
 procedures to the relevant Markdown documents; keep the README short and current.
 
-## CURRENT — Task 17 interface implementation / empirical work blocked (2026-11-10)
+## CURRENT — Task 17 active execution (2026-11-10)
 
-Task 17 exact replacement, static recovery analysis, family-disjoint pool preparation,
-paired inference analysis, and bounded Yale routes are implemented. No Task 17 job
-was submitted; new GPU allocation is zero. Yale inspection failed because
-`bouchet.ycrc.yale.edu` could not be resolved; local Docker is also unavailable.
-The private authoritative CPU audit is `runs/task17/recovery-v4/`: all 1,386 trained
-evaluation episodes reproduced; 1,107/4,301 external rejected edits admit unique
-metadata-only reconstruction passing static source/API checks. Semantic replay
-has NOT run. The 231 historical base shards are now missing at recorded local
-paths; preserve the distinction from Task 16's earlier complete recovery.
-See `docs/investigations/task17-repair-interface-results.md` and the Task 17 plan.
-Reconcile live jobs/account state before any future launch. Separate Task 17 budget
-ledgers cap Phase 1 at 10 and conditional Phase 2 at 24 additional H200-hours.
-Do not fabricate a Phase 1 decision/control file, claim verified recoveries, or
-launch full C/D. Historical Task 15 studies/checkpoints remain immutable.
+Yale VPN and normal Duo SSH authentication have been restored. Live inspection
+found no active account jobs before Task 17. All 231 base shards were recovered;
+`runs/task17/recovery-full-v1/` now audits all 1,617 episodes, with 1,991 statically
+admitted metadata reconstructions (1,944 trained, 47 base). Semantic replay has
+not yet run. Hosted CI 42843475673 passed 436 tests (one skipped).
+Initial CPU runtime-validation job `32792142`, run `15b407b13adfc94780658de9`,
+completed exit 0 in 323 seconds from `a7046a4f4328d76e662cb5e9bcdbeab00ac20087`.
+Preserve its fetched report. A follow-up now includes the Task 17 runner itself
+in scientific dependency hashing and caches identical-source CPU replays; require
+matching runtime acceptance for that revised identity before GPU experiments.
+No Task 17 GPU job has been submitted; allocated GPU-hours remain zero. Inspect
+`runs/task17/execution-progress.json` and live ledgers before any submission; do
+not duplicate uncertain jobs. Phase 1 has 10 H200-hours, conditional Phase 2 has
+24 additional hours, enforced by separate ledgers. No full C/D training.
+See the Task 17 plan/report. Historical Task 15 evidence remains immutable.
 
 ## CURRENT — Task 16 recovered trajectory analysis (2026-11-08)
 

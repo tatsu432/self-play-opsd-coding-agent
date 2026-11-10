@@ -68,13 +68,19 @@ def main():
         resolved = read(root / "resolved_config.json")
         payload = read(path)
         for episode in payload if isinstance(payload, list) else [payload]:
-            key = (resolved["method"], str(resolved["seed"]), episode["task_id"])
+            key = (
+                "base" if root.name == "base" else resolved["method"],
+                "" if root.name == "base" else str(resolved["seed"]),
+                episode["task_id"],
+            )
             if key not in lookup:
                 continue
             if key in seen:
                 raise ValueError("Duplicate evaluation trajectory")
             seen.add(key)
             info = lookup[key]
+            if bool(episode["reward"]) != (info["success"].lower() == "true"):
+                raise ValueError("Trajectory outcome differs from recovered evaluation table")
             task = tasks[episode["task_id"]]
             actions, recovered = audit_episode(task, episode)
             identity = {k: info[k] for k in ("method", "seed", "split", "checkpoint")}

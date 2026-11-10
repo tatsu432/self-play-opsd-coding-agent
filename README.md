@@ -19,9 +19,8 @@ from changes in the evolving proposer and student. C/D training is deferred;
 Task 17 now implements an exact-text replacement interface and bounded study runners.
 A CPU audit reproduced all 1,386 trained evaluation trajectories and found 1,107
 of 4,301 rejected HumanEval+ edits mechanically recoverable under static source/API
-checks; semantic correctness remains unverified. Yale DNS is unavailable, so the
-matched interface experiment and conditional training remain unexecuted (0 new
-GPU-hours). See the [Task 17 evidence and execution status](docs/investigations/task17-repair-interface-results.md).
+checks; semantic correctness remains unverified. Yale access is restored and CPU runtime validation has passed; the
+matched interface experiment and conditional training are next (0 new GPU-hours). See the [Task 17 evidence and execution status](docs/investigations/task17-repair-interface-results.md).
 
 See the [A/B results](docs/investigations/task15-final-results.md) and
 [transfer, checkpoint and compute analysis](docs/investigations/task16-generalization-checkpoint-decision.md)

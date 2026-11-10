@@ -85,7 +85,10 @@ def scientific_code_hash() -> str:
         "vllm_worker.py",
         "pilot.py",
     )
-    return digest({name: file_hash(package / name) for name in names})
+    files = {name: file_hash(package / name) for name in names}
+    runner = package.parents[1] / "scripts/task17_experiment.py"
+    files["scripts/task17_experiment.py"] = file_hash(runner) if runner.is_file() else "MISSING"
+    return digest(files)
 
 
 def rng_state() -> dict:

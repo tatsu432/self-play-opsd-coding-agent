@@ -1,5 +1,20 @@
 # Task 17 implementation and partial research completion — 2026-11-10
 
+## Active execution update — access restored
+
+Normal Cisco VPN and Duo SSH authentication succeeded. Live inspection found no
+active account jobs before Task 17. CPU runtime validation `32792142` / run
+`15b407b13adfc94780658de9` completed exit 0 in 323 seconds from `a7046a4`;
+its report was fetched before further dependency changes. All 231 base shards
+were recovered, and `runs/task17/recovery-full-v1/` now covers all 1,617 episodes
+and 11,516 actions, with 1,991 statically admitted reconstructions: 1,944 trained
+plus 47 base. The trained-distribution counts below are unchanged. Semantic
+replay and model experiments remain unexecuted; no GPU time has been allocated.
+Hosted CI [42843475673](https://github.com/tatsu432/self-play-opsd-coding-agent/actions/runs/42843475673)
+passed 436 tests with one skip and four deselections, including Docker worker
+checks. Earlier access-blocked/partial-coverage notes below are historical.
+
+
 ## Status
 
 **Local implementation and retrospective CPU analysis are complete. Required
