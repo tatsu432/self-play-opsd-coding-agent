@@ -1,124 +1,72 @@
-# Task 17 implementation and partial research completion — 2026-11-10
+# Task 17 implementation and research execution — in progress
 
-## Verified semantic replay and admission recovery
-
-CPU job `32794598`, run `9d9776357a4e23ae82cd34dc`, completed all 1,991
-reconstructed actions using 449 unique isolated task/program verifications.
-Among trained external attempts, **755/1,107** pass the full verifier, spanning
-**249/696** recorded episodes and **96/116** parent problems. Of those episodes,
-242 originally failed. This establishes correct edits at recorded source states;
-it does not measure final accuracy under counterfactual future agent actions.
-Trained ID has 500/837 passing reconstructed actions across 193 episodes.
-Base has 13/14 passing ID and 25/33 passing external reconstructed actions.
-All 1,617 trajectories are now present. No GPU time has been used yet.
-
-Preparation `32794599` / `6be54fe0c6ab8d8a6c492675` failed before inference:
-eight attempts admitted 35/40 interface and 14/16 development parents. The
-failed artifacts and before-ledger snapshot were archived on Yale, with the
-ledger's artifact location updated and archive history retained. The corrected
-preparation retains first successful samples, uses 32 bounded attempts while
-caching identical rejected mutants, and fills deficits only from unused
-training families. This is oracle-only admission, without student-outcome
-selection. Preparation now also performs current runtime validation, avoiding
-a separate orchestration stage for each data-selection revision. Earlier blocked
-or unreplayed status notes below are historical and will be consolidated after
-the matched interface experiment.
-
-
-## Active execution update — access restored
-
-Normal Cisco VPN and Duo SSH authentication succeeded. Live inspection found no
-active account jobs before Task 17. CPU runtime validation `32792142` / run
-`15b407b13adfc94780658de9` completed exit 0 in 323 seconds from `a7046a4`;
-its report was fetched before further dependency changes. All 231 base shards
-were recovered, and `runs/task17/recovery-full-v1/` now covers all 1,617 episodes
-and 11,516 actions, with 1,991 statically admitted reconstructions: 1,944 trained
-plus 47 base. The trained-distribution counts below are unchanged. Semantic
-replay and model experiments remain unexecuted; no GPU time has been allocated.
-Hosted CI [42843475673](https://github.com/tatsu432/self-play-opsd-coding-agent/actions/runs/42843475673)
-passed 436 tests with one skip and four deselections, including Docker worker
-checks. Earlier access-blocked/partial-coverage notes below are historical.
-
-
-## Status
-
-**Local implementation and retrospective CPU analysis are complete. Required
-empirical Phase 1 remains incomplete because accepted execution is inaccessible.**
-No Task 17 job was submitted, no generated program ran on the host, and newly
-allocated GPU-hours are **0**. No Phase 2 control, calibration result, training
-result or C/D authorization was fabricated.
-
-Yale inspection failed with SSH exit 255: `Could not resolve hostname
-bouchet.ycrc.yale.edu`. Local Docker's daemon socket is absent. Live scheduler,
-account and checkpoint availability must be reconciled when access returns; the
-historical completed jobs must not be relaunched.
+The [research specification](../task/17-generalization-spec.md) is being executed
+on `feat/17-repair-interface-generalization`. Phase 1 implementation and isolated
+mechanical replay are complete; matched model evaluation is active. Phase 2 is
+conditional on those results. No full C/D training is planned.
 
 ## Delivered
 
-- Exact unique text replacement with multiline edits, size/path/source/API/import
-  validation and atomic rejection; unchanged strict-diff control behavior.
-- Backward-compatible stored tool observations and interface/budget-specific new
-  episode identity. Original B2026 checkpoint provenance is explicitly pinned;
-  import restores weights with fresh optimizers, not a historical training resume.
-- Oracle-free metadata recovery and deterministic action taxonomy; hashed private
-  replay candidates and parent/length/mutation/complexity diagnostics.
-- Deterministic disjoint training-only reservations: 40 interface, 40 curriculum,
-  eight calibration, 16 development parents, from 113 eligible families.
-- Isolated pool preparation/replay, four-cell frozen inference, paired analysis,
-  and conditional static/calibrated student execution through existing machinery.
-  These routes are CPU-tested but not verified on Yale in Task 17.
-- Separate locked Phase 1/2 authorization ledgers, preserving historical budget
-  state and charging failed/uncertain allocations through existing accounting.
-- [Implementation specification](../task/17-repair-interface-spec.md),
-  [execution plan](../plan/17-repair-interface-plan.md),
-  [evidence/decision report](../investigations/task17-repair-interface-results.md),
-  and a visually inspected aggregate taxonomy PNG/PDF. README, methods,
-  operations and current agent instructions reflect the actual status.
+- Exact unique multiline text replacement with bounded input/output, allowlisted
+  source path, syntax/source/API/import checks and atomic rejection. Historical
+  strict diff is unchanged. Stored tool observations include the final turn;
+  new episode identities bind interface and budgets.
+- Oracle-free metadata-only reconstruction and full historical source replay;
+  checksummed private inputs, deterministic taxonomy and feature-stratified
+  analysis. All 1,617 final/base trajectories reproduce.
+- Isolated semantic replay: all 1,991 admitted reconstructions, 449 distinct
+  task/program verifier calls. Of 1,107 trained external reconstructions, 755
+  pass; **242 originally failed episodes contain a correct reconstructed state**.
+  This is not measured counterfactual agent accuracy.
+- Frozen family-disjoint pool: 40 interface originals, 16 presentation variants,
+  40 curriculum, eight calibration and 16 independent development tasks. Admission
+  and replacement use verifiers only. Both tool protocols pass tokenizer
+  admission on all 120 rows. Pool SHA-256:
+  `602eaf506f8ac2cf17924596dae7c0ff3891ef5034a546d4d3751b9803412c83`.
+- Four-cell frozen inference and paired family-bootstrap analysis; conditional
+  fixed-curriculum/calibrated student execution through the existing trainer,
+  with separate locked 10/24 H200-hour ledgers.
+- Aggregate PNG/PDF figures, implementation specification, current results,
+  methods and operational documentation. Raw source/oracle artifacts remain
+  ignored under `runs/`.
 
-## Actual evidence
+## Execution records
 
-All 1,386 locally present trained final trajectories reproduce exactly under
-historical static parsing/source/API admission: 9,708 actions. External evaluations
-have 4,301 rejected and 13 accepted patches. There are 1,132 unique-span metadata
-recoveries among those rejected actions, of which **1,107/4,301 (25.7%)** pass
-static source/API checks. ID has 837/1,836 (45.6%) statically admitted recoveries.
-Across both distributions, 1,944 recovered actions pass static checks.
+| Operation | Run | Slurm job | State |
+|---|---|---:|---|
+| Initial runtime | `15b407b13adfc94780658de9` | 32792142 | Completed |
+| Runner-matching runtime | `850c2d13f87782005d2de7b4` | 32793248 | Completed |
+| Semantic replay | `9d9776357a4e23ae82cd34dc` | 32794598 | Completed |
+| Eight-attempt preparation | `6be54fe0c6ab8d8a6c492675` | 32794599 | Failed; archived |
+| Expanded preparation | `0522e9eae55f829aadc11294` | 32797537 | Originals verified; variant failure; archived |
+| Variant diagnosis | `f0b3c13f22f1fdbd0aa7e20b` | 32801929 | Resource-fragile mutant found; archived |
+| Final preparation | `86e2df49bb04a9321f7d755d` | 32804290 | Completed |
+| Base strict diff | `9f12c84dfddf9b37f42dd4f1` | 32805621 | Submitted |
 
-These are repeated action-level observations, not independent task successes.
-None of the reconstructed programs has been semantically verified in Task 17.
-The existing 231 common-base shards are absent at their recorded local paths;
-coverage is explicitly 1,386/1,617 and historical base aggregates are not replaced.
-H1–H5 remain empirical questions. No gating superiority or new transfer result
-is established. Full C/D remains unjustified on existing evidence.
-
-Authoritative private output is `runs/task17/recovery-v4/`. The earlier v3 and
-final v4 summary and candidate hashes agree exactly; v4 additionally hashes all
-analysis dependencies. SHA-256:
-
-| Artifact | SHA-256 |
-|---|---|
-| summary.json | `68b35ec1948e2caaaa26fe2385654c6e8d5073de4c1a201a6827aa9125702fb4` |
-| input-manifest.json | `2b06ed4cdcf1f7516c61f9a31af451f7c0260d12eae206099dea042cfd60ff0e` |
-| replay-candidates.json | `820d8068810a3ecee5e01ccfaed8d43af81efde58939f8110a02a054a96569a6` |
+The original eight-CPU GPU submission `dc2a6394ef94ef1bd7768b1e` was rejected
+before allocation. The corrected profile uses five trainer CPUs plus one worker
+CPU, meeting the H200 partition limit. Failed preparation evidence, original
+ledger bytes and archive histories are preserved. Current private status is
+`runs/task17/execution-progress.json`; inspect live Slurm/ledgers before action.
 
 ## Validation
 
-- Full local CPU selection: **403 passed, 34 skipped, four deselected**. The
-  deselections are GPU/download/online-W&B tests; skips include unavailable local
-  Docker-backed execution. This is not Yale isolation/backend acceptance.
-- After final pool-integrity/calibration updates: **64 focused tests passed**,
-  including interface, recovery, experiment controls and existing HPC checks.
-- Ruff lint, Ruff format checks, mypy and `git diff --check` passed.
-- CLI help entrypoints load; the independent retrospective rerun reproduced
-  summary/candidate hashes. The aggregate figure was visually inspected.
-- Hosted CI and Git integration are recorded below after publication.
+Focused interface, recovery, control and admission tests pass. Latest full local
+CPU selection: **405 passed, 36 skipped, two deselected** (GPU/download unavailable;
+Docker-backed isolation is checked in hosted CI). Ruff lint/format and mypy pass.
+Hosted CI for the initial implementation passed 436 tests including Docker
+worker checks. A later analysis-only typing failure was corrected; current CI
+must pass before final integration. Yale preparation performs current runtime
+validation using the already accepted isolated worker; generated programs were
+never executed on the host.
 
-## Remaining required work
+## Remaining work
 
-Restore normal Yale DNS/access, inspect live ledgers, verify current containment
-and changed runtime compatibility, prepare isolated tasks, run metadata semantic
-replay and all four matched frozen-model cells. Make the Phase 1 decision from
-verified repairs, not acceptance. Only then select any limited adaptation or
-conditional objective training within the separate authorized budgets. Produce
-actual outcome/efficiency figures and update the scientific decision. See the
-execution plan for commands and expected private artifacts.
+Complete the four matched frozen-model cells, analyze verified repairs and costs,
+make the Phase 1 decision, and conduct an informative bounded objective pilot
+when justified. Retain strict diff if interface evidence is inconclusive. Finish
+outcome/efficiency figures and scientific conclusions, reconcile allocations and
+telemetry, update this record and README, then merge to local main and push.
+See the [results report](../investigations/task17-repair-interface-results.md) and
+[execution plan](../plan/17-repair-interface-plan.md). Historical Task 15 remains
+immutable; existing final splits are retrospective/exploratory development inputs.

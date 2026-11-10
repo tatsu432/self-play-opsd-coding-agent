@@ -11,10 +11,12 @@ The [results report](../investigations/task17-repair-interface-results.md) recor
 actual CPU evidence and external blockers. Implementation and CPU checks do not
 establish Yale worker acceptance, model performance or training improvement.
 
-## Resume Phase 1 when Yale DNS/access returns
+## Phase 1 execution
 
-Use the normal Yale connection; do not bypass authentication. First inspect live
-Slurm, account resources and existing ledgers. No Task 17 job has been submitted.
+Normal Yale access is restored. Preparation and semantic replay are complete;
+base strict-diff job 32805621 is submitted. Inspect current Slurm/ledgers and
+`runs/task17/execution-progress.json` before any action. Do not repeat completed
+preparation/replay or duplicate the active cell.
 Commands below assume a clean committed checkout and verified existing images:
 
 ```bash
@@ -47,7 +49,7 @@ needed only for a demonstrated compatibility gap; it counts against Phase 1.
 The runner checks context admission before any rollout.
 
 For mechanical semantic replay, upload only the private checksummed
-`runs/task17/recovery-v4/replay-candidates.json` to the verified workspace's
+`runs/task17/recovery-full-v1/replay-candidates.json` to the verified workspace's
 `runs/repair-selfplay-2026-task17-interface-v1/replay-input/` directory using the
 existing SSH transport, then use `--operation task17-replay` with the Task 17
 settings. This CPU operation verifies each reconstructed edit independently at
@@ -87,7 +89,6 @@ been fabricated while Phase 1 is unexecuted.
 
 ## Completion
 
-Finish empirical decisions and required outcome/efficiency figures after access
-returns. Reconcile W&B from authoritative local events if delivery fails. Update
+Finish empirical decisions and required outcome/efficiency figures. Reconcile W&B from authoritative local events if delivery fails. Update
 README and completion record with actual results/costs, then merge finished work
 into local main and push. Full C/D remains outside this authorization.

@@ -158,5 +158,6 @@ historical checkpoints. See the [Task 17 specification](task/17-repair-interface
 The conditional fixed-curriculum comparison preserves Task 15's `same_scorer_v2`
 contrast and actual PPO behavior probabilities. It compares GRPO, ungated, gated
 and initially strength-calibrated ungated terms with distinct arm identities.
-Neither the frozen-model comparison nor objective training has run in Task 17;
-static recovery is not semantic verification or evidence of a gating effect.
+Isolated semantic recovery is complete, and the frozen-model comparison is active.
+Reconstructed correct states do not measure new agent accuracy or a gating effect;
+objective training remains conditional on Phase 1.

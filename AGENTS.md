@@ -8,32 +8,25 @@ procedures to the relevant Markdown documents; keep the README short and current
 
 ## CURRENT — Task 17 active execution (2026-11-10)
 
-Yale VPN and normal Duo SSH authentication have been restored. Live inspection
-found no active account jobs before Task 17. All 231 base shards were recovered;
-`runs/task17/recovery-full-v1/` now audits all 1,617 episodes, with 1,991 statically
-admitted metadata reconstructions (1,944 trained, 47 base). Semantic replay has
-not yet run. Hosted CI 42843475673 passed 436 tests (one skipped).
-Initial CPU runtime-validation job `32792142`, run `15b407b13adfc94780658de9`,
-completed exit 0 in 323 seconds from `a7046a4f4328d76e662cb5e9bcdbeab00ac20087`.
-Preserve its fetched report. A follow-up now includes the Task 17 runner itself
-in scientific dependency hashing and caches identical-source CPU replays; require
-matching runtime acceptance for that revised identity before GPU experiments.
-CPU semantic replay `32794598` / `9d9776357a4e23ae82cd34dc` completed all
-1,991 actions / 449 unique task-program verifications. Of 1,107 trained external
-reconstructions, 755 passed, spanning 249 episodes (242 originally failed) and
-96 parents. This is state-level counterfactual evidence, not new agent accuracy.
-Preparation `32794599` / `6be54fe0c6ab8d8a6c492675` failed admission (35/40
-interface, 14/16 development); its directory was preserved under
-`failed-preparation-32794599`, and its ledger run_dir was updated with archive
-history and a before-ledger copy. The bounded fix raises attempts to 32, caches
-identical failed mutations and uses only unused training-family reserves. New
-preparation produces its own current runtime evidence. Inspect progress before
-submitting; do not duplicate either completed replay or failed preparation.
-No Task 17 GPU job has been submitted; allocated GPU-hours remain zero. Inspect
-`runs/task17/execution-progress.json` and live ledgers before any submission; do
-not duplicate uncertain jobs. Phase 1 has 10 H200-hours, conditional Phase 2 has
-24 additional hours, enforced by separate ledgers. No full C/D training.
-See the Task 17 plan/report. Historical Task 15 evidence remains immutable.
+All 1,617 historical trajectories are audited. CPU replay `32794598` /
+`9d9776357a4e23ae82cd34dc` verified 1,991 reconstructions / 449 unique programs;
+755 trained external reconstructions passed, spanning 249 episodes (242
+originally failed). This measures saved states, not new agent accuracy.
+Final preparation `32804290` / `86e2df49bb04a9321f7d755d` completed exit 0,
+producing 104 disjoint original training tasks and 16 presentation variants.
+Pool SHA-256: `602eaf506f8ac2cf17924596dae7c0ff3891ef5034a546d4d3751b9803412c83`.
+Failed preparations `32794599`, `32797537`, `32801929` are archived with original
+ledger bytes/history. One resource-fragile mutant parent was replaced using
+verifier evidence before model inference; preserve all failed attempts.
+Base strict-diff job `32805621`, run `9f12c84dfddf9b37f42dd4f1`, was submitted
+once from `e6e7412715169090add451737f91d01c55283eea`. Inspect it before action;
+do not duplicate it. Earlier eight-CPU submission `dc2a6394ef94ef1bd7768b1e`
+was rejected without allocation. Task 17 uses five trainer plus one worker CPU.
+Normal Yale VPN/Duo access and accepted worker are available. Current private
+state: `runs/task17/execution-progress.json`. Reconcile live Slurm/ledgers before
+each submission. Phase 1 ceiling 10 H200-hours; conditional Phase 2 additional 24,
+with separate locked ledgers. No full C/D. Historical Task 15 remains immutable.
+See Task 17 results/completion/plan for evidence and remaining operations.
 
 ## CURRENT — Task 16 recovered trajectory analysis (2026-11-08)
 
