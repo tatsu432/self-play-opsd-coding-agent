@@ -35,8 +35,9 @@ greedy decoding and unchanged eight-turn/token budgets. Four operational labels:
 Reserve one training-only parent per family: interface 40, curriculum 40,
 calibration 8, independent development 16. Exclude `Mbpp/590`. Selection uses
 source length/structure and deterministic hashes, not model outcomes. Prepare
-mutations through the existing isolated verifier, at most eight fixed attempts
-per parent; report admission deficits instead of silently reducing denominators.
+mutations through the existing isolated verifier, at most 32 fixed attempts
+per parent, caching identical rejected mutants and refilling only from unused
+training families; report admission deficits instead of silently reducing denominators.
 
 Interface evaluation includes 40 originals and 16 presentation variants: eight
 source-comment extensions using the existing specification and eight repeated

@@ -18,6 +18,17 @@ completed exit 0 in 323 seconds from `a7046a4f4328d76e662cb5e9bcdbeab00ac20087`.
 Preserve its fetched report. A follow-up now includes the Task 17 runner itself
 in scientific dependency hashing and caches identical-source CPU replays; require
 matching runtime acceptance for that revised identity before GPU experiments.
+CPU semantic replay `32794598` / `9d9776357a4e23ae82cd34dc` completed all
+1,991 actions / 449 unique task-program verifications. Of 1,107 trained external
+reconstructions, 755 passed, spanning 249 episodes (242 originally failed) and
+96 parents. This is state-level counterfactual evidence, not new agent accuracy.
+Preparation `32794599` / `6be54fe0c6ab8d8a6c492675` failed admission (35/40
+interface, 14/16 development); its directory was preserved under
+`failed-preparation-32794599`, and its ledger run_dir was updated with archive
+history and a before-ledger copy. The bounded fix raises attempts to 32, caches
+identical failed mutations and uses only unused training-family reserves. New
+preparation produces its own current runtime evidence. Inspect progress before
+submitting; do not duplicate either completed replay or failed preparation.
 No Task 17 GPU job has been submitted; allocated GPU-hours remain zero. Inspect
 `runs/task17/execution-progress.json` and live ledgers before any submission; do
 not duplicate uncertain jobs. Phase 1 has 10 H200-hours, conditional Phase 2 has

@@ -1,5 +1,30 @@
 # Task 17: repair-interface implementation and retrospective evidence
 
+## Verified semantic replay and admission recovery
+
+CPU job `32794598`, run `9d9776357a4e23ae82cd34dc`, completed all 1,991
+reconstructed actions using 449 unique isolated task/program verifications.
+Among trained external attempts, **755/1,107** pass the full verifier, spanning
+**249/696** recorded episodes and **96/116** parent problems. Of those episodes,
+242 originally failed. This establishes correct edits at recorded source states;
+it does not measure final accuracy under counterfactual future agent actions.
+Trained ID has 500/837 passing reconstructed actions across 193 episodes.
+Base has 13/14 passing ID and 25/33 passing external reconstructed actions.
+All 1,617 trajectories are now present. No GPU time has been used yet.
+
+Preparation `32794599` / `6be54fe0c6ab8d8a6c492675` failed before inference:
+eight attempts admitted 35/40 interface and 14/16 development parents. The
+failed artifacts and before-ledger snapshot were archived on Yale, with the
+ledger's artifact location updated and archive history retained. The corrected
+preparation retains first successful samples, uses 32 bounded attempts while
+caching identical rejected mutants, and fills deficits only from unused
+training families. This is oracle-only admission, without student-outcome
+selection. Preparation now also performs current runtime validation, avoiding
+a separate orchestration stage for each data-selection revision. Earlier blocked
+or unreplayed status notes below are historical and will be consolidated after
+the matched interface experiment.
+
+
 ## Active execution update — access restored
 
 Normal Cisco VPN and Duo SSH authentication succeeded. Live inspection found no

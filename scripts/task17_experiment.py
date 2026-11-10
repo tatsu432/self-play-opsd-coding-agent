@@ -158,6 +158,11 @@ def main():
         raise ValueError("Output exists; reconcile the existing operation instead of duplicating")
     args.output.mkdir(parents=True, exist_ok=bool(args.resume), mode=0o700)
     if args.operation == "prepare":
+        # This CPU operation produces current runtime evidence and admits the
+        # actual new tasks; avoid a separate redundant orchestration stage.
+        from selfplay_opsd.readiness import validate_runtime
+
+        validate_runtime(cfg)
         prepare_pool(repo, sandbox, args.output / "pool.json")
         atomic_json(
             args.output / "complete.json", {"pool_sha256": file_hash(args.output / "pool.json")}

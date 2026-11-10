@@ -21,11 +21,11 @@ Commands below assume a clean committed checkout and verified existing images:
 uv run selfplay hpc inspect
 uv run selfplay hpc sync --settings configs/task17.yaml
 uv run selfplay hpc reuse-worker repair-selfplay-2026-task14-online-v1 --settings configs/task17.yaml
-uv run selfplay hpc submit --operation runtime-check --method B --profile single_gpu_80gb --settings configs/task17.yaml
 uv run selfplay hpc submit --operation task17-prepare --method B --profile single_gpu_80gb --settings configs/task17.yaml
 ```
 
-Inspect each existing run ID until it completes; never resubmit an uncertain
+The preparation operation runs current runtime validation itself before admitting
+the new tasks, so a separate runtime-check job is unnecessary. Inspect each existing run ID until it completes; never resubmit an uncertain
 operation. The prepared private pool is
 `/runs/repair-selfplay-2026-task17-interface-v1/prepared/pool.json` inside the
 container. It contains isolated verification evidence; local partitions alone

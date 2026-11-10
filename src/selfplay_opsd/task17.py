@@ -50,23 +50,33 @@ def partition_parents(repository: TaskRepository) -> dict:
             available, key=lambda k: (len(result[k]) / COUNTS[k], list(COUNTS).index(k))
         )
         result[purpose_key].append(parent.parent_id)
+    assigned = {p for values in result.values() for p in values}
+    result["reserve"] = [p.parent_id for p in ordered if p.parent_id not in assigned]
     return result
 
 
 def prepare_pool(repository, sandbox, output: Path) -> dict:
     if output.exists():
         raise ValueError("Prepared pool already exists; inspect instead of replacing")
-    partitions = partition_parents(repository)
+    requested = partition_parents(repository)
+    partitions = {key: list(requested[key]) for key in COUNTS}
+    reserve = list(requested["reserve"])
     by_id = {p.parent_id: p for p in repository.parents("train")}
-    rows, exclusions = [], []
-    for purpose, parent_ids in partitions.items():
-        for parent_id in parent_ids:
+    rows, exclusions, replacements = [], [], []
+    for purpose in COUNTS:
+        pending = list(partitions[purpose])
+        for parent_id in pending:
             parent = by_id[parent_id]
             public, hidden = repository.parent_cases(parent_id)
-            for attempt in range(8):
+            admitted = False
+            seen_mutations: set[str] = set()
+            for attempt in range(32):
                 seed = keyed_seed(2026, "task17-mutation", parent_id, attempt)
                 try:
                     mutation = fixed_mutation(parent.source, seed)
+                    if mutation.dedup_key in seen_mutations:
+                        raise ValueError("Repeated deterministic mutation already rejected")
+                    seen_mutations.add(mutation.dedup_key)
                     task, oracle = build_task(
                         parent, mutation, public, hidden, "train", seed, sandbox
                     )
@@ -84,17 +94,37 @@ def prepare_pool(repository, sandbox, output: Path) -> dict:
                         "oracle": oracle.model_dump(mode="json"),
                     }
                 )
+                admitted = True
                 break
-    atomic_json(
-        output.with_name("admission-progress.json"),
-        {
-            "partitions": partitions,
-            "exclusions": exclusions,
-            "admitted_by_purpose": {key: sum(r["purpose"] == key for r in rows) for key in COUNTS},
-        },
-    )
+            if not admitted and reserve:
+                replacement = reserve.pop(0)
+                pending.append(replacement)
+                partitions[purpose].remove(parent_id)
+                partitions[purpose].append(replacement)
+                replacements.append(
+                    {
+                        "purpose": purpose,
+                        "excluded": parent_id,
+                        "replacement": replacement,
+                        "reason": "32 oracle-only mutation attempts failed",
+                    }
+                )
+        atomic_json(
+            output.with_name("admission-progress.json"),
+            {
+                "dataset_hash": repository.hash,
+                "requested_partitions": requested,
+                "partitions": partitions,
+                "exclusions": exclusions,
+                "replacements": replacements,
+                "rows": rows,
+                "admitted_by_purpose": {
+                    key: sum(r["purpose"] == key for r in rows) for key in COUNTS
+                },
+            },
+        )
     original = [r for r in rows if r["purpose"] == "interface"]
-    if len(original) < 40:
+    if len(original) < COUNTS["interface"]:
         raise ValueError(
             "Interface admission deficit: preserve evidence and revise before inference"
         )
@@ -166,7 +196,10 @@ def prepare_pool(repository, sandbox, output: Path) -> dict:
     result = {
         "study_id": STUDY,
         "dataset_hash": repository.hash,
+        "requested_partitions": requested,
         "partitions": partitions,
+        "replacements": replacements,
+        "mutation_attempts_per_parent": 32,
         "counts": counts,
         "rows": rows,
         "exclusions": exclusions,
@@ -190,8 +223,15 @@ def load_pool(path: Path, repository: TaskRepository) -> tuple[dict, str]:
         or not pool["isolated_verified"]
     ):
         raise ValueError("Task 17 pool identity or verification differs")
-    if pool["partitions"] != partition_parents(repository):
+    requested = partition_parents(repository)
+    if pool["requested_partitions"] != requested:
         raise ValueError("Task 17 partition assignment differs")
+    for purpose in COUNTS:
+        actual = pool["partitions"][purpose]
+        if len(actual) != COUNTS[purpose] or not set(actual) <= set(
+            requested[purpose] + requested["reserve"]
+        ):
+            raise ValueError("Task 17 replacement crossed reserved purpose boundaries")
     from collections import Counter
 
     counts = Counter(r["purpose"] for r in pool["rows"])

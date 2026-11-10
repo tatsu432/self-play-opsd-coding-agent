@@ -116,9 +116,12 @@ def test_disjoint_partition_is_deterministic(monkeypatch):
     first = partition_parents(repo)
     parents.reverse()
     assert partition_parents(repo) == first
-    assert len(set(p for rows in first.values() for p in rows)) == 6
+    assert len(set(p for role, rows in first.items() if role != "reserve" for p in rows)) == 6
     by_id = {p.parent_id: p for p in parents}
-    assert len({by_id[p].family_id for rows in first.values() for p in rows}) == 6
+    assert (
+        len({by_id[p].family_id for role, rows in first.items() if role != "reserve" for p in rows})
+        == 6
+    )
 
 
 def test_pairing_refuses_snapshot_budget_and_completion_drift():
@@ -244,3 +247,74 @@ def test_historical_checkpoint_verifier_rejects_wrong_prompt_before_import(monke
         runner.load_historical_weights(
             None, cfg, SimpleNamespace(hash=metadata["manifests_hash"]), Path("unused")
         )
+
+
+def test_admission_refills_from_unused_family_without_student_selection(tmp_path, monkeypatch):
+    import selfplay_opsd.task17 as module
+    from selfplay_opsd.core import OracleSpec, ParentProgram, TaskSpec, digest
+    from selfplay_opsd.mutations import make_patch
+
+    monkeypatch.setattr(
+        module, "COUNTS", {"interface": 2, "curriculum": 1, "calibration": 1, "development": 1}
+    )
+    parents = [
+        ParentProgram(
+            parent_id=f"p{i}",
+            family_id=f"fam{i}",
+            source=f"def f{i}(x):\n    return x + 1\n",
+            specification="Repair the function.",
+            entry_point=f"f{i}",
+            dataset="mbpp",
+            provenance={},
+        )
+        for i in range(7)
+    ]
+    parents.append(parents[0].model_copy(update={"parent_id": "Mbpp/590", "family_id": "excluded"}))
+    repo = SimpleNamespace(
+        parents=lambda split: parents, parent_cases=lambda pid: ([], []), hash="dataset"
+    )
+    requested = partition_parents(repo)
+    failed = requested["interface"][0]
+    calls = []
+
+    def mutation(source, seed):
+        return SimpleNamespace(source=source.replace("x + 1", "x + 2"), dedup_key=digest(source))
+
+    def build(parent, mutant, public, hidden, split, seed, sandbox):
+        calls.append(parent.parent_id)
+        if parent.parent_id == failed:
+            raise ValueError("No semantic mutation")
+        task = TaskSpec(
+            task_id=digest([parent.parent_id, seed]),
+            parent_id=parent.parent_id,
+            split=split,
+            initial_source=mutant.source,
+            specification=parent.specification,
+            entry_point=parent.entry_point,
+            public_tests="",
+            source_hash=digest(mutant.source),
+            mutation_seed=seed,
+        )
+        oracle = OracleSpec(
+            task_id=task.task_id,
+            correct_source=parent.source,
+            inverse_patch=make_patch(mutant.source, parent.source),
+            public_cases=[],
+            hidden_cases=[],
+            provenance={},
+        )
+        return task, oracle
+
+    monkeypatch.setattr(module, "fixed_mutation", mutation)
+    monkeypatch.setattr(module, "build_task", build)
+    sandbox = SimpleNamespace(
+        verify=lambda source, *args: SimpleNamespace(
+            passed="return x + 2" not in source, semantic_failures=int("return x + 2" in source)
+        )
+    )
+    pool = module.prepare_pool(repo, sandbox, tmp_path / "prepared/pool.json")
+    assert pool["counts"] == module.COUNTS
+    assert failed not in pool["partitions"]["interface"]
+    assert pool["replacements"][0]["replacement"] == requested["reserve"][0]
+    assert calls.count(failed) == 1  # Repeated identical failed mutants reuse evidence.
+    assert (tmp_path / "prepared/admission-progress.json").exists()

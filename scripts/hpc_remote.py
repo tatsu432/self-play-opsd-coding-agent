@@ -1993,7 +1993,9 @@ def precheck(payload: dict):
         "task13-counterfactual",
     }:
         state = study_state(payload)
-        if not state["gates"]["worker"] or not state["gates"]["runtime"]:
+        if not state["gates"]["worker"] or (
+            operation != "task17-prepare" and not state["gates"]["runtime"]
+        ):
             raise ValueError("Runtime isolation and target data validation have not passed")
         if operation in {
             "task13-probe",
