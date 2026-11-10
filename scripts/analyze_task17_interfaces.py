@@ -27,6 +27,12 @@ def describe(records):
         "rejected_edits",
         "test_calls",
         "public_pass_hidden_fail",
+        "source_changed",
+        "runtime_failures",
+        "semantic_failures",
+        "generation_seconds",
+        "public_test_seconds",
+        "reward_verifier_seconds",
         "tokens",
         "turns",
         "repeated_failed_edits",
@@ -86,6 +92,8 @@ def main():
                 "parent_id": info[e["task_id"]]["task"]["parent_id"],
                 "presentation": info[e["task_id"]]["presentation"],
                 "family_id": info[e["task_id"]]["family_id"],
+                "source_changed": e["final_source_hash"]
+                != info[e["task_id"]]["task"]["source_hash"],
                 **cell.get("task_features", {}).get(e["task_id"], {}),
                 **ast_features(info[e["task_id"]]["task"]["initial_source"]),
             }

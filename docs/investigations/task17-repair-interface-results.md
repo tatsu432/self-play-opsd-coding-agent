@@ -132,3 +132,15 @@ specification and an explicit pending-resource adjustment, while retaining the
 conservative two-hour budget reservation. No task/model/decoding parameter
 changed. Actual allocation will be reconciled from Slurm. The next strict cell
 must use the same prepared pool and frozen model budgets.
+
+## Synthetic illustration of the distinction
+
+For a specification “return the input plus one,” suppose the current source is
+`def f(x): return x + 2`. A diff that changes `+ 2` to `+ 1` but places its only
+hunk at line 99 is semantically useful and rejected by strict coordinates.
+Unique exact old-hunk recovery can locate it without consulting a reference
+solution. Exact replacement expresses the same change with `old_text: "x + 2"`
+and `new_text: "x + 1"`. Replacing it with `"x + 9"` can also pass source/API
+admission while remaining semantically wrong. If the old span occurs twice,
+exact replacement rejects it rather than guessing. These are synthetic examples,
+not additional experimental outcomes.
