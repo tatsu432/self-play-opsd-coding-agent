@@ -15,6 +15,19 @@ diff control retains its original import allowlist behavior. Report this
 admission difference and observed rejections. Empty replacement text permits deletion. Inputs and resulting source are bounded
 to 65,536 UTF-8 bytes. Rejections leave source unchanged.
 
+The optional `normalized_diff` protocol retains the strict prompt and action
+schema. It first uses the unchanged strict parser. After a parser failure only,
+it may locate complete old hunk text at a unique exact span, ignoring hunk
+coordinates/counts without changing added or removed content. Ambiguous or
+inadmissible candidates retain the original rejection and unchanged source.
+Recovered edits additionally preserve import declarations. Successful actions
+are recorded as `strict` or `metadata_recovered`, without changing the student
+tool observation. The oracle never selects an edit. This implementation is
+locally tested but has not been selected or run as a model experiment; any future
+`task17-normalized` operation is separate from the primary four-cell comparison.
+Its labels A/C mean base/B2026. A new executed runtime check is needed for this
+new code before another allocation.
+
 New trajectories persist tool observations, including the last turn. Historical
 records without observations still load. New episode identities include episode
 configuration, preventing interface/budget collisions. Prompt/scientific hashes

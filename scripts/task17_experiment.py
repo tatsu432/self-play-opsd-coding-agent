@@ -75,9 +75,11 @@ def load_historical_weights(policy, cfg, repo, checkpoint):
 def validate_control(control, pool_hash):
     if control.get("pool_sha256") != pool_hash or not control.get("phase1_informative"):
         raise ValueError("Objective study requires an informative recorded Phase 1 decision")
-    if control.get("interface") not in {"unified_diff", "replace_text"} or control.get(
-        "episodes"
-    ) not in {80, 128}:
+    if control.get("interface") not in {
+        "unified_diff",
+        "replace_text",
+        "normalized_diff",
+    } or control.get("episodes") not in {80, 128}:
         raise ValueError("Invalid frozen interface or episode endpoint")
     evidence = control.get("evidence", [])
     if not evidence:
@@ -135,7 +137,7 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument(
         "--operation",
-        choices=("prepare", "interface", "calibrate", "student", "replay"),
+        choices=("prepare", "interface", "normalized", "calibrate", "student", "replay"),
         required=True,
     )
     parser.add_argument("--arm", choices=("A", "B", "C", "D"), default="B")
@@ -243,11 +245,12 @@ def main():
         control = json.loads(args.control.read_text())
         validate_control(control, pool_hash)
         cfg.episode.edit_protocol = control["interface"]
-    else:
-        cfg.episode.edit_protocol = "unified_diff" if args.arm in {"A", "C"} else "replace_text"
-    purpose = {"interface": "interface", "calibrate": "calibration", "student": "curriculum"}[
-        args.operation
-    ]
+    purpose = {
+        "interface": "interface",
+        "normalized": "interface",
+        "calibrate": "calibration",
+        "student": "curriculum",
+    }[args.operation]
     items = [
         (TaskSpec.model_validate(r["task"]), OracleSpec.model_validate(r["oracle"]))
         for r in pool["rows"]
@@ -285,7 +288,7 @@ def main():
         for task, oracle in items:
             check_admission(policy, task, oracle, cfg.episode)
         imported = None
-        if args.operation == "interface" and args.arm in {"C", "D"}:
+        if args.operation in {"interface", "normalized"} and args.arm in {"C", "D"}:
             imported = load_historical_weights(policy, cfg, repo, args.checkpoint)
         else:
             verify_base_adapter(policy)
@@ -414,7 +417,7 @@ def main():
         rows, calibration_rows = [], []
         with policy.active("student"):
             for task, oracle in items:
-                count = 1 if args.operation == "interface" else 4
+                count = 1 if args.operation in {"interface", "normalized"} else 4
                 episodes = [
                     run_episode(
                         policy,
@@ -423,7 +426,7 @@ def main():
                         oracle,
                         cfg.episode,
                         keyed_seed(args.seed, "task17", task.task_id, slot),
-                        greedy=args.operation == "interface",
+                        greedy=args.operation in {"interface", "normalized"},
                     )
                     for slot in range(count)
                 ]

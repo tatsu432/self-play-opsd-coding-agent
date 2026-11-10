@@ -533,7 +533,8 @@ choose final checkpoints; no additional evaluation is currently justified.
 
 See the [Task 17 execution plan](plan/17-repair-interface-plan.md) for commands and
 current access status. New operations are `task17-prepare` and `task17-replay`
-(CPU), `task17-interface`, `task17-calibrate`, and `task17-student`. They reuse the
+(CPU), `task17-interface`, optional `task17-normalized`, `task17-calibrate`, and
+`task17-student`. They reuse the
 accepted allocated worker and controller's no-duplicate submission/reservation
 logic. Phase 1 and Phase 2 have independent locked 10/24 H200-hour authorization
 ledgers, including failures and relevant backend checks. These do not import or
@@ -554,6 +555,13 @@ identity. This permits sequential GPU execution without waiting to submit each
 cell; it does not allocate GPUs concurrently. Inspect the first cell's early
 outputs before queuing successors. A failed predecessor leaves successors
 blocked; reconcile/cancel them rather than releasing dependencies blindly.
+
+All four primary cells finished; do not submit them again. After normal Yale
+VPN/SSH authentication, `uv run python scripts/collect_task17_interfaces.py`
+retrieves their existing outputs/status, reads actual Slurm allocation time and
+runs paired analysis. It never submits a job. Failed authentication cannot
+truncate a previously valid status file. The optional normalized-diff runner is
+unexecuted and must not be described as an observed interface result.
 
 Task 17 objective studies can use `hpc reuse-runtime SOURCE_STUDY --settings
 TARGET_SETTINGS` after one current executed runtime check. It requires identical

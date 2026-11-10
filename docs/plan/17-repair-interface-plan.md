@@ -1,95 +1,95 @@
-# Task 17 implementation and execution plan
+# Task 17 execution and recovery plan
 
-## Implemented locally
+## Current state
 
-Exact replacement, observation persistence, interface-aware episode identity,
-static mechanical recovery, deterministic family partitions, isolated pool and
-replay runners, paired frozen-model runner, conditional calibrated/static student
-runner, and paired interface analysis. See the [implementation specification](../task/17-repair-interface-spec.md).
+Implementation, all 1,617 historical trajectory audits, isolated semantic replay,
+verified pool preparation and four sequential primary GPU allocations are done.
+The complete strict-control artifacts are local. Text-cell completion and aggregate
+counts were observed remotely, but final text artifacts/status and accounting
+still require retrieval. Yale VPN disconnected and SSH refresh did not complete;
+the stale login was stopped. No Phase 2 calibration/pilot/training or normalized
+model experiment has run. See the [results](../investigations/task17-repair-interface-results.md),
+[decision](../investigations/task17-research-decision.md) and
+[execution record](../task_completion/17-implemented-repair-interface.md).
 
-The [results report](../investigations/task17-repair-interface-results.md) records
-actual CPU evidence and external blockers. Implementation and CPU checks do not
-establish Yale worker acceptance, model performance or training improvement.
+## Resume retrieval and Phase 1 analysis
 
-## Phase 1 execution
-
-Normal Yale access is restored. Preparation and semantic replay are complete;
-base strict-diff job 32805621 completed. The other three cells are submitted
-with sequential dependencies; inspect their existing run IDs before acting. Inspect current Slurm/ledgers and
-`runs/task17/execution-progress.json` before any action. Do not repeat completed
-preparation/replay or duplicate the active cell.
-Commands below assume a clean committed checkout and verified existing images:
+Restore the normal Yale VPN connection, then authenticate and collect:
 
 ```bash
-uv run selfplay hpc inspect
-uv run selfplay hpc sync --settings configs/task17.yaml
-uv run selfplay hpc reuse-worker repair-selfplay-2026-task14-online-v1 --settings configs/task17.yaml
-uv run selfplay hpc submit --operation task17-prepare --method B --profile single_gpu_80gb --settings configs/task17.yaml
+uv run selfplay hpc login
+uv run python scripts/collect_task17_interfaces.py
 ```
 
-The preparation operation runs current runtime validation itself before admitting
-the new tasks, so a separate runtime-check job is unnecessary. Inspect each existing run ID until it completes; never resubmit an uncertain
-operation. The prepared private pool is
-`/runs/repair-selfplay-2026-task17-interface-v1/prepared/pool.json` inside the
-container. It contains isolated verification evidence; local partitions alone
-are not a verified pool.
+The collector uses the existing run IDs only, checks final Slurm states, fetches
+private artifacts and reads actual allocation time, then writes the cell manifest
+and runs paired analysis. It never submits a job. Failed SSH cannot truncate
+previously valid status files. Analysis refuses an existing output directory;
+use `--output runs/task17/interface-analysis-v2` for a deliberate later rerun.
+The local prepared pool is already fetched at
+`runs/hpc/yale-hpc-cpsc4880/86e2df49bb04a9321f7d755d/pool.json`.
 
-Submit strict control cells sequentially, inspecting allocation cost and the
-first eight completed tasks before continuing the design:
+Do not repeat preparation, replay or the four primary cells. Their live ledger
+identities and immutable execution commits are in the completion record. A/C
+pending wall limits were reduced from two hours to one with recorded adjustments;
+original conservative reservations remain until accounting reconciliation.
+The four observed actual allocations total 1.15 H200-hours.
 
-```bash
-uv run selfplay hpc submit --operation task17-interface --method A --seed 2026 --profile single_gpu_80gb --gpu-type h200 --settings configs/task17.yaml
-uv run selfplay hpc submit --operation task17-interface --method C --seed 2026 --profile single_gpu_80gb --gpu-type h200 --settings configs/task17.yaml
-```
+Review the original 40-family paired effects and family-bootstrap uncertainty
+separately from the 16 correlated presentation variants. Report acceptance,
+verified repairs, testing, public-pass/hidden-fail, errors/repeats, turns/tokens,
+termination, runtime/cost, and source/specification/structure strata. Inspect
+actor/scheduler identity checks and final completion markers. Publish actual
+outcome, acceptance and efficiency PNG/PDF figures only after successful
+analysis, and visually inspect them. All raw source/oracles stay private.
 
-Then run the dependency-matching CPU runtime check for
-`configs/task17-text.yaml` and submit interface cells B and D with that settings
-file. Both settings use the same data/study and budgets. Do not repeat unchanged
-worker containment or historical checkpoint searches. A target backend check is
-needed only for a demonstrated compatibility gap; it counts against Phase 1.
-The runner checks context admission before any rollout.
-
-For mechanical semantic replay, upload only the private checksummed
-`runs/task17/recovery-full-v1/replay-candidates.json` to the verified workspace's
-`runs/repair-selfplay-2026-task17-interface-v1/replay-input/` directory using the
-existing SSH transport, then use `--operation task17-replay` with the Task 17
-settings. This CPU operation verifies each reconstructed edit independently at
-its historical source state; it does not continue counterfactual trajectories.
-
-Fetch each operation with the existing `hpc fetch RUN_ID` route. Create a private
-cell manifest with `cells: [{arm,run_dir,status_path,allocated_gpu_hours}]`, where status_path points to the final fetched `hpc status` JSON, including actual
-failed/partial allocation costs, then analyze:
-
-```bash
-uv run python scripts/analyze_task17_interfaces.py --manifest runs/task17/interface-manifest.json --pool runs/task17/prepared/pool.json --output runs/task17/interface-analysis
-```
-
-Do not manufacture success/acceptance figures before these results exist.
-Report original-task paired parent-macro/family-bootstrap effects separately
-from presentation variants. Review repair success, edit acceptance, test usage,
-repeated errors, turns/tokens, length strata, termination and actual allocation.
+Select the simplest effective interface from verified repairs, not acceptance
+alone. The optional same-prompt metadata normalization is implemented and tested
+but unselected/unexecuted; consider at most one separately identified diagnostic
+if the primary result leaves a concrete conditioning-versus-application question.
+Do not change the primary strict control or cycle through minor prompt variants.
 
 ## Conditional Phase 2
 
-After the Phase 1 decision, freeze the evidence-backed objective control described
-in the specification. Run `task17-calibrate` once. Transfer its measured coefficient
-and checksum into that control before selecting U-calibrated. Generate per-arm
-settings by applying `configure_operation` to the common settings; commit those
-resolved settings and control before synchronization. This binds controller and
-trainer to the same effective objective, coefficient and endpoint.
+After the Phase 1 decision, freeze the evidence-backed objective control in
+`configs/task17-objective-control.json` as described in the
+[implementation specification](../task/17-repair-interface-spec.md). No placeholder
+control exists. Upload checksummed evidence to the managed run workspace. Use
+common frozen curriculum, four rollouts/task and an 80- or 128-episode endpoint,
+chosen before training from measured cost. Existing final splits are exploratory,
+not untouched confirmation.
 
-Use `--operation task17-student` with A=U, B=gated, C=calibrated-U, D=GRPO and the
-corresponding resolved settings. Pilot seed 2026 with
-`--stop-after-iteration 4`; inspect its complete joint checkpoint and numerical
-health before a clean continuation. `hpc resume RUN_ID --continue-stopped` uses
-verified checkpoint/runtime/science identity. Reconcile the separate 24-hour
-ledger before each continuation/seed. Keep common exposure; reduce endpoint to
-80 before freezing if measured costs make 128 infeasible. Preserve G/B replication
-before expanding optional arms. No Phase 2 control, calibration or training has
-been fabricated while Phase 1 is unexecuted.
+Current code changed after the original interface jobs. Synchronize a clean
+committed checkout, reuse the accepted worker and run one current CPU runtime
+check for the selected interface. Use explicit `hpc reuse-runtime SOURCE_STUDY
+--settings TARGET_SETTINGS` only when code/model/data/images/limits match; its
+wrapper retains the executed raw proof and original provenance. This avoids
+repeating the same 306-task verifier audit for each objective configuration.
 
-## Completion
+Run `task17-calibrate` on the eight reserved families, then record the measured
+finite positive coefficient and calibration checksum in the final shared control
+before training. Generate and commit resolved per-arm settings using
+`configure_operation`; do not change the control after pilots start. Student
+labels A/B/C/D mean ungated/gated/calibrated-ungated/GRPO, not proposer C/D.
+Scientific fingerprints include all reused trainer/calibration helpers.
 
-Finish empirical decisions and required outcome/efficiency figures. Reconcile W&B from authoritative local events if delivery fails. Update
-README and completion record with actual results/costs, then merge finished work
-into local main and push. Full C/D remains outside this authorization.
+Prioritize matched GRPO/gated seed-2026 pilots with
+`--operation task17-student --stop-after-iteration 4` (32 attempted episodes).
+Inspect finite gradients, actual mixed groups, edit behavior, checkpoint identity,
+denominator warnings and measured cost. Verify the complete joint checkpoint
+before `hpc resume RUN_ID --continue-stopped`. Extend only if an informative
+matched comparison fits the separate 24-hour ceiling, including failed allocation
+and continuation costs. Preserve G/GRPO replication before expanding optional
+arms; keep exposure matched. True PPO behavior denominators, teacher stop-gradient,
+masking and `same_scorer_v2` remain unchanged. Initial calibration does not match
+later optimizer trajectories.
+
+## Finish and integrate
+
+Complete scientific decisions, objective learning/efficiency figures if run,
+checkpoint/W&B reconciliation and actual cost accounting. Keep full proposer C/D
+deferred unless the earlier signal problems are meaningfully addressed; no full
+C/D training is authorized here. Update concise README and completion evidence,
+run appropriate final checks, then merge the finished branch into local main and
+push. Until the retrieval/analysis and conditional research decisions are handled,
+preserve the unfinished feature branch on GitHub without claiming completion.

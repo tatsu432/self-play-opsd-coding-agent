@@ -6,35 +6,43 @@ After completing each task, update `README.md` to concisely describe the researc
 problem, approaches, current progress and results. Link detailed evidence and
 procedures to the relevant Markdown documents; keep the README short and current.
 
-## CURRENT — Task 17 active execution (2026-11-10)
+## CURRENT — Task 17 retrieval blocked (2026-11-10)
 
-All 1,617 historical trajectories are audited. CPU replay `32794598` /
+All 1,617 historical trajectories are audited. Isolated CPU replay `32794598` /
 `9d9776357a4e23ae82cd34dc` verified 1,991 reconstructions / 449 unique programs;
 755 trained external reconstructions passed, spanning 249 episodes (242
 originally failed). This measures saved states, not new agent accuracy.
-Final preparation `32804290` / `86e2df49bb04a9321f7d755d` completed exit 0,
-producing 104 disjoint original training tasks and 16 presentation variants.
-Pool SHA-256: `602eaf506f8ac2cf17924596dae7c0ff3891ef5034a546d4d3751b9803412c83`.
+Preparation `32804290` / `86e2df49bb04a9321f7d755d` completed all 120 frozen
+rows. Pool SHA-256: `602eaf506f8ac2cf17924596dae7c0ff3891ef5034a546d4d3751b9803412c83`.
 Failed preparations `32794599`, `32797537`, `32801929` are archived with original
-ledger bytes/history. One resource-fragile mutant parent was replaced using
-verifier evidence before model inference; preserve all failed attempts.
-Base strict-diff job `32805621`, run `9f12c84dfddf9b37f42dd4f1`, was submitted
-once from `e6e7412715169090add451737f91d01c55283eea`. Inspect it before action;
-do not duplicate it. Earlier eight-CPU submission `dc2a6394ef94ef1bd7768b1e`
-was rejected without allocation. Task 17 uses five trainer plus one worker CPU.
-A completed all 56 episodes (5/40 originals, 1/16 variants). Remaining cells are
-queued sequentially: C strict-trained `32808848` / `c10d7452835f81c14c0726df`,
-B text-base `32811833` / `f7c617670830bcf229a93b0e`, D text-trained `32812080` /
-`819fec9d88332bf03f874d1e`. Native afterok dependencies enforce A→C→B→D.
-Text runtime `32809208` / `a0cc876dae3dcb9af79dfe1e` completed. Preserve the
-first cell's full private outputs and both protocol runtime proofs. New interface
-requests use one-hour walls; A/C original two-hour reservations were retained
-conservatively when pending limits were amended. Do not duplicate any cell.
-Normal Yale VPN/Duo access and accepted worker are available. Current private
-state: `runs/task17/execution-progress.json`. Reconcile live Slurm/ledgers before
-each submission. Phase 1 ceiling 10 H200-hours; conditional Phase 2 additional 24,
-with separate locked ledgers. No full C/D. Historical Task 15 remains immutable.
-See Task 17 results/completion/plan for evidence and remaining operations.
+ledger bytes/history. Preserve them and all Task 15 identities/private artifacts.
+
+All four primary cells finished in sequence A→C→B→D; never duplicate them:
+A base strict `32805621` / `9f12c84dfddf9b37f42dd4f1` (6/56, 5/40 originals),
+C trained strict `32808848` / `c10d7452835f81c14c0726df` (36/56, 27/40),
+B base text `32811833` / `f7c617670830bcf229a93b0e` (26/56),
+D trained text `32812080` / `819fec9d88332bf03f874d1e` (31/56).
+Allocated times were 1234/1121/928/857 H200-seconds, totaling 1.15 GPU-hours.
+A/C full outputs are local. B/D completion/aggregate counts were observed remotely,
+but their final artifacts/status and all-cell accounting still need fetching.
+The 56-row endpoint includes correlated variants; primary text effects are
+unknown until paired 40-original analysis. Do not select an interface from totals.
+
+VPN disconnected and SSH refresh failed. The stale Duo login was stopped.
+After normal VPN and `uv run selfplay hpc login`, run
+`uv run python scripts/collect_task17_interfaces.py` to retrieve existing runs
+and perform analysis without submitting jobs. No Phase 2 control/calibration/
+training exists. Optional normalized diff is locally tested, unselected and
+unexecuted. Current code changed after primary execution: require one fresh
+matching CPU runtime check before future GPU work, then reuse dependency-matching
+proofs rather than repeating the 306-task audit per objective study.
+
+Phase 1 ceiling 10 H200-hours; conditional Phase 2 additional 24, with separate
+locked ledgers. Five trainer plus one worker CPU fits the H200 profile. Preserve
+pending resource adjustments and rejected preallocation attempts. Reconcile
+live Slurm/ledgers before submissions. No full C/D. See Task 17 results, decision,
+completion and plan. The task remains unfinished; branch is pushed for recovery
+but has not been merged to main as a completed task.
 
 ## CURRENT — Task 16 recovered trajectory analysis (2026-11-08)
 

@@ -852,6 +852,9 @@ class SelfPlayTrainer:
                     for e in episodes
                     for t in e.turns
                 ),
+                "metadata_recovered_edit_count": sum(
+                    t.edit_application == "metadata_recovered" for e in episodes for t in e.turns
+                ),
                 "sampled_token_surprisal": distribution(
                     [-v for e in episodes for t in e.turns for v in t.old_logps]
                 ),

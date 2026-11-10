@@ -32,6 +32,7 @@ from selfplay_opsd.mutations import (
 from selfplay_opsd.policy import HFPolicy
 from selfplay_opsd.protocol import PROMPT_HASH, budget, student_messages, teacher_messages
 from selfplay_opsd.sandbox import SandboxBackend, Verification
+from selfplay_opsd.task17_recovery import admit_repair, recover_diff
 
 
 def verify_with_retry(
@@ -60,6 +61,8 @@ class RepairEnvironment:
     finished: bool = False
     test_calls: int = 0
     public_seconds: float = 0.0
+    normalize_diff_metadata: bool = False
+    last_edit_application: str | None = None
 
     def __post_init__(self):
         self.source = self.task.initial_source
@@ -83,11 +86,25 @@ class RepairEnvironment:
         name = action["action"]
         if self.finished:
             raise ValueError("Episode already finished")
+        self.last_edit_application = None
         if name == "read_file":
             files = self.task.student_files() | {"src/solution.py": self.source}
             return {"ok": True, "path": action["path"], "content": files[action["path"]]}
         if name == "apply_patch":
-            replacement = apply_patch(self.source, action["patch"])
+            recovered = False
+            try:
+                replacement = apply_patch(self.source, action["patch"])
+            except ValueError as original_error:
+                if not self.normalize_diff_metadata:
+                    raise
+                try:
+                    replacement = recover_diff(self.source, action["patch"])
+                    admit_repair(replacement, self.task.initial_source)
+                except ValueError:
+                    # Preserve the old feedback when no admissible mechanical
+                    # correction exists. Semantic verification never selects it.
+                    raise original_error from None
+                recovered = True
             try:
                 tree = validate_source(replacement)
             except SyntaxError as exc:
@@ -95,6 +112,7 @@ class RepairEnvironment:
             if signature(tree) != signature(validate_source(self.task.initial_source)):
                 raise ValueError("Repair must preserve function APIs")
             self.source = replacement
+            self.last_edit_application = "metadata_recovered" if recovered else "strict"
             return {"ok": True, "source_hash": digest(replacement)}
         if name == "replace_text":
             if action["path"] != "src/solution.py":
@@ -202,7 +220,13 @@ def run_episode(
     check_admission(policy, task, oracle, limits)
     history = student_messages(task, limits)
     prompt = policy.encode_history(history)
-    env = RepairEnvironment(task, oracle, sandbox, policy)
+    env = RepairEnvironment(
+        task,
+        oracle,
+        sandbox,
+        policy,
+        normalize_diff_metadata=limits.edit_protocol == "normalized_diff",
+    )
     turns: list[TokenTurn] = []
     tokens = 0
     generation_seconds = 0.0
@@ -247,6 +271,9 @@ def run_episode(
                 action=action,
                 parse_status=parse_status,
                 observation=observation,
+                edit_application=env.last_edit_application
+                if action == "apply_patch" and parse_status == "valid"
+                else None,
             )
         )
         tokens += len(output.ids)

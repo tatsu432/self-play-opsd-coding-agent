@@ -365,7 +365,11 @@ def configure_operation(cfg, operation: str, arm: str, control_path: Path):
     import json
 
     cfg.method = "B"
-    if operation == "interface":
+    if operation == "normalized":
+        if arm not in {"A", "C"}:
+            raise ValueError("Normalized diff uses A=base or C=historical B")
+        cfg.episode.edit_protocol = "normalized_diff"
+    elif operation == "interface":
         cfg.episode.edit_protocol = "unified_diff" if arm in {"A", "C"} else "replace_text"
     elif operation in {"calibrate", "student"}:
         if not control_path.is_file():
@@ -373,9 +377,11 @@ def configure_operation(cfg, operation: str, arm: str, control_path: Path):
                 "Freeze configs/task17-objective-control.json after Phase 1 before Phase 2"
             )
         control = json.loads(control_path.read_text())
-        if control.get("interface") not in {"unified_diff", "replace_text"} or control.get(
-            "episodes"
-        ) not in {80, 128}:
+        if control.get("interface") not in {
+            "unified_diff",
+            "replace_text",
+            "normalized_diff",
+        } or control.get("episodes") not in {80, 128}:
             raise ValueError("Invalid objective-study interface or endpoint")
         cfg.episode.edit_protocol = control["interface"]
         if operation == "student":

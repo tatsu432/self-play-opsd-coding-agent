@@ -741,7 +741,7 @@ def sequential_dependency(payload: dict) -> list[str]:
     if dependency is None:
         return []
     if (
-        payload["operation"] != "task17-interface"
+        payload["operation"] not in {"task17-interface", "task17-normalized"}
         or not re.fullmatch(r"[1-9][0-9]{0,11}", str(dependency.get("job_id", "")))
         or not re.fullmatch(r"[a-f0-9]{24}", str(dependency.get("run_id", "")))
     ):
@@ -751,7 +751,7 @@ def sequential_dependency(payload: dict) -> list[str]:
 
 def task17_walltime_allowed(payload: dict) -> bool:
     operation = payload["operation"]
-    if operation == "task17-interface":
+    if operation in {"task17-interface", "task17-normalized"}:
         # Keep previously committed two-hour submissions valid while supporting
         # measured shorter allocations; both retain the same global ceiling.
         return payload.get("time") in {"01:00:00", "02:00:00"}
@@ -1824,6 +1824,7 @@ def precheck(payload: dict):
         "task17-prepare",
         "task17-replay",
         "task17-interface",
+        "task17-normalized",
         "task17-calibrate",
         "task17-student",
         "task14-counterfactual",
@@ -1926,6 +1927,7 @@ def precheck(payload: dict):
         "task17-prepare",
         "task17-replay",
         "task17-interface",
+        "task17-normalized",
         "task17-calibrate",
         "task17-student",
         "task14-counterfactual",
@@ -2004,6 +2006,7 @@ def precheck(payload: dict):
         "task17-prepare",
         "task17-replay",
         "task17-interface",
+        "task17-normalized",
         "task17-calibrate",
         "task17-student",
         "task14-counterfactual",

@@ -79,7 +79,7 @@ def student_messages(task: TaskSpec, config: EpisodeConfig) -> list[dict[str, st
         {
             "role": "system",
             "content": STUDENT.replace("apply_patch", edit_name)
-            if config.edit_protocol != "unified_diff"
+            if config.edit_protocol not in {"unified_diff", "normalized_diff"}
             else STUDENT,
         },
         {
@@ -211,6 +211,9 @@ def protocol_definition() -> dict:
         "serialization_functions": serialization,
         "version": VERSION,
         "student_template": student_messages(task, EpisodeConfig()),
+        "student_normalized_template": student_messages(
+            task, EpisodeConfig(edit_protocol="normalized_diff")
+        ),
         "student_body_template": student_messages(
             task, EpisodeConfig(edit_protocol="replace_function_body")
         ),

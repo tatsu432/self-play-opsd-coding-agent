@@ -9,11 +9,11 @@ from selfplay_opsd.mutations import strict_json_object
 from selfplay_opsd.task16_analysis import paired_statistics
 
 
-def verify_cell_execution(cell: dict, status: dict) -> str:
+def verify_cell_execution(cell: dict, status: dict, operation: str = "task17-interface") -> str:
     """Bind allocated-node provenance to its controller's immutable specification."""
     spec = status["ledger"]["specification"]
     expected = {
-        "operation": "task17-interface",
+        "operation": operation,
         "method": cell["arm"],
         "study_id": cell["study_id"],
         "seed": cell["seed"],
@@ -66,6 +66,9 @@ def episode_metrics(episode: dict) -> dict:
         "turns": len(turns),
         "edit_attempts": len(edits),
         "accepted_edits": len(accepted),
+        "metadata_recovered_edits": sum(
+            t.get("edit_application") == "metadata_recovered" for _, t in edits
+        ),
         "rejected_edits": len(edits) - len(accepted),
         "applied_edit": bool(accepted),
         "first_edit_turn": accepted[0] + 1 if accepted else None,

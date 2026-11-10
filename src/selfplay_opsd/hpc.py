@@ -415,6 +415,7 @@ def run_payload(
         "task17-prepare",
         "task17-replay",
         "task17-interface",
+        "task17-normalized",
         "task17-calibrate",
         "task17-student",
         "task14-counterfactual",
@@ -593,6 +594,7 @@ def run_payload(
         "task17-prepare",
         "task17-replay",
         "task17-interface",
+        "task17-normalized",
         "task17-calibrate",
         "task17-student",
         "task14-counterfactual",
@@ -661,7 +663,9 @@ def run_payload(
 
     predecessor = None
     if afterok_run is not None:
-        if operation != "task17-interface" or not re.fullmatch(r"[a-f0-9]{24}", afterok_run):
+        if operation not in {"task17-interface", "task17-normalized"} or not re.fullmatch(
+            r"[a-f0-9]{24}", afterok_run
+        ):
             raise HpcError("Sequential dependency requires a Task 17 interface run ID")
         prior = remote.call("status", {"storage_root": storage, "run_id": afterok_run})
         spec = prior["ledger"]["specification"]
@@ -877,7 +881,8 @@ def run_payload(
             "06:00:00"
             if operation == "task17-student"
             else "01:00:00"
-            if operation in {"task17-prepare", "task17-replay", "task17-interface"}
+            if operation
+            in {"task17-prepare", "task17-replay", "task17-interface", "task17-normalized"}
             else "02:00:00"
         )
         suffix = (
@@ -1037,6 +1042,7 @@ def run_payload(
             "task17-prepare",
             "task17-replay",
             "task17-interface",
+            "task17-normalized",
             "task17-calibrate",
             "task17-student",
             "task14-counterfactual",

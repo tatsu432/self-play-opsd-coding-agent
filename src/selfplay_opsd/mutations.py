@@ -528,6 +528,8 @@ def strict_json_object(raw: str) -> dict:
 
 
 def parse_action(raw: str, edit_protocol: str = "unified_diff") -> dict:
+    if edit_protocol == "normalized_diff":
+        edit_protocol = "unified_diff"
     value = strict_json_object(raw)
     action = value.get("action")
     if not isinstance(action, str):

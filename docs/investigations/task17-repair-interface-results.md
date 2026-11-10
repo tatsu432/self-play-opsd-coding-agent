@@ -1,16 +1,32 @@
 # Task 17: repair encoding and controlled objective study
 
-## Current decision (2026-11-10, execution in progress)
+## Current decision (2026-11-10, retrieval blocked)
 
 Mechanical replay establishes a substantial encoding bottleneck in the saved
-trajectories. It does not measure a new agent's end-to-end accuracy. The matched frozen-model comparison is in progress: the base strict cell is
-complete, the trained strict cell is active, and both text cells are sequentially
-queued. Exact replacement has not yet been selected for training. Full C/D
-remains deferred. The completed base allocation used 0.342778 H200-hours; the
-active allocation and queued reservations remain in the separate Phase 1 ledger.
-The first GPU submission was rejected before allocation because H200 permits
-six CPUs per GPU; the corrected profile uses five trainer CPUs plus one worker.
+trajectories. It does not measure new end-to-end agent accuracy. The four matched
+frozen-model allocations completed sequentially and consumed **4,140 allocated
+H200-seconds (1.15 GPU-hours)**. Complete strict-control artifacts are local;
+final text artifacts and ledgers were not retrieved before Yale VPN/SSH access
+expired. The last successful remote inspection observed completion markers,
+56 episodes per cell and the aggregate counts below. Primary 40-task paired
+text effects, uncertainty and the interface choice remain pending. No Phase 2
+calibration or training, normalized-diff model experiment, or full C/D training
+has run. See the [current research decision](task17-research-decision.md).
 
+| Cell | Snapshot / interface | Repairs, all 56 presentations | Primary repairs /40 | Allocated H200-seconds |
+|---|---|---:|---:|---:|
+| A | Base / strict diff | 6 | 5 | 1,234 |
+| B | Base / exact text | 26 | Retrieval pending | 928 |
+| C | B2026 / strict diff | 36 | 27 | 1,121 |
+| D | B2026 / exact text | 31 | Retrieval pending | 857 |
+
+The 56-presentation endpoint includes correlated variants and is exploratory.
+Its aggregate base gain and trained decline cannot replace the prespecified
+40-family paired comparison or establish an interface decision. Do not infer
+missing original-task counts from these totals. A/C completion artifacts and
+execution identity are checked locally; B/D aggregate observations still require
+artifact/ledger reconciliation. Full job/run identities are in the
+[execution record](../task_completion/17-implemented-repair-interface.md).
 
 ## Retrospective evidence
 
@@ -126,7 +142,7 @@ attempts, caches identical mutants and refills from unused families. Job
 variant verification. Diagnostic job `32801929` /
 `f0b3c13f22f1fdbd0aa7e20b` found that `Mbpp/599`'s mutant exhausted the fixed
 allowance in a comment variant, original recheck and variant repeat: 90 runtime
-failures and zero semantic failures each. Inputs reach 100,000,007; the cause of
+failures and zero semantic failures each. Inputs reach approximately 100 million; the cause of
 timing variation from initial admission is unproven. Exclude it before inference
 and use the next reserved family, retaining the other 103 admissions.
 
@@ -135,11 +151,12 @@ execution `8654b20`. Failed preparation directories and original ledger bytes
 remain archived with updated artifact locations and archive histories. No
 historical Task 15 task, oracle, checkpoint or result was changed.
 
-Normal Yale VPN/Duo access is restored. CPU runtime checks `32792142` and
-`32793248` completed successfully; preparation now performs current runtime
-validation itself. The accepted existing isolated worker is reused. Earlier DNS
-and missing-base-shard issues are resolved; partial local recovery versions are
-historical, not current evidence.
+CPU runtime checks `32792142` and `32793248` completed successfully;
+preparation performs current runtime validation itself. The text runtime check
+`32809208` also completed. The accepted existing isolated worker is reused.
+During final fetching, VPN disconnected and the expired SSH master could not be
+refreshed. The stale normal Duo login attempt was stopped; no new allocation was
+submitted. Restore normal VPN/SSH access to retrieve existing results.
 
 ## Reproduction
 
@@ -160,13 +177,55 @@ Prepared pool SHA-256: `602eaf506f8ac2cf17924596dae7c0ff3891ef5034a546d4d3751b98
 All 120 rows passed tokenizer admission under both protocols. Rejected GPU
 submission `dc2a6394ef94ef1bd7768b1e` has no scheduler job or charged allocation.
 
-Base strict-diff job `32805621` / `9f12c84dfddf9b37f42dd4f1` is queued from
-`e6e7412715169090add451737f91d01c55283eea`. Its pending wall limit was reduced
-from two hours to one for backfill; the ledger preserves the original immutable
-specification and an explicit pending-resource adjustment, while retaining the
-conservative two-hour budget reservation. No task/model/decoding parameter
-changed. Actual allocation will be reconciled from Slurm. The next strict cell
-must use the same prepared pool and frozen model budgets.
+The four cells ran from immutable checkouts with common scientific-code hash
+`87514655114a2b57e02a43f713e378d9b0939163f13c8a898f9046f8619816f4` and
+prompt-definition hash
+`9b9a987260cce5ca0d7a1a773c776658a0fad844cc9999fd37826db17948d464`.
+Actual model conditioning differs by interface. Execution commits are
+`e6e7412` (A), `843187f` (C), and `26749ad` (B/D); operational changes did not
+change these scientific dependencies. New optional normalization and conditional
+student code has a new identity and cannot reuse those old runtime proofs as if
+it had been executed.
+
+After restoring normal Yale VPN access, use:
+
+```bash
+uv run selfplay hpc login
+uv run python scripts/collect_task17_interfaces.py
+```
+
+The collector fetches only these four existing runs, validates terminal statuses,
+reads actual `sacct` allocations without double-counting typed/general GPU TRES,
+and invokes `analyze_task17_interfaces.py`. It writes statuses atomically and
+refuses to replace an earlier analysis directory. No job is submitted. The
+analysis binds each actor's provenance to its immutable scheduler specification;
+it does not compare historical execution to the current checkout's code hash.
+
+The retrieved strict controls show:
+
+| Snapshot / presentation | Repairs | Tasks receiving an edit | Accepted / decoded edit attempts |
+|---|---:|---:|---:|
+| Base / originals | 5/40 | 6/40 | 7/108 |
+| Base / source comments | 0/8 | 0/8 | 0/32 |
+| Base / specification repetition | 1/8 | 2/8 | 2/29 |
+| B2026 / originals | 27/40 | 33/40 | 42/143 |
+| B2026 / source comments | 1/8 | 1/8 | 1/51 |
+| B2026 / specification repetition | 8/8 | 8/8 | 9/17 |
+
+On the eight selected source-comment parents, B2026 solved 5/8 originals and
+1/8 variants (four losses, zero gains). For specification repetition it solved
+8/8 in both presentations. Base solved 1/8 originals versus 0/8 source-comment
+variants, and 1/8 in both specification presentations. These small training-only
+perturbation results suggest sensitivity to source presentation; they do not
+isolate length from comment content or establish a HumanEval transfer effect.
+The exact-text counterparts are needed before interpreting an interface
+interaction. Public tests were called four times on base originals versus
+39 times on trained originals, showing that accepted edits and testing behavior
+both differ across snapshots.
+
+Exact text additionally preserves import declarations, while historical strict
+diff retains its existing import allowlist. This stricter text admission is part
+of the tested interface; its rejection frequency remains to be analyzed.
 
 ## Synthetic illustration of the distinction
 
@@ -179,20 +238,3 @@ and `new_text: "x + 1"`. Replacing it with `"x + 9"` can also pass source/API
 admission while remaining semantically wrong. If the old span occurs twice,
 exact replacement rejects it rather than guessing. These are synthetic examples,
 not additional experimental outcomes.
-
-The first 22 base-control episodes used 416 seconds of episode runtime. The
-56-task cells therefore use a one-hour wall limit; per-episode model budgets are
-unchanged. The already queued C allocation receives the same documented pending
-limit reduction, with its original reservation retained.
-
-The base strict cell completed exit 0 after **1,234 allocated H200-seconds
-(0.342778 GPU-hours)**. It verified 5/40 original tasks and 1/16 presentation
-variants. Trained strict job `32808848` started and loaded the pinned B2026
-student hash successfully; text cells `32811833` and `32812080` are dependency
-queued. No historical checkpoint was resumed for training. The text CPU runtime
-job `32809208` completed exit 0. Short-wall precheck rejections allocated no GPU.
-
-Exact text additionally preserves import declarations, while historical strict
-diff retains its existing import allowlist. This stricter text admission is part
-of the tested interface; report its rejection frequency when interpreting gains
-or losses. Both tools preserve the original function APIs and source policy.

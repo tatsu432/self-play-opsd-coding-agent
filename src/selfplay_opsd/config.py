@@ -38,7 +38,9 @@ class ModelConfig(Strict):
 
 
 class EpisodeConfig(Strict):
-    edit_protocol: Literal["unified_diff", "replace_function_body", "replace_text"] = "unified_diff"
+    edit_protocol: Literal[
+        "unified_diff", "replace_function_body", "replace_text", "normalized_diff"
+    ] = "unified_diff"
     max_turns: int = Field(default=8, ge=1)
     max_generated_tokens: int = Field(default=4096, ge=1)
     max_turn_generated_tokens: int = Field(default=1024, ge=1)

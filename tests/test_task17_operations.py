@@ -163,7 +163,11 @@ def test_pairing_refuses_snapshot_budget_and_completion_drift():
 
 @pytest.mark.parametrize(
     "operation,count,budget,time_limit",
-    [("task17-prepare", 0, 10, "01:00:00"), ("task17-interface", 1, 10, "01:00:00")],
+    [
+        ("task17-prepare", 0, 10, "01:00:00"),
+        ("task17-interface", 1, 10, "01:00:00"),
+        ("task17-normalized", 1, 10, "01:00:00"),
+    ],
 )
 def test_controller_binds_effective_interface_and_resources(
     monkeypatch, operation, count, budget, time_limit
@@ -200,7 +204,7 @@ def test_controller_binds_effective_interface_and_resources(
     )
     kwargs = dict(
         operation=operation,
-        method="D",
+        method="C" if operation == "task17-normalized" else "D",
         profile="single_gpu_80gb",
         gpu_type="h200",
         account="cpsc4880",
@@ -216,7 +220,11 @@ def test_controller_binds_effective_interface_and_resources(
     assert script("hpc_remote").task17_walltime_allowed(result)
     assert not script("hpc_remote").task17_walltime_allowed(result | {"time": "03:00:00"})
     assert result["runtime_identity"]["interface"] == (
-        "replace_text" if operation == "task17-interface" else "unified_diff"
+        "replace_text"
+        if operation == "task17-interface"
+        else "normalized_diff"
+        if operation == "task17-normalized"
+        else "unified_diff"
     )
     if operation == "task17-interface":
 
