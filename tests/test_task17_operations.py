@@ -163,7 +163,7 @@ def test_pairing_refuses_snapshot_budget_and_completion_drift():
 
 @pytest.mark.parametrize(
     "operation,count,budget,time_limit",
-    [("task17-prepare", 0, 10, "01:00:00"), ("task17-interface", 1, 10, "02:00:00")],
+    [("task17-prepare", 0, 10, "01:00:00"), ("task17-interface", 1, 10, "01:00:00")],
 )
 def test_controller_binds_effective_interface_and_resources(
     monkeypatch, operation, count, budget, time_limit

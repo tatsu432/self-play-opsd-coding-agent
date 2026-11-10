@@ -40,6 +40,26 @@ episodes respectively. Across trained external snapshots, correct reconstructed
 states cover 96/116 parent problems; repeated actions and snapshots are not
 independent tasks. No oracle solution is used to choose or reconstruct an edit.
 
+The external state-recovery counts also vary substantially by frozen snapshot:
+
+| Snapshot | Original verified repairs /116 | Tasks with a correct reconstructed state /116 |
+|---|---:|---:|
+| Base | 2 | 10 |
+| A-2026 | 2 | 15 |
+| A-2027 | 1 | 63 |
+| A-2028 | 1 | 51 |
+| B-2026 | 3 | 34 |
+| B-2027 | 0 | 47 |
+| B-2028 | 0 | 39 |
+
+The columns are different endpoints, not before/after agent accuracies. A correct
+reconstruction need not include an originally successful episode (none of the
+ten base episodes succeeded originally). The near-zero strict endpoint therefore
+understates the observed ability to propose useful edits. This does not establish
+how later actions would change after a successful tool response, or isolate a
+training-objective effect. Unique reconstructed programs, not repeated actions,
+pass in 118/234 trained external task/program pairs.
+
 | First deterministic rejection | Trained MBPP+ | Trained HumanEval+ |
 |---|---:|---:|
 | Context mismatch | 661 | 2,913 |
@@ -144,3 +164,8 @@ and `new_text: "x + 1"`. Replacing it with `"x + 9"` can also pass source/API
 admission while remaining semantically wrong. If the old span occurs twice,
 exact replacement rejects it rather than guessing. These are synthetic examples,
 not additional experimental outcomes.
+
+The first 22 base-control episodes used 416 seconds of episode runtime. The
+56-task cells therefore use a one-hour wall limit; per-episode model budgets are
+unchanged. The already queued C allocation receives the same documented pending
+limit reduction, with its original reservation retained.

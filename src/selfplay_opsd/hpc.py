@@ -876,7 +876,7 @@ def run_payload(
             "06:00:00"
             if operation == "task17-student"
             else "01:00:00"
-            if operation in {"task17-prepare", "task17-replay"}
+            if operation in {"task17-prepare", "task17-replay", "task17-interface"}
             else "02:00:00"
         )
         suffix = (
