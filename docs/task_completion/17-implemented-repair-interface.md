@@ -41,7 +41,11 @@ conditional on those results. No full C/D training is planned.
 | Expanded preparation | `0522e9eae55f829aadc11294` | 32797537 | Originals verified; variant failure; archived |
 | Variant diagnosis | `f0b3c13f22f1fdbd0aa7e20b` | 32801929 | Resource-fragile mutant found; archived |
 | Final preparation | `86e2df49bb04a9321f7d755d` | 32804290 | Completed |
-| Base strict diff | `9f12c84dfddf9b37f42dd4f1` | 32805621 | Submitted |
+| Base strict diff | `9f12c84dfddf9b37f42dd4f1` | 32805621 | Completed; 5/40 primary, 1/16 variants |
+| Trained strict diff | `c10d7452835f81c14c0726df` | 32808848 | Queued after base strict |
+| Text runtime | `a0cc876dae3dcb9af79dfe1e` | 32809208 | Completed |
+| Base exact text | `f7c617670830bcf229a93b0e` | 32811833 | Queued after trained strict |
+| Trained exact text | `819fec9d88332bf03f874d1e` | 32812080 | Queued after base text |
 
 The original eight-CPU GPU submission `dc2a6394ef94ef1bd7768b1e` was rejected
 before allocation. The corrected profile uses five trainer CPUs plus one worker

@@ -22,6 +22,14 @@ Base strict-diff job `32805621`, run `9f12c84dfddf9b37f42dd4f1`, was submitted
 once from `e6e7412715169090add451737f91d01c55283eea`. Inspect it before action;
 do not duplicate it. Earlier eight-CPU submission `dc2a6394ef94ef1bd7768b1e`
 was rejected without allocation. Task 17 uses five trainer plus one worker CPU.
+A completed all 56 episodes (5/40 originals, 1/16 variants). Remaining cells are
+queued sequentially: C strict-trained `32808848` / `c10d7452835f81c14c0726df`,
+B text-base `32811833` / `f7c617670830bcf229a93b0e`, D text-trained `32812080` /
+`819fec9d88332bf03f874d1e`. Native afterok dependencies enforce A→C→B→D.
+Text runtime `32809208` / `a0cc876dae3dcb9af79dfe1e` completed. Preserve the
+first cell's full private outputs and both protocol runtime proofs. New interface
+requests use one-hour walls; A/C original two-hour reservations were retained
+conservatively when pending limits were amended. Do not duplicate any cell.
 Normal Yale VPN/Duo access and accepted worker are available. Current private
 state: `runs/task17/execution-progress.json`. Reconcile live Slurm/ledgers before
 each submission. Phase 1 ceiling 10 H200-hours; conditional Phase 2 additional 24,

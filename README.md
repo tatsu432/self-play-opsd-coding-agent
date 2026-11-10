@@ -19,8 +19,8 @@ from changes in the evolving proposer and student. C/D training is deferred;
 Task 17 implements exact-text replacement and a matched frozen-model study.
 Isolated metadata-only replay found correct reconstructed states in 242 previously
 failed trained HumanEval+ episodes. These are saved-state diagnostics, not new
-agent accuracy. The training-only task pool is being finalized before model
-comparison (0 new GPU-hours). See the [Task 17 evidence and execution status](docs/investigations/task17-repair-interface-results.md).
+agent accuracy. The disjoint training-only pool is frozen, and all four matched model/interface
+cells are submitted with sequential GPU dependencies; the first cell is complete. See the [Task 17 evidence and execution status](docs/investigations/task17-repair-interface-results.md).
 
 See the [A/B results](docs/investigations/task15-final-results.md) and
 [transfer, checkpoint and compute analysis](docs/investigations/task16-generalization-checkpoint-decision.md)
