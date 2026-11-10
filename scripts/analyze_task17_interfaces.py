@@ -146,6 +146,30 @@ def main():
                     }
                 )
     result["exploratory_strata"] = strata
+    presentations = []
+    for cell in cells:
+        original_by_parent = {
+            r["parent_id"]: r for r in cell["records"] if r["presentation"] == "original"
+        }
+        for presentation in sorted({r["presentation"] for r in cell["records"]} - {"original"}):
+            variants = [r for r in cell["records"] if r["presentation"] == presentation]
+            first = [original_by_parent[r["parent_id"]] for r in variants]
+            second = [
+                r | {"task_id": original_by_parent[r["parent_id"]]["task_id"]} for r in variants
+            ]
+            presentations.append(
+                {
+                    "arm": cell["arm"],
+                    "presentation": presentation,
+                    "repairs": paired_statistics(first, second, families),
+                    "applied_edits": paired_statistics(
+                        [r | {"success": r["applied_edit"]} for r in first],
+                        [r | {"success": r["applied_edit"]} for r in second],
+                        families,
+                    ),
+                }
+            )
+    result["exploratory_presentation_effects"] = presentations
     errors = []
     for item in manifest["cells"]:
         for episode in json.loads((Path(item["run_dir"]) / "episodes.json").read_text()):

@@ -124,3 +124,11 @@ See the [execution plan](../plan/17-repair-interface-plan.md) and
 Prepared pool SHA-256: `602eaf506f8ac2cf17924596dae7c0ff3891ef5034a546d4d3751b9803412c83`.
 All 120 rows passed tokenizer admission under both protocols. Rejected GPU
 submission `dc2a6394ef94ef1bd7768b1e` has no scheduler job or charged allocation.
+
+Base strict-diff job `32805621` / `9f12c84dfddf9b37f42dd4f1` is queued from
+`e6e7412715169090add451737f91d01c55283eea`. Its pending wall limit was reduced
+from two hours to one for backfill; the ledger preserves the original immutable
+specification and an explicit pending-resource adjustment, while retaining the
+conservative two-hour budget reservation. No task/model/decoding parameter
+changed. Actual allocation will be reconciled from Slurm. The next strict cell
+must use the same prepared pool and frozen model budgets.
