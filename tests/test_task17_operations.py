@@ -285,7 +285,7 @@ def test_admission_refills_from_unused_family_without_student_selection(tmp_path
         if parent.parent_id == failed:
             raise ValueError("No semantic mutation")
         task = TaskSpec(
-            task_id=digest([parent.parent_id, seed]),
+            task_id=digest([parent.parent_id, mutant.dedup_key, split, seed]),
             parent_id=parent.parent_id,
             split=split,
             initial_source=mutant.source,
@@ -307,9 +307,12 @@ def test_admission_refills_from_unused_family_without_student_selection(tmp_path
 
     monkeypatch.setattr(module, "fixed_mutation", mutation)
     monkeypatch.setattr(module, "build_task", build)
+    from selfplay_opsd.core import Status
+    from selfplay_opsd.sandbox import Verification
+
     sandbox = SimpleNamespace(
-        verify=lambda source, *args: SimpleNamespace(
-            passed="return x + 2" not in source, semantic_failures=int("return x + 2" in source)
+        verify=lambda source, *args: Verification(
+            Status.OK, "return x + 2" not in source, [], int("return x + 2" in source), 0, 0.0
         )
     )
     pool = module.prepare_pool(repo, sandbox, tmp_path / "prepared/pool.json")
@@ -318,3 +321,12 @@ def test_admission_refills_from_unused_family_without_student_selection(tmp_path
     assert pool["replacements"][0]["replacement"] == requested["reserve"][0]
     assert calls.count(failed) == 1  # Repeated identical failed mutants reuse evidence.
     assert (tmp_path / "prepared/admission-progress.json").exists()
+    admission = json.loads((tmp_path / "prepared/admission-progress.json").read_text())
+    calls.clear()
+    recovered = module.prepare_pool(
+        repo, sandbox, tmp_path / "recovered/pool.json", admission=admission
+    )
+    assert recovered["partitions"] == pool["partitions"] and not calls
+    admission["dataset_hash"] = "changed"
+    with pytest.raises(ValueError, match="Cached admission"):
+        module.prepare_pool(repo, sandbox, tmp_path / "invalid/pool.json", admission=admission)

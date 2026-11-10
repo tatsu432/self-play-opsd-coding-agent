@@ -163,7 +163,19 @@ def main():
         from selfplay_opsd.readiness import validate_runtime
 
         validate_runtime(cfg)
-        prepare_pool(repo, sandbox, args.output / "pool.json")
+        cache = None
+        descriptor_path = ROOT / "admission-recovery.json"
+        if descriptor_path.is_file():
+            descriptor = json.loads(descriptor_path.read_text())
+            cache_path = Path(descriptor["path"])
+            if (
+                not cache_path.resolve().is_relative_to(ROOT.resolve())
+                or file_hash(cache_path) != descriptor["sha256"]
+            ):
+                raise ValueError("Admission recovery source/checksum differs")
+            cache = json.loads(cache_path.read_text())
+            atomic_json(args.output / "admission-reused-from.json", descriptor)
+        prepare_pool(repo, sandbox, args.output / "pool.json", admission=cache)
         atomic_json(
             args.output / "complete.json", {"pool_sha256": file_hash(args.output / "pool.json")}
         )

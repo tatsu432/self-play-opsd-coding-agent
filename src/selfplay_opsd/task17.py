@@ -55,7 +55,7 @@ def partition_parents(repository: TaskRepository) -> dict:
     return result
 
 
-def prepare_pool(repository, sandbox, output: Path) -> dict:
+def prepare_pool(repository, sandbox, output: Path, *, admission: dict | None = None) -> dict:
     if output.exists():
         raise ValueError("Prepared pool already exists; inspect instead of replacing")
     requested = partition_parents(repository)
@@ -63,71 +63,104 @@ def prepare_pool(repository, sandbox, output: Path) -> dict:
     reserve = list(requested["reserve"])
     by_id = {p.parent_id: p for p in repository.parents("train")}
     rows, exclusions, replacements = [], [], []
-    for purpose in COUNTS:
-        pending = list(partitions[purpose])
-        for parent_id in pending:
-            parent = by_id[parent_id]
-            public, hidden = repository.parent_cases(parent_id)
-            admitted = False
-            seen_mutations: set[str] = set()
-            for attempt in range(32):
-                seed = keyed_seed(2026, "task17-mutation", parent_id, attempt)
-                try:
-                    mutation = fixed_mutation(parent.source, seed)
-                    if mutation.dedup_key in seen_mutations:
-                        raise ValueError("Repeated deterministic mutation already rejected")
-                    seen_mutations.add(mutation.dedup_key)
-                    task, oracle = build_task(
-                        parent, mutation, public, hidden, "train", seed, sandbox
+    if admission is not None:
+        if (
+            admission["dataset_hash"] != repository.hash
+            or admission["requested_partitions"] != requested
+            or admission["admitted_by_purpose"] != COUNTS
+        ):
+            raise ValueError("Cached admission dataset/partition/coverage differs")
+        partitions, rows = admission["partitions"], admission["rows"]
+        exclusions, replacements = admission["exclusions"], admission["replacements"]
+        if len(rows) != sum(COUNTS.values()):
+            raise ValueError("Cached admission is incomplete")
+        for row in rows:
+            task, oracle = (
+                TaskSpec.model_validate(row["task"]),
+                OracleSpec.model_validate(row["oracle"]),
+            )
+            parent = by_id[task.parent_id]
+            expected = fixed_mutation(parent.source, task.mutation_seed)
+            public, hidden = repository.parent_cases(task.parent_id)
+            if (
+                task.task_id
+                != digest([parent.parent_id, expected.dedup_key, "train", task.mutation_seed])
+                or task.initial_source != expected.source
+                or task.source_hash != digest(expected.source)
+                or oracle.correct_source != parent.source
+                or oracle.public_cases != public
+                or oracle.hidden_cases != hidden
+                or row["presentation"] != "original"
+                or task.parent_id not in partitions[row["purpose"]]
+            ):
+                raise ValueError("Cached verified task differs from deterministic source/cases")
+    else:
+        for purpose in COUNTS:
+            pending = list(partitions[purpose])
+            for parent_id in pending:
+                parent = by_id[parent_id]
+                public, hidden = repository.parent_cases(parent_id)
+                admitted = False
+                seen_mutations: set[str] = set()
+                for attempt in range(32):
+                    seed = keyed_seed(2026, "task17-mutation", parent_id, attempt)
+                    try:
+                        mutation = fixed_mutation(parent.source, seed)
+                        if mutation.dedup_key in seen_mutations:
+                            raise ValueError("Repeated deterministic mutation already rejected")
+                        seen_mutations.add(mutation.dedup_key)
+                        task, oracle = build_task(
+                            parent, mutation, public, hidden, "train", seed, sandbox
+                        )
+                    except ValueError as exc:
+                        exclusions.append(
+                            {"parent_id": parent_id, "attempt": attempt, "reason": str(exc)}
+                        )
+                        continue
+                    rows.append(
+                        {
+                            "purpose": purpose,
+                            "family_id": parent.family_id,
+                            "presentation": "original",
+                            "task": task.model_dump(mode="json"),
+                            "oracle": oracle.model_dump(mode="json"),
+                        }
                     )
-                except ValueError as exc:
-                    exclusions.append(
-                        {"parent_id": parent_id, "attempt": attempt, "reason": str(exc)}
+                    admitted = True
+                    break
+                if not admitted and reserve:
+                    replacement = reserve.pop(0)
+                    pending.append(replacement)
+                    partitions[purpose].remove(parent_id)
+                    partitions[purpose].append(replacement)
+                    replacements.append(
+                        {
+                            "purpose": purpose,
+                            "excluded": parent_id,
+                            "replacement": replacement,
+                            "reason": "32 oracle-only mutation attempts failed",
+                        }
                     )
-                    continue
-                rows.append(
-                    {
-                        "purpose": purpose,
-                        "family_id": parent.family_id,
-                        "presentation": "original",
-                        "task": task.model_dump(mode="json"),
-                        "oracle": oracle.model_dump(mode="json"),
-                    }
-                )
-                admitted = True
-                break
-            if not admitted and reserve:
-                replacement = reserve.pop(0)
-                pending.append(replacement)
-                partitions[purpose].remove(parent_id)
-                partitions[purpose].append(replacement)
-                replacements.append(
-                    {
-                        "purpose": purpose,
-                        "excluded": parent_id,
-                        "replacement": replacement,
-                        "reason": "32 oracle-only mutation attempts failed",
-                    }
-                )
-        atomic_json(
-            output.with_name("admission-progress.json"),
-            {
-                "dataset_hash": repository.hash,
-                "requested_partitions": requested,
-                "partitions": partitions,
-                "exclusions": exclusions,
-                "replacements": replacements,
-                "rows": rows,
-                "admitted_by_purpose": {
-                    key: sum(r["purpose"] == key for r in rows) for key in COUNTS
+            atomic_json(
+                output.with_name("admission-progress.json"),
+                {
+                    "dataset_hash": repository.hash,
+                    "requested_partitions": requested,
+                    "partitions": partitions,
+                    "exclusions": exclusions,
+                    "replacements": replacements,
+                    "rows": rows,
+                    "admitted_by_purpose": {
+                        key: sum(r["purpose"] == key for r in rows) for key in COUNTS
+                    },
                 },
-            },
-        )
+            )
     original = [r for r in rows if r["purpose"] == "interface"]
     if len(original) < COUNTS["interface"]:
         raise ValueError(
             "Interface admission deficit: preserve evidence and revise before inference"
         )
+    variant_checks = []
     for index, row in enumerate(
         sorted(original, key=lambda r: digest([2026, "task17-variant", r["task"]["task_id"]]))[:16]
     ):
@@ -165,20 +198,48 @@ def prepare_pool(repository, sandbox, output: Path) -> dict:
         ) != ast.dump(ast.parse(task.initial_source)):
             raise ValueError("Presentation variant changed executable AST")
         # Isolated verification also checks comment-sensitive source edge cases.
-        for candidate in (source, correct):
+        for kind, candidate in (("mutant", source), ("correct", correct)):
             result = sandbox.verify(
                 candidate,
                 task.entry_point,
                 oracle.public_cases + oracle.hidden_cases,
                 task.verifier_seconds,
             )
-            if (
-                candidate == correct
-                and not result.passed
-                or candidate == source
-                and result.semantic_failures < 1
+            from dataclasses import asdict
+
+            check = {
+                "parent_id": task.parent_id,
+                "task_id": task.task_id,
+                "presentation": presentation,
+                "kind": kind,
+                "verification": asdict(result),
+            }
+            variant_checks.append(check)
+            atomic_json(output.with_name("variant-verification.json"), variant_checks)
+            if (kind == "correct" and not result.passed) or (
+                kind == "mutant" and result.semantic_failures < 1
             ):
-                raise ValueError("Presentation variant changed oracle behavior")
+                before = task.initial_source if kind == "mutant" else oracle.correct_source
+                check["original_recheck"] = asdict(
+                    sandbox.verify(
+                        before,
+                        task.entry_point,
+                        oracle.public_cases + oracle.hidden_cases,
+                        task.verifier_seconds,
+                    )
+                )
+                check["variant_repeat"] = asdict(
+                    sandbox.verify(
+                        candidate,
+                        task.entry_point,
+                        oracle.public_cases + oracle.hidden_cases,
+                        task.verifier_seconds,
+                    )
+                )
+                atomic_json(output.with_name("variant-verification.json"), variant_checks)
+                raise ValueError(
+                    f"Presentation admission failed for {task.parent_id}/{presentation}/{kind}; see variant-verification.json"
+                )
         rows.append(
             row
             | {
