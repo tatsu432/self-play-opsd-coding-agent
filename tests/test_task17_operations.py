@@ -213,6 +213,8 @@ def test_controller_binds_effective_interface_and_resources(
     assert result["gpu_count"] == count
     assert result["readiness_budget"] == budget
     assert result["time"] == time_limit
+    assert script("hpc_remote").task17_walltime_allowed(result)
+    assert not script("hpc_remote").task17_walltime_allowed(result | {"time": "03:00:00"})
     assert result["runtime_identity"]["interface"] == (
         "replace_text" if operation == "task17-interface" else "unified_diff"
     )

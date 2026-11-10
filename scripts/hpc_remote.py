@@ -748,6 +748,22 @@ def sequential_dependency(payload: dict) -> list[str]:
     return [f"--dependency=afterok:{dependency['job_id']}"]
 
 
+def task17_walltime_allowed(payload: dict) -> bool:
+    operation = payload["operation"]
+    if operation == "task17-interface":
+        # Keep previously committed two-hour submissions valid while supporting
+        # measured shorter allocations; both retain the same global ceiling.
+        return payload.get("time") in {"01:00:00", "02:00:00"}
+    expected = (
+        "01:00:00"
+        if operation in {"task17-prepare", "task17-replay"}
+        else "06:00:00"
+        if operation == "task17-student"
+        else "02:00:00"
+    )
+    return payload.get("time") == expected
+
+
 def submit(payload: dict) -> dict:
     dependency_args = sequential_dependency(payload)
     p = paths(payload)
@@ -2067,14 +2083,7 @@ def precheck(payload: dict):
                 or payload.get("gpu_count") != (0 if cpu else 1)
                 or (not cpu and payload.get("gpu_type") != "h200")
                 or payload.get("readiness_budget") != (24 if phase2 else 10)
-                or payload.get("time")
-                != (
-                    "01:00:00"
-                    if cpu
-                    else "06:00:00"
-                    if operation == "task17-student"
-                    else "02:00:00"
-                )
+                or not task17_walltime_allowed(payload)
             ):
                 raise ValueError("Task 17 requires its bounded isolated cpsc4880 allocation")
         if operation == "task14-static" and (
