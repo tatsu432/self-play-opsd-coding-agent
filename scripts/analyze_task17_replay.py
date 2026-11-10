@@ -5,8 +5,9 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
+from statistics import median
 
 from selfplay_opsd.analysis import write_csv
 from selfplay_opsd.core import digest
@@ -52,6 +53,11 @@ def summarize(candidates, replays, evaluations, actions):
         joined.append(
             candidate | result | {"original_success": original[logical]["success"] == "True"}
         )
+    first_edit = {}
+    for action in actions:
+        if action["action"] == "apply_patch":
+            identifier = action["episode_id"]
+            first_edit[identifier] = min(first_edit.get(identifier, 99), int(action["turn"]))
     groups = []
     for kind in ("base", "trained"):
         for split in ("final_id", "external"):
@@ -74,9 +80,25 @@ def summarize(candidates, replays, evaluations, actions):
                 and r["parse_status"] == "tool_error"
             ]
             passed = [r for r in selected if r["passed"]]
+            failed_passing = [r for r in passed if not r["original_success"]]
+            earliest = {}
+            for row in failed_passing:
+                identifier = row["episode_id"]
+                earliest[identifier] = min(earliest.get(identifier, 99), int(row["turn"]) + 1)
             groups.append(
                 {
                     "kind": kind,
+                    "failed_episode_earliest_correct_reconstruction_turn": {
+                        "one_based_counts": dict(sorted(Counter(earliest.values()).items())),
+                        "median": median(earliest.values()) if earliest else None,
+                    },
+                    "failed_episodes_correct_on_first_schema_valid_edit": len(
+                        {
+                            r["episode_id"]
+                            for r in failed_passing
+                            if int(r["turn"]) == first_edit[r["episode_id"]]
+                        }
+                    ),
                     "split": split,
                     "original_episodes": len(baseline),
                     "original_successes": sum(r["success"] == "True" for r in baseline),

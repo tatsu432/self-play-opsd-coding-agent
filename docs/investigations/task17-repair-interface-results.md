@@ -40,6 +40,14 @@ episodes respectively. Across trained external snapshots, correct reconstructed
 states cover 96/116 parent problems; repeated actions and snapshots are not
 independent tasks. No oracle solution is used to choose or reconstruct an edit.
 
+Among the 242 originally failed external episodes with a correct reconstruction,
+the earliest passing reconstructed edit is at turn two in 138 cases; its median
+position is turn two. In those 138 cases it is also the first schema-valid edit
+attempt. Later turns might have changed after a valid tool response, so this
+locates the bottleneck without measuring saved turns or new agent accuracy.
+Additional turn-position output is in private
+`runs/task17/semantic-replay-analysis-v2/`, from the same isolated replay results.
+
 The external state-recovery counts also vary substantially by frozen snapshot:
 
 | Snapshot | Original verified repairs /116 | Tasks with a correct reconstructed state /116 |
@@ -79,6 +87,11 @@ private stratified table also covers mutation type/sites, public-case count,
 preceding turn, method and each checkpoint/seed; source and specification
 features overlap. Reproduce with `scripts/analyze_task17_strata.py` against
 `runs/task17/recovery-full-v1/`, using a new output directory.
+
+Secondary admission after metadata recovery rejects another 27 ID actions
+(26 syntax failures, one API change) and 25 external actions (22 syntax failures,
+three executable-module source-policy violations). Their original first error
+was patch metadata; they are excluded from semantic replay.
 
 The static parser reproduces errors even where historical final-turn tool
 observations were absent. Categories describe the first rejection and can mask
@@ -169,3 +182,15 @@ The first 22 base-control episodes used 416 seconds of episode runtime. The
 56-task cells therefore use a one-hour wall limit; per-episode model budgets are
 unchanged. The already queued C allocation receives the same documented pending
 limit reduction, with its original reservation retained.
+
+The base strict cell completed exit 0 after **1,234 allocated H200-seconds
+(0.342778 GPU-hours)**. It verified 5/40 original tasks and 1/16 presentation
+variants. Trained strict job `32808848` started and loaded the pinned B2026
+student hash successfully; text cells `32811833` and `32812080` are dependency
+queued. No historical checkpoint was resumed for training. The text CPU runtime
+job `32809208` completed exit 0. Short-wall precheck rejections allocated no GPU.
+
+Exact text additionally preserves import declarations, while historical strict
+diff retains its existing import allowlist. This stricter text admission is part
+of the tested interface; report its rejection frequency when interpreting gains
+or losses. Both tools preserve the original function APIs and source policy.

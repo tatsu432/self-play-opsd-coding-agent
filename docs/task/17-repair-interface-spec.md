@@ -10,7 +10,9 @@ advertises exactly one editing action: `action`, `path`, `old_text`, `new_text`.
 Only `src/solution.py` is writable. Require a nonempty exact old span, unique even
 when occurrences overlap; reject missing/ambiguous spans. Preserve whitespace,
 imports and function APIs; validate syntax/source policy before updating state.
-Empty replacement text permits deletion. Inputs and resulting source are bounded
+Text additionally requires unchanged import declarations; the historical strict
+diff control retains its original import allowlist behavior. Report this
+admission difference and observed rejections. Empty replacement text permits deletion. Inputs and resulting source are bounded
 to 65,536 UTF-8 bytes. Rejections leave source unchanged.
 
 New trajectories persist tool observations, including the last turn. Historical
