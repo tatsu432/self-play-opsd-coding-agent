@@ -5,12 +5,24 @@ from __future__ import annotations
 from collections import Counter
 
 from selfplay_opsd.core import digest
+from selfplay_opsd.mutations import strict_json_object
 from selfplay_opsd.task16_analysis import paired_statistics
 
 
 def episode_metrics(episode: dict) -> dict:
     turns = episode["turns"]
-    edits = [(i, t) for i, t in enumerate(turns) if t["action"] in {"apply_patch", "replace_text"}]
+    raw_actions = []
+    for turn in turns:
+        try:
+            raw_actions.append(strict_json_object(turn["raw_text"]))
+        except ValueError:
+            raw_actions.append(None)
+    edits = [
+        (i, t)
+        for i, t in enumerate(turns)
+        if t["action"] in {"apply_patch", "replace_text"}
+        or (raw_actions[i] or {}).get("action") in {"apply_patch", "replace_text"}
+    ]
     accepted = [i for i, t in edits if t["parse_status"] == "valid"]
     failed = Counter(t["raw_text"] for _, t in edits if t["parse_status"] != "valid")
     return {
@@ -20,8 +32,10 @@ def episode_metrics(episode: dict) -> dict:
         "public_pass": episode["public_pass"],
         "hidden_pass": episode["hidden_pass"],
         "public_pass_hidden_fail": episode["public_pass"] and not episode["hidden_pass"],
-        "valid_json_actions": sum(t["parse_status"] != "invalid" for t in turns),
+        "valid_json_actions": sum(a is not None for a in raw_actions),
+        "valid_schema_actions": sum(t["parse_status"] != "invalid" for t in turns),
         "actions": len(turns),
+        "turns": len(turns),
         "edit_attempts": len(edits),
         "accepted_edits": len(accepted),
         "rejected_edits": len(edits) - len(accepted),

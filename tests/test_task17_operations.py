@@ -337,3 +337,47 @@ def test_admission_refills_from_unused_family_without_student_selection(tmp_path
     admission["dataset_hash"] = "changed"
     with pytest.raises(ValueError, match="Cached admission"):
         module.prepare_pool(repo, sandbox, tmp_path / "invalid/pool.json", admission=admission)
+
+
+def test_metrics_distinguish_json_schema_and_tool_acceptance():
+    from selfplay_opsd.task17_analysis import episode_metrics
+
+    turns = [
+        {"action": "invalid", "parse_status": "invalid", "raw_text": "not JSON", "target_ids": [1]},
+        {
+            "action": "invalid",
+            "parse_status": "invalid",
+            "raw_text": '{"action":"replace_text"}',
+            "target_ids": [1],
+        },
+        {
+            "action": "replace_text",
+            "parse_status": "tool_error",
+            "raw_text": '{"action":"replace_text","path":"src/solution.py","old_text":"x","new_text":"y"}',
+            "target_ids": [1],
+        },
+        {
+            "action": "replace_text",
+            "parse_status": "valid",
+            "raw_text": '{"action":"replace_text","path":"src/solution.py","old_text":"a","new_text":"b"}',
+            "target_ids": [1],
+        },
+    ]
+    episode = dict(
+        turns=turns,
+        task_id="t",
+        episode_id="e",
+        reward=0,
+        public_pass=False,
+        hidden_pass=False,
+        test_calls=0,
+        termination="turn_limit",
+        seconds=1,
+    )
+    metrics = episode_metrics(episode)
+    assert metrics["valid_json_actions"] == 3
+    assert metrics["valid_schema_actions"] == 2
+    assert metrics["edit_attempts"] == 3
+    assert metrics["accepted_edits"] == 1
+    assert metrics["rejected_edits"] == 2
+    assert metrics["first_edit_turn"] == 4

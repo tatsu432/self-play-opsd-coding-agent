@@ -16,11 +16,11 @@ HumanEval+-derived repairs, A/B solved 0–3/116, near the base's 2/116.
 Across the six trained external evaluations, 4,301 patch attempts were rejected
 and 13 accepted. These results concern repair tasks and do not isolate gating
 from changes in the evolving proposer and student. C/D training is deferred;
-Task 17 now implements an exact-text replacement interface and bounded study runners.
-A CPU audit reproduced all 1,386 trained evaluation trajectories and found 1,107
-of 4,301 rejected HumanEval+ edits mechanically recoverable under static source/API
-checks; semantic correctness remains unverified. Yale access is restored and CPU runtime validation has passed; the
-matched interface experiment and conditional training are next (0 new GPU-hours). See the [Task 17 evidence and execution status](docs/investigations/task17-repair-interface-results.md).
+Task 17 implements exact-text replacement and a matched frozen-model study.
+Isolated metadata-only replay found correct reconstructed states in 242 previously
+failed trained HumanEval+ episodes. These are saved-state diagnostics, not new
+agent accuracy. The training-only task pool is being finalized before model
+comparison (0 new GPU-hours). See the [Task 17 evidence and execution status](docs/investigations/task17-repair-interface-results.md).
 
 See the [A/B results](docs/investigations/task15-final-results.md) and
 [transfer, checkpoint and compute analysis](docs/investigations/task16-generalization-checkpoint-decision.md)

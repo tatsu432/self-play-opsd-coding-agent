@@ -1,173 +1,108 @@
-# Task 17: repair-interface implementation and retrospective evidence
+# Task 17: repair encoding and controlled objective study
 
-## Verified semantic replay and admission recovery
+## Current decision (2026-11-10, execution in progress)
 
-CPU job `32794598`, run `9d9776357a4e23ae82cd34dc`, completed all 1,991
-reconstructed actions using 449 unique isolated task/program verifications.
-Among trained external attempts, **755/1,107** pass the full verifier, spanning
-**249/696** recorded episodes and **96/116** parent problems. Of those episodes,
-242 originally failed. This establishes correct edits at recorded source states;
-it does not measure final accuracy under counterfactual future agent actions.
-Trained ID has 500/837 passing reconstructed actions across 193 episodes.
-Base has 13/14 passing ID and 25/33 passing external reconstructed actions.
-All 1,617 trajectories are now present. No GPU time has been used yet.
+Mechanical replay establishes a substantial encoding bottleneck in the saved
+trajectories. It does not measure a new agent's end-to-end accuracy. The required
+matched frozen-model comparison is next; exact replacement has not yet been
+selected for training. Full C/D remains deferred. No Task 17 GPU allocation has
+yet started.
 
-Preparation `32794599` / `6be54fe0c6ab8d8a6c492675` failed before inference:
-eight attempts admitted 35/40 interface and 14/16 development parents. The
-failed artifacts and before-ledger snapshot were archived on Yale, with the
-ledger's artifact location updated and archive history retained. The corrected
-preparation retains first successful samples, uses 32 bounded attempts while
-caching identical rejected mutants, and fills deficits only from unused
-training families. This is oracle-only admission, without student-outcome
-selection. Preparation now also performs current runtime validation, avoiding
-a separate orchestration stage for each data-selection revision. Earlier blocked
-or unreplayed status notes below are historical and will be consolidated after
-the matched interface experiment.
+## Retrospective evidence
 
+The checksummed Task 16 inputs reproduce **all 1,617** final/base trajectories,
+11,516 actions. The six trained snapshots contribute 1,386 episodes. Reconstruct
+only complete, uniquely matching old hunk context; ignore coordinates/counts,
+leave added/removed content unchanged, and reject ambiguous/overlapping/reordered
+hunks or unsafe headers. Reconstruction never consults the correct solution.
+Syntax/source/API admission precedes isolated semantic verification. Each edit
+is tested at its recorded source state; later saved actions are not a valid
+counterfactual continuation.
 
-## Active execution update — access restored
+| Six trained snapshots | MBPP+-derived repair | HumanEval+-derived repair |
+|---|---:|---:|
+| Episodes | 690 | 696 |
+| Accepted / rejected patches | 613 / 1,836 | 13 / 4,301 |
+| Unique-context metadata recoveries | 864 | 1,132 |
+| Recoveries passing static admission | 837 | 1,107 |
+| Reconstructed actions passing full verifier | 500 | 755 |
+| Distinct passing task/program pairs | 80 | 118 |
+| Episodes with a passing reconstructed state | 193 | 249 |
+| Originally failed episodes with such a state | — | **242** |
 
-Normal Cisco VPN and Duo SSH authentication succeeded. Live inspection found no
-active account jobs before Task 17. CPU runtime validation `32792142` / run
-`15b407b13adfc94780658de9` completed exit 0 in 323 seconds from `a7046a4`;
-its report was fetched before further dependency changes. All 231 base shards
-were recovered, and `runs/task17/recovery-full-v1/` now covers all 1,617 episodes
-and 11,516 actions, with 1,991 statically admitted reconstructions: 1,944 trained
-plus 47 base. The trained-distribution counts below are unchanged. Semantic
-replay and model experiments remain unexecuted; no GPU time has been allocated.
-Hosted CI [42843475673](https://github.com/tatsu432/self-play-opsd-coding-agent/actions/runs/42843475673)
-passed 436 tests with one skip and four deselections, including Docker worker
-checks. Earlier access-blocked/partial-coverage notes below are historical.
+CPU job `32794598`, run `9d9776357a4e23ae82cd34dc`, verified all 1,991
+admitted trained/base actions using **449 distinct task/program verifier calls**.
+Identical programs reuse the recorded outcome. The base contributes 13/14
+passing ID and 25/33 passing external reconstructions, spanning six and ten
+episodes respectively. Across trained external snapshots, correct reconstructed
+states cover 96/116 parent problems; repeated actions and snapshots are not
+independent tasks. No oracle solution is used to choose or reconstruct an edit.
 
-
-## Current decision
-
-**Patch encoding is a substantial observed obstacle; its causal contribution to
-repair failure remains unmeasured.** The new exact-replacement interface and
-bounded experiment routes are implemented. No frozen-model interface experiment,
-semantic recovery replay, adaptation, calibration or objective training has run.
-The next action is isolated CPU replay and the matched frozen-model comparison,
-not full self-play or C/D training.
-
-On 2026-11-10, `selfplay hpc inspect` failed with SSH exit 255 because
-`bouchet.ycrc.yale.edu` could not be resolved. Local Docker also has no running
-daemon (`~/.docker/run/docker.sock` absent). Generated programs were not executed
-on the host. Newly allocated GPU-hours: **0**; no Task 17 job was submitted. Live
-Yale job/account state remains unverified and must be reconciled before launch.
-
-## Completed analysis
-
-The read-only audit consumes checksummed Task 16 trajectories and replays only
-trusted parsing/application/source validation, never candidate execution. It
-reproduces all **1,386 trained** final evaluation trajectories: six arms ×
-(115 MBPP+-derived + 116 HumanEval+-derived repair tasks), totaling 9,708 actions.
-The 231 common-base trajectory files referenced by Task 16 are absent at their
-recorded local paths now; their earlier aggregates remain historical evidence.
-They are explicitly missing, not zero outcomes in this analysis.
-
-| Trained evaluation distribution | Tasks/episodes | Accepted patches | Rejected patches | Metadata-recoverable actions | Recoverable actions passing static source/API checks |
-|---|---:|---:|---:|---:|---:|
-| MBPP+-derived repairs | 690 | 613 | 1,836 | 864/1,836 (47.1%) | 837/1,836 (45.6%) |
-| HumanEval+-derived repairs | 696 | 13 | 4,301 | 1,132/4,301 (26.3%) | 1,107/4,301 (25.7%) |
-
-Recoverable means the complete old hunk text identifies one unique exact span of
-the actual current source; only hunk offsets/counts are ignored. Added/removed
-content is unchanged. Malformed file headers, ambiguous locations, overlapping
-or reordered hunks and unsupported body syntax are rejected. Pure insertions
-without anchoring old context are not reconstructed. Multiple rejected attempts
-can recover to the same program: these are action counts, not independent tasks.
-The reconstructed edit is tested independently; subsequent recorded model actions
-are not interpreted as a valid counterfactual continuation.
-
-| Static replay rejection category | MBPP+ | HumanEval+ |
+| First deterministic rejection | Trained MBPP+ | Trained HumanEval+ |
 |---|---:|---:|
 | Context mismatch | 661 | 2,913 |
 | Hunk counts | 997 | 1,141 |
 | Hunk offsets | 7 | 0 |
-| Malformed/unsupported file headers | 115 | 116 |
+| File headers | 115 | 116 |
 | Forbidden paths / extra file content | 56 | 131 |
-| Total | 1,836 | 4,301 |
 
-The taxonomy uses reproducible static replay, including last-turn errors whose
-observations were historically absent. It therefore refines Task 16's categories
-rather than treating its unknown observations as measured error text. The
-header/path parser can report a header error before reaching another defect;
-these categories describe the first deterministic rejection. No historical
-syntax/API/import rejection occurred in these strict-parser tool-error records;
-this does not imply malformed model output could always reach source admission.
-There were also 50 ID and 215 external JSON/schema-invalid actions.
+The static parser reproduces errors even where historical final-turn tool
+observations were absent. Categories describe the first rejection and can mask
+later defects. Another 50 ID and 215 external actions fail JSON/schema parsing.
+Repeated unchanged-source/error-category attempts beyond the first total 1,153 ID
+and 3,226 external. This is broader than identical-action repetition.
 
-At least one statically admitted reconstructed edit occurs in **292/690 ID** and
-**349/696 external** episodes. Rejections recur at the same unchanged source and
-category: 1,153 ID and 3,226 external attempts are beyond the first such attempt.
-These are broad repeated-error categories, not necessarily identical patches.
+![Rejected patch taxonomy](../figures/task17/rejection-taxonomy.png)
 
-The audit exports token lengths, public-case counts, mutation descriptors, AST
-features, preceding-turn position, checkpoint, method and family with each action.
-The private tables support stratified follow-up without re-reading private source
-into reports. The inference comparison analysis separately records verified
-repair, applied edits, test use, public-pass/hidden-fail, repeated actions, tokens,
-turns and termination, refusing incomplete/mismatched pairs.
+![Mechanical recovery verification](../figures/task17/mechanical-recovery-verification.png)
 
-![Static rejection taxonomy](../figures/task17/rejection-taxonomy.png)
+These results reject an explanation based solely on semantic inability for at
+least 242 recorded external failures. They do not quantify a causal improvement
+under a changed tool prompt, prove all failures are syntactic, or establish new
+HumanEval generalization. H1–H4 await the matched comparison; a mixed syntactic
+and semantic explanation remains possible.
 
-[PDF figure](../figures/task17/rejection-taxonomy.pdf).
+## Frozen-model comparison and admission
 
-## What this supports
+The [implementation specification](../task/17-repair-interface-spec.md) defines
+base and checksum-verified B2026-final snapshots × strict diff and exact text,
+identical greedy budgets/oracles, 40 primary training-only families and 16
+exploratory presentation variants. Curriculum, calibration and independent
+development reserve 40/8/16 other families. No model outcome selects parents.
 
-- The reproduced 4,301 external rejections and only 13 acceptances confirm the
-  interface obstacle observed in Task 16.
-- Unique metadata-only recovery is possible for at least 1,107 rejected external
-  actions under static historical source/API admission.
-- **No recovered program has been semantically verified in Task 17.** These counts
-  do not establish repair success, estimate a causal effect, or predict zero-shot
-  exact-replacement performance.
-- H1–H4 await the frozen-model experiment. H5 (mainly semantic versus syntactic
-  failure) is unresolved; failure at both stages can coexist.
-- Existing Task 15 B-over-A outcomes do not isolate gating. The proposed frozen
-  curriculum and gradient calibration are unexecuted; Task 17 supplies no new
-  student-objective superiority or efficiency evidence.
-- Existing sparse proposer reward discrimination and near-repeat C/D update
-  differences still do not justify full alignment training.
+Initial preparation `32794599` / `6be54fe0c6ab8d8a6c492675` lacked admissible
+mutations for seven reserved parents. Revised preparation uses 32 bounded fixed
+attempts, caches identical mutants and refills from unused families. Job
+`32797537` / `0522e9eae55f829aadc11294` verified all 104 originals, then failed
+variant verification. Diagnostic job `32801929` /
+`f0b3c13f22f1fdbd0aa7e20b` found that `Mbpp/599`'s mutant exhausted the fixed
+allowance in a comment variant, original recheck and variant repeat: 90 runtime
+failures and zero semantic failures each. Inputs reach 100,000,007; the cause of
+timing variation from initial admission is unproven. Exclude it before inference
+and use the next reserved family, retaining the other 103 admissions.
 
-## Reproduction and private artifacts
+Replacement preparation `32804290` / `86e2df49bb04a9321f7d755d` is active from
+execution `8654b20`. Failed preparation directories and original ledger bytes
+remain archived with updated artifact locations and archive histories. No
+historical Task 15 task, oracle, checkpoint or result was changed.
+
+Normal Yale VPN/Duo access is restored. CPU runtime checks `32792142` and
+`32793248` completed successfully; preparation now performs current runtime
+validation itself. The accepted existing isolated worker is reused. Earlier DNS
+and missing-base-shard issues are resolved; partial local recovery versions are
+historical, not current evidence.
+
+## Reproduction
 
 ```bash
-uv run python scripts/analyze_task17.py --allow-missing --recovered runs/task16/recovered-analysis-verified --data data/protocol-v3 --output runs/task17/recovery-v4 --figures docs/figures/task17
+uv run python scripts/analyze_task17.py --recovered runs/task16/recovered-analysis-verified --data data/protocol-v3 --output runs/task17/recovery-full-v1 --figures docs/figures/task17
+uv run python scripts/analyze_task17_replay.py --audit runs/task17/recovery-full-v1 --replay runs/hpc/yale-hpc-cpsc4880/9d9776357a4e23ae82cd34dc --output runs/task17/semantic-replay-analysis --figures docs/figures/task17
 ```
 
-Use a fresh output directory when rerunning; existing outputs are preserved.
-`--allow-missing` is explicit because the 231 base shards are absent. Full-coverage
-mode fails on missing files. Consumed existing trajectories are checked against
-the prior manifest; all new inputs and missing paths are recorded. Run identity,
-outcome and final-source reconstruction inconsistencies fail analysis.
-
-Private results: `runs/task17/recovery-v4/{actions.csv,episodes.csv,summary.json,
-replay-candidates.json,input-manifest.json}`. Earlier local diagnostic outputs v1
-(zero matched episodes) , v2 (before feature enrichment) and v3 (before dependency-manifest enrichment) are not authoritative;
-v4 is the reported output, with complete analysis dependency hashes. The deterministic reservations are saved separately
-as `runs/task17/partitions.json`; they are not isolated-verified tasks.
-
-See the [execution plan](../plan/17-repair-interface-plan.md) for the exact next
-operations and the [completion record](../task_completion/17-implemented-repair-interface.md)
-for validation and remaining work. Final held-out splits were used only for
-retrospective diagnosis, not interface prompt tuning or hyperparameter selection.
-
-### Mechanical replay and admission update (2026-11-10)
-
-CPU replay job `32794598` / run `9d9776357a4e23ae82cd34dc` completed all
-1,991 statically admissible actions, using 449 distinct task/program verifier
-calls. Among trained external episodes, 755/1,107 reconstructed actions passed;
-242 originally failed episodes contained at least one passing reconstructed
-state. This repairs diff metadata only and does not establish counterfactual
-agent accuracy. Aggregate reproduction is `scripts/analyze_task17_replay.py`.
-
-Preparation job `32801929` / run `f0b3c13f22f1fdbd0aa7e20b` diagnosed the earlier
-variant failure: `Mbpp/599`'s mutant exhausted the fixed allowance in its comment
-variant, an original-source recheck and a variant repeat (90 runtime failures,
-zero semantic failures each). Inputs reach 100,000,007; the exact cause of timing
-variation relative to initial admission remains unproven. Exclude this parent
-before inference and replace it with the next unused training family. Preserve
-the 103 other admitted originals and the checksummed diagnostic. This changes
-only Task 17; historical tasks and oracles remain unchanged. Failed preparation
-directories/ledgers are archived with their original ledger bytes.
+Use a fresh directory for each rerun. Full coverage, input checksums, original
+outcomes and final-source reconstruction are enforced. Private task/source/case
+artifacts stay ignored under `runs/`; public plots contain aggregates only.
+Replay candidates SHA-256:
+`37f01a4e83c7522e97c4936f44ec1a1cd56411ef62cad430896593c5bbf65f8f`.
+See the [execution plan](../plan/17-repair-interface-plan.md) and
+[completion record](../task_completion/17-implemented-repair-interface.md).
