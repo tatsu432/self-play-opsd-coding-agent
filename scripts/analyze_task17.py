@@ -197,7 +197,7 @@ def main():
         counts = Counter(r["category"] for r in rs)
         ax.barh(categories, [counts[c] for c in categories], color="#355C9A")
         ax.set(title=f"{split}: {len(rs)} rejected edits", xlabel="Actions (six trained arms)")
-    fig.suptitle("Static replay taxonomy; semantic recovery remains unverified")
+    fig.suptitle("Strict parser rejections reproduced from saved trajectories")
     for suffix in ("png", "pdf"):
         fig.savefig(destination / f"rejection-taxonomy.{suffix}", bbox_inches="tight")
     plt.close(fig)

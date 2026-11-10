@@ -46,6 +46,18 @@ independent tasks. No oracle solution is used to choose or reconstruct an edit.
 | File headers | 115 | 116 |
 | Forbidden paths / extra file content | 56 | 131 |
 
+Action acceptance falls with source length within MBPP+: 396/694 edits (57.1%)
+for tasks at/below 35 source tokens versus 217/1,755 (12.4%) above that median.
+HumanEval+ is near its floor in both strata: 13/2,230 versus 0/2,084 at a
+173-token median. All 13 accepted external patches also lie below the median
+specification length (115.5 tokens). These are confounded action-level
+associations, not causal length effects. MBPP+ tasks with at most one branch
+accept 488/1,181 edits versus 125/1,268 with more branches. The reproducible
+private stratified table also covers mutation type/sites, public-case count,
+preceding turn, method and each checkpoint/seed; source and specification
+features overlap. Reproduce with `scripts/analyze_task17_strata.py` against
+`runs/task17/recovery-full-v1/`, using a new output directory.
+
 The static parser reproduces errors even where historical final-turn tool
 observations were absent. Categories describe the first rejection and can mask
 later defects. Another 50 ID and 215 external actions fail JSON/schema parsing.
