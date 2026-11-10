@@ -73,6 +73,7 @@ def scientific_code_hash() -> str:
         "structured_mutations.py",
         "trainer.py",
         "task15.py",
+        "task17.py",
         "task15_audit.py",
         "task15_freeze.py",
         "rollout.py",

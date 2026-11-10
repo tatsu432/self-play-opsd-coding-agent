@@ -25,6 +25,7 @@ from selfplay_opsd.mutations import (
     apply_patch,
     parse_action,
     replace_function_body,
+    replace_text,
     signature,
     validate_source,
 )
@@ -92,6 +93,16 @@ class RepairEnvironment:
             except SyntaxError as exc:
                 raise ValueError(f"Invalid Python syntax: {exc.msg} (line {exc.lineno})") from exc
             if signature(tree) != signature(validate_source(self.task.initial_source)):
+                raise ValueError("Repair must preserve function APIs")
+            self.source = replacement
+            return {"ok": True, "source_hash": digest(replacement)}
+        if name == "replace_text":
+            if action["path"] != "src/solution.py":
+                raise ValueError("File path is not allowlisted")
+            replacement = replace_text(self.source, action["old_text"], action["new_text"])
+            if signature(validate_source(replacement)) != signature(
+                validate_source(self.task.initial_source)
+            ):
                 raise ValueError("Repair must preserve function APIs")
             self.source = replacement
             return {"ok": True, "source_hash": digest(replacement)}
@@ -235,6 +246,7 @@ def run_episode(
                 raw_text=output.text,
                 action=action,
                 parse_status=parse_status,
+                observation=observation,
             )
         )
         tokens += len(output.ids)
@@ -272,7 +284,16 @@ def run_episode(
         else Status.STUDENT_FAILURE
     )
     return EpisodeRecord(
-        episode_id=digest([task.task_id, seed, policy.version("student"), greedy, PROMPT_HASH]),
+        episode_id=digest(
+            [
+                task.task_id,
+                seed,
+                policy.version("student"),
+                greedy,
+                PROMPT_HASH,
+                limits.model_dump(),
+            ]
+        ),
         task_id=task.task_id,
         seed=seed,
         policy_version=policy.version("student"),

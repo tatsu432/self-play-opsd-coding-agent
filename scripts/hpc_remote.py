@@ -407,7 +407,11 @@ def verified_checkpoint(payload: dict) -> str:
     study = payload["study_id"] + (
         payload.get("pilot_suffix", "-pilot") if payload["operation"] == "pilot" else ""
     )
-    run_dir = p["runs"] / study / f"{payload['method']}-seed{payload['seed']}"
+    run_dir = (
+        artifact_dir(payload)
+        if payload["operation"] == "task17-student"
+        else p["runs"] / study / f"{payload['method']}-seed{payload['seed']}"
+    )
     latest = json.loads((run_dir / "checkpoints/latest.json").read_text())
     name = latest["path"]
     if not re.fullmatch(r"\d{6}", name):
@@ -1125,6 +1129,17 @@ def artifact_dir(payload: dict) -> Path:
         return runs / "repair-diagnosis-2026-probe-v1" / payload["run_id"]
     if operation == "task14-probe":
         return runs / "repair-diagnosis-2026-task14-probe-v1" / payload["run_id"]
+    if operation == "task17-student":
+        return runs / payload["study_id"] / f"{payload['effective_method']}-seed{payload['seed']}"
+    if operation.startswith("task17-"):
+        suffix = (
+            "prepared"
+            if operation == "task17-prepare"
+            else "calibration"
+            if operation == "task17-calibrate"
+            else payload["run_id"]
+        )
+        return runs / "repair-selfplay-2026-task17-interface-v1" / suffix
     if operation == "task14-student":
         return runs / "repair-diagnosis-2026-task14-student-v1" / payload["run_id"]
     if operation == "task14-counterfactual":
@@ -1162,25 +1177,47 @@ def artifact_dir(payload: dict) -> Path:
     )
 
 
+def task17_budget(payload: dict) -> bool:
+    return payload.get("operation", "").startswith("task17-") or payload.get(
+        "study_id", ""
+    ).startswith("repair-selfplay-2026-task17-")
+
+
+def readiness_limit(payload: dict) -> int:
+    if not task17_budget(payload):
+        return 24
+    return (
+        24
+        if payload.get("operation") in {"task17-calibrate", "task17-student"}
+        or "-objectives-" in payload.get("study_id", "")
+        else 10
+    )
+
+
 def budget_path(payload: dict) -> Path:
     if not SAFE_NAME.fullmatch(payload["study_id"]):
         raise ValueError("Unsafe study ID")
     # Readiness authorization spans protocol/study revisions. Never let a new
     # scientific identity create a fresh allowance.
+    if task17_budget(payload):
+        phase = "phase2" if readiness_limit(payload) == 24 else "phase1"
+        return workspace(payload) / "state" / f"task17-{phase}-budget.json"
     return workspace(payload) / "state" / "budget-readiness-cpsc4880.json"
 
 
 def refreshed_budget(payload: dict) -> dict:
     path = budget_path(payload)
-    budget = json.loads(path.read_text()) if path.exists() else {"limit": 24.0, "reservations": {}}
-    authorization = "cpsc4880-readiness-24h-v1"
+    task17 = task17_budget(payload)
+    limit = readiness_limit(payload)
+    budget = json.loads(path.read_text()) if path.exists() else {"limit": limit, "reservations": {}}
+    authorization = f"cpsc4880-task17-{limit}h-v1" if task17 else "cpsc4880-readiness-24h-v1"
     if budget.get("authorization_id", authorization) != authorization:
         raise ValueError("Readiness authorization identity mismatch")
     budget["authorization_id"] = authorization
     # Import every legacy study, not just the caller's study. Keep source hashes
     # so a legacy writer cannot silently fork the allowance after migration.
     imported = budget.setdefault("legacy_sources", {})
-    for legacy in sorted(path.parent.glob("budget-*.json")):
+    for legacy in [] if task17 else sorted(path.parent.glob("budget-*.json")):
         if legacy == path:
             continue
         checksum = sha256(legacy)
@@ -1707,7 +1744,8 @@ def precheck(payload: dict):
         or (
             stop
             and (
-                operation not in {"train", "pilot", "task15-online", "task15-stabilize"}
+                operation
+                not in {"train", "pilot", "task15-online", "task15-stabilize", "task17-student"}
                 or stop >= payload.get("target_iterations", 0)
             )
         )
@@ -1751,6 +1789,11 @@ def precheck(payload: dict):
         "task13-probe",
         "task14-probe",
         "task14-student",
+        "task17-prepare",
+        "task17-replay",
+        "task17-interface",
+        "task17-calibrate",
+        "task17-student",
         "task14-counterfactual",
         "task14-counterfactual-replay",
         "task14-calibrate",
@@ -1811,7 +1854,7 @@ def precheck(payload: dict):
             or payload.get("gpu_type") not in {"h100", "h200"}
             or payload.get("time") != "00:05:00"
             or payload.get("account") != "cpsc4880"
-            or payload.get("readiness_budget") != 24
+            or payload.get("readiness_budget") != readiness_limit(payload)
         ):
             raise ValueError("Allocation diagnostics require bounded cpsc4880 H100/H200 readiness")
         return
@@ -1828,7 +1871,7 @@ def precheck(payload: dict):
                 if operation == "numerical-audit"
                 else "01:00:00"
             )
-            or payload.get("readiness_budget") != 24
+            or payload.get("readiness_budget") != readiness_limit(payload)
             or not Path(payload.get("image", "")).is_file()
             or not DIGEST.fullmatch(payload.get("image_sha256", ""))
             or not study_state(payload)["gates"]["target"]
@@ -1848,6 +1891,11 @@ def precheck(payload: dict):
         "task13-probe",
         "task14-probe",
         "task14-student",
+        "task17-prepare",
+        "task17-replay",
+        "task17-interface",
+        "task17-calibrate",
+        "task17-student",
         "task14-counterfactual",
         "task14-counterfactual-replay",
         "task14-calibrate",
@@ -1893,7 +1941,7 @@ def precheck(payload: dict):
         if operation == "protocol-check" and (
             payload.get("gpu_count") != 1
             or payload.get("time") != "02:00:00"
-            or payload.get("readiness_budget") != 24
+            or payload.get("readiness_budget") != readiness_limit(payload)
         ):
             raise ValueError("Protocol probe requires its fixed two-GPU-hour ceiling")
     if operation == "train" and payload.get("logging_mode") == "online":
@@ -1921,6 +1969,11 @@ def precheck(payload: dict):
         "task13-probe",
         "task14-probe",
         "task14-student",
+        "task17-prepare",
+        "task17-replay",
+        "task17-interface",
+        "task17-calibrate",
+        "task17-student",
         "task14-counterfactual",
         "task14-counterfactual-replay",
         "task14-calibrate",
@@ -1988,6 +2041,25 @@ def precheck(payload: dict):
             or payload.get("checkpoint")
         ):
             raise ValueError("Task 14 probe requires a fixed base-model arm")
+        if operation.startswith("task17-"):
+            cpu = operation in {"task17-prepare", "task17-replay"}
+            phase2 = operation in {"task17-calibrate", "task17-student"}
+            if (
+                payload.get("account") != "cpsc4880"
+                or not payload.get("study_id", "").startswith("repair-selfplay-2026-task17-")
+                or payload.get("gpu_count") != (0 if cpu else 1)
+                or (not cpu and payload.get("gpu_type") != "h200")
+                or payload.get("readiness_budget") != (24 if phase2 else 10)
+                or payload.get("time")
+                != (
+                    "01:00:00"
+                    if cpu
+                    else "06:00:00"
+                    if operation == "task17-student"
+                    else "02:00:00"
+                )
+            ):
+                raise ValueError("Task 17 requires its bounded isolated cpsc4880 allocation")
         if operation == "task14-static" and (
             payload.get("account") != "cpsc4880"
             or payload.get("gpu_count") != 1

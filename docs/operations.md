@@ -527,3 +527,21 @@ run records separately, then use `--run-root runs/hpc/yale-hpc-cpsc4880` to anal
 these copies without editing the original manifest. Reconcile live Yale state and ledgers before any further recovery. The six trajectory sets have been fetched and the recovered analysis is under
 `runs/task16/recovered-analysis-verified/`. All six measured development selectors
 choose final checkpoints; no additional evaluation is currently justified.
+
+
+## Task 17 bounded interface study
+
+See the [Task 17 execution plan](plan/17-repair-interface-plan.md) for commands and
+current access status. New operations are `task17-prepare` and `task17-replay`
+(CPU), `task17-interface`, `task17-calibrate`, and `task17-student`. They reuse the
+accepted allocated worker and controller's no-duplicate submission/reservation
+logic. Phase 1 and Phase 2 have independent locked 10/24 H200-hour authorization
+ledgers, including failures and relevant backend checks. These do not import or
+reset the historical readiness allowance. Reconcile Slurm/ledgers before acting.
+
+Interface labels A/B/C/D mean base-diff/base-text/B2026-diff/B2026-text.
+Conditional student labels A/B/C/D mean ungated/gated/calibrated-ungated/GRPO.
+They are different operations and study/run identities, not new C/D proposer
+training. Objective launch requires an actual evidence-backed frozen control;
+no placeholder control is provided. Treat inference partial outputs as partial,
+not complete experiments; only student operations support checkpoint resume.

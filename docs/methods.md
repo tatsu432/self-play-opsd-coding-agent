@@ -145,3 +145,18 @@ Task 15 uses unconstrained structured JSON sampling with actual token probabilit
 A keyed shuffled cycle balances training parents with at least one legal structured site; parents with an empty action list are excluded deterministically before sampling, without using semantic or student outcomes. Refill retains complete parent groups, stops at roughly four unique tasks or 64 attempted proposals, and flushes smaller batches. Reservoir storage retains the first 16 admitted mutations per parent; fallback selects among least-used fallback parents with keyed ties, at most one task per update and at most 25% cumulative task groups. The cap uses already-realized groups, never promised future exposure. The immutable proposal ceiling is 65,536 per arm. Sampling, validation, replay and fallback costs all count.
 
 Progress is attempted student episodes, including failed/malformed model responses, with infrastructure failures and abandoned physical compute distinguished. Four episodes form a task group; complete proposer groups can overshoot an evaluation/endpoint by at most three tasks (12 episodes). Checkpoints include supply counters, reservoir/oracles, parent cursor, fallback use, evaluation watermarks and both optimizer/RNG states. No partially applied update is resumable. The main endpoint is 4,096 fresh student episodes, including fresh episodes on disclosed replay tasks. Secondary held-out checkpoint selection is disabled. C/D is outside the required completion path.
+
+## Task 17 interface intervention
+
+`episode.edit_protocol: replace_text` selects exact unique text replacement in the
+existing virtual workspace. It preserves source-policy, API and import checks;
+strict diff remains the unchanged default. New episode IDs bind the selected
+protocol and budgets, and optional stored tool observations preserve final-turn
+errors. Historical records still load; new prompt/code identities do not rewrite
+historical checkpoints. See the [Task 17 specification](task/17-repair-interface-spec.md).
+
+The conditional fixed-curriculum comparison preserves Task 15's `same_scorer_v2`
+contrast and actual PPO behavior probabilities. It compares GRPO, ungated, gated
+and initially strength-calibrated ungated terms with distinct arm identities.
+Neither the frozen-model comparison nor objective training has run in Task 17;
+static recovery is not semantic verification or evidence of a gating effect.

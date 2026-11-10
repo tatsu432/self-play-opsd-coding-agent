@@ -60,11 +60,26 @@ def student_messages(task: TaskSpec, config: EpisodeConfig) -> list[dict[str, st
             TOOLS[3],
         ]
     )
+    if config.edit_protocol == "replace_text":
+        tools = [
+            TOOLS[0],
+            {
+                "action": "replace_text",
+                "path": "src/solution.py",
+                "old_text": "nonempty exact text matching one span of the CURRENT source",
+                "new_text": "replacement text; multiline or empty for deletion",
+            },
+            TOOLS[2],
+            TOOLS[3],
+        ]
+    edit_name = (
+        "replace_text" if config.edit_protocol == "replace_text" else "replace_function_body"
+    )
     return [
         {
             "role": "system",
-            "content": STUDENT.replace("apply_patch", "replace_function_body")
-            if structured
+            "content": STUDENT.replace("apply_patch", edit_name)
+            if config.edit_protocol != "unified_diff"
             else STUDENT,
         },
         {
@@ -75,7 +90,13 @@ def student_messages(task: TaskSpec, config: EpisodeConfig) -> list[dict[str, st
                     "allowed_files": list(task.student_files()),
                     "tools": tools,
                     "budget": budget(config),
-                    "protocol_version": "repair-body-v1" if structured else VERSION,
+                    "protocol_version": (
+                        "repair-text-v1"
+                        if config.edit_protocol == "replace_text"
+                        else "repair-body-v1"
+                        if structured
+                        else VERSION
+                    ),
                 }
             ),
         },
@@ -192,6 +213,9 @@ def protocol_definition() -> dict:
         "student_template": student_messages(task, EpisodeConfig()),
         "student_body_template": student_messages(
             task, EpisodeConfig(edit_protocol="replace_function_body")
+        ),
+        "student_text_template": student_messages(
+            task, EpisodeConfig(edit_protocol="replace_text")
         ),
         "proposer_template": proposer_messages(parent),
         "structured_proposer_template": structured_proposer_messages(

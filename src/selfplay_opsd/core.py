@@ -108,6 +108,7 @@ class TokenTurn(Record):
     raw_text: str
     action: str
     parse_status: str
+    observation: dict[str, Any] | None = None
     # old_logps remain actual behavior probabilities, including sampled EOS.
     frozen_unprivileged_logps: list[float] = []
     scorer_identity: dict[str, str] = {}

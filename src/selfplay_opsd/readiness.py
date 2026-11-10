@@ -138,7 +138,10 @@ def execution_identity(config: RunConfig, *, repository: TaskRepository | None =
         "scientific_code_hash": scientific_code_hash(),
         "common_hash": digest(
             (
-                config.model_copy(update={"seed": 2026}) if config.online_supply else config
+                config.model_copy(update={"seed": 2026})
+                if config.online_supply
+                or config.study_id.startswith("repair-selfplay-2026-task17-")
+                else config
             ).scientific_settings(common=True, calibration=True)
         ),
         "manifest_hash": repository.hash,

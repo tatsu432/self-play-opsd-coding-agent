@@ -1,0 +1,32 @@
+study_id: repair-selfplay-2026-task17-interface-v1
+method: B
+seed: 2026
+iterations: 16
+checkpoint_every: 1
+evaluate_every: 17
+data_root: data/protocol-v3
+output_root: runs
+model:
+  revision: cdbee75f17c01a7cc42f958dc650907174af0554
+  tokenizer_revision: cdbee75f17c01a7cc42f958dc650907174af0554
+hardware:
+  profile: single_gpu_80gb
+  cpu_workers: 7
+  rollout_concurrency: 1
+  proposer_batch_size: 1
+  microbatch_episodes: 1
+  activation_checkpointing: true
+  enable_prefix_caching: false
+  enforce_eager: true
+sandbox:
+  backend: remote
+  process_policy: single_process
+  resource_backend: slurm
+  remote_url: http://127.0.0.1:8765
+logging:
+  mode: online
+  project: self-play-opsd-coding-agent
+  upload_checkpoints: false
+sd_gap_definition: same_scorer_v2
+episode:
+  edit_protocol: replace_text

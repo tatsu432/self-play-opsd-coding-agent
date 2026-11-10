@@ -912,6 +912,29 @@ def task13_command_args(env: dict) -> list[str]:
         "--output",
         env["SELFPLAY_OUTPUT"],
     ]
+    if operation.startswith("task17-"):
+        return (
+            (["python"] if operation in {"task17-prepare", "task17-replay"} else prefix)
+            + ["/workspace/scripts/task17_experiment.py"]
+            + common
+            + [
+                "--operation",
+                operation.removeprefix("task17-"),
+                "--arm",
+                method,
+                "--seed",
+                env["SELFPLAY_SEED"],
+            ]
+            + (
+                [
+                    "--candidates",
+                    "/runs/repair-selfplay-2026-task17-interface-v1/replay-input/replay-candidates.json",
+                ]
+                if operation == "task17-replay"
+                else []
+            )
+            + (["--resume", env["SELFPLAY_RESUME"]] if env.get("SELFPLAY_RESUME") else [])
+        )
     if operation == "task14-student":
         args = (
             prefix
@@ -1114,6 +1137,11 @@ def execute(env: dict) -> int:
         "task13-probe",
         "task14-probe",
         "task14-student",
+        "task17-prepare",
+        "task17-replay",
+        "task17-interface",
+        "task17-calibrate",
+        "task17-student",
         "task14-counterfactual",
         "task14-counterfactual-replay",
         "task14-calibrate",
@@ -1149,6 +1177,11 @@ def execute(env: dict) -> int:
         "task13-probe",
         "task14-probe",
         "task14-student",
+        "task17-prepare",
+        "task17-replay",
+        "task17-interface",
+        "task17-calibrate",
+        "task17-student",
         "task14-counterfactual",
         "task14-counterfactual-replay",
         "task14-calibrate",
@@ -1387,6 +1420,11 @@ def execute(env: dict) -> int:
             "task13-probe",
             "task14-probe",
             "task14-student",
+            "task17-prepare",
+            "task17-replay",
+            "task17-interface",
+            "task17-calibrate",
+            "task17-student",
             "task14-counterfactual",
             "task14-counterfactual-replay",
             "task14-calibrate",

@@ -410,6 +410,11 @@ def run_payload(
         "task13-probe",
         "task14-probe",
         "task14-student",
+        "task17-prepare",
+        "task17-replay",
+        "task17-interface",
+        "task17-calibrate",
+        "task17-student",
         "task14-counterfactual",
         "task14-counterfactual-replay",
         "task14-calibrate",
@@ -492,13 +497,24 @@ def run_payload(
         raise HpcError("Node exclusions require trusted diagnostics and explicit node names")
     partition = partition or GPU_PARTITIONS[chosen_gpu]
     cfg = load_config(settings, method=method, hardware_profile=profile, seed=seed)
-    if seed is not None and (not operation.startswith("task15-") or seed not in {2026, 2027, 2028}):
+    if seed is not None and (
+        not operation.startswith(("task15-", "task17-")) or seed not in {2026, 2027, 2028}
+    ):
         raise HpcError("Explicit training seed is supported only for Task 15 paired seeds")
     if stop_after_iteration is not None and (
-        operation not in {"train", "task15-online", "task15-stabilize"}
+        operation not in {"train", "task15-online", "task15-stabilize", "task17-student"}
         or not 1 <= stop_after_iteration < cfg.iterations
     ):
         raise HpcError("A bounded stop requires training and an iteration below the frozen budget")
+    if operation.startswith("task17-"):
+        from selfplay_opsd.task17 import configure_operation
+
+        cfg = configure_operation(
+            cfg,
+            operation.removeprefix("task17-"),
+            method,
+            ROOT / "configs/task17-objective-control.json",
+        )
     state = remote.call("study", {"storage_root": storage, "study_id": cfg.study_id})
     if (
         operation == "train"
@@ -572,6 +588,11 @@ def run_payload(
         "task13-probe",
         "task14-probe",
         "task14-student",
+        "task17-prepare",
+        "task17-replay",
+        "task17-interface",
+        "task17-calibrate",
+        "task17-student",
         "task14-counterfactual",
         "task14-counterfactual-replay",
         "task14-calibrate",
@@ -589,6 +610,8 @@ def run_payload(
         "task13-static-continuation",
         "task13-counterfactual",
     }
+    if operation in {"task17-prepare", "task17-replay"}:
+        gpu_operation = False
     count = cfg.hardware.gpu_count if gpu_operation else 0
     if not gpu_operation:
         partition = "day"
@@ -827,6 +850,36 @@ def run_payload(
         ):
             raise HpcError("Task 14 proposal probe requires a fixed base or B200 arm")
         payload["output"] = f"/runs/repair-diagnosis-2026-task14-probe-v1/{identity[:24]}"
+    if operation.startswith("task17-"):
+        if not cfg.study_id.startswith("repair-selfplay-2026-task17-"):
+            raise HpcError("Task 17 operations require the separate Task 17 settings")
+        payload["readiness_budget"] = (
+            24 if operation in {"task17-calibrate", "task17-student"} else 10
+        )
+        payload["time"] = (
+            "06:00:00"
+            if operation == "task17-student"
+            else "01:00:00"
+            if operation in {"task17-prepare", "task17-replay"}
+            else "02:00:00"
+        )
+        suffix = (
+            "prepared"
+            if operation == "task17-prepare"
+            else "calibration"
+            if operation == "task17-calibrate"
+            else identity[:24]
+        )
+        payload["output"] = (
+            f"/runs/{cfg.study_id}/{cfg.method}-seed{cfg.seed}"
+            if operation == "task17-student"
+            else f"/runs/{cfg.study_id}/{suffix}"
+        )
+        if operation == "task17-student":
+            payload["effective_method"] = cfg.method
+            payload["max_continuations"] = 8
+            payload["iterations"] = payload["target_iterations"] = cfg.iterations
+
     if operation == "task14-student":
         if (
             method not in {"A", "B", "C", "D"}
@@ -964,6 +1017,11 @@ def run_payload(
             "task13-probe",
             "task14-probe",
             "task14-student",
+            "task17-prepare",
+            "task17-replay",
+            "task17-interface",
+            "task17-calibrate",
+            "task17-student",
             "task14-counterfactual",
             "task14-counterfactual-replay",
             "task14-calibrate",
@@ -985,6 +1043,10 @@ def run_payload(
     ):
         payload["cpus"] += cfg.sandbox.cpus
         payload["memory_gib"] += math.ceil(cfg.sandbox.memory_mib / 1024)
+    if cfg.study_id.startswith("repair-selfplay-2026-task17-"):
+        payload["readiness_budget"] = (
+            24 if "-objectives-" in cfg.study_id or operation == "task17-calibrate" else 10
+        )
     return payload
 
 

@@ -155,6 +155,35 @@ def replace_function_body(source: str, function: str, body: str) -> str:
     return result
 
 
+def replace_text(source: str, old_text: str, new_text: str) -> str:
+    """Apply one exact, unique span atomically; never normalize or infer intent."""
+    if not isinstance(old_text, str) or not isinstance(new_text, str) or not old_text:
+        raise ValueError("Replacement strings required; old_text must be nonempty")
+    if len(old_text.encode()) + len(new_text.encode()) > 65536:
+        raise ValueError("Replacement exceeds size limit")
+    start = source.find(old_text)
+    if start < 0:
+        raise ValueError("Replacement span not found")
+    if source.find(old_text, start + 1) >= 0:
+        raise ValueError("Replacement span is ambiguous")
+    result = source[:start] + new_text + source[start + len(old_text) :]
+    if len(result.encode()) > 65536:
+        raise ValueError("Replacement source exceeds size limit")
+    try:
+        before, after = validate_source(source), validate_source(result)
+    except SyntaxError as exc:
+        raise ValueError(f"Invalid Python syntax: {exc.msg} (line {exc.lineno})") from exc
+    if signature(before) != signature(after):
+        raise ValueError("Repair must preserve function APIs")
+
+    def imports(tree):
+        return [ast.dump(n) for n in ast.walk(tree) if isinstance(n, (ast.Import, ast.ImportFrom))]
+
+    if imports(before) != imports(after):
+        raise ValueError("Repair must preserve imports")
+    return result
+
+
 def normalized_family(source: str) -> str:
     """Alpha-normalized AST for transparent exact family grouping."""
     tree = ast.parse(source)
@@ -512,6 +541,9 @@ def parse_action(raw: str, edit_protocol: str = "unified_diff") -> dict:
     if edit_protocol == "replace_function_body":
         del fields["apply_patch"]
         fields["replace_function_body"] = {"action", "function", "body"}
+    elif edit_protocol == "replace_text":
+        del fields["apply_patch"]
+        fields["replace_text"] = {"action", "path", "old_text", "new_text"}
     elif edit_protocol != "unified_diff":
         raise ValueError("Unknown edit protocol")
     if (
@@ -520,6 +552,8 @@ def parse_action(raw: str, edit_protocol: str = "unified_diff") -> dict:
         or any(not isinstance(v, str) for v in value.values())
     ):
         raise ValueError("Unknown action or incorrect fields")
+    if action == "replace_text" and value["path"] != "src/solution.py":
+        raise ValueError("File path is not allowlisted")
     if action == "read_file":
         path = value["path"]
         if str(PurePosixPath(path)) != path or path not in {
