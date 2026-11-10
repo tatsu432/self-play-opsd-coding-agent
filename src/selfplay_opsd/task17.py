@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import copy
 from collections import defaultdict
 from pathlib import Path
 
@@ -55,7 +56,14 @@ def partition_parents(repository: TaskRepository) -> dict:
     return result
 
 
-def prepare_pool(repository, sandbox, output: Path, *, admission: dict | None = None) -> dict:
+def prepare_pool(
+    repository,
+    sandbox,
+    output: Path,
+    *,
+    admission: dict | None = None,
+    invalidated: list[str] | None = None,
+) -> dict:
     if output.exists():
         raise ValueError("Prepared pool already exists; inspect instead of replacing")
     requested = partition_parents(repository)
@@ -70,8 +78,11 @@ def prepare_pool(repository, sandbox, output: Path, *, admission: dict | None = 
             or admission["admitted_by_purpose"] != COUNTS
         ):
             raise ValueError("Cached admission dataset/partition/coverage differs")
-        partitions, rows = admission["partitions"], admission["rows"]
-        exclusions, replacements = admission["exclusions"], admission["replacements"]
+        partitions, rows = copy.deepcopy(admission["partitions"]), copy.deepcopy(admission["rows"])
+        exclusions, replacements = (
+            copy.deepcopy(admission["exclusions"]),
+            copy.deepcopy(admission["replacements"]),
+        )
         if len(rows) != sum(COUNTS.values()):
             raise ValueError("Cached admission is incomplete")
         for row in rows:
@@ -94,9 +105,35 @@ def prepare_pool(repository, sandbox, output: Path, *, admission: dict | None = 
                 or task.parent_id not in partitions[row["purpose"]]
             ):
                 raise ValueError("Cached verified task differs from deterministic source/cases")
-    else:
+    invalidated = invalidated or []
+    if invalidated and admission is None:
+        raise ValueError("Invalidation requires checksummed prior admission evidence")
+    for parent_id in invalidated:
+        affected = [r for r in rows if r["task"]["parent_id"] == parent_id]
+        if len(affected) != 1:
+            raise ValueError("Invalidated parent is absent or duplicated in cached admission")
+        row = affected[0]
+        purpose = row["purpose"]
+        unused = [p for p in reserve if p not in {r["task"]["parent_id"] for r in rows}]
+        if not unused:
+            raise ValueError("No unused family remains for verifier-based replacement")
+        replacement = unused[0]
+        rows.remove(row)
+        partitions[purpose].remove(parent_id)
+        partitions[purpose].append(replacement)
+        replacements.append(
+            {
+                "purpose": purpose,
+                "excluded": parent_id,
+                "replacement": replacement,
+                "reason": "isolated repeat verification invalidated prior admission",
+            }
+        )
+    if admission is None or invalidated:
+        reserve = [p for p in reserve if p not in {p for v in partitions.values() for p in v}]
         for purpose in COUNTS:
-            pending = list(partitions[purpose])
+            admitted_ids = {r["task"]["parent_id"] for r in rows}
+            pending = [p for p in partitions[purpose] if p not in admitted_ids]
             for parent_id in pending:
                 parent = by_id[parent_id]
                 public, hidden = repository.parent_cases(parent_id)

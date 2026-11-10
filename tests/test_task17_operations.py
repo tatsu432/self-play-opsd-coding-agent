@@ -327,6 +327,13 @@ def test_admission_refills_from_unused_family_without_student_selection(tmp_path
         repo, sandbox, tmp_path / "recovered/pool.json", admission=admission
     )
     assert recovered["partitions"] == pool["partitions"] and not calls
+    invalid = pool["partitions"]["interface"][0]
+    revised = module.prepare_pool(
+        repo, sandbox, tmp_path / "revised/pool.json", admission=admission, invalidated=[invalid]
+    )
+    assert invalid not in revised["partitions"]["interface"]
+    assert revised["counts"] == module.COUNTS
+    assert len(calls) == 1  # Other cached admissions are not rerun.
     admission["dataset_hash"] = "changed"
     with pytest.raises(ValueError, match="Cached admission"):
         module.prepare_pool(repo, sandbox, tmp_path / "invalid/pool.json", admission=admission)

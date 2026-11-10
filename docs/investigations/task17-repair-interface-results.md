@@ -152,3 +152,22 @@ See the [execution plan](../plan/17-repair-interface-plan.md) for the exact next
 operations and the [completion record](../task_completion/17-implemented-repair-interface.md)
 for validation and remaining work. Final held-out splits were used only for
 retrospective diagnosis, not interface prompt tuning or hyperparameter selection.
+
+### Mechanical replay and admission update (2026-11-10)
+
+CPU replay job `32794598` / run `9d9776357a4e23ae82cd34dc` completed all
+1,991 statically admissible actions, using 449 distinct task/program verifier
+calls. Among trained external episodes, 755/1,107 reconstructed actions passed;
+242 originally failed episodes contained at least one passing reconstructed
+state. This repairs diff metadata only and does not establish counterfactual
+agent accuracy. Aggregate reproduction is `scripts/analyze_task17_replay.py`.
+
+Preparation job `32801929` / run `f0b3c13f22f1fdbd0aa7e20b` diagnosed the earlier
+variant failure: `Mbpp/599`'s mutant exhausted the fixed allowance in its comment
+variant, an original-source recheck and a variant repeat (90 runtime failures,
+zero semantic failures each). Inputs reach 100,000,007; the exact cause of timing
+variation relative to initial admission remains unproven. Exclude this parent
+before inference and replace it with the next unused training family. Preserve
+the 103 other admitted originals and the checksummed diagnostic. This changes
+only Task 17; historical tasks and oracles remain unchanged. Failed preparation
+directories/ledgers are archived with their original ledger bytes.
