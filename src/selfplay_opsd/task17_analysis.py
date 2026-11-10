@@ -11,7 +11,7 @@ from selfplay_opsd.task16_analysis import paired_statistics
 
 def episode_metrics(episode: dict) -> dict:
     turns = episode["turns"]
-    raw_actions = []
+    raw_actions: list[dict | None] = []
     for turn in turns:
         try:
             raw_actions.append(strict_json_object(turn["raw_text"]))
