@@ -11,7 +11,7 @@ model:
   tokenizer_revision: cdbee75f17c01a7cc42f958dc650907174af0554
 hardware:
   profile: single_gpu_80gb
-  cpu_workers: 7
+  cpu_workers: 5
   rollout_concurrency: 1
   proposer_batch_size: 1
   microbatch_episodes: 1

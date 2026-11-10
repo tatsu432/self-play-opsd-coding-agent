@@ -6,7 +6,9 @@ Mechanical replay establishes a substantial encoding bottleneck in the saved
 trajectories. It does not measure a new agent's end-to-end accuracy. The required
 matched frozen-model comparison is next; exact replacement has not yet been
 selected for training. Full C/D remains deferred. No Task 17 GPU allocation has
-yet started.
+yet started. The first submission was rejected before allocation because H200
+permits at most six CPUs per GPU. Task 17 now requests five trainer CPUs plus
+one isolated-worker CPU; science and runtime compatibility are unchanged.
 
 ## Retrospective evidence
 
@@ -93,7 +95,7 @@ failures and zero semantic failures each. Inputs reach 100,000,007; the cause of
 timing variation from initial admission is unproven. Exclude it before inference
 and use the next reserved family, retaining the other 103 admissions.
 
-Replacement preparation `32804290` / `86e2df49bb04a9321f7d755d` is active from
+Replacement preparation `32804290` / `86e2df49bb04a9321f7d755d` completed exit 0 from
 execution `8654b20`. Failed preparation directories and original ledger bytes
 remain archived with updated artifact locations and archive histories. No
 historical Task 15 task, oracle, checkpoint or result was changed.
@@ -118,3 +120,7 @@ Replay candidates SHA-256:
 `37f01a4e83c7522e97c4936f44ec1a1cd56411ef62cad430896593c5bbf65f8f`.
 See the [execution plan](../plan/17-repair-interface-plan.md) and
 [completion record](../task_completion/17-implemented-repair-interface.md).
+
+Prepared pool SHA-256: `602eaf506f8ac2cf17924596dae7c0ff3891ef5034a546d4d3751b9803412c83`.
+All 120 rows passed tokenizer admission under both protocols. Rejected GPU
+submission `dc2a6394ef94ef1bd7768b1e` has no scheduler job or charged allocation.
