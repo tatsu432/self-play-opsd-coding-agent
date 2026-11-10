@@ -198,9 +198,7 @@ def test_controller_binds_effective_interface_and_resources(
         "selfplay_opsd.readiness.execution_identity",
         lambda cfg: {"manifest_hash": "d" * 64, "interface": cfg.episode.edit_protocol},
     )
-    result = hpc.run_payload(
-        Remote(),
-        "yale-hpc-cpsc4880",
+    kwargs = dict(
         operation=operation,
         method="D",
         profile="single_gpu_80gb",
@@ -211,12 +209,34 @@ def test_controller_binds_effective_interface_and_resources(
         settings=Path("configs/task17.yaml"),
         seed=2026,
     )
+    result = hpc.run_payload(Remote(), "yale-hpc-cpsc4880", **kwargs)
     assert result["gpu_count"] == count
     assert result["readiness_budget"] == budget
     assert result["time"] == time_limit
     assert result["runtime_identity"]["interface"] == (
         "replace_text" if operation == "task17-interface" else "unified_diff"
     )
+    if operation == "task17-interface":
+
+        class DependentRemote(Remote):
+            def call(self, name, *args):
+                if name == "status":
+                    return {
+                        "ledger": {
+                            "specification": {
+                                "operation": operation,
+                                "study_id": result["study_id"],
+                            }
+                        },
+                        "attempts": [{"job_id": "123", "scheduler": {"state": "RUNNING"}}],
+                    }
+                return super().call(name, *args)
+
+        dependent = hpc.run_payload(
+            DependentRemote(), "yale-hpc-cpsc4880", afterok_run="a" * 24, **kwargs
+        )
+        assert dependent["afterok"] == {"run_id": "a" * 24, "job_id": "123"}
+        assert dependent["identity"] != result["identity"]
 
 
 def test_phase2_backend_uses_phase2_budget_without_operation_key(tmp_path, monkeypatch):
@@ -381,3 +401,20 @@ def test_metrics_distinguish_json_schema_and_tool_acceptance():
     assert metrics["accepted_edits"] == 1
     assert metrics["rejected_edits"] == 2
     assert metrics["first_edit_turn"] == 4
+
+
+def test_sequential_gpu_cells_use_native_afterok_without_parallel_allocation():
+    remote = script("hpc_remote")
+    base = {"operation": "task17-interface"}
+    assert remote.sequential_dependency(base) == []
+    dependency = {"run_id": "a" * 24, "job_id": "32805621"}
+    assert remote.sequential_dependency(base | {"afterok": dependency}) == [
+        "--dependency=afterok:32805621"
+    ]
+    for payload in (
+        {"operation": "train", "afterok": dependency},
+        base | {"afterok": dependency | {"job_id": "32805621,other"}},
+        base | {"afterok": dependency | {"run_id": "../escape"}},
+    ):
+        with pytest.raises(ValueError, match="dependency"):
+            remote.sequential_dependency(payload)

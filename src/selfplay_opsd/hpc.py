@@ -394,6 +394,7 @@ def run_payload(
     exclude_nodes: list[str] | None = None,
     stop_after_iteration: int | None = None,
     seed: int | None = None,
+    afterok_run: str | None = None,
 ) -> dict:
     if operation not in {
         "backend-check",
@@ -657,6 +658,21 @@ def run_payload(
         }
     from selfplay_opsd.telemetry import telemetry_identity
 
+    predecessor = None
+    if afterok_run is not None:
+        if operation != "task17-interface" or not re.fullmatch(r"[a-f0-9]{24}", afterok_run):
+            raise HpcError("Sequential dependency requires a Task 17 interface run ID")
+        prior = remote.call("status", {"storage_root": storage, "run_id": afterok_run})
+        spec = prior["ledger"]["specification"]
+        if spec["operation"] != operation or spec["study_id"] != cfg.study_id:
+            raise HpcError("Sequential predecessor belongs to a different operation/study")
+        if not prior.get("attempts"):
+            raise HpcError("Sequential predecessor has no scheduler attempt")
+        attempt = prior["attempts"][-1]
+        if attempt["scheduler"]["state"] not in {"PENDING", "RUNNING", "COMPLETING", "COMPLETED"}:
+            raise HpcError("Sequential predecessor is failed or uncertain")
+        predecessor = {"run_id": afterok_run, "job_id": attempt["job_id"]}
+        logical["afterok"] = predecessor
     identity = hashlib.sha256(json.dumps(logical, sort_keys=True).encode()).hexdigest()
     planning = (
         state["reports"]["freeze"].get("resource_plan", {}).get("per_method", {}).get(method, {})
@@ -1047,6 +1063,8 @@ def run_payload(
         payload["readiness_budget"] = (
             24 if "-objectives-" in cfg.study_id or operation == "task17-calibrate" else 10
         )
+    if predecessor is not None:
+        payload["afterok"] = predecessor
     return payload
 
 
@@ -1486,6 +1504,7 @@ def submit_command(
     secrets_file: str | None = None,
     stop_after_iteration: int | None = None,
     seed: int | None = None,
+    afterok_run: str | None = None,
     dry_run: bool = False,
     alias: str = ALIASES[0],
 ):
@@ -1510,6 +1529,7 @@ def submit_command(
         secrets_file=secrets_file,
         stop_after_iteration=stop_after_iteration,
         seed=seed,
+        afterok_run=afterok_run,
     )
     output(remote.call("preview" if dry_run else "submit", payload))
 

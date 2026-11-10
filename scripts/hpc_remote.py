@@ -735,7 +735,21 @@ def completed_job_is_final(payload: dict) -> bool:
     )
 
 
+def sequential_dependency(payload: dict) -> list[str]:
+    dependency = payload.get("afterok")
+    if dependency is None:
+        return []
+    if (
+        payload["operation"] != "task17-interface"
+        or not re.fullmatch(r"[1-9][0-9]{0,11}", str(dependency.get("job_id", "")))
+        or not re.fullmatch(r"[a-f0-9]{24}", str(dependency.get("run_id", "")))
+    ):
+        raise ValueError("Invalid sequential Task 17 dependency")
+    return [f"--dependency=afterok:{dependency['job_id']}"]
+
+
 def submit(payload: dict) -> dict:
+    dependency_args = sequential_dependency(payload)
     p = paths(payload)
     path = ledger_path(payload)
     sync = json.loads((p["state"] / f"sync-{payload['commit']}.json").read_text())
@@ -1030,6 +1044,7 @@ def submit(payload: dict) -> dict:
             args.append("--exclude=" + ",".join(payload["exclude_nodes"]))
         if payload.get("qos"):
             args.append(f"--qos={payload['qos']}")
+        args += dependency_args
         args += ["--export=" + ",".join(f"{k}={v}" for k, v in exports.items()), str(script)]
         result = run(args, check=False)
         if result.returncode:

@@ -545,3 +545,12 @@ They are different operations and study/run identities, not new C/D proposer
 training. Objective launch requires an actual evidence-backed frozen control;
 no placeholder control is provided. Treat inference partial outputs as partial,
 not complete experiments; only student operations support checkpoint resume.
+
+For Task 17 interface cells, `--afterok-run RUN_ID` queues a cell using Slurm's
+native successful-completion dependency on that managed run's latest job. The
+predecessor must belong to the same study/operation and have a known active or
+completed scheduler state. The dependency is part of the new immutable run
+identity. This permits sequential GPU execution without waiting to submit each
+cell; it does not allocate GPUs concurrently. Inspect the first cell's early
+outputs before queuing successors. A failed predecessor leaves successors
+blocked; reconcile/cancel them rather than releasing dependencies blindly.
