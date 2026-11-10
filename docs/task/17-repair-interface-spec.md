@@ -79,3 +79,11 @@ Acceptance-only gains do not establish improved capability. A limited matched
 adaptation remains conditional on observed schema unfamiliarity and remaining
 Phase 1 budget; no adaptation has been run or selected. If results are uncertain,
 retain strict diff. Phase 2 remains conditional on informative Phase 1 evidence.
+
+Finalize calibration before starting the training pilots: a preliminary control
+contains actual Phase 1 evidence, then the measured coefficient and calibration
+checksum enter the final shared control. Training continuations require its exact
+SHA-256. Calibrated coefficients must be finite positive numbers. Initial base
+adapters are verified explicitly. Scientific fingerprints include the reused
+static trainer and calibration helper as well as the Task 17 runner/recovery code.
+The clean-stop continuation route retains completed-inference duplicate guards.

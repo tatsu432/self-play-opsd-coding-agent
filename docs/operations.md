@@ -554,3 +554,13 @@ identity. This permits sequential GPU execution without waiting to submit each
 cell; it does not allocate GPUs concurrently. Inspect the first cell's early
 outputs before queuing successors. A failed predecessor leaves successors
 blocked; reconcile/cancel them rather than releasing dependencies blindly.
+
+Task 17 objective studies can use `hpc reuse-runtime SOURCE_STUDY --settings
+TARGET_SETTINGS` after one current executed runtime check. It requires identical
+scientific code, model/tokenizer revision, pinned trainer/worker, data identity
+and sandbox execution limits. It retains the raw executed proof by SHA-256 and
+publishes an explicit dependency-equivalence record with the original provenance.
+This acceptance covers the executed data/verifier checks. Tool tests and bounded
+GPU pilots establish interface and optimization behavior. Changed code, images,
+data or limits require actual matching validation. This avoids repeating the same
+306-task CPU verifier audit for each loss/endpoint configuration.

@@ -731,7 +731,8 @@ def completed_job_is_final(payload: dict) -> bool:
     """Task 15 training may continue only with an explicitly verified checkpoint."""
     operation = payload["operation"]
     return operation not in {"pilot", "train"} and not (
-        operation in {"task15-online", "task15-stabilize"} and payload.get("resume")
+        operation in {"task15-online", "task15-stabilize", "task17-student"}
+        and payload.get("resume")
     )
 
 
@@ -2431,6 +2432,72 @@ def reuse_worker(payload: dict) -> dict:
     return {"ready": True, "evidence": str(target), "provenance": reused["reuse_provenance"]}
 
 
+def reuse_runtime(payload: dict) -> dict:
+    """Reuse executed verifier acceptance across Task 17 loss/interface settings."""
+    source_study, study = payload["source_study"], payload["study_id"]
+    if source_study == study or not all(
+        SAFE_NAME.fullmatch(s) and s.startswith("repair-selfplay-2026-task17-")
+        for s in (source_study, study)
+    ):
+        raise ValueError("Distinct Task 17 studies required for runtime reuse")
+    base = workspace(payload)
+    source = base / "runs/readiness" / source_study / "runtime.json"
+    raw = source.read_bytes()
+    report = json.loads(raw)
+    expected, actual = payload["runtime_identity"], report.get("runtime_identity", {})
+    if (
+        not actual.get("common_hash")
+        or not expected.get("common_hash")
+        or {k: v for k, v in actual.items() if k != "common_hash"}
+        != {k: v for k, v in expected.items() if k != "common_hash"}
+    ):
+        raise ValueError("Runtime code/model/image/worker/data dependencies changed")
+    validation = report.get("validation", {})
+    if not (
+        report.get("ready")
+        and report.get("isolation", {}).get("ready")
+        and validation.get("ready")
+        and validation.get("executed")
+        and validation.get("checked_tasks")
+        and all(int(n) > 0 for n in validation["checked_tasks"].values())
+        and validation.get("manifest_hash") == expected["manifest_hash"]
+        and validation.get("execution_limits") == payload["execution_limits"]
+        and validation.get("sandbox_image_digest") == "sha256:" + expected["worker_sha256"]
+        and validation.get("family_audit") == validation.get("split_audit") == "pass"
+    ):
+        raise ValueError("Executed verifier/isolation acceptance is missing or limits changed")
+    content_hash = hashlib.sha256(raw).hexdigest()
+    archive = base / "runs/compatibility/task17-runtime" / (content_hash + ".json")
+    target = base / "runs/readiness" / study / "runtime.json"
+    reused = report | {
+        "runtime_identity": expected,
+        "original_runtime_identity": actual,
+        "reuse_provenance": {"source": str(archive), "sha256": content_hash},
+        "reuse_scope": "Identical executed data/verifier dependencies; no new loss, model-generation or learning acceptance",
+    }
+    with locked(base / "state/.task17-runtime-evidence.lock"):
+        archive.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        if archive.exists() and archive.read_bytes() != raw:
+            raise ValueError("Immutable runtime proof archive differs")
+        if not archive.exists():
+            archive.write_bytes(raw)
+        if target.exists() and json.loads(target.read_text()) != reused:
+            previous = target.read_bytes()
+            old = archive.with_name(hashlib.sha256(previous).hexdigest() + ".json")
+            if old.exists() and old.read_bytes() != previous:
+                raise ValueError("Previous runtime proof archive differs")
+            if not old.exists():
+                old.write_bytes(previous)
+        write_json(target.with_name("validation.json"), validation)
+        write_json(target, reused)
+    return {
+        "ready": True,
+        "evidence": str(target),
+        "provenance": reused["reuse_provenance"],
+        "scope": reused["reuse_scope"],
+    }
+
+
 def reuse_telemetry(payload: dict) -> dict:
     """Reuse the actual allocated-node cloud proof when its dependencies match."""
     source_study, study = payload["source_study"], payload["study_id"]
@@ -2695,6 +2762,7 @@ COMMANDS = {
     "recover": recover,
     "recover_allocation": recover_allocation,
     "reuse_worker": reuse_worker,
+    "reuse_runtime": reuse_runtime,
     "reuse_telemetry": reuse_telemetry,
     "reuse_allocation": reuse_allocation,
     "reuse_study": reuse_study,

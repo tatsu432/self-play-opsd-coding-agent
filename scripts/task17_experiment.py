@@ -20,7 +20,13 @@ from selfplay_opsd.environment import check_admission, run_episode, score_teache
 from selfplay_opsd.evaluation import verify_base_adapter
 from selfplay_opsd.protocol import PROMPT_HASH
 from selfplay_opsd.sandbox import SandboxBackend
-from selfplay_opsd.storage import CheckpointManager, atomic_json, file_hash, provenance
+from selfplay_opsd.storage import (
+    CheckpointManager,
+    atomic_json,
+    file_hash,
+    provenance,
+    scientific_code_hash,
+)
 from selfplay_opsd.task17 import STUDY, configure_operation, load_pool, prepare_pool
 from selfplay_opsd.task17_recovery import admit_repair
 from selfplay_opsd.trainer import SelfPlayTrainer, student_examples
@@ -281,7 +287,7 @@ def main():
         imported = None
         if args.operation == "interface" and args.arm in {"C", "D"}:
             imported = load_historical_weights(policy, cfg, repo, args.checkpoint)
-        elif args.operation != "student":
+        else:
             verify_base_adapter(policy)
         manifest = {
             "study_id": cfg.study_id,
@@ -308,6 +314,7 @@ def main():
                 for t, o in items
             },
             "control_sha256": file_hash(args.control) if control is not None else None,
+            "scientific_code_hash": scientific_code_hash(),
             "prompt_hash": PROMPT_HASH,
             "provenance": provenance(),
         }
@@ -324,6 +331,7 @@ def main():
                 "model",
                 "task_ids",
                 "prompt_hash",
+                "control_sha256",
             ):
                 if manifest[field] != old_manifest[field]:
                     raise ValueError("Resumed operation input differs")
@@ -379,6 +387,7 @@ def main():
                             pool_hash,
                             manifest["snapshot"],
                             PROMPT_HASH,
+                            manifest["scientific_code_hash"],
                         ]
                     )[:24],
                     mode=cfg.logging.mode,

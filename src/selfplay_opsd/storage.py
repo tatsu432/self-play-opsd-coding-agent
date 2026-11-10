@@ -74,6 +74,7 @@ def scientific_code_hash() -> str:
         "trainer.py",
         "task15.py",
         "task17.py",
+        "task17_recovery.py",
         "task15_audit.py",
         "task15_freeze.py",
         "rollout.py",
@@ -86,8 +87,9 @@ def scientific_code_hash() -> str:
         "pilot.py",
     )
     files = {name: file_hash(package / name) for name in names}
-    runner = package.parents[1] / "scripts/task17_experiment.py"
-    files["scripts/task17_experiment.py"] = file_hash(runner) if runner.is_file() else "MISSING"
+    for name in ("task17_experiment.py", "task13_static.py", "task14_calibrate.py"):
+        runner = package.parents[1] / "scripts" / name
+        files["scripts/" + name] = file_hash(runner) if runner.is_file() else "MISSING"
     return digest(files)
 
 

@@ -833,6 +833,25 @@ class SelfPlayTrainer:
                 "hidden_full_pass_fraction": sum(e.hidden_pass for e in episodes) / len(episodes)
                 if episodes
                 else None,
+                "public_pass_hidden_fail_fraction": sum(
+                    e.public_pass and not e.hidden_pass for e in episodes
+                )
+                / len(episodes)
+                if episodes
+                else None,
+                "action_counts": dict(Counter(t.action for e in episodes for t in e.turns)),
+                "parsed_edit_accept_count": sum(
+                    t.action in {"apply_patch", "replace_text", "replace_function_body"}
+                    and t.parse_status == "valid"
+                    for e in episodes
+                    for t in e.turns
+                ),
+                "parsed_edit_reject_count": sum(
+                    t.action in {"apply_patch", "replace_text", "replace_function_body"}
+                    and t.parse_status != "valid"
+                    for e in episodes
+                    for t in e.turns
+                ),
                 "sampled_token_surprisal": distribution(
                     [-v for e in episodes for t in e.turns for v in t.old_logps]
                 ),

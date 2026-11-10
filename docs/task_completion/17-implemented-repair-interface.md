@@ -74,3 +74,15 @@ telemetry, update this record and README, then merge to local main and push.
 See the [results report](../investigations/task17-repair-interface-results.md) and
 [execution plan](../plan/17-repair-interface-plan.md). Historical Task 15 remains
 immutable; existing final splits are retrospective/exploratory development inputs.
+
+The four primary cells have now completed, totaling 4,140 allocated H200-seconds
+(1.15 GPU-hours); paired analysis/decision is being finalized. New conditional
+student code verifies base initialization, finite calibration and the frozen
+control checksum on continuation. It also binds reused scientific helper scripts
+and supports clean pilot continuation. Runtime dependency reuse preserves an
+actual executed verifier proof and its hash; changed scientific code still
+requires one fresh check before any new student operation. No objective training
+has started. Full local CPU selection after these changes: **419 passed,
+34 skipped, four deselected**; focused control/checkpoint/storage/HPC checks:
+**57 passed**. Lint, formatting and mypy passed. Historical interface cells retain
+their original immutable execution identities.

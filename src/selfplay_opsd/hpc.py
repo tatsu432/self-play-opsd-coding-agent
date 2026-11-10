@@ -132,6 +132,7 @@ class YaleSSH:
             "recover",
             "recover_allocation",
             "reuse_worker",
+            "reuse_runtime",
             "reuse_telemetry",
             "reuse_allocation",
             "reuse_study",
@@ -1360,6 +1361,40 @@ def reuse_worker_command(
                 "execution_limits": cfg.sandbox.execution_limits(),
                 "supervisor_hash": supervisor_hash(),
                 "worker_setup_id": "",
+            },
+        )
+    )
+
+
+@app.command("reuse-runtime")
+def reuse_runtime_command(
+    source_study: str, settings: Path = Path("configs/task17.yaml"), alias: str = ALIASES[0]
+):
+    """Reuse identical executed Task 17 verifier dependencies, retaining raw proof."""
+    if alias != ALIASES[0]:
+        raise HpcError("Runtime reuse is restricted to the authorized cpsc4880 workspace")
+    from selfplay_opsd.readiness import execution_identity
+
+    remote = YaleSSH(alias)
+    context = remote_context(remote, alias)
+    cfg = load_config(settings)
+    state = remote.call(
+        "study", {"storage_root": context["storage_root"], "study_id": source_study}
+    )
+    identity = execution_identity(cfg) | {
+        "trainer_sha256": state["images"]["trainer"]["sha256"],
+        "worker_sha256": state["images"]["worker"]["sha256"],
+        "worker_setup_id": state["reports"]["worker"].get("worker_setup_id", ""),
+    }
+    output(
+        remote.call(
+            "reuse_runtime",
+            {
+                "storage_root": context["storage_root"],
+                "study_id": cfg.study_id,
+                "source_study": source_study,
+                "runtime_identity": identity,
+                "execution_limits": cfg.sandbox.execution_limits(),
             },
         )
     )

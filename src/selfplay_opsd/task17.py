@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 import copy
+import math
 from collections import defaultdict
 from pathlib import Path
 
@@ -386,7 +387,11 @@ def configure_operation(cfg, operation: str, arm: str, control_path: Path):
             cfg.gradient_diagnostics = True
             if arm == "C":
                 coefficient = control.get("calibration_coefficient")
-                if not isinstance(coefficient, (int, float)) or coefficient <= 0:
+                if (
+                    type(coefficient) not in {int, float}
+                    or not math.isfinite(coefficient)
+                    or coefficient <= 0
+                ):
                     raise ValueError("Calibrated arm needs a finite positive frozen coefficient")
                 cfg.objective.sd_lambda = coefficient
     return cfg

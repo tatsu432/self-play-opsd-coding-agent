@@ -458,3 +458,109 @@ def test_cell_analysis_binds_actual_provenance_to_scheduler_science():
         verify_cell_execution(changed, status)
     with pytest.raises(ValueError, match="allocation"):
         verify_cell_execution(cell | {"prompt_hash": "wrong"}, status)
+
+
+@pytest.mark.parametrize("value", [0, -1, float("nan"), float("inf"), True, "0.1", None])
+def test_calibrated_control_requires_finite_positive_number(tmp_path, value):
+    path = tmp_path / "control.json"
+    path.write_text(
+        json.dumps({"interface": "replace_text", "episodes": 80, "calibration_coefficient": value})
+    )
+    with pytest.raises(ValueError, match="finite positive"):
+        configure_operation(load_config(Path("configs/task17.yaml")), "student", "C", path)
+
+
+@pytest.mark.parametrize(
+    "dependency", ["task17_recovery.py", "task13_static.py", "task14_calibrate.py"]
+)
+def test_scientific_identity_binds_reused_task17_dependencies(monkeypatch, dependency):
+    import selfplay_opsd.storage as storage
+
+    baseline = storage.scientific_code_hash()
+    original = storage.file_hash
+    monkeypatch.setattr(
+        storage, "file_hash", lambda path: "0" * 64 if path.name == dependency else original(path)
+    )
+    assert storage.scientific_code_hash() != baseline
+
+
+def test_runtime_reuse_preserves_executed_proof_and_rejects_changed_dependencies(
+    tmp_path, monkeypatch
+):
+    import hashlib
+
+    remote = script("hpc_remote")
+    monkeypatch.setattr(remote, "workspace", lambda _: tmp_path)
+    source_study = "repair-selfplay-2026-task17-interface-v1"
+    target_study = "repair-selfplay-2026-task17-objectives-B-v1"
+    identity = {
+        "common_hash": "source",
+        "scientific_code_hash": "science",
+        "code_hash": "code",
+        "manifest_hash": "data",
+        "trainer_sha256": "trainer",
+        "worker_sha256": "worker",
+        "model_revision": "model",
+        "tokenizer_revision": "tokenizer",
+    }
+    limits = {"public_seconds": 10, "verifier_seconds": 30}
+    report = {
+        "ready": True,
+        "isolation": {"ready": True},
+        "runtime_identity": identity,
+        "provenance": {"git_commit": "executed-commit"},
+        "validation": {
+            "ready": True,
+            "executed": True,
+            "checked_tasks": {"train": 5, "external": 4},
+            "manifest_hash": "data",
+            "execution_limits": limits,
+            "sandbox_image_digest": "sha256:worker",
+            "family_audit": "pass",
+            "split_audit": "pass",
+        },
+    }
+    source = tmp_path / "runs/readiness" / source_study / "runtime.json"
+    source.parent.mkdir(parents=True)
+    source.write_text(json.dumps(report))
+    original = source.read_bytes()
+    payload = {
+        "source_study": source_study,
+        "study_id": target_study,
+        "runtime_identity": identity | {"common_hash": "different-objective"},
+        "execution_limits": limits,
+    }
+    result = remote.reuse_runtime(payload)
+    target = Path(result["evidence"])
+    reused = json.loads(target.read_text())
+    assert source.read_bytes() == original
+    assert Path(result["provenance"]["source"]).read_bytes() == original
+    assert result["provenance"]["sha256"] == hashlib.sha256(original).hexdigest()
+    assert reused["runtime_identity"] == payload["runtime_identity"]
+    assert reused["original_runtime_identity"] == identity
+    assert reused["provenance"] == report["provenance"]
+    assert reused["validation"] == report["validation"]
+    published = target.read_bytes()
+    for field in ("scientific_code_hash", "worker_sha256", "manifest_hash", "model_revision"):
+        with pytest.raises(ValueError, match="dependencies changed"):
+            remote.reuse_runtime(
+                payload | {"runtime_identity": payload["runtime_identity"] | {field: "changed"}}
+            )
+    with pytest.raises(ValueError, match="limits changed"):
+        remote.reuse_runtime(payload | {"execution_limits": limits | {"verifier_seconds": 60}})
+    report["validation"]["executed"] = False
+    source.write_text(json.dumps(report))
+    with pytest.raises(ValueError, match="acceptance"):
+        remote.reuse_runtime(payload)
+    assert target.read_bytes() == published
+
+
+def test_clean_student_pilot_can_resume_without_relaunching_completed_inference():
+    remote = script("hpc_remote")
+    assert remote.completed_job_is_final({"operation": "task17-student"})
+    assert not remote.completed_job_is_final(
+        {"operation": "task17-student", "resume": "/runs/study/checkpoints/000004"}
+    )
+    assert remote.completed_job_is_final(
+        {"operation": "task17-interface", "resume": "/runs/irrelevant"}
+    )
