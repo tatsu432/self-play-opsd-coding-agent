@@ -6,7 +6,27 @@ After completing each task, update `README.md` to concisely describe the researc
 problem, approaches, current progress and results. Link detailed evidence and
 procedures to the relevant Markdown documents; keep the README short and current.
 
-## CURRENT — Task 17 retrieval blocked (2026-11-10)
+## CURRENT — Task 17 Phase 2 preparation (2026-11-11)
+
+The four existing interface cells and Slurm accounting are fetched and analyzed
+at `runs/task17/interface-analysis-v1/`. On 40 original training families,
+base strict/text verified 5/40 and 19/40 (paired +35 points, 95% family
+bootstrap +17.5 to +50); trained B2026 verified 27/40 and 21/40 (−15 points,
+interval −35 to +5). Actual Phase 1 allocation: 1.15 H200-hours. Exact text and
+an 80-episode endpoint are selected for the fresh-base objective comparison.
+Commit `3cec79321fc69c75670ae43d1f2d54756a096a40` contains the preliminary
+control and aggregate evidence. Evidence SHA-256 is
+`1755dc0788a38c3e915fdd19e0b186cd46873f7cb84165e573b4ac73e395852d`, uploaded
+to `/runs/repair-selfplay-2026-task17-interface-v1/evidence/phase1-summary.json`.
+CPU runtime job `32872199`, run `cc5ec4e1db0226c7f6dcbe29`, was submitted once
+from that commit. Inspect its live ledger; do not duplicate. No calibration or
+objective training is submitted yet. Once it passes, submit calibration once,
+freeze its measured coefficient and checksum, then run bounded GRPO/gated pilots
+and assess them before any continuation. Preserve the 24-hour Phase 2 ceiling,
+isolation, actual behavior denominators, data separation and no-duplicate rules.
+The following Task 17 retrieval snapshot is historical.
+
+## Historical — Task 17 retrieval blocked (2026-11-10)
 
 All 1,617 historical trajectories are audited. Isolated CPU replay `32794598` /
 `9d9776357a4e23ae82cd34dc` verified 1,991 reconstructions / 449 unique programs;
