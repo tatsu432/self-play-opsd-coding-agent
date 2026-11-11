@@ -6,6 +6,33 @@ After completing each task, update `README.md` to concisely describe the researc
 problem, approaches, current progress and results. Link detailed evidence and
 procedures to the relevant Markdown documents; keep the README short and current.
 
+## CURRENT — Task 17 seed-2026 nominal running (2026-11-11)
+
+Calibrated ungated seed-2026 job `32965435` / `c2b42d3907d2eefdd2c8fbe1`
+completed exit 0 in 4,607 H200-seconds, with endpoint identity and three file
+checksums verified. Monitoring at 0/40/80 was 21/29/28 out of 41, independent
+development 7/8/9 out of 16. Its original-code identity and initial adapters
+matched seed-2026 GRPO/gated; baseline outcomes matched task by task. All ten
+gradients were finite. Maximum rollout/rescoring mismatch was 5.4899 at
+iteration 4; 0.1793% of 3,346 sampled tokens exceeded 0.2 in that batch. Its
+impact is unknown; retain the behavior denominator and numerical limitation.
+Never duplicate. Calibrated independent endpoints across 2026/27/28 were 9/9/9,
+versus gated 10/8/10 out of 16. Family-bootstrap uncertainty is conditional
+on each training seed; the updated private analysis is
+`runs/task17/objective-analysis-calibrated-three-seeds/`.
+
+Nominal ungated seed-2026 job `32974012` / `436bb48b5ccec3e6d508213b` was
+submitted once from `3197d06167956e0e6019c1e2f22e4595737a44ce` after matching
+original-code proof and a passing preview; inspect its ledger, never duplicate.
+It started immediately with the original six-hour reservation and time limit.
+Completed Phase 2 allocation totals 49,903 H200-seconds (13.86194 GPU-hours),
+including failed jobs and calibration. After this job completes, restore the
+current-code matching A runtime proof and launch nominal seed-2028 once within
+the remaining 24-hour budget. Then reconcile, analyze all arms, update docs and
+README, run appropriate final tests, merge the completed branch locally to main
+and push, preserving private artifacts and no-duplicate safeguards. No full
+proposer C/D.
+
 ## CURRENT — Task 17 seed-2026 calibrated running (2026-11-11)
 
 Nominal ungated seed-2027 job `32956169` / `b61e831028a66f9a447ba5bf`

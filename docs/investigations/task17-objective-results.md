@@ -221,6 +221,27 @@ calibration. Seed-2026 calibrated job `32965435` / `c2b42d3907d2eefdd2c8fbe1`
 is running with the original seed-2026 scientific-code and adapter identities.
 Further nominal ungated controls remain planned within the 24-hour ceiling.
 
+## Calibrated controls across three seeds
+
+Calibrated seed-2026 job `32965435` / `c2b42d3907d2eefdd2c8fbe1` completed
+exit 0 in 4,607 H200-seconds; endpoint identity and three checkpoint file hashes
+passed. It used the original 2026 scientific-code hash and exactly matched
+initial adapter and baseline task outcomes. Monitoring was 21/29/28 out of 41
+and independent development 7/8/9 out of 16. Gated scored 21/27/28 and 7/9/10;
+GRPO scored 21/25/25 and 7/9/10. Its ten gradients were finite. Iteration 4's
+maximum rollout/rescoring log-probability difference was 5.4899, with 0.1793%
+of 3,346 sampled tokens differing by more than 0.2; its causal effect is
+unknown and behavior probabilities remain preserved.
+
+Calibrated independent endpoints over 2026/27/28 were 9/9/9, versus gated
+10/8/10 and GRPO 10/8/9 out of 16. These are paired descriptions of three
+training seeds on the same fixed tasks. [Updated curves and allocation](../figures/task17/objective-learning-efficiency-calibrated-three-seeds.png)
+include actual Slurm charges; nominal ungated still has fewer completed seeds.
+Nominal seed-2026 job `32974012` / `436bb48b5ccec3e6d508213b` was submitted
+once using the same original 2026 scientific-code proof and has started.
+Completed Phase 2 allocations total 49,903 H200-seconds, including failures and
+calibration. Nominal seed-2028 remains planned within the 24-hour ceiling.
+
 ## Reproduction after endpoints
 
 Fetch each existing run with `uv run selfplay hpc fetch RUN_ID`, verify its
