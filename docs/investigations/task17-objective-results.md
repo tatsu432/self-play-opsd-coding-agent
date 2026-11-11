@@ -186,6 +186,24 @@ been submitted once and are pending. Completed Phase 2 allocations total
 for these jobs remain inside the 24-hour ceiling. These are student controls,
 not full proposer C/D studies.
 
+## Further ungated controls in progress
+
+Calibrated ungated seed 2028 `29dfbeda3055a7ad827da642` (job `32956243`)
+completed exit 0 in 4,791 H200-seconds; endpoint identity and all checkpoint
+file checksums passed. Its monitoring curve was 21/26/26 and independent
+curve 7/8/9. Gated scored 21/25/31 and 7/8/10, while GRPO scored 21/15/24
+and 7/6/9. All are out of 41 and 16 respectively. These are matched single-seed
+results with ongoing analyses, not population conclusions.
+
+Nominal ungated seed-2027 job `32956169` / `b61e831028a66f9a447ba5bf` is
+finishing its independent endpoint after monitoring 21/25/32; it has not been
+resubmitted. Seed-2026 calibrated job `32965435` / `c2b42d3907d2eefdd2c8fbe1`
+was submitted once from original execution `3197d06167956e0e6019c1e2f22e4595737a44ce`
+with the preserved executed runtime proof and scientific-code hash matching its
+seed-2026 GRPO/gated comparators. It is pending. Completed Phase 2 allocations
+are 40,211 H200-seconds; the two original six-hour reservations remain within
+24 H200-hours. These are student-objective controls, not proposer C/D studies.
+
 ## Reproduction after endpoints
 
 Fetch each existing run with `uv run selfplay hpc fetch RUN_ID`, verify its

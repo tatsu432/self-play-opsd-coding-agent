@@ -6,6 +6,34 @@ After completing each task, update `README.md` to concisely describe the researc
 problem, approaches, current progress and results. Link detailed evidence and
 procedures to the relevant Markdown documents; keep the README short and current.
 
+## CURRENT — Task 17 seed-2026 calibrated control (2026-11-11)
+
+Seed-2028 calibrated ungated student job `32956243` / `29dfbeda3055a7ad827da642`
+completed exit 0 in 4,791 H200-seconds; endpoint identity and three checkpoint
+checksums were verified. Monitoring at 0/40/80 was 21/26/26 out of 41 and
+independent development was 7/8/9 out of 16. Gated endpoint was 31/41 and
+10/16; GRPO was 24/41 and 9/16. Never duplicate. Nominal ungated seed-2027 job
+`32956169` / `b61e831028a66f9a447ba5bf` remains running in its independent
+endpoint evaluation: monitoring 21/25/32, independent so far 7/9 out of 16.
+Its matching seed-2027 scientific code and initial adapters were verified.
+
+Seed-2026 calibrated job `32965435` / `c2b42d3907d2eefdd2c8fbe1` was submitted
+once from the isolated original-code checkout `/private/tmp/selfplay-task17-seed2026`,
+commit `3197d06167956e0e6019c1e2f22e4595737a44ce`, after passing preview and
+reusing the exact archived executed runtime proof SHA-256
+`99ecef19f5ab69c6d2a856db58025bd7e8332e162c39f2cef0f9e5e0a3f7fb19`, staged
+under `repair-selfplay-2026-task17-seed2026-runtime-v1`. Its scientific code
+hash `22fe348e4d79dffefef80403b1f350c3a24b42354c81cc834549141813727231`
+matches the original seed-2026 paired GRPO/gated runs. It is pending, with
+three-hour pending wall adjustment and original six-hour reservation preserved.
+Inspect both jobs and ledgers before any action; never duplicate. Completed
+Phase 2 allocation is 40,211 H200-seconds (11.16972 GPU-hours); both original
+six-hour reservations keep the 24-hour ceiling intact. After these finish,
+run nominal ungated 2026 from the same isolated checkout and nominal ungated
+2028 from the current code as budget permits, without changing a live run's
+readiness identity. Reuse matching archived proofs; never repeat audit or submit
+full proposer C/D.
+
 ## CURRENT — Task 17 ungated student controls (2026-11-11)
 
 The seed-2028 gated job `32948815` / `c28f8436ea7fb25863e13330` completed exit
