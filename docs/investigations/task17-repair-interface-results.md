@@ -30,6 +30,12 @@ for the trained snapshot's response, not experimentally isolated causes.
 
 ![Exploratory source-length strata](../figures/task17/interface-length.png)
 
+![Observed failed action categories](../figures/task17/interface-failures.png)
+
+Failure categories count actions, including non-edit actions, over the 40
+original tasks. They are not independent task samples. Reproduce with
+`scripts/plot_task17_errors.py` using the paired analysis and the frozen pool.
+
 ## Earlier snapshot before retrieval (historical)
 
 Mechanical replay establishes a substantial encoding bottleneck in the saved
