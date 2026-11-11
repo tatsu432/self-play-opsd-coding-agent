@@ -1,18 +1,19 @@
 # Task 17 execution and recovery plan
 
-## Current state
+## Current state (2026-11-10)
 
-Implementation, all 1,617 historical trajectory audits, isolated semantic replay,
-verified pool preparation and four sequential primary GPU allocations are done.
-The complete strict-control artifacts are local. Text-cell completion and aggregate
-counts were observed remotely, but final text artifacts/status and accounting
-still require retrieval. Yale VPN disconnected and SSH refresh did not complete;
-the stale login was stopped. No Phase 2 calibration/pilot/training or normalized
-model experiment has run. See the [results](../investigations/task17-repair-interface-results.md),
-[decision](../investigations/task17-research-decision.md) and
-[execution record](../task_completion/17-implemented-repair-interface.md).
+The four existing interface cells and Slurm accounting have been fetched and
+analyzed under `runs/task17/interface-analysis-v1/`; no cell was repeated. On
+40 originals, base strict/text verified 5/40 and 19/40, while trained B2026
+strict/text verified 27/40 and 21/40. Exact text and an 80-episode endpoint are
+selected for the fresh-base objective study. Preliminary control and checksummed
+aggregate evidence are committed; calibrate before writing the final control.
+CPU runtime job `32872199` / `cc5ec4e1db0226c7f6dcbe29` was submitted once
+from `3cec79321fc69c75670ae43d1f2d54756a096a40` and is running. Inspect its
+existing ledger and do not duplicate it. No calibration or objective pilot has
+been submitted. The following retrieval section is historical.
 
-## Resume retrieval and Phase 1 analysis
+## Historical retrieval and Phase 1 analysis
 
 Restore the normal Yale VPN connection, then authenticate and collect:
 

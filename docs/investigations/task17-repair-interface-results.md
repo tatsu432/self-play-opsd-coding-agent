@@ -10,8 +10,12 @@ family-bootstrap 95% interval +17.5 to +50. Trained B2026 strict/text verified
 applied edit were 6/40 versus 23/40 for base, and 33/40 versus 28/40 for B2026.
 These are single-checkpoint results; the trained difference is uncertain. The
 56-presentation results below are exploratory. Objective calibration and training
-remain unexecuted; make the interface and Phase 2 decisions after reviewing the
-full saved analysis. Total actual GPU use was 1.15 H200-hours.
+remain unexecuted. Exact text and an 80-episode endpoint are selected for the
+fresh-base objective study. Total actual GPU use was 1.15 H200-hours.
+
+![Primary verified repairs and edit application](../figures/task17/interface-outcomes.png)
+
+![Exploratory source-length strata](../figures/task17/interface-length.png)
 
 ## Earlier snapshot before retrieval (historical)
 
