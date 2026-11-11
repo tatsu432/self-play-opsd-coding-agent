@@ -87,6 +87,19 @@ def test_command_keeps_operation_arm_seed_and_resume():
     assert job.task13_command_args(env)[-2:] == ["--resume", "/runs/checkpoints/000004"]
 
 
+def test_initial_adapter_records_preserve_legacy_and_isolate_new_seeds():
+    from selfplay_opsd.trainer import initial_adapter_record
+
+    cfg = load_config(Path("configs/task17-student-d.yaml"))
+    assert initial_adapter_record(cfg).name == "initial_adapters.json"
+    cfg.seed = 2027
+    assert initial_adapter_record(cfg).name == "initial_adapters-seed2027.json"
+    cfg.seed = 2028
+    assert initial_adapter_record(cfg).name == "initial_adapters-seed2028.json"
+    cfg.study_id = "older-study"
+    assert initial_adapter_record(cfg).name == "initial_adapters.json"
+
+
 def test_budget_authorizations_do_not_touch_historical_readiness(tmp_path, monkeypatch):
     remote = script("hpc_remote")
     monkeypatch.setattr(remote, "workspace", lambda _: tmp_path)

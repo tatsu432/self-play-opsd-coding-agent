@@ -13,6 +13,13 @@ def test_objective_analysis_requires_complete_matched_evidence(tmp_path, monkeyp
     )
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    with pytest.raises(ValueError, match="explicit compatibility"):
+        module.validate_seed_code_hashes({2026: "old", 2027: "new"}, None, None)
+    with pytest.raises(ValueError, match="declared seed revision"):
+        module.validate_seed_code_hashes({2026: "old", 2027: "new"}, {"2026": "old"}, "reason")
+    module.validate_seed_code_hashes(
+        {2026: "old", 2027: "new"}, {"2026": "old", "2027": "new"}, "seed record fix"
+    )
     manifest = {
         "arm": "D",
         "seed": 2026,

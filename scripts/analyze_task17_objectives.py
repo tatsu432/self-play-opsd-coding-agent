@@ -14,6 +14,18 @@ from selfplay_opsd.storage import active_events, atomic_json, file_hash
 from selfplay_opsd.task16_analysis import paired_statistics
 
 
+def validate_seed_code_hashes(code_hashes, declared_code, note):
+    if declared_code:
+        if not note:
+            raise ValueError(
+                "Cross-revision analysis requires an explicit compatibility explanation"
+            )
+        if any(declared_code.get(str(seed)) != code for seed, code in code_hashes.items()):
+            raise ValueError("Run scientific code differs from the declared seed revision")
+    elif len(set(code_hashes.values())) != 1:
+        raise ValueError("Different seed revisions require explicit compatibility evidence")
+
+
 def load_run(item, pool_info, pool_hash, control_hash, control):
     root = Path(item["run_dir"])
     manifest = json.loads((root / "manifest.json").read_text())
@@ -159,7 +171,9 @@ def main():
     args = parser.parse_args()
     if args.output.exists():
         raise ValueError("Preserve existing analysis; select a new output")
-    items = json.loads(args.manifest.read_text())["runs"]
+    specification = json.loads(args.manifest.read_text())
+    items = specification["runs"]
+    declared_code = specification.get("scientific_code_hash_by_seed")
     if (
         not items
         or any(
@@ -176,10 +190,14 @@ def main():
     control = json.loads(args.control.read_text())
     if control["pool_sha256"] != pool_hash or control["episodes"] != 80:
         raise ValueError("Control does not match pool and endpoint")
-    summaries, by_run, hashes, identities, snapshots = [], {}, {}, [], {}
+    summaries, by_run, hashes, identities, snapshots, code_hashes = [], {}, {}, [], {}, {}
     for item in items:
         summary, records, used, identity = load_run(item, info, pool_hash, control_hash, control)
         summaries.append(summary)
+        code_hash = identity.pop("scientific_code_hash")
+        if item["seed"] in code_hashes and code_hashes[item["seed"]] != code_hash:
+            raise ValueError("Paired runs use different scientific code")
+        code_hashes[item["seed"]] = code_hash
         snapshot = identity.pop("snapshot")
         if item["seed"] in snapshots and snapshots[item["seed"]] != snapshot:
             raise ValueError("Paired runs do not share the same initial adapter")
@@ -192,6 +210,9 @@ def main():
             hashes[str(root / name)] = file_hash(root / name)
     if any(identity != identities[0] for identity in identities[1:]):
         raise ValueError("Run model, curriculum, prompt or scientific identity differs")
+    validate_seed_code_hashes(
+        code_hashes, declared_code, specification.get("code_compatibility_note")
+    )
     comparisons = []
     for first, second in (("D", "B"), ("A", "B"), ("C", "B")):
         seeds = sorted(
@@ -218,6 +239,8 @@ def main():
             "runs": summaries,
             "comparisons": comparisons,
             "scope": "Family bootstrap is within seed; seed variation is separate.",
+            "scientific_code_hash_by_seed": code_hashes,
+            "code_compatibility_note": specification.get("code_compatibility_note"),
             "input_sha256": hashes
             | {
                 str(p): file_hash(p)

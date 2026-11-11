@@ -71,14 +71,23 @@ bootstrap interval for gated-minus-GRPO was −0.1875 to +0.1875 for seed 2026.
 Training rollout successes were 54/80 GRPO and 58/80 gated; do not treat them as
 independent evaluation. Full logical-run GPU time was 5,119/5,072 seconds.
 Total Phase 2 allocation is 11,012 H200-seconds (3.05889 GPU-hours), including
-failed calibration. GRPO seed-2027 job `32917167` / run `95735e5ad673444230f30717` was
-submitted once from `3197d06167956e0e6019c1e2f22e4595737a44ce` to the
-80-episode endpoint. Its pending wall was reduced from six to three hours,
-using the 5,119-second seed-2026 logical-run duration; the original reservation
-remains. Inspect its ledger, never duplicate it, and review at 40 and 80. No
-other seed-2027/2028 objective job has been submitted. Continue paired
-GRPO/gated replication on seeds 2027 and 2028 with the immutable final control; prioritize these before ungated arms, subject to the separate 24-hour
-ceiling. Never duplicate completed allocations. The following Task 17 retrieval
+failed calibration. GRPO seed-2027 job `32917167` / `95735e5ad673444230f30717`, from
+`3197d06167956e0e6019c1e2f22e4595737a44ce`, failed before training because the
+trainer compared its initialization against a seed-2026 study-wide record. It
+used 70 H200-seconds; its artifacts and original ledger are archived at
+`failed-GRPO-seed2027-32917167`, with ledger archive history. Never duplicate
+that execution. The corrected code keeps seed-2026's legacy initialization path
+and uses separate records for later Task 17 objective seeds; objective math,
+model, task data and exposure are unchanged. Seed-2026 scientific-code hash is
+`22fe348e4d79dffefef80403b1f350c3a24b42354c81cc834549141813727231`; the
+corrected code has a distinct hash and must have matching runtime validation.
+Paired methods within each seed must use the same code and initial adapter;
+cross-seed analysis must explicitly document the bookkeeping-only revision.
+Total Phase 2 allocated time through this failure is 11,082 H200-seconds
+(3.07833 GPU-hours), including both failed allocations. After validation, submit
+a distinct corrected seed-2027 GRPO replacement, then matched gated, followed
+by seed 2028 and ungated controls as budget permits. No other seed-2027/2028
+objective job has been submitted. The following Task 17 retrieval
 snapshot is historical.
 
 ## Historical — Task 17 retrieval blocked (2026-11-10)

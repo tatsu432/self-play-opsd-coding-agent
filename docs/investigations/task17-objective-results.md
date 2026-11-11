@@ -80,9 +80,15 @@ Both pilots and the full seed-2026 pair support proceeding with seeds 2027 and
 2028 before interpreting training-seed variation. GRPO seed-2027 job `32917167`
 (run `95735e5ad673444230f30717`) was submitted once to 80 episodes; its pending
 wall was reduced to three hours, with its original reservation retained. Inspect
-its ledger and never duplicate it. Total Phase 2 allocated time
-through these endpoints is **11,012 H200-seconds (3.05889 GPU-hours)**, including
-the failed calibration. The objective analysis is at
+its ledger and never duplicate it. It failed before training after 70 H200-seconds
+because the trainer checked seed-2027 initialization against a study-wide
+seed-2026 record. The failed directory and original ledger are archived. The
+corrected trainer preserves the seed-2026 path and uses seed-specific records
+for later Task 17 objective seeds. This is an initialization-bookkeeping code
+revision; model, objective math, data and exposure are unchanged. Revalidate the
+changed code before a distinct replacement, and report the two scientific-code
+hashes explicitly when pooling seeds. Total Phase 2 allocated time is **11,082
+H200-seconds (3.07833 GPU-hours)**, including both failed allocations. The objective analysis is at
 `runs/task17/objective-analysis-seed2026-v3/`; its family-bootstrap interval
 reflects task sampling conditional on one training seed, not seed variation.
 
@@ -100,6 +106,9 @@ uv run python scripts/analyze_task17_objectives.py --manifest runs/task17/object
 ```
 
 The script checks the final control, initial adapter pairing within seed, shared
-scientific configuration, full exposure and development milestones. Its family
+scientific configuration, full exposure and development milestones. When seeds
+use different scientific-code hashes, the manifest must explicitly provide
+`scientific_code_hash_by_seed` and a `code_compatibility_note`; paired arms for
+each seed must still use exactly the same hash. Its family
 bootstrap is conditional on each training seed; training-seed variation is
 reported separately. Private source and per-task records remain under `runs/`.

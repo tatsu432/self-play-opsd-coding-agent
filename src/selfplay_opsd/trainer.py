@@ -50,6 +50,16 @@ from selfplay_opsd.structured_mutations import mutation as structured_mutation
 from selfplay_opsd.structured_mutations import sites
 
 
+def initial_adapter_record(config: RunConfig) -> Path:
+    """Keep historical records stable while isolating Task 17 training seeds."""
+    per_seed = config.online_supply is not None or (
+        config.study_id.startswith("repair-selfplay-2026-task17-objectives-")
+        and config.seed != 2026
+    )
+    name = f"initial_adapters-seed{config.seed}.json" if per_seed else "initial_adapters.json"
+    return config.output_root / config.study_id / name
+
+
 def gap_baseline(turn: TokenTurn, config: RunConfig) -> list[float]:
     if config.sd_gap_definition == "same_scorer_v2":
         if len(turn.frozen_unprivileged_logps) != len(turn.target_ids):
@@ -297,15 +307,7 @@ class SelfPlayTrainer:
             def check_initialization():
                 import fcntl
 
-                path = (
-                    config.output_root
-                    / config.study_id
-                    / (
-                        f"initial_adapters-seed{config.seed}.json"
-                        if config.online_supply
-                        else "initial_adapters.json"
-                    )
-                )
+                path = initial_adapter_record(config)
                 with path.with_suffix(".lock").open("a+") as lock:
                     fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
                     if path.exists() and read_json(path) != initialization:
