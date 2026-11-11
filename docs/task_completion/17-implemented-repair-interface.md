@@ -61,7 +61,7 @@ the bounded objective pilots and final scientific decision remain pending.
 | Corrected runtime | `472ee2f34cce416bd7294356` | 32876383 | Completed exit 0 |
 | Corrected calibration | `06982710d021357786a605aa` | 32877712 | Completed, 32 rollouts / eight groups, 556 H200-seconds |
 | GRPO pilot | `8bfce0676900d87de4a8e700` | 32880497 | Completed stop at iteration 4; 1,851 H200-seconds |
-| Gated pilot | `1768acda0784dab259fb68ea` | 32887853 | Submitted once; stop after iteration 4 |
+| Gated pilot | `1768acda0784dab259fb68ea` | 32887853 | Completed stop at iteration 4; 1,904 H200-seconds |
 
 GPU cells ran sequentially A→C→B→D and used 1,234/1,121/928/857 allocated
 H200-seconds: **4,140 seconds = 1.15 H200 GPU-hours**. All four artifacts and
@@ -120,3 +120,16 @@ shared filesystem, with pool, control, model and scientific identities matching.
 This single pilot supports running the matched gated pilot; it is not an
 objective-comparison result. The three Phase 2 allocations (failed calibration,
 successful calibration, and GRPO pilot) used 2,672 H200-seconds (0.74222 hours).
+
+## Gated pilot review
+
+The matched seed-2026 gated pilot completed 32 episodes: 27 passed, three of
+eight four-rollout groups were mixed, and four finite optimizer updates occurred.
+Monitoring/development baselines matched GRPO task-by-task (21/41 and 7/16).
+Gated's maximum behavior/rescoring difference was 0.8137, with warnings in all
+four iterations. Its iteration-4 joint checkpoint's metadata and all file
+checksums were verified, with scientific identity matching. Both pilots have
+meaningful learning signal and support proceeding to matched 80-episode
+continuations; no post-training comparison exists yet. Total Phase 2 allocation
+through both pilots and calibration was 4,576 H200-seconds (1.27111 hours),
+including the failed calibration.
