@@ -9,9 +9,9 @@ family-bootstrap 95% interval +17.5 to +50. Trained B2026 strict/text verified
 27/40 and 21/40: difference −15 points, interval −35 to +5. Tasks with an
 applied edit were 6/40 versus 23/40 for base, and 33/40 versus 28/40 for B2026.
 These are single-checkpoint results; the trained difference is uncertain. The
-56-presentation results below are exploratory. Objective calibration and training
-remain unexecuted. Exact text and an 80-episode endpoint are selected for the
-fresh-base objective study. Total actual GPU use was 1.15 H200-hours.
+56-presentation results below are exploratory. Exact text and an 80-episode
+endpoint were selected for the fresh-base objective study; its results are
+reported separately in [objective results](task17-objective-results.md). Total actual GPU use was 1.15 H200-hours.
 
 On originals, base strict/text had 7/108 versus 25/76 accepted edit
 attempts, 101 versus 51 rejected edits, and 4 versus 27 public-test calls.

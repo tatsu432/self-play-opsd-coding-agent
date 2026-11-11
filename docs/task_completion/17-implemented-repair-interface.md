@@ -1,11 +1,34 @@
-# Task 17 implementation and research execution — unfinished
+# Task 17 implementation and research execution — final control queued
 
 The [research specification](../task/17-generalization-spec.md) is being executed
-on `feat/17-repair-interface-generalization`. Implementation, historical analysis,
-isolated semantic replay and the four primary GPU allocations are complete.
-Text-result retrieval and paired analysis are complete. Exact text is selected
-for a fresh-base 80-episode objective study. Calibration failed on a missing backend metric; its corrected replacement,
-the bounded objective pilots and final scientific decision remain pending.
+on `feat/17-repair-interface-generalization`. Implementation, historical audit,
+isolated replay, the four interface cells, calibration and 11 of 12 matched
+student-objective runs are complete. The final nominal ungated seed-2028 job
+`32983291` / `69d4506e58066c32f5fc8e3b` is queued; inspect its existing Slurm
+state and ledger and never duplicate it. Slurm currently estimates a long wait
+for available H200 capacity. After it completes, fetch and verify its endpoint,
+run the 12-arm paired analysis, finalize the research decision, update README,
+merge the finished branch into local main and push. See the current
+[research decision](../investigations/task17-research-decision.md) and
+[objective results](../investigations/task17-objective-results.md).
+
+The current completed Phase 2 allocation is 54,538 H200-seconds (15.14944
+GPU-hours), including calibration and failed attempts, plus 1.15 H200-hours in
+Phase 1. The final job's original six-hour reservation remains within the 24-hour
+Phase 2 ceiling; its pending wall limit was reduced to two hours based on
+matching measured endpoints, with both adjustments recorded. All 11 completed
+objective endpoints' checkpoint identities and three-file checksums passed.
+Each locally fetched telemetry state reports SDK delivery through iteration 10
+and zero delivery errors; independent W&B cloud history has not been verified.
+The latest local CPU selection has 429 passed, 20 skipped and 18 deselected;
+Ruff lint/format and mypy (51 source files) pass. Those local tests do not
+replace the executed Yale isolated-worker and GPU evidence.
+
+## Historical execution record
+
+The sections below preserve the earlier implementation and operational record;
+where they describe pending work or totals, the current status above supersedes
+them. Completed work remains immutable and must not be relaunched.
 
 ## Delivered implementation and evidence
 
@@ -97,7 +120,7 @@ the optional-interface/collector changes also passed hosted CI
 The executed Yale checks and preparation used the accepted isolated worker.
 Generated programs were never executed on the host.
 
-## Remaining work
+## Earlier remaining-work snapshot (historical)
 
 The corrected calibration is complete. Freeze its coefficient/checksum in the
 final control, then run and assess bounded GRPO/gated pilots. Continue

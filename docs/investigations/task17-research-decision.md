@@ -1,93 +1,92 @@
-# Task 17 research decision — Phase 2 preparation
+# Task 17 research decision — final control pending
 
-## Phase 1 decision
+The matched repair-interface and student-objective studies are substantially
+complete. The final nominal ungated seed-2028 student run is queued; conclusions
+below are provisional until its existing job is reconciled. The detailed
+[interface evidence](task17-repair-interface-results.md),
+[objective results](task17-objective-results.md) and
+[execution record](../task_completion/17-implemented-repair-interface.md) retain
+run identities, methods, reproducible analyses, resource accounting and limits.
 
-Select exact text for the fresh-base objective comparison. On 40 training-only
-families, base strict/text verified 5/40 and 19/40 (paired difference +35 points,
-95% family bootstrap +17.5 to +50); trained B2026 scored 27/40 and 21/40
-(difference −15 points, interval −35 to +5). These single-checkpoint results
-leave trained-model conditioning and generalization unresolved. Freeze 80
-attempted training episodes per arm, four rollouts per task, before calibration;
-this prioritizes replicated GRPO/gated comparisons within the 24-hour ceiling.
-The first 32 episodes per pilot are a health and cost review, not a new endpoint.
-See the checksummed [aggregate evidence](task17-phase1-evidence.json).
+## Generalization and interface
 
-## Supported conclusion
+The strongest supported explanation of the observed HumanEval+-derived repair
+failure is a combination of edit-encoding failures and limited semantic
+correctness. Across six trained snapshots, 4,301 patch actions were rejected
+and 13 accepted. Isolated replay of oracle-free mechanically reconstructed
+edits finds a correct saved state in 242 originally failed episodes; those
+records are neither independent problems nor a counterfactual accuracy measure.
+Only 118/234 distinct admitted trained external task/program reconstructions
+passed, so syntax recovery does not explain every failure.
 
-Strict edit encoding hides substantial demonstrated repair ability in the saved
-HumanEval+-derived repair trajectories. The six trained evaluations accepted only
-13 edits and rejected 4,301. Oracle-free exact-context recovery followed by
-isolated verification finds a correct reconstructed state in **242 originally
-failed episodes**, covering 96/116 parent problems when all passing reconstructed
-states are considered. At least these recorded failures cannot be explained
-solely by an inability to propose semantically useful edits. These observations
-span repeated snapshots/actions; they are not 242 independent problems or a new
-agent's measured accuracy.
+On 40 training-only families, fresh-base strict diff versus exact text applied
+an edit on 6/40 versus 23/40 tasks and verified 5/40 versus 19/40 repairs.
+The paired repair difference was +35 points, family-bootstrap 95% interval
+[+17.5, +50]. For the trained B2026 snapshot the corresponding edits applied
+were 33/40 versus 28/40, and repairs were 27/40 versus 21/40 (difference −15
+points, interval [−35, +5]). Thus simplified text improves the base model's
+observed acceptance and verified repair, while effects on the trained snapshot
+are uncertain and may depend on its conditioning. Exploratory length strata
+are small and do not establish a causal length interaction. Both interface and
+semantic capability matter; the evidence does not quantify their causal shares
+or establish solved transfer to genuinely unseen tasks.
 
-There are semantic limits too: only 118/234 distinct admitted trained external
-task/program reconstructions pass. Recoverable encoding and semantic correctness
-are different endpoints. Task distribution, source presentation and debugging
-behavior remain plausible additional causes. No claim that HumanEval transfer is
-solved is justified.
-
-## Earlier interface assessment before retrieval
-
-All four matched greedy allocations finished for 40 independent training-only
-families plus 16 correlated presentation variants. They used the same 4B
-snapshots, tasks, oracles, budgets, isolation and hardware. Only strict-control
-artifacts are completely retrieved. Last remote aggregate inspection found
-base strict/text repairs 6/56 versus 26/56, and trained strict/text 36/56 versus
-31/56. These exploratory totals suggest snapshot-dependent conditioning effects;
-they do not establish the prespecified primary effects or their uncertainty.
-
-H1 (edit acceptance), H2 (verified repair gain), H3 (length/structure interaction)
-and H4 (fewer wasted actions) await paired original-task analysis. H5 (failure
-being mainly semantic) remains unresolved. Correct reconstructed states rule out
-semantic inability as the sole explanation for 242 recorded failures, without
-measuring the relative causal shares of syntax and semantics. Keep the primary
-strict control unchanged; no new training interface has been selected.
-
-Trained strict diff solved 5/8 originals versus 1/8 source-comment variants,
-while specification repetition preserved 8/8. These small exploratory results
-support source-presentation sensitivity, without separating comment content from
-length. The exact-text counterparts are still needed to assess an interface
-interaction. A locally tested metadata-only diff mode can distinguish tool-schema
-conditioning from metadata application if primary results justify that one
-additional diagnostic; no normalized model run has occurred.
+The hypothesis-level assessment is: H1 (edit acceptance) and H2 (verified
+repair gain) are supported for the fresh base on the training-only sample, but
+not established for the trained snapshot. H3 (length or structure interaction)
+is inconclusive in the small exploratory strata. H4 (less wasted tool activity)
+has descriptive support: base rejected edits fell from 101 to 51 and total turns
+from 308 to 275; action counts are correlated and do not isolate a mechanism.
+H5 (failures are solely semantic) is contradicted for the 242 recorded failed
+episodes with a verified reconstructed state, but semantic failures also occur.
+These observations are not a new end-to-end estimate on unseen HumanEval+.
 
 ## Student objectives
 
-No new calibration or objective training has run. Consequently Task 17 does not
-yet answer whether gating beats GRPO, ungated OPSD or initial-gradient-matched
-OPSD, whether effects replicate across seeds, or which method is more efficient.
-Historical Task 15's MBPP+-derived B advantage remains descriptive evidence from
-evolving proposer/student runs, not an isolated causal gating result.
+The fixed-supply study uses the fresh 4B base model, exact text, 80 attempted
+episodes per arm, equal task order, and independent 16-family development plus
+41 monitoring tasks at 0/40/80. All three GRPO, gated and calibrated ungated
+seeds completed; nominal ungated seeds 2026 and 2027 completed, and 2028 is
+queued. At 80 episodes, independent development repairs out of 16 were:
 
-After retrieving the primary artifacts, select the simplest supported interface,
-freeze common curriculum/exposure and initial-gradient calibration, and run a
-bounded GRPO/gated pilot. Extend only if finite learning signal and measured
-cost make an informative matched comparison feasible within the additional
-24 H200-hour ceiling. Preserve actual PPO behavior denominators and
-`same_scorer_v2`; calibration matches initial gradient strength, not all later
-updates. An access dependency is not a negative training result.
+| Objective | 2026 | 2027 | 2028 |
+|---|---:|---:|---:|
+| GRPO | 10 | 8 | 9 |
+| Gated OPSD | 10 | 8 | 10 |
+| Ungated OPSD, coefficient 0.1 | 11 | 11 | Pending |
+| Ungated OPSD, matched initial gradient scale | 9 | 9 | 9 |
 
-## Proposer objectives
+Gated does not show a robust independent-development advantage over GRPO in
+these three seeds: paired differences are 0, 0 and +1 task. At the same
+endpoint the two completed nominal ungated seeds exceed gated by one and three
+tasks; the last seed is needed for the prespecified comparison. Calibrated
+ungated differs from gated by −1, +1 and −1 task. Matching initial auxiliary
+gradient magnitude does not match later directions or optimizer states.
+Monitoring results vary by seed and can favor ungated, but these are the same
+tasks across arms and seeds and are not untouched confirmation. Within-seed
+family bootstrap quantifies task sampling conditional on a training run; it is
+not an interval over training seeds. The small fixed independent set and three
+seeds do not support equivalence, reliable superiority or a strong efficiency
+claim. Equal episode exposure does not imply equal generated tokens, optimizer
+steps or GPU time; see the paired curves and accounting in the results.
 
-Full C/D remains no-go under this task. Historical candidate groups discriminate
-difficulty rewards in only about 5.1–7.7% of attempts. Prior RL-versus-combined
-update cosine near 0.992 was close to identical-reward repeat variation near
-0.995, with few informative multi-valid groups. A further C/D pilot needs a
-prospectively collected training-only set with diverse, distinct-reward valid
-candidates and repeat-controlled gradient/update separation. No new evidence
-currently supplies that justification.
+The original behavior-policy denominators and `same_scorer_v2` were preserved,
+with finite recorded gradients. Rollout/rescoring mismatch remains a material
+numerical limitation: the largest observed value is 5.4899 in calibrated 2026,
+with 0.1793% of 3,346 sampled tokens exceeding 0.2 in that iteration. Its
+causal impact is unresolved. No post-hoc denominator change was made.
 
-## Earlier recovery status (historical)
+## Proposer and overall decision
 
-Retrieve existing outputs after restoring Yale VPN/SSH authentication, run
-`scripts/collect_task17_interfaces.py`, inspect paired effects and complete the
-Phase 1 decision. Do not relaunch finished cells. The four allocations consumed
-**1.15 H200 GPU-hours**, with final all-cell accounting persistence pending.
-Phase 2 consumed zero. The branch remains unfinished and unmerged. See the
-[results](task17-repair-interface-results.md) and
-[execution record](../task_completion/17-implemented-repair-interface.md) for
-identities, limitations and exact recovery commands.
+The current proposer has too few informative multi-valid candidate groups for
+a justified full C/D study. Historical difficulty rewards discriminated in
+about 5.1–7.7% of attempts; a prior RL-versus-combined update cosine near 0.992
+was close to identical-reward repeat variation near 0.995. A future C/D pilot
+needs prospectively collected diverse, distinct-reward valid candidates and
+repeat-controlled gradient/update separation. No full proposer C/D was launched.
+
+The strongest supported conclusion is that repair-interface encoding materially
+obscured useful proposed edits in saved trajectories and improved fresh-base
+repair when simplified, while objective effects are small and uncertain on the
+independent fixed set and depend on seed and comparison. The present evidence
+does not isolate a general gating advantage or establish unseen generalization.

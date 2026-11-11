@@ -262,6 +262,32 @@ was submitted once and is pending. Completed Phase 2 allocations total 54,538
 H200-seconds including failures and calibration. The analysis now reports all
 six pairwise objective comparisons rather than only comparisons with gated.
 
+## Completed-run exposure and allocated time
+
+All runs below used 80 attempted training episodes. Token counts are generated
+student training tokens, not evaluation tokens; the hours are actual Slurm
+allocations for each logical run, including the failed 70-second seed-2027
+GRPO attempt. These descriptive counts are not matched-token comparisons.
+
+| Seed | Objective | Training tokens | Student updates | H200-hours | Development /16 | Monitoring /41 |
+|---:|---|---:|---:|---:|---:|---:|
+| 2026 | GRPO | 24,990 | 5 | 1.422 | 10 | 25 |
+| 2026 | Gated | 22,481 | 10 | 1.409 | 10 | 28 |
+| 2026 | Nominal ungated | 22,474 | 10 | 1.288 | 11 | 33 |
+| 2026 | Calibrated ungated | 23,906 | 10 | 1.280 | 9 | 28 |
+| 2027 | GRPO | 27,323 | 7 | 1.383 | 8 | 26 |
+| 2027 | Gated | 23,902 | 10 | 1.343 | 8 | 29 |
+| 2027 | Nominal ungated | 26,098 | 10 | 1.413 | 11 | 32 |
+| 2027 | Calibrated ungated | 24,454 | 10 | 1.324 | 9 | 33 |
+| 2028 | GRPO | 28,978 | 7 | 1.362 | 9 | 24 |
+| 2028 | Gated | 27,625 | 10 | 1.369 | 10 | 31 |
+| 2028 | Calibrated ungated | 26,552 | 10 | 1.331 | 9 | 26 |
+
+The 11 completed runs' local telemetry reports SDK delivery through iteration
+10 with no recorded delivery errors; this is not an independent cloud-history
+verification. All rows use the same fixed evaluation sets, so training-seed and
+family uncertainty must remain separate. Nominal 2028 is pending.
+
 ## Reproduction after endpoints
 
 Fetch each existing run with `uv run selfplay hpc fetch RUN_ID`, verify its

@@ -6,6 +6,36 @@ After completing each task, update `README.md` to concisely describe the researc
 problem, approaches, current progress and results. Link detailed evidence and
 procedures to the relevant Markdown documents; keep the README short and current.
 
+## CURRENT — Task 17 final control waiting for H200 capacity (2026-11-11)
+
+The only outstanding objective arm is nominal ungated seed 2028, Slurm job
+`32983291` / controller run `69d4506e58066c32f5fc8e3b`. As of 2026-11-11
+12:26 Eastern, Slurm reported PENDING because H200 nodes were down, drained or
+reserved for higher priority partitions, with estimated start 2026-11-12
+12:55 Eastern. This is a scheduler estimate, not a guarantee; backfill can start
+earlier. Its existing ledger has both pending wall-limit changes (six to three
+to two hours) and the original six-hour budget reservation. Never submit a
+duplicate. Inspect with `uv run selfplay hpc status 69d4506e58066c32f5fc8e3b`;
+monitor and, after successful exit, fetch with `uv run selfplay hpc fetch
+69d4506e58066c32f5fc8e3b`. If interrupted, reconcile Slurm and checkpoint
+identities before using the existing supported resume path. Once completed,
+verify checkpoint metadata and all three file checksums, record actual Slurm
+gpu-seconds, add its A/2028 entry to the private 11-run manifest
+`runs/task17/objective-manifest-eleven.json`, and run the current all-pairs
+analysis with the pool and control paths in the objective results document.
+Update figure, actual costs, decision/completion/README, run necessary checks,
+merge the finished branch into local main and push. Until then task remains
+unfinished and must not be merged as complete.
+
+Completed Phase 2 allocated time is 54,538 H200-seconds (15.14944 hours), plus
+Phase 1's 4,140 seconds (1.15 hours). The 11 completed objective runs have
+checksum-verified final checkpoints; local telemetry reports SDK delivery
+through iteration 10 and zero delivery errors, without independent cloud-history
+verification. The current checkout passed 429 local tests (20 skipped, 18
+deselected), Ruff lint/format and mypy for 51 files. Final full paired research
+conclusions depend on the queued job; do not relabel the seen task sets as
+untouched confirmation. Preserve all Task 15 identities and private artifacts.
+
 ## CURRENT — Task 17 last objective control (2026-11-11)
 
 Nominal ungated seed-2026 job `32974012` / `436bb48b5ccec3e6d508213b`

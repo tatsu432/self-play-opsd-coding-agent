@@ -23,7 +23,8 @@ agent accuracy. On 40 training-only families, base strict/text solved 5/40 and 1
 trained B2026 solved 27/40 and 21/40. The comparison used 1.15 H200-hours.
 Exact text was selected for a controlled objective study. At 80 episodes, gated
 OPSD versus GRPO solved 10/10, 8/8 and 10/9 independent development tasks out
-of 16 across three seeds. Ungated controls are underway; uncertainty remains. See the [objective results](docs/investigations/task17-objective-results.md). See the [Task 17 evidence](docs/investigations/task17-repair-interface-results.md)
+of 16 across three seeds. Calibrated ungated scored 9/9/9; nominal ungated
+scored 11/11 in two seeds, with its final seed queued. Uncertainty remains. See the [objective results](docs/investigations/task17-objective-results.md). See the [Task 17 evidence](docs/investigations/task17-repair-interface-results.md)
 and [current research decision](docs/investigations/task17-research-decision.md).
 
 See the [A/B results](docs/investigations/task15-final-results.md) and
