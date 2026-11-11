@@ -6,6 +6,30 @@ After completing each task, update `README.md` to concisely describe the researc
 problem, approaches, current progress and results. Link detailed evidence and
 procedures to the relevant Markdown documents; keep the README short and current.
 
+## CURRENT — Task 17 last objective control (2026-11-11)
+
+Nominal ungated seed-2026 job `32974012` / `436bb48b5ccec3e6d508213b`
+completed exit 0 in 4,635 H200-seconds; its original-code checkpoint identity and
+three file checksums passed. Monitoring at 0/40/80 was 21/29/33 out of 41;
+independent development was 7/9/11 out of 16. All ten gradients were finite;
+maximum scoring mismatch was 1.9748. Never duplicate. Nominal 2026 and 2027
+independent endpoints were 11/11 out of 16, versus calibrated 9/9 and gated
+10/8. Family-bootstrap intervals apply within seed and the same tasks are reused.
+The analysis now reports all six pairwise objective comparisons; the 11-run
+analysis is `runs/task17/objective-analysis-eleven-all-pairs/`.
+
+The final nominal ungated seed-2028 job `32983291` / `69d4506e58066c32f5fc8e3b`
+was submitted once from `87c3b27ef6c3694671a887a81faf65129017d621` with the
+matching seed-2028 scientific code and executed proof. It is pending; the
+three-hour pending wall adjustment and original six-hour budget reservation are
+recorded. Inspect live Slurm/ledger and never duplicate. Completed Phase 2
+allocation totals 54,538 H200-seconds (15.14944 GPU-hours), including failed
+jobs and calibration. After completion, fetch, verify checkpoint and accounting,
+include all 12 arms, analyze/report numerical issues and uncertainty, update the
+research decision/completion/README, run final checks, merge completed branch to
+local main and push. No full proposer C/D and no changes to Task 15 identities
+or private artifacts.
+
 ## CURRENT — Task 17 seed-2026 nominal running (2026-11-11)
 
 Calibrated ungated seed-2026 job `32965435` / `c2b42d3907d2eefdd2c8fbe1`

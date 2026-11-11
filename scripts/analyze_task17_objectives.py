@@ -236,7 +236,14 @@ def main():
         code_hashes, declared_code, specification.get("code_compatibility_note")
     )
     comparisons = []
-    for first, second in (("D", "B"), ("A", "B"), ("C", "B")):
+    for first, second in (
+        ("D", "B"),
+        ("A", "B"),
+        ("C", "B"),
+        ("D", "A"),
+        ("D", "C"),
+        ("C", "A"),
+    ):
         seeds = sorted(
             {seed for arm, seed in by_run if arm == first}
             & {seed for arm, seed in by_run if arm == second}

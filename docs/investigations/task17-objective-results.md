@@ -242,6 +242,26 @@ once using the same original 2026 scientific-code proof and has started.
 Completed Phase 2 allocations total 49,903 H200-seconds, including failures and
 calibration. Nominal seed-2028 remains planned within the 24-hour ceiling.
 
+## Nominal ungated seed 2026 endpoint
+
+Nominal ungated job `32974012` / `436bb48b5ccec3e6d508213b` completed exit 0
+in 4,635 H200-seconds. Its endpoint identity and all checkpoint hashes passed.
+Monitoring at 0/40/80 was 21/29/33 and independent development 7/9/11, out of
+41 and 16. Its original-code initial adapter and both baseline outcome sets
+matched GRPO task by task. Ten gradients were finite; maximum scoring mismatch
+was 1.9748. At 80 nominal solved one independent task gated missed; gated solved
+none nominal missed. Nominal's family-macro monitoring advantage over gated was
+0.1087, with a family-bootstrap 95% interval [0.0217, 0.2174] conditional on
+this seed. For both completed nominal seeds, nominal solved two independent
+tasks calibrated missed and lost none; the corresponding within-seed bootstrap
+interval for nominal minus calibrated was [0, 0.3125]. These intervals do not
+measure variation across training seeds, and the same task set was reused.
+
+The final nominal ungated seed-2028 job `32983291` / `69d4506e58066c32f5fc8e3b`
+was submitted once and is pending. Completed Phase 2 allocations total 54,538
+H200-seconds including failures and calibration. The analysis now reports all
+six pairwise objective comparisons rather than only comparisons with gated.
+
 ## Reproduction after endpoints
 
 Fetch each existing run with `uv run selfplay hpc fetch RUN_ID`, verify its
