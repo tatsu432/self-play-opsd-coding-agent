@@ -52,3 +52,21 @@ pending six-hour wall was reduced to three hours while retaining the original
 budget reservation. Continue the gated arm sequentially after GRPO review. Total
 Phase 2 allocated time through the pilots is **4,576 H200-seconds (1.27111
 GPU-hours)**, including the failed calibration; the new continuation is pending.
+
+## Reproduction after endpoints
+
+Fetch each existing run with `uv run selfplay hpc fetch RUN_ID`, verify its
+checkpoint and scheduler/ledger identities, and create a private manifest with
+`runs` entries `{arm, seed, run_dir, allocated_gpu_hours}`. Hours must sum actual
+Slurm allocations for that logical run, including failed/interrupted attempts;
+retain the accounting evidence. Do not include a run before its endpoint is
+complete. Then use a fresh output directory:
+
+```bash
+uv run python scripts/analyze_task17_objectives.py --manifest runs/task17/objective-manifest.json --pool runs/hpc/yale-hpc-cpsc4880/86e2df49bb04a9321f7d755d/pool.json --control configs/task17-objective-control.json --output runs/task17/objective-analysis-v1
+```
+
+The script checks the final control, initial adapter pairing within seed, shared
+scientific configuration, full exposure and development milestones. Its family
+bootstrap is conditional on each training seed; training-seed variation is
+reported separately. Private source and per-task records remain under `runs/`.
