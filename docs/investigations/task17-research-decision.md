@@ -1,7 +1,7 @@
 # Task 17 research decision — final control pending
 
 The matched repair-interface and student-objective studies are substantially
-complete. The final nominal ungated seed-2028 student run is queued; conclusions
+complete. The final nominal ungated seed-2028 student run is active; conclusions
 below are provisional until its existing job is reconciled. The detailed
 [interface evidence](task17-repair-interface-results.md),
 [objective results](task17-objective-results.md) and
@@ -47,7 +47,7 @@ The fixed-supply study uses the fresh 4B base model, exact text, 80 attempted
 episodes per arm, equal task order, and independent 16-family development plus
 41 monitoring tasks at 0/40/80. All three GRPO, gated and calibrated ungated
 seeds completed; nominal ungated seeds 2026 and 2027 completed, and 2028 is
-queued. At 80 episodes, independent development repairs out of 16 were:
+running. At 80 episodes, independent development repairs out of 16 were:
 
 | Objective | 2026 | 2027 | 2028 |
 |---|---:|---:|---:|

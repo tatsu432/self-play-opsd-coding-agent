@@ -6,6 +6,24 @@ After completing each task, update `README.md` to concisely describe the researc
 problem, approaches, current progress and results. Link detailed evidence and
 procedures to the relevant Markdown documents; keep the README short and current.
 
+## CURRENT — Task 17 final control running (2026-11-11)
+
+The final nominal ungated seed-2028 student job `32983291` / run
+`69d4506e58066c32f5fc8e3b` started by backfill on 2026-11-11 at 12:27 Eastern,
+earlier than Slurm's previous estimate. Its seed-2028 initial adapter record
+matches GRPO exactly. It has a two-hour scheduler limit and original six-hour
+budget reservation; both pending wall adjustments are recorded. Inspect its
+ledger and scheduler and never duplicate it. If stopped, reconcile its complete
+checkpoint and actual allocation before any supported continuation, retaining
+the immutable scientific identity and budget. After successful completion,
+fetch and verify the endpoint, append A/2028 to the private 11-run manifest,
+run the all-pairs analysis, record actual Phase 2 cost, finish the research
+review and docs, merge the genuinely finished branch to local main and push.
+Completed Phase 2 cost before this allocation is 54,538 H200-seconds (15.14944
+hours); Phase 1 cost is 4,140 seconds (1.15 hours). Local tests passed 429,
+with 20 skipped and 18 deselected; lint, format and mypy passed. Do not perform
+full proposer C/D or alter Task 15/private artifacts.
+
 ## CURRENT — Task 17 final control waiting for H200 capacity (2026-11-11)
 
 The only outstanding objective arm is nominal ungated seed 2028, Slurm job

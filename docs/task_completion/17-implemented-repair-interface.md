@@ -4,9 +4,8 @@ The [research specification](../task/17-generalization-spec.md) is being execute
 on `feat/17-repair-interface-generalization`. Implementation, historical audit,
 isolated replay, the four interface cells, calibration and 11 of 12 matched
 student-objective runs are complete. The final nominal ungated seed-2028 job
-`32983291` / `69d4506e58066c32f5fc8e3b` is queued; inspect its existing Slurm
-state and ledger and never duplicate it. Slurm currently estimates a long wait
-for available H200 capacity. After it completes, fetch and verify its endpoint,
+`32983291` / `69d4506e58066c32f5fc8e3b` started by backfill; inspect its existing
+Slurm state and ledger and never duplicate it. After it completes, fetch and verify its endpoint,
 run the 12-arm paired analysis, finalize the research decision, update README,
 merge the finished branch into local main and push. See the current
 [research decision](../investigations/task17-research-decision.md) and
