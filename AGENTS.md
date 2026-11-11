@@ -40,8 +40,10 @@ calibration.json SHA-256 is `704e1fad2b53daa360dce14a53ba359689bdc50a21bb5870f8c
 Freeze this value and checksum in the final shared control before any pilots.
 GRPO pilot `32880497` / `8bfce0676900d87de4a8e700` was submitted once from
 `2ffbb1794743e0549ecbff1247369396e28b34f1` with stop after iteration 4
-(32 attempted episodes). Inspect its live ledger; never duplicate it. The gated
-pilot has not been submitted. The following Task 17 retrieval
+(32 attempted episodes). Its pending wall limit was reduced from six to three
+hours using measured inference/calibration times; the original six-hour budget
+reservation remains. Inspect its live ledger; never duplicate it. The gated pilot
+has not been submitted. The following Task 17 retrieval
 snapshot is historical.
 
 ## Historical — Task 17 retrieval blocked (2026-11-10)
