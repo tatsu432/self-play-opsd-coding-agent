@@ -30,7 +30,10 @@ backend metric `update_norm`. Its output and original ledger are preserved at
 duplicate that execution. The corrected calibration measures actual adapter
 displacement and restores model/optimizer state. Fresh runtime job `32876383` / `472ee2f34cce416bd7294356` was submitted once
 from `46ea87a1991da15a61d4d724217b6e3409c287ea`; inspect it and never duplicate.
-After it passes, submit a distinct corrected calibration replacement.
+It completed exit 0. Corrected calibration job `32877712`, run
+`06982710d021357786a605aa`, was submitted once from
+`0950c24e0685e30174ee6a9d5d40cf1c5a603b37`; inspect its ledger and never
+duplicate it.
 No coefficient exists and no objective pilot has been submitted. The following Task 17 retrieval
 snapshot is historical.
 

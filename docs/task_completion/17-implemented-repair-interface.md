@@ -58,6 +58,8 @@ the bounded objective pilots and final scientific decision remain pending.
 | Trained exact text D | `819fec9d88332bf03f874d1e` | 32812080 | Completed and fetched; 31/56, 21/40 originals |
 | Current text runtime | `cc5ec4e1db0226c7f6dcbe29` | 32872199 | Completed exit 0 |
 | Objective calibration | `11610fb16bd9af1f197221b1` | 32872812 | Failed `update_norm`, 265 H200-seconds; archived |
+| Corrected runtime | `472ee2f34cce416bd7294356` | 32876383 | Completed exit 0 |
+| Corrected calibration | `06982710d021357786a605aa` | 32877712 | Submitted; inspect ledger |
 
 GPU cells ran sequentially A→C→B→D and used 1,234/1,121/928/857 allocated
 H200-seconds: **4,140 seconds = 1.15 H200 GPU-hours**. All four artifacts and
