@@ -28,8 +28,9 @@ Runtime job 32872199 completed exit 0. Calibration job `32872812`, run
 backend metric `update_norm`. Its output and original ledger are preserved at
 `failed-calibration-32872812`, with archive history in the ledger. Never
 duplicate that execution. The corrected calibration measures actual adapter
-displacement and restores model/optimizer state. Run fresh runtime validation
-for the changed scientific code before submitting a corrected replacement.
+displacement and restores model/optimizer state. Fresh runtime job `32876383` / `472ee2f34cce416bd7294356` was submitted once
+from `46ea87a1991da15a61d4d724217b6e3409c287ea`; inspect it and never duplicate.
+After it passes, submit a distinct corrected calibration replacement.
 No coefficient exists and no objective pilot has been submitted. The following Task 17 retrieval
 snapshot is historical.
 
