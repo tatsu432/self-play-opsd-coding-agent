@@ -59,7 +59,7 @@ the bounded objective pilots and final scientific decision remain pending.
 | Current text runtime | `cc5ec4e1db0226c7f6dcbe29` | 32872199 | Completed exit 0 |
 | Objective calibration | `11610fb16bd9af1f197221b1` | 32872812 | Failed `update_norm`, 265 H200-seconds; archived |
 | Corrected runtime | `472ee2f34cce416bd7294356` | 32876383 | Completed exit 0 |
-| Corrected calibration | `06982710d021357786a605aa` | 32877712 | Submitted; inspect ledger |
+| Corrected calibration | `06982710d021357786a605aa` | 32877712 | Completed, 32 rollouts / eight groups, 556 H200-seconds |
 
 GPU cells ran sequentially A→C→B→D and used 1,234/1,121/928/857 allocated
 H200-seconds: **4,140 seconds = 1.15 H200 GPU-hours**. All four artifacts and
@@ -69,7 +69,13 @@ correlated 56-presentation endpoint is exploratory. Calibration failed after fou
 provide `update_norm`. The allocation used 265 H200-seconds (0.07361 hours).
 Its artifacts and original ledger were archived; a corrected implementation
 measures actual adapter displacement and restores adapters and optimizers.
-Fresh runtime validation is required before the corrected replacement.
+Corrected runtime validation passed, and the replacement completed exit 0.
+The eight-group RMS matched coefficient is `0.02958647361953192`; the
+calibration JSON SHA-256 is
+`704e1fad2b53daa360dce14a53ba359689bdc50a21bb5870f8c8230f5d0280fc`.
+The 32 training-only rollouts had 25 verified repairs. These are calibration
+data, not independent evaluation results. Failed and successful calibration
+allocations total 821 H200-seconds (0.22806 GPU-hours).
 The rejected eight-CPU submission `dc2a6394ef94ef1bd7768b1e` had no scheduler job;
 corrected resources use five trainer plus one worker CPU. Preallocation failures
 and failed preparation ledgers remain auditable. Historical Task 15 is immutable.
@@ -88,10 +94,8 @@ Generated programs were never executed on the host.
 
 ## Remaining work
 
-Do not repeat failed calibration job `32872812`. Validate the corrected code
-and submit a distinct replacement. On successful completion, fetch and verify
-its coefficient and checksum, freeze
-the final control, then run and assess bounded GRPO/gated pilots. Continue
+The corrected calibration is complete. Freeze its coefficient/checksum in the
+final control, then run and assess bounded GRPO/gated pilots. Continue
 informative arms within the separate 24-hour ceiling. Reconcile telemetry,
 checkpoints and final costs; complete the scientific report, update README,
 then merge the finished branch into local main and push. Full C/D remains deferred.

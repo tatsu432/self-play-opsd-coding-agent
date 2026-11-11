@@ -1,4 +1,6 @@
 {
+  "calibration_coefficient": 0.02958647361953192,
+  "calibration_sha256": "704e1fad2b53daa360dce14a53ba359689bdc50a21bb5870f8c8230f5d0280fc",
   "episodes": 80,
   "evidence": [
     {

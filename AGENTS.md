@@ -32,10 +32,13 @@ displacement and restores model/optimizer state. Fresh runtime job `32876383` / 
 from `46ea87a1991da15a61d4d724217b6e3409c287ea`; inspect it and never duplicate.
 It completed exit 0. Corrected calibration job `32877712`, run
 `06982710d021357786a605aa`, was submitted once from
-`0950c24e0685e30174ee6a9d5d40cf1c5a603b37`; inspect its ledger and never
-duplicate it. Its pending wall limit was reduced to one hour using measured
-prior group/calibration timing; the original two-hour reservation is retained.
-No coefficient exists and no objective pilot has been submitted. The following Task 17 retrieval
+`0950c24e0685e30174ee6a9d5d40cf1c5a603b37`; it completed exit 0 in 556
+H200-seconds and must never be duplicated. Its pending one-hour wall adjustment
+and original reservation remain recorded. Calibration used all 32 rollouts
+over eight groups; the matched coefficient is `0.02958647361953192`, and
+calibration.json SHA-256 is `704e1fad2b53daa360dce14a53ba359689bdc50a21bb5870f8c8230f5d0280fc`.
+Freeze this value and checksum in the final shared control before any pilots.
+No objective pilot has been submitted. The following Task 17 retrieval
 snapshot is historical.
 
 ## Historical — Task 17 retrieval blocked (2026-11-10)
