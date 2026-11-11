@@ -1,6 +1,19 @@
 # Task 17: repair encoding and controlled objective study
 
-## Current decision (2026-11-10, retrieval blocked)
+## Paired primary results — retrieved after Yale login
+
+All four complete artifacts and Slurm records were retrieved and analyzed in
+`runs/task17/interface-analysis-v1/`. On 40 original training families, base
+strict/text verified 5/40 and 19/40: paired difference +35 percentage points,
+family-bootstrap 95% interval +17.5 to +50. Trained B2026 strict/text verified
+27/40 and 21/40: difference −15 points, interval −35 to +5. Tasks with an
+applied edit were 6/40 versus 23/40 for base, and 33/40 versus 28/40 for B2026.
+These are single-checkpoint results; the trained difference is uncertain. The
+56-presentation results below are exploratory. Objective calibration and training
+remain unexecuted; make the interface and Phase 2 decisions after reviewing the
+full saved analysis. Total actual GPU use was 1.15 H200-hours.
+
+## Earlier snapshot before retrieval (historical)
 
 Mechanical replay establishes a substantial encoding bottleneck in the saved
 trajectories. It does not measure new end-to-end agent accuracy. The four matched

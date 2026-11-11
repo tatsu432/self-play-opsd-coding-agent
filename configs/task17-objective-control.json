@@ -1,0 +1,12 @@
+{
+  "episodes": 80,
+  "evidence": [
+    {
+      "path": "/runs/repair-selfplay-2026-task17-interface-v1/evidence/phase1-summary.json",
+      "sha256": "1755dc0788a38c3e915fdd19e0b186cd46873f7cb84165e573b4ac73e395852d"
+    }
+  ],
+  "interface": "replace_text",
+  "phase1_informative": true,
+  "pool_sha256": "602eaf506f8ac2cf17924596dae7c0ff3891ef5034a546d4d3751b9803412c83"
+}

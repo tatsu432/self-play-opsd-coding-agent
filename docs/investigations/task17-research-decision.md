@@ -1,4 +1,16 @@
-# Task 17 research decision — provisional, retrieval blocked
+# Task 17 research decision — Phase 2 preparation
+
+## Phase 1 decision
+
+Select exact text for the fresh-base objective comparison. On 40 training-only
+families, base strict/text verified 5/40 and 19/40 (paired difference +35 points,
+95% family bootstrap +17.5 to +50); trained B2026 scored 27/40 and 21/40
+(difference −15 points, interval −35 to +5). These single-checkpoint results
+leave trained-model conditioning and generalization unresolved. Freeze 80
+attempted training episodes per arm, four rollouts per task, before calibration;
+this prioritizes replicated GRPO/gated comparisons within the 24-hour ceiling.
+The first 32 episodes per pilot are a health and cost review, not a new endpoint.
+See the checksummed [aggregate evidence](task17-phase1-evidence.json).
 
 ## Supported conclusion
 
@@ -18,7 +30,7 @@ are different endpoints. Task distribution, source presentation and debugging
 behavior remain plausible additional causes. No claim that HumanEval transfer is
 solved is justified.
 
-## Interface evidence and hypotheses
+## Earlier interface assessment before retrieval
 
 All four matched greedy allocations finished for 40 independent training-only
 families plus 16 correlated presentation variants. They used the same 4B
@@ -69,7 +81,7 @@ prospectively collected training-only set with diverse, distinct-reward valid
 candidates and repeat-controlled gradient/update separation. No new evidence
 currently supplies that justification.
 
-## Next action and costs
+## Earlier recovery status (historical)
 
 Retrieve existing outputs after restoring Yale VPN/SSH authentication, run
 `scripts/collect_task17_interfaces.py`, inspect paired effects and complete the

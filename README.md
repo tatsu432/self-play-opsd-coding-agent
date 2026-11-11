@@ -19,10 +19,10 @@ from changes in the evolving proposer and student. C/D training is deferred;
 Task 17 implements exact-text replacement and a matched frozen-model study.
 Isolated metadata-only replay found correct reconstructed states in 242 previously
 failed trained HumanEval+ episodes. These are saved-state diagnostics, not new
-agent accuracy. All four frozen-model interface allocations finished, using
-1.15 H200 GPU-hours. Both strict controls are retrieved; the two exact-text
-result sets await restored Yale VPN/SSH access. Paired analysis and conditional
-objective training remain pending. See the [Task 17 evidence](docs/investigations/task17-repair-interface-results.md)
+agent accuracy. On 40 training-only families, base strict/text solved 5/40 and 19/40;
+trained B2026 solved 27/40 and 21/40. The comparison used 1.15 H200-hours.
+Exact text is selected for a bounded fresh-base objective pilot; calibration and
+training remain pending. See the [Task 17 evidence](docs/investigations/task17-repair-interface-results.md)
 and [current research decision](docs/investigations/task17-research-decision.md).
 
 See the [A/B results](docs/investigations/task15-final-results.md) and

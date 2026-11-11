@@ -1,0 +1,424 @@
+{
+  "allocated_gpu_hours": 1.15,
+  "comparisons": [
+    {
+      "all_presentations_exploratory": {
+        "both": 4,
+        "difference_parent_macro": 0.375,
+        "families": 40,
+        "family_bootstrap_95_interval": [
+          0.2125,
+          0.525
+        ],
+        "first_only": 2,
+        "neither": 28,
+        "parents": 40,
+        "second_only": 22,
+        "tasks": 56
+      },
+      "applied_edit_original": {
+        "both": 4,
+        "difference_parent_macro": 0.425,
+        "families": 40,
+        "family_bootstrap_95_interval": [
+          0.25,
+          0.6
+        ],
+        "first_only": 2,
+        "neither": 15,
+        "parents": 40,
+        "second_only": 19,
+        "tasks": 40
+      },
+      "snapshot": "base",
+      "verified_repairs_original": {
+        "both": 4,
+        "difference_parent_macro": 0.35,
+        "families": 40,
+        "family_bootstrap_95_interval": [
+          0.175,
+          0.5
+        ],
+        "first_only": 1,
+        "neither": 20,
+        "parents": 40,
+        "second_only": 15,
+        "tasks": 40
+      }
+    },
+    {
+      "all_presentations_exploratory": {
+        "both": 22,
+        "difference_parent_macro": -0.075,
+        "families": 40,
+        "family_bootstrap_95_interval": [
+          -0.275,
+          0.1125
+        ],
+        "first_only": 14,
+        "neither": 11,
+        "parents": 40,
+        "second_only": 9,
+        "tasks": 56
+      },
+      "applied_edit_original": {
+        "both": 21,
+        "difference_parent_macro": -0.125,
+        "families": 40,
+        "family_bootstrap_95_interval": [
+          -0.35,
+          0.075
+        ],
+        "first_only": 12,
+        "neither": 0,
+        "parents": 40,
+        "second_only": 7,
+        "tasks": 40
+      },
+      "snapshot": "B2026-final",
+      "verified_repairs_original": {
+        "both": 15,
+        "difference_parent_macro": -0.15,
+        "families": 40,
+        "family_bootstrap_95_interval": [
+          -0.35,
+          0.05
+        ],
+        "first_only": 12,
+        "neither": 7,
+        "parents": 40,
+        "second_only": 6,
+        "tasks": 40
+      }
+    }
+  ],
+  "original": {
+    "A": {
+      "accepted_edits": 7,
+      "actions": 308,
+      "applied_edit": 6,
+      "edit_attempts": 108,
+      "first_edit_turn_distribution": {
+        "mean": 4.666666666666667,
+        "n": 6,
+        "quantiles_0_25_50_75_100": [
+          2.0,
+          4.25,
+          5.0,
+          5.75,
+          6.0
+        ]
+      },
+      "generation_seconds": 821.7131032012403,
+      "public_pass_hidden_fail": 7,
+      "public_test_seconds": 1.094461747445166,
+      "rejected_edits": 101,
+      "rejected_edits_distribution": {
+        "mean": 2.525,
+        "n": 40,
+        "quantiles_0_25_50_75_100": [
+          0.0,
+          0.0,
+          3.0,
+          5.0,
+          5.0
+        ]
+      },
+      "repeated_failed_edits": 23,
+      "reward_verifier_seconds": 12.886691591702402,
+      "runtime_failures": 2,
+      "seconds_distribution": {
+        "mean": 20.985877006873487,
+        "n": 40,
+        "quantiles_0_25_50_75_100": [
+          8.357930121012032,
+          14.09016923722811,
+          19.67493080161512,
+          25.56660883151926,
+          55.55288805067539
+        ]
+      },
+      "semantic_failures": 2470,
+      "source_changed": 6,
+      "success": 5,
+      "tasks": 40,
+      "termination": {
+        "finish": 19,
+        "turn_limit": 21
+      },
+      "test_calls": 4,
+      "tokens": 24066,
+      "tokens_distribution": {
+        "mean": 601.65,
+        "n": 40,
+        "quantiles_0_25_50_75_100": [
+          85.0,
+          398.75,
+          574.0,
+          740.5,
+          1603.0
+        ]
+      },
+      "turns": 308,
+      "turns_distribution": {
+        "mean": 7.7,
+        "n": 40,
+        "quantiles_0_25_50_75_100": [
+          4.0,
+          8.0,
+          8.0,
+          8.0,
+          8.0
+        ]
+      },
+      "valid_json_actions": 244,
+      "valid_schema_actions": 239
+    },
+    "B": {
+      "accepted_edits": 25,
+      "actions": 275,
+      "applied_edit": 23,
+      "edit_attempts": 76,
+      "first_edit_turn_distribution": {
+        "mean": 3.9565217391304346,
+        "n": 23,
+        "quantiles_0_25_50_75_100": [
+          3.0,
+          4.0,
+          4.0,
+          4.0,
+          6.0
+        ]
+      },
+      "generation_seconds": 595.6573951807804,
+      "public_pass_hidden_fail": 5,
+      "public_test_seconds": 6.801988118095323,
+      "rejected_edits": 51,
+      "rejected_edits_distribution": {
+        "mean": 1.275,
+        "n": 40,
+        "quantiles_0_25_50_75_100": [
+          0.0,
+          0.0,
+          0.0,
+          2.0,
+          6.0
+        ]
+      },
+      "repeated_failed_edits": 20,
+      "reward_verifier_seconds": 11.784242597175762,
+      "runtime_failures": 151,
+      "seconds_distribution": {
+        "mean": 15.448711122403619,
+        "n": 40,
+        "quantiles_0_25_50_75_100": [
+          4.521820845082402,
+          6.652807291713543,
+          9.3204720239155,
+          14.496864533110056,
+          118.68413729802705
+        ]
+      },
+      "semantic_failures": 1243,
+      "source_changed": 23,
+      "success": 19,
+      "tasks": 40,
+      "termination": {
+        "finish": 34,
+        "token_limit": 1,
+        "turn_limit": 5
+      },
+      "test_calls": 27,
+      "tokens": 18994,
+      "tokens_distribution": {
+        "mean": 474.85,
+        "n": 40,
+        "quantiles_0_25_50_75_100": [
+          135.0,
+          207.25,
+          300.0,
+          452.0,
+          4096.0
+        ]
+      },
+      "turns": 275,
+      "turns_distribution": {
+        "mean": 6.875,
+        "n": 40,
+        "quantiles_0_25_50_75_100": [
+          5.0,
+          6.0,
+          7.0,
+          8.0,
+          8.0
+        ]
+      },
+      "valid_json_actions": 248,
+      "valid_schema_actions": 209
+    },
+    "C": {
+      "accepted_edits": 42,
+      "actions": 249,
+      "applied_edit": 33,
+      "edit_attempts": 143,
+      "first_edit_turn_distribution": {
+        "mean": 3.4545454545454546,
+        "n": 33,
+        "quantiles_0_25_50_75_100": [
+          2.0,
+          2.0,
+          3.0,
+          4.0,
+          7.0
+        ]
+      },
+      "generation_seconds": 721.5349222468212,
+      "public_pass_hidden_fail": 3,
+      "public_test_seconds": 10.573585098609328,
+      "rejected_edits": 101,
+      "rejected_edits_distribution": {
+        "mean": 2.525,
+        "n": 40,
+        "quantiles_0_25_50_75_100": [
+          0.0,
+          0.0,
+          2.0,
+          4.25,
+          7.0
+        ]
+      },
+      "repeated_failed_edits": 11,
+      "reward_verifier_seconds": 12.537382680922747,
+      "runtime_failures": 1,
+      "seconds_distribution": {
+        "mean": 18.728456608508715,
+        "n": 40,
+        "quantiles_0_25_50_75_100": [
+          3.9726278046146035,
+          6.309739627176896,
+          15.531182643026114,
+          27.49862805241719,
+          56.99310663342476
+        ]
+      },
+      "semantic_failures": 1014,
+      "source_changed": 31,
+      "success": 27,
+      "tasks": 40,
+      "termination": {
+        "finish": 27,
+        "turn_limit": 13
+      },
+      "test_calls": 39,
+      "tokens": 21295,
+      "tokens_distribution": {
+        "mean": 532.375,
+        "n": 40,
+        "quantiles_0_25_50_75_100": [
+          92.0,
+          145.0,
+          459.0,
+          721.0,
+          1793.0
+        ]
+      },
+      "turns": 249,
+      "turns_distribution": {
+        "mean": 6.225,
+        "n": 40,
+        "quantiles_0_25_50_75_100": [
+          4.0,
+          4.0,
+          6.0,
+          8.0,
+          8.0
+        ]
+      },
+      "valid_json_actions": 249,
+      "valid_schema_actions": 249
+    },
+    "D": {
+      "accepted_edits": 37,
+      "actions": 226,
+      "applied_edit": 28,
+      "edit_attempts": 107,
+      "first_edit_turn_distribution": {
+        "mean": 2.142857142857143,
+        "n": 28,
+        "quantiles_0_25_50_75_100": [
+          2.0,
+          2.0,
+          2.0,
+          2.0,
+          6.0
+        ]
+      },
+      "generation_seconds": 423.7926142772194,
+      "public_pass_hidden_fail": 6,
+      "public_test_seconds": 9.505279622739181,
+      "rejected_edits": 70,
+      "rejected_edits_distribution": {
+        "mean": 1.75,
+        "n": 40,
+        "quantiles_0_25_50_75_100": [
+          0.0,
+          0.0,
+          0.0,
+          5.0,
+          7.0
+        ]
+      },
+      "repeated_failed_edits": 44,
+      "reward_verifier_seconds": 48.52730847103521,
+      "runtime_failures": 117,
+      "seconds_distribution": {
+        "mean": 12.143064233305632,
+        "n": 40,
+        "quantiles_0_25_50_75_100": [
+          3.6307846438139677,
+          6.227255529491231,
+          9.152484154561535,
+          13.545244717330206,
+          58.54457704513334
+        ]
+      },
+      "semantic_failures": 1109,
+      "source_changed": 26,
+      "success": 21,
+      "tasks": 40,
+      "termination": {
+        "finish": 30,
+        "turn_limit": 10
+      },
+      "test_calls": 35,
+      "tokens": 11343,
+      "tokens_distribution": {
+        "mean": 283.575,
+        "n": 40,
+        "quantiles_0_25_50_75_100": [
+          75.0,
+          163.0,
+          224.5,
+          381.0,
+          735.0
+        ]
+      },
+      "turns": 226,
+      "turns_distribution": {
+        "mean": 5.65,
+        "n": 40,
+        "quantiles_0_25_50_75_100": [
+          4.0,
+          4.0,
+          4.0,
+          8.0,
+          8.0
+        ]
+      },
+      "valid_json_actions": 215,
+      "valid_schema_actions": 154
+    }
+  },
+  "pool_sha256": "602eaf506f8ac2cf17924596dae7c0ff3891ef5034a546d4d3751b9803412c83",
+  "study": "repair-selfplay-2026-task17-interface-v1"
+}
