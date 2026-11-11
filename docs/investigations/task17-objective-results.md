@@ -136,6 +136,20 @@ Phase 2 allocation totals 20,824 H200-seconds, including calibration and both
 failed allocations. Seed-2028 GRPO job `32940325` / run
 `bcca1b8b4d205d2ae64e311d` has been submitted once and is pending.
 
+## Seed-2028 GRPO endpoint
+
+GRPO job `32940325` / `bcca1b8b4d205d2ae64e311d` completed exit 0 in 4,902
+H200-seconds; its endpoint checkpoint identity and all three file checksums
+passed. Monitoring was 21/15/24 out of 41 at 0/40/80 attempted episodes;
+independent development was 7/6/9 out of 16. At the midpoint, seven original
+monitoring successes were lost and one was gained. The final results recovered,
+but the intervening regression remains important. All ten gradients were finite
+(three zero-current-gradient batches); maximum scoring mismatch was 1.6529.
+Matched gated job `32948815` / `c28f8436ea7fb25863e13330` was submitted once
+and is pending. Completed Phase 2 jobs total 25,726 H200-seconds, including
+calibration and failed attempts. Dependency-matching worker and runtime evidence
+has been prepared for the remaining ungated controls, with no jobs submitted.
+
 ## Reproduction after endpoints
 
 Fetch each existing run with `uv run selfplay hpc fetch RUN_ID`, verify its

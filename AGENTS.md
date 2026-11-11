@@ -6,6 +6,25 @@ After completing each task, update `README.md` to concisely describe the researc
 problem, approaches, current progress and results. Link detailed evidence and
 procedures to the relevant Markdown documents; keep the README short and current.
 
+## CURRENT — Task 17 final GRPO/gated pair (2026-11-11)
+
+Seed-2028 GRPO `32940325` / `bcca1b8b4d205d2ae64e311d` completed exit 0 in
+4,902 H200-seconds; endpoint identity and all three checkpoint file checksums
+were verified. Monitoring at 0/40/80 was 21/15/24 out of 41; independent
+development was 7/6/9 out of 16. Preserve the midpoint regression; never
+duplicate the run. All ten gradients were finite, with three zero-current-
+gradient batches and maximum scoring difference 1.6529. The matched gated job
+`32948815` / `c28f8436ea7fb25863e13330` was submitted once from
+`8a5283bf2d3ee4b813044dafb369423017bd97c0`, and is pending. Its pending wall
+was reduced to three hours using prior measured endpoints; the original six-hour
+reservation and locked-ledger adjustment are preserved. Inspect scheduler and
+ledger, never duplicate. Completed Phase 2 allocations total 25,726 H200-seconds
+(7.14611 GPU-hours), including failures; the gated reservation is additional.
+Accepted worker proof and dependency-matching executed CPU runtime proof were
+reused for both A and C objective-study namespaces; no A/C jobs submitted yet.
+After the matched pair, evaluate calibrated and nominal ungated controls as the
+remaining 24-hour Phase 2 ceiling permits, with no full proposer C/D.
+
 ## CURRENT — Task 17 seed-2028 replication (2026-11-11)
 
 The seed-2027 gated job `32931504` / run `72a763ad7097ffd776f2ef54` completed
