@@ -15,8 +15,9 @@ iterations and all three independent milestones are fetched locally; checkpoint
 `000010` identity and all three file SHA-256 values were verified remotely. Never duplicate this completed job. Matched gated seed-2027 job
 `32931504` / run `72a763ad7097ffd776f2ef54` was submitted once from
 `bab208afb7fae18567a8d9f543b0a04c7af579d6` after live reconciliation and a
-passing preview. It is pending; inspect its ledger and scheduler before any
-action and never duplicate it. Continue through its endpoint, then the
+passing preview. Its pending wall limit was reduced from six to three hours using matched endpoint
+timings; the original six-hour budget reservation and ledger adjustment are
+retained. Inspect its ledger and scheduler before any action; never duplicate it. Continue through its endpoint, then the
 prespecified seed-2028 GRPO/gated pair and feasible ungated controls. Total
 completed Phase 2 allocation is 15,990 H200-seconds (4.44167 GPU-hours),
 including both failed allocations; the pending gated reservation is additional.
