@@ -80,7 +80,10 @@ that execution. The corrected code keeps seed-2026's legacy initialization path
 and uses separate records for later Task 17 objective seeds; objective math,
 model, task data and exposure are unchanged. Seed-2026 scientific-code hash is
 `22fe348e4d79dffefef80403b1f350c3a24b42354c81cc834549141813727231`; the
-corrected code has a distinct hash and must have matching runtime validation.
+corrected code hash is `b67494efc404b9da743c0c7ef66ff1941fb16b4dd66eeb5d3ae1f4cfe9ffe6a2`.
+Matching CPU runtime job `32919444` / run `2a20b7742d8c69f349ba8893` was
+submitted once from `10529c50e8081cd53063aa9c3de35619fd0d2860`; inspect its
+ledger and never duplicate it.
 Paired methods within each seed must use the same code and initial adapter;
 cross-seed analysis must explicitly document the bookkeeping-only revision.
 Total Phase 2 allocated time through this failure is 11,082 H200-seconds
