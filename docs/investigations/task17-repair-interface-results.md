@@ -13,6 +13,19 @@ These are single-checkpoint results; the trained difference is uncertain. The
 remain unexecuted. Exact text and an 80-episode endpoint are selected for the
 fresh-base objective study. Total actual GPU use was 1.15 H200-hours.
 
+On originals, base strict/text had 7/108 versus 25/76 accepted edit
+attempts, 101 versus 51 rejected edits, and 4 versus 27 public-test calls.
+Trained strict/text had 42/143 versus 37/107 accepted edit attempts, 101 versus
+70 rejected edits, and 39 versus 35 public-test calls. Edit attempts are not
+independent samples. Original generated-token totals were 24,066/18,994 for the
+base and 21,295/11,343 for B2026; turn totals were 308/275 and 249/226.
+In the exploratory 20-family source-length strata (median 45.5 tokens), base
+repair differences were +30 points at/below the median and +40 above it; trained
+B2026 differences were −45 and +15, respectively. These small strata and
+multiple comparisons are exploratory, not proof of a causal length interaction.
+Schema familiarity and differing model conditioning are plausible explanations
+for the trained snapshot's response, not experimentally isolated causes.
+
 ![Primary verified repairs and edit application](../figures/task17/interface-outcomes.png)
 
 ![Exploratory source-length strata](../figures/task17/interface-length.png)
