@@ -97,6 +97,21 @@ H200-seconds (3.07833 GPU-hours)**, including both failed allocations. The objec
 `runs/task17/objective-analysis-seed2026-v4/`; its family-bootstrap interval
 reflects task sampling conditional on one training seed, not seed variation.
 
+## Seed-2027 replication in progress
+
+After the archived seed-isolation failure, corrected GRPO job `32920928` / run
+`f479a008edceec432c10d1eb` completed exit 0 at 80 episodes in 4,908
+H200-seconds. Monitoring was 21/41 → 22/41 → 26/41 and independent development
+was 7/16 → 8/16 → 8/16 at 0/40/80 episodes. Ten training iterations and all
+three development milestones were fetched. Endpoint checkpoint identity and all three file checksums were verified; the
+paired comparison remains pending. Matched gated job `32931504` / run
+`72a763ad7097ffd776f2ef54` was submitted once and is pending. The 2027
+scientific-code change only isolates seed-specific initialization records;
+model, objective mathematics, data and exposure are unchanged. Completed Phase 2
+allocations total 15,990 H200-seconds, including both failures. A dry-run
+attempt to use a scheduler dependency was rejected because dependencies are
+limited to interface operations; it submitted no job.
+
 ## Reproduction after endpoints
 
 Fetch each existing run with `uv run selfplay hpc fetch RUN_ID`, verify its

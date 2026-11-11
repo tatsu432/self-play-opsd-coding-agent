@@ -6,6 +6,24 @@ After completing each task, update `README.md` to concisely describe the researc
 problem, approaches, current progress and results. Link detailed evidence and
 procedures to the relevant Markdown documents; keep the README short and current.
 
+## CURRENT — Task 17 seed-2027 replication (2026-11-11)
+
+Corrected GRPO job `32920928` / run `f479a008edceec432c10d1eb` completed
+exit 0 at 80 episodes in 4,908 H200-seconds. Monitoring at 0/40/80 was
+21/22/26 out of 41; independent development was 7/8/8 out of 16. Ten
+iterations and all three independent milestones are fetched locally; checkpoint
+`000010` identity and all three file SHA-256 values were verified remotely. Never duplicate this completed job. Matched gated seed-2027 job
+`32931504` / run `72a763ad7097ffd776f2ef54` was submitted once from
+`bab208afb7fae18567a8d9f543b0a04c7af579d6` after live reconciliation and a
+passing preview. It is pending; inspect its ledger and scheduler before any
+action and never duplicate it. Continue through its endpoint, then the
+prespecified seed-2028 GRPO/gated pair and feasible ungated controls. Total
+completed Phase 2 allocation is 15,990 H200-seconds (4.44167 GPU-hours),
+including both failed allocations; the pending gated reservation is additional.
+The attempted afterok dry run was rejected because that option supports only
+interface operations; no job was submitted and the record is in `runs/task17/`.
+Preserve the separate scientific-code hashes and all Task 17 privacy safeguards.
+
 ## CURRENT — Task 17 Phase 2 preparation (2026-11-11)
 
 The four existing interface cells and Slurm accounting are fetched and analyzed
