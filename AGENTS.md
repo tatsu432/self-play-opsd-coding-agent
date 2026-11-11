@@ -59,8 +59,10 @@ H200-seconds: 27/32 rollout successes, three of eight mixed groups, four finite
 optimizer steps, and maximum rollout/rescoring mismatch 0.8137. Baseline outcomes
 matched GRPO task-by-task (21/41 and 7/16). Checkpoint `000004` metadata and
 all three file checksums were verified; code, pool and control identities match.
-Proceed with matched continuations to the frozen 80-episode endpoint, monitoring
-40-episode development and numerical health. Total Phase 2 allocation so far is
+GRPO continuation `32898057` was submitted once from verified checkpoint
+`000004` for the frozen 80-episode endpoint; inspect its ledger and never
+duplicate it. Monitor 40-episode development and numerical health, then continue
+the gated arm from its verified checkpoint with matched exposure. Total Phase 2 allocation so far is
 4,576 H200-seconds (1.27111 GPU-hours), including failed calibration. The following Task 17 retrieval
 snapshot is historical.
 
