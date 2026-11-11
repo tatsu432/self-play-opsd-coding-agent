@@ -33,7 +33,8 @@ from `46ea87a1991da15a61d4d724217b6e3409c287ea`; inspect it and never duplicate.
 It completed exit 0. Corrected calibration job `32877712`, run
 `06982710d021357786a605aa`, was submitted once from
 `0950c24e0685e30174ee6a9d5d40cf1c5a603b37`; inspect its ledger and never
-duplicate it.
+duplicate it. Its pending wall limit was reduced to one hour using measured
+prior group/calibration timing; the original two-hour reservation is retained.
 No coefficient exists and no objective pilot has been submitted. The following Task 17 retrieval
 snapshot is historical.
 
