@@ -62,7 +62,8 @@ the bounded objective pilots and final scientific decision remain pending.
 | Corrected calibration | `06982710d021357786a605aa` | 32877712 | Completed, 32 rollouts / eight groups, 556 H200-seconds |
 | GRPO pilot | `8bfce0676900d87de4a8e700` | 32880497 | Completed stop at iteration 4; 1,851 H200-seconds |
 | Gated pilot | `1768acda0784dab259fb68ea` | 32887853 | Completed stop at iteration 4; 1,904 H200-seconds |
-| GRPO continuation | `8bfce0676900d87de4a8e700` | 32898057 | Submitted from verified checkpoint 000004 to 80 episodes |
+| GRPO continuation | `8bfce0676900d87de4a8e700` | 32898057 | Completed 80 episodes, 3,268 H200-seconds |
+| Gated continuation | `1768acda0784dab259fb68ea` | 32908569 | Submitted from checkpoint 000004 to 80 episodes |
 
 GPU cells ran sequentially A→C→B→D and used 1,234/1,121/928/857 allocated
 H200-seconds: **4,140 seconds = 1.15 H200 GPU-hours**. All four artifacts and

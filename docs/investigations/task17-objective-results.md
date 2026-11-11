@@ -46,12 +46,20 @@ behavior-policy denominators remain intact, and the causal impact is unknown.
 Matched continuation to 40 and 80 episodes is warranted by nonzero learning
 signals, but any conclusion must account for this numerical limitation.
 
-GRPO continuation `32898057` was submitted once from verified checkpoint 000004
-for the 80-episode endpoint. Inspect its live ledger; never duplicate it. The
-pending six-hour wall was reduced to three hours while retaining the original
-budget reservation. Continue the gated arm sequentially after GRPO review. Total
-Phase 2 allocated time through the pilots is **4,576 H200-seconds (1.27111
-GPU-hours)**, including the failed calibration; the new continuation is pending.
+GRPO continuation `32898057` completed exit 0 at 80 episodes, consuming 3,268
+additional H200-seconds. Its monitoring curve was 21/41 → 25/41 → 25/41; its
+independent-development curve was 7/16 → 9/16 → 10/16. At 80, three original
+failures became successes and none of the original successes regressed. It made
+five optimizer steps over 80 episodes; 54/80 training rollouts succeeded, with
+seven mixed groups out of 20. The maximum scoring difference reached 2.9407;
+0.59% of sampled tokens in that iteration differed by more than 0.2. The final
+checkpoint files and metadata were checksum-verified. These are single-seed
+development observations, not an objective comparison.
+
+Gated continuation `32908569` was submitted once from verified checkpoint
+000004 for the matched 80-episode endpoint. Inspect its ledger; never duplicate.
+Total Phase 2 allocation before the gated continuation is **7,844 H200-seconds
+(2.17889 GPU-hours)**, including failed calibration.
 
 ## Reproduction after endpoints
 
