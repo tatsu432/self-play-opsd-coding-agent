@@ -51,8 +51,9 @@ SHA-256 values were verified; scientific and pool/control identities match.
 Never duplicate this pilot. Gated pilot `32887853` /
 `1768acda0784dab259fb68ea` was submitted once from
 `9d26c7bba77e147b22c67f4e508f6c31d58c3002`, with stop after iteration 4.
-Its pending wall was reduced to two hours, informed by the matched 1,851-second
-GRPO allocation; the original six-hour reservation remains. Inspect its live
+Its pending wall was reduced first to two hours and then to 90 minutes, informed
+by the matched 1,851-second GRPO allocation; the original six-hour reservation
+remains and both changes are in the ledger. Inspect its live
 ledger and never duplicate it. The following Task 17 retrieval
 snapshot is historical.
 
