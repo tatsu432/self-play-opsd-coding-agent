@@ -77,7 +77,10 @@ unverified impact of scoring differences remain limitations.
 ![Single-seed development curves and GPU allocation](../figures/task17/objective-learning-efficiency-seed2026.png)
 
 Both pilots and the full seed-2026 pair support proceeding with seeds 2027 and
-2028 before interpreting training-seed variation. Total Phase 2 allocated time
+2028 before interpreting training-seed variation. GRPO seed-2027 job `32917167`
+(run `95735e5ad673444230f30717`) was submitted once to 80 episodes; its pending
+wall was reduced to three hours, with its original reservation retained. Inspect
+its ledger and never duplicate it. Total Phase 2 allocated time
 through these endpoints is **11,012 H200-seconds (3.05889 GPU-hours)**, including
 the failed calibration. The objective analysis is at
 `runs/task17/objective-analysis-seed2026-v3/`; its family-bootstrap interval

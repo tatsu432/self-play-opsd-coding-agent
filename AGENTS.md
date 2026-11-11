@@ -71,9 +71,13 @@ bootstrap interval for gated-minus-GRPO was −0.1875 to +0.1875 for seed 2026.
 Training rollout successes were 54/80 GRPO and 58/80 gated; do not treat them as
 independent evaluation. Full logical-run GPU time was 5,119/5,072 seconds.
 Total Phase 2 allocation is 11,012 H200-seconds (3.05889 GPU-hours), including
-failed calibration. No seed-2027/2028 objective job has been submitted. Continue
-paired GRPO/gated replication on seeds 2027 and 2028 with the immutable final
-control; prioritize these before ungated arms, subject to the separate 24-hour
+failed calibration. GRPO seed-2027 job `32917167` / run `95735e5ad673444230f30717` was
+submitted once from `3197d06167956e0e6019c1e2f22e4595737a44ce` to the
+80-episode endpoint. Its pending wall was reduced from six to three hours,
+using the 5,119-second seed-2026 logical-run duration; the original reservation
+remains. Inspect its ledger, never duplicate it, and review at 40 and 80. No
+other seed-2027/2028 objective job has been submitted. Continue paired
+GRPO/gated replication on seeds 2027 and 2028 with the immutable final control; prioritize these before ungated arms, subject to the separate 24-hour
 ceiling. Never duplicate completed allocations. The following Task 17 retrieval
 snapshot is historical.
 
