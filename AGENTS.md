@@ -24,12 +24,13 @@ coefficient and checksum, then run bounded GRPO/gated pilots and assess them
 before any continuation. Preserve the 24-hour Phase 2 ceiling,
 isolation, actual behavior denominators, data separation and no-duplicate rules.
 Runtime job 32872199 completed exit 0. Calibration job `32872812`, run
-`11610fb16bd9af1f197221b1`, was submitted once from
-`f99b4f491c3dfbc65c5d513169c3dd45e3b4255f`; inspect this ledger and Slurm,
-never duplicate it. Its pending wall limit was reduced to one hour after a
-comparable eight-task calibration took 805 seconds; the ledger records the change
-and retains the original two-hour budget reservation. Freeze the measured
-coefficient/checksum only after it completes. No objective pilot has been submitted. The following Task 17 retrieval
+`11610fb16bd9af1f197221b1`, failed exit 1 after 265 H200-seconds on missing
+backend metric `update_norm`. Its output and original ledger are preserved at
+`failed-calibration-32872812`, with archive history in the ledger. Never
+duplicate that execution. The corrected calibration measures actual adapter
+displacement and restores model/optimizer state. Run fresh runtime validation
+for the changed scientific code before submitting a corrected replacement.
+No coefficient exists and no objective pilot has been submitted. The following Task 17 retrieval
 snapshot is historical.
 
 ## Historical — Task 17 retrieval blocked (2026-11-10)

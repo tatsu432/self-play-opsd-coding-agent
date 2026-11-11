@@ -4,7 +4,7 @@ The [research specification](../task/17-generalization-spec.md) is being execute
 on `feat/17-repair-interface-generalization`. Implementation, historical analysis,
 isolated semantic replay and the four primary GPU allocations are complete.
 Text-result retrieval and paired analysis are complete. Exact text is selected
-for a fresh-base 80-episode objective study. Calibration is queued; its result,
+for a fresh-base 80-episode objective study. Calibration failed on a missing backend metric; its corrected replacement,
 the bounded objective pilots and final scientific decision remain pending.
 
 ## Delivered implementation and evidence
@@ -57,16 +57,17 @@ the bounded objective pilots and final scientific decision remain pending.
 | Base exact text B | `f7c617670830bcf229a93b0e` | 32811833 | Completed and fetched; 26/56, 19/40 originals |
 | Trained exact text D | `819fec9d88332bf03f874d1e` | 32812080 | Completed and fetched; 31/56, 21/40 originals |
 | Current text runtime | `cc5ec4e1db0226c7f6dcbe29` | 32872199 | Completed exit 0 |
-| Objective calibration | `11610fb16bd9af1f197221b1` | 32872812 | Pending H200; inspect ledger |
+| Objective calibration | `11610fb16bd9af1f197221b1` | 32872812 | Failed `update_norm`, 265 H200-seconds; archived |
 
 GPU cells ran sequentially A→C→B→D and used 1,234/1,121/928/857 allocated
 H200-seconds: **4,140 seconds = 1.15 H200 GPU-hours**. All four artifacts and
 allocation records are fetched and analyzed. Base strict/text original-task
 repairs were 5/40 and 19/40; B2026 strict/text were 27/40 and 21/40. The
-correlated 56-presentation endpoint is exploratory. Calibration is a new Phase 2
-allocation, currently pending; do not duplicate it. Its original two-hour
-reservation remains in the budget ledger after a documented pending wall-limit
-reduction to one hour.
+correlated 56-presentation endpoint is exploratory. Calibration failed after four saved rollouts because the backend does not
+provide `update_norm`. The allocation used 265 H200-seconds (0.07361 hours).
+Its artifacts and original ledger were archived; a corrected implementation
+measures actual adapter displacement and restores adapters and optimizers.
+Fresh runtime validation is required before the corrected replacement.
 The rejected eight-CPU submission `dc2a6394ef94ef1bd7768b1e` had no scheduler job;
 corrected resources use five trainer plus one worker CPU. Preallocation failures
 and failed preparation ledgers remain auditable. Historical Task 15 is immutable.
@@ -85,8 +86,9 @@ Generated programs were never executed on the host.
 
 ## Remaining work
 
-Inspect calibration job `32872812` and its ledger; never submit a duplicate.
-On successful completion, fetch and verify its coefficient and checksum, freeze
+Do not repeat failed calibration job `32872812`. Validate the corrected code
+and submit a distinct replacement. On successful completion, fetch and verify
+its coefficient and checksum, freeze
 the final control, then run and assess bounded GRPO/gated pilots. Continue
 informative arms within the separate 24-hour ceiling. Reconcile telemetry,
 checkpoints and final costs; complete the scientific report, update README,

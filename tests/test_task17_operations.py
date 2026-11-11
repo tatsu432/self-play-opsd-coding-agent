@@ -6,6 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import torch
 
 from selfplay_opsd.config import load_config
 from selfplay_opsd.task17 import configure_operation, partition_parents
@@ -17,6 +18,51 @@ def script(name):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def test_calibration_measures_weight_displacement_and_restores_optimizer(monkeypatch):
+    import copy
+
+    monkeypatch.syspath_prepend(str(Path("scripts").resolve()))
+    module = script("task17_experiment")
+
+    class Policy:
+        def __init__(self):
+            self.state = {
+                "adapters": {"weight": torch.tensor([1.0, 2.0])},
+                "parameter_names": {"student": ["weight"]},
+                "optimizers": {"student": {"step": 0}},
+            }
+
+        def state_dict(self):
+            return copy.deepcopy(self.state)
+
+        def load_state_dict(self, state):
+            self.state = copy.deepcopy(state)
+
+        def gradients(self, examples, *, step):
+            assert step
+            self.state["adapters"]["weight"] += torch.tensor([3.0, 4.0])
+            self.state["optimizers"]["student"]["step"] += 1
+            return [], {"grad_norm": 7.0}
+
+    policy = Policy()
+    before = policy.state_dict()
+    metrics, displacement = module.calibration_step(policy, [], before)
+    assert metrics["grad_norm"] == 7.0 and displacement == 5.0
+    assert torch.equal(policy.state["adapters"]["weight"], before["adapters"]["weight"])
+    assert policy.state["optimizers"] == before["optimizers"]
+
+    def fail_after_update(examples, *, step):
+        policy.state["adapters"]["weight"] += 1
+        policy.state["optimizers"]["student"]["step"] += 1
+        raise RuntimeError("diagnostic failure")
+
+    policy.gradients = fail_after_update
+    with pytest.raises(RuntimeError, match="diagnostic failure"):
+        module.calibration_step(policy, [], before)
+    assert torch.equal(policy.state["adapters"]["weight"], before["adapters"]["weight"])
+    assert policy.state["optimizers"] == before["optimizers"]
 
 
 def test_command_keeps_operation_arm_seed_and_resume():

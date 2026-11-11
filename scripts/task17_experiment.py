@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import math
 import os
 from pathlib import Path
 
@@ -41,6 +42,24 @@ HISTORICAL_B2026 = {
     "scientific_code_hash": "4f0ec3e0269d90ec45e6ba1d1dd43ef5b377acde69fc8cd6239834adbca432ab",
     "student_version": "791c821e07b6d312d2cf55e39e6d847ef48430f0e02c536085302a8c5eaf71cf",
 }
+
+
+def calibration_step(policy, examples, before):
+    """Measure the real student update and restore adapters and optimizers."""
+    try:
+        _, metrics = policy.gradients(examples, step=True)
+        after = policy.state_dict()
+        names = before["parameter_names"]["student"]
+        squared = sum(
+            (after["adapters"][name].double() - before["adapters"][name].double())
+            .square()
+            .sum()
+            .item()
+            for name in names
+        )
+        return metrics, math.sqrt(squared)
+    finally:
+        policy.load_state_dict(before)
 
 
 def load_historical_weights(policy, cfg, repo, checkpoint):
@@ -456,17 +475,15 @@ def main():
                     ungated_cfg.objective.sd_lambda = 1.0
                     ungated, _ = student_examples(scored, ungated_cfg, kind="sd")
                     before = copy.deepcopy(policy.state_dict())
-                    _, gm = policy.gradients(gated, step=True)
-                    policy.load_state_dict(before)
-                    _, um = policy.gradients(ungated, step=True)
-                    policy.load_state_dict(before)
+                    gm, gated_displacement = calibration_step(policy, gated, before)
+                    um, ungated_displacement = calibration_step(policy, ungated, before)
                     calibration_rows.append(
                         {
                             "task_id": task.task_id,
                             "gated_norm": gm["grad_norm"],
                             "ungated_unit_norm": um["grad_norm"],
-                            "gated_auxiliary_optimizer_displacement": gm["update_norm"],
-                            "ungated_unit_auxiliary_optimizer_displacement": um["update_norm"],
+                            "gated_auxiliary_optimizer_displacement": gated_displacement,
+                            "ungated_unit_auxiliary_optimizer_displacement": ungated_displacement,
                         }
                     )
         if args.operation == "calibrate":
