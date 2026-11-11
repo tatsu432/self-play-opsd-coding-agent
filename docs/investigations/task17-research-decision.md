@@ -1,8 +1,7 @@
-# Task 17 research decision — final control pending
+# Task 17 research decision
 
-The matched repair-interface and student-objective studies are substantially
-complete. The final nominal ungated seed-2028 student run is active; conclusions
-below are provisional until its existing job is reconciled. The detailed
+The matched repair-interface and student-objective studies are complete.
+All 12 objective endpoints were reconciled and verified. The detailed
 [interface evidence](task17-repair-interface-results.md),
 [objective results](task17-objective-results.md) and
 [execution record](../task_completion/17-implemented-repair-interface.md) retain
@@ -45,21 +44,19 @@ These observations are not a new end-to-end estimate on unseen HumanEval+.
 
 The fixed-supply study uses the fresh 4B base model, exact text, 80 attempted
 episodes per arm, equal task order, and independent 16-family development plus
-41 monitoring tasks at 0/40/80. All three GRPO, gated and calibrated ungated
-seeds completed; nominal ungated seeds 2026 and 2027 completed, and 2028 is
-running. At 80 episodes, independent development repairs out of 16 were:
+41 monitoring tasks at 0/40/80. All three seeds of each of the four student objectives completed. At 80 episodes, independent development repairs out of 16 were:
 
 | Objective | 2026 | 2027 | 2028 |
 |---|---:|---:|---:|
 | GRPO | 10 | 8 | 9 |
 | Gated OPSD | 10 | 8 | 10 |
-| Ungated OPSD, coefficient 0.1 | 11 | 11 | Pending |
+| Ungated OPSD, coefficient 0.1 | 11 | 11 | 10 |
 | Ungated OPSD, matched initial gradient scale | 9 | 9 | 9 |
 
 Gated does not show a robust independent-development advantage over GRPO in
 these three seeds: paired differences are 0, 0 and +1 task. At the same
-endpoint the two completed nominal ungated seeds exceed gated by one and three
-tasks; the last seed is needed for the prespecified comparison. Calibrated
+endpoint nominal ungated exceeded gated by one and three tasks in the first two
+seeds, and tied it in the third (with two different tasks solved by each). Calibrated
 ungated differs from gated by −1, +1 and −1 task. Matching initial auxiliary
 gradient magnitude does not match later directions or optimizer states.
 Monitoring results vary by seed and can favor ungated, but these are the same

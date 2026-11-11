@@ -6,6 +6,34 @@ After completing each task, update `README.md` to concisely describe the researc
 problem, approaches, current progress and results. Link detailed evidence and
 procedures to the relevant Markdown documents; keep the README short and current.
 
+## CURRENT — Task 17 complete (2026-11-11)
+
+The final nominal ungated seed-2028 job `32983291` / controller run
+`69d4506e58066c32f5fc8e3b` completed exit 0 in 4,820 H200-seconds. Its endpoint
+identity and three checkpoint checksums were verified, and its two baseline
+sets matched seed-2028 GRPO task by task. Never duplicate. All 12 controlled
+student-objective arms completed 80 attempted episodes. At 80, independent
+repairs out of 16 across seeds 2026/2027/2028 were GRPO 10/8/9, gated 10/8/10,
+nominal ungated 11/11/10 and calibrated ungated 9/9/9. The final private
+manifest is `runs/task17/objective-manifest-final.json` and all-pairs analysis
+is `runs/task17/objective-analysis-final/`. These reuse fixed task families;
+within-seed family intervals are not uncertainty across training seeds. The
+largest scoring mismatch was 5.4899 (calibrated 2026; 0.1793% of 3,346 tokens
+above 0.2 in that batch), with unknown causal effect; preserve behavior-policy
+denominators. All recorded gradients were finite.
+
+Phase 1 allocated 4,140 H200-seconds (1.15 hours); Phase 2 allocated 59,358
+seconds (16.48833 hours), including both failures and calibration; total is
+63,498 seconds (17.63833 H200-hours). All 12 endpoint checkpoints are verified.
+Local telemetry reports SDK delivery through iteration 10 without recorded
+errors, but cloud history was not independently verified. No account jobs were
+active at final Slurm reconciliation. Local validation passed 429 tests with
+20 skipped and 18 deselected; Ruff lint/format and mypy (51 files) passed.
+See the Task 17 research decision, results, completion and final figures. No
+full proposer C/D. Preserve all historical Task 15 identities, failed attempts,
+private artifacts and no-duplicate safeguards. Earlier Task 17 status sections
+below are historical and superseded by this completion record.
+
 ## CURRENT — Task 17 final control requires Yale reauthentication (2026-11-11)
 
 Final nominal seed-2028 job `32983291` / run `69d4506e58066c32f5fc8e3b` was

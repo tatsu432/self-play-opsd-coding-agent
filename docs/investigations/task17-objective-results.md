@@ -5,9 +5,8 @@ exact text, a common fixed curriculum and an 80-attempted-episode endpoint.
 This document records actual results; objective superiority is not yet measured.
 
 The dated execution sections below preserve contemporaneous status and costs;
-the latest completed-run table and research decision supersede older references
-to jobs being pending. The final nominal seed-2028 arm was last observed
-running; Yale SSH reauthentication is required to reconcile its current state.
+the final analysis and completed-run table supersede older references to jobs
+being pending. All 12 objective runs completed and their endpoints were verified.
 
 ## Calibration
 
@@ -286,12 +285,57 @@ GRPO attempt. These descriptive counts are not matched-token comparisons.
 | 2027 | Calibrated ungated | 24,454 | 10 | 1.324 | 9 | 33 |
 | 2028 | GRPO | 28,978 | 7 | 1.362 | 9 | 24 |
 | 2028 | Gated | 27,625 | 10 | 1.369 | 10 | 31 |
+| 2028 | Nominal ungated | 23,360 | 10 | 1.339 | 10 | 30 |
 | 2028 | Calibrated ungated | 26,552 | 10 | 1.331 | 9 | 26 |
 
-The 11 completed runs' local telemetry reports SDK delivery through iteration
+All 12 completed runs' local telemetry reports SDK delivery through iteration
 10 with no recorded delivery errors; this is not an independent cloud-history
 verification. All rows use the same fixed evaluation sets, so training-seed and
-family uncertainty must remain separate. Nominal 2028 was last observed running.
+family uncertainty must remain separate.
+
+## Final 12-arm comparison
+
+Nominal ungated seed-2028 job `32983291` / `69d4506e58066c32f5fc8e3b`
+completed exit 0 in 4,820 H200-seconds. Its iteration-10 checkpoint identity
+and all three file hashes passed; it used the same code, seed, curriculum and
+initial adapter as the other 2028 arms. Its independent development endpoint
+was 10/16 and monitoring was 30/41. All 12 objective arms completed 80
+attempted episodes. The final run's maximum rollout/rescoring mismatch was
+1.4522 and all ten gradients were finite.
+
+| 80-episode endpoint, repairs /16 | 2026 | 2027 | 2028 |
+|---|---:|---:|---:|
+| GRPO | 10 | 8 | 9 |
+| Gated OPSD | 10 | 8 | 10 |
+| Nominal ungated OPSD | 11 | 11 | 10 |
+| Calibrated ungated OPSD | 9 | 9 | 9 |
+
+Gated minus GRPO independent differences were 0, 0 and +1 task. Gated minus
+nominal differences were −1, −3 and 0; gated minus calibrated were +1, −1 and
++1. Nominal minus calibrated differences were +2, +2 and +1. At seed 2028 the
+equal gated and nominal 10/16 totals include two tasks each arm alone solved;
+the within-seed family-bootstrap interval for gated minus nominal was
+[−0.1875, +0.1875]. These are three seeds on the same 16 families, not new
+independent test sets or evidence of equivalence. Matched initial gradient
+strength is not a match of later objective gradients or updates. Monitoring
+and task uncertainty are in the private summary and reproducible analysis.
+
+[Final objective curves and GPU allocations](../figures/task17/objective-learning-efficiency-final.png)
+show matched episode counts and per-run allocated time. Training tokens and
+updates differ across objectives, so do not infer matched-token efficiency from
+fixed episodes. The completed Phase 2 total is 59,358 H200-seconds
+(16.48833 GPU-hours), including the 265-second failed calibration, the
+70-second failed seed-2027 run, and successful calibration/training.
+Phase 1 used 4,140 seconds (1.15 hours); combined actual allocation is 63,498
+seconds (17.63833 H200-hours). No full proposer C/D was run.
+
+The final private manifest is `runs/task17/objective-manifest-final.json`; the
+all-pairs analysis is `runs/task17/objective-analysis-final/`. The manifest
+records the two scientific-code hashes: the seed-2026 record path predates the
+seed-specific bookkeeping fix, while objective math, model, data and exposure
+are unchanged. Paired arms within a seed share the same scientific code. All
+12 local telemetry records report SDK delivery through iteration 10 and no
+recorded delivery errors; cloud histories were not independently verified.
 
 ## Reproduction after endpoints
 

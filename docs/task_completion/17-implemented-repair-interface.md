@@ -1,30 +1,51 @@
-# Task 17 implementation and research execution — final control queued
+# Task 17 implementation and research execution — complete
 
-The [research specification](../task/17-generalization-spec.md) is being executed
-on `feat/17-repair-interface-generalization`. Implementation, historical audit,
-isolated replay, the four interface cells, calibration and 11 of 12 matched
-student-objective runs are complete. The final nominal ungated seed-2028 job
-`32983291` / `69d4506e58066c32f5fc8e3b` started by backfill; inspect its existing
-Slurm state and ledger and never duplicate it. The Yale SSH master expired and
-the Duo refresh timed out; the job's present state is unknown. After normal
-Yale login and Duo approval, inspect the existing job. Once it completes, fetch
-and verify its endpoint,
-run the 12-arm paired analysis, finalize the research decision, update README,
-merge the finished branch into local main and push. See the current
-[research decision](../investigations/task17-research-decision.md) and
-[objective results](../investigations/task17-objective-results.md).
+The [research specification](../task/17-generalization-spec.md) is complete.
+All 1,617 historical trajectories were audited, the isolated replay and four
+paired interface cells completed, and all 12 student-objective arms reached
+80 attempted episodes. No full proposer C/D training was launched. The final
+[research decision](../investigations/task17-research-decision.md),
+[interface results](../investigations/task17-repair-interface-results.md) and
+[objective results](../investigations/task17-objective-results.md) document
+hypotheses, comparisons, uncertainty and reproducible analysis commands.
 
-The current completed Phase 2 allocation is 54,538 H200-seconds (15.14944
-GPU-hours), including calibration and failed attempts, plus 1.15 H200-hours in
-Phase 1. The final job's original six-hour reservation remains within the 24-hour
-Phase 2 ceiling; its pending wall limit was reduced to two hours based on
-matching measured endpoints, with both adjustments recorded. All 11 completed
-objective endpoints' checkpoint identities and three-file checksums passed.
-Each locally fetched telemetry state reports SDK delivery through iteration 10
-and zero delivery errors; independent W&B cloud history has not been verified.
-The latest local CPU selection has 429 passed, 20 skipped and 18 deselected;
-Ruff lint/format and mypy (51 source files) pass. Those local tests do not
-replace the executed Yale isolated-worker and GPU evidence.
+The final nominal ungated seed-2028 run `69d4506e58066c32f5fc8e3b`, Slurm job
+`32983291`, completed exit 0 in 4,820 H200-seconds. Its complete iteration-10
+checkpoint identity and three file checksums were verified; the frozen seed,
+model, curriculum and both baseline outcome sets match the other seed-2028
+arms. All 12 objective endpoints and checkpoints are verified. Their local W&B
+telemetry reports SDK delivery through iteration 10 and zero delivery errors;
+independent cloud-history verification was not repeated.
+
+| 80-episode independent repairs /16 | Seed 2026 | Seed 2027 | Seed 2028 |
+|---|---:|---:|---:|
+| GRPO | 10 | 8 | 9 |
+| Gated OPSD | 10 | 8 | 10 |
+| Nominal ungated OPSD | 11 | 11 | 10 |
+| Calibrated ungated OPSD | 9 | 9 | 9 |
+
+Gated does not show a robust independent-development advantage over GRPO or
+nominal ungated across these three seeds. Calibrated ungated is one task below,
+one above and one below gated, respectively. The same fixed task families are
+reused across seeds; within-seed bootstrap intervals do not measure seed
+variation. Rollout/rescoring mismatch remains a limitation, with maximum 5.4899
+in one calibrated run; original behavior-policy denominators are preserved.
+All recorded gradients were finite.
+
+Actual Phase 1 allocation was 4,140 H200-seconds (1.15 hours); Phase 2 was
+59,358 seconds (16.48833 hours), including both failed attempts and calibration.
+The combined new allocation is **63,498 H200-seconds (17.63833 H200-hours)**.
+Local validation passed 429 tests, with 20 skipped and 18 deselected; Ruff
+lint/format and mypy passed. The local selection excludes actual GPU, download,
+sandbox and online W&B execution. Live Slurm reconciliation found no active
+jobs for the account after completion. Raw source, oracle and trajectories
+remain private under ignored `runs/`; historical Task 15 artifacts and failed
+attempts remain preserved.
+
+The final 12-run manifest is `runs/task17/objective-manifest-final.json`, and
+`runs/task17/objective-analysis-final/` contains all six within-seed pairwise
+comparisons. The final [learning curves and GPU allocation](../figures/task17/objective-learning-efficiency-final.png)
+show matched episode budgets and actual allocated time.
 
 ## Historical execution record
 
