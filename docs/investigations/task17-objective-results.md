@@ -56,12 +56,32 @@ seven mixed groups out of 20. The maximum scoring difference reached 2.9407;
 checkpoint files and metadata were checksum-verified. These are single-seed
 development observations, not an objective comparison.
 
-Gated continuation `32908569` was submitted once from verified checkpoint
-000004 for the matched 80-episode endpoint. Its pending wall was reduced from
-six to three hours based on the 3,268-second GRPO continuation; the original
-six-hour budget reservation remains. Inspect its ledger; never duplicate.
-Total Phase 2 allocation before the gated continuation is **7,844 H200-seconds
-(2.17889 GPU-hours)**, including failed calibration.
+Gated continuation `32908569` completed exit 0 in 3,168 H200-seconds; its
+iteration-10 checkpoint files and metadata were verified. At 0/40/80 episodes,
+monitoring was 21/27/28 out of 41 and independent development was 7/9/10 out of
+16. GRPO was 21/25/25 and 7/9/10, respectively. At the endpoint each method
+solved one independent task the other missed. The gated-minus-GRPO paired
+difference was 0/16 with a family-bootstrap 95% interval of −18.75 to +18.75
+percentage points, conditional on seed 2026. This small development set and
+one training seed cannot establish equivalence or robust superiority.
+
+GRPO/gated used 1.422/1.409 H200-hours and generated 24,990/22,481 training
+tokens respectively. On-policy training success was 54/80 versus 58/80;
+these are not independent evaluations. GRPO made five updates with seven mixed
+groups out of 20; gated made ten updates with six mixed groups. Maximum
+behavior/rescoring differences were 2.9407 and 1.8313, respectively. Gated's
+auxiliary updates on uniform groups establish a difference in learning signal,
+not a causal generalization advantage. The unchanged behavior denominators and
+unverified impact of scoring differences remain limitations.
+
+![Single-seed development curves and GPU allocation](../figures/task17/objective-learning-efficiency-seed2026.png)
+
+Both pilots and the full seed-2026 pair support proceeding with seeds 2027 and
+2028 before interpreting training-seed variation. Total Phase 2 allocated time
+through these endpoints is **11,012 H200-seconds (3.05889 GPU-hours)**, including
+the failed calibration. The objective analysis is at
+`runs/task17/objective-analysis-seed2026-v3/`; its family-bootstrap interval
+reflects task sampling conditional on one training seed, not seed variation.
 
 ## Reproduction after endpoints
 

@@ -62,13 +62,19 @@ all three file checksums were verified; code, pool and control identities match.
 GRPO continuation `32898057` completed exit 0 in 3,268 H200-seconds at 80
 episodes; its endpoint checkpoint files and metadata are verified. GRPO
 monitoring scores were 21/25/25 out of 41 at 0/40/80 episodes; independent
-development was 7/9/10 out of 16. The matched gated continuation `32908569`
-was submitted once from verified checkpoint `000004` to the 80-episode endpoint;
-inspect its ledger, never duplicate it, and monitor 40-episode development and
-numerical health. Its pending wall was reduced from six to three hours using
-the measured 3,268-second GRPO continuation; the six-hour reservation remains.
-GRPO pending wall adjustment is preserved in its ledger. Total Phase 2 allocation
-so far is 7,844 H200-seconds (2.17889 GPU-hours), including failed calibration. The following Task 17 retrieval
+development was 7/9/10 out of 16. The matched gated continuation `32908569` completed exit 0 in 3,168
+H200-seconds; its iteration-10 checkpoint checksums and identity are verified.
+At 0/40/80 episodes gated monitoring was 21/27/28 out of 41; independent
+development was 7/9/10 out of 16. GRPO was 21/25/25 and 7/9/10. At 80,
+gated and GRPO each solved one independent task the other missed; 16-family
+bootstrap interval for gated-minus-GRPO was −0.1875 to +0.1875 for seed 2026.
+Training rollout successes were 54/80 GRPO and 58/80 gated; do not treat them as
+independent evaluation. Full logical-run GPU time was 5,119/5,072 seconds.
+Total Phase 2 allocation is 11,012 H200-seconds (3.05889 GPU-hours), including
+failed calibration. No seed-2027/2028 objective job has been submitted. Continue
+paired GRPO/gated replication on seeds 2027 and 2028 with the immutable final
+control; prioritize these before ungated arms, subject to the separate 24-hour
+ceiling. Never duplicate completed allocations. The following Task 17 retrieval
 snapshot is historical.
 
 ## Historical — Task 17 retrieval blocked (2026-11-10)

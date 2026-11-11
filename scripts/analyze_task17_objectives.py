@@ -127,6 +127,10 @@ def load_run(item, pool_info, pool_hash, control_hash, control):
     identity["common_training"]["objective"] = {
         key: value for key, value in resolved["objective"].items() if key != "sd_lambda"
     }
+    # Allocated workers bind different loopback ports; execution limits remain paired.
+    identity["common_training"]["sandbox"] = {
+        key: value for key, value in resolved["sandbox"].items() if key != "remote_url"
+    }
     return (
         {
             "arm": item["arm"],
@@ -228,11 +232,18 @@ def main():
         if not group:
             continue
         curves = np.array([[p["successes"] for p in r["curve"]] for r in group])
-        axes[0].plot(
-            [0, 40, 80], curves.mean(axis=0), marker="o", label=f"{labels[arm]} (n={len(group)})"
+        (line,) = axes[0].plot(
+            [0, 40, 80],
+            curves.mean(axis=0),
+            marker={"D": "o", "B": "s", "A": "^", "C": "D"}[arm],
+            markersize=9 if arm == "D" else 5,
+            markerfacecolor="none" if arm == "D" else None,
+            markeredgewidth=1.8,
+            zorder=5 if arm == "D" else 4,
+            label=f"{labels[arm]} (n={len(group)})",
         )
         for values in curves:
-            axes[0].plot([0, 40, 80], values, alpha=0.25)
+            axes[0].plot([0, 40, 80], values, color=line.get_color(), alpha=0.25)
         axes[1].bar(labels[arm], np.mean([r["allocated_gpu_hours"] for r in group]))
     axes[0].set(
         xlabel="Attempted training episodes",
