@@ -3,9 +3,9 @@
 The [research specification](../task/17-generalization-spec.md) is being executed
 on `feat/17-repair-interface-generalization`. Implementation, historical analysis,
 isolated semantic replay and the four primary GPU allocations are complete.
-Final text-result retrieval, paired analysis and conditional Phase 2 remain
-pending because normal Yale VPN/SSH access expired. This is an execution handoff,
-not a claim that the research task is finished.
+Text-result retrieval and paired analysis are complete. Exact text is selected
+for a fresh-base 80-episode objective study. Calibration is queued; its result,
+the bounded objective pilots and final scientific decision remain pending.
 
 ## Delivered implementation and evidence
 
@@ -33,7 +33,7 @@ not a claim that the research task is finished.
   paths are implemented; no objective calibration, pilot or training has run.
 - Optional normalized diff retains strict prompts and observations, and labels
   metadata recovery separately. It is locally tested, unselected and unexecuted.
-  Current changed code requires one matching executed runtime check before new
+  The current code passed a matching executed CPU runtime check before new
   GPU work. Dependency-matching runtime reuse retains the original raw proof
   and hash instead of repeating identical verifier audits for each objective.
 - Public aggregate PNG/PDF taxonomy and replay figures, deterministic analysis
@@ -54,15 +54,19 @@ not a claim that the research task is finished.
 | Base strict diff A | `9f12c84dfddf9b37f42dd4f1` | 32805621 | 6/56 repairs; 5/40 originals |
 | Trained strict diff C | `c10d7452835f81c14c0726df` | 32808848 | 36/56 repairs; 27/40 originals |
 | Text runtime | `a0cc876dae3dcb9af79dfe1e` | 32809208 | Completed |
-| Base exact text B | `f7c617670830bcf229a93b0e` | 32811833 | Remote completion observed, 26/56; fetch pending |
-| Trained exact text D | `819fec9d88332bf03f874d1e` | 32812080 | Remote completion observed, 31/56; fetch pending |
+| Base exact text B | `f7c617670830bcf229a93b0e` | 32811833 | Completed and fetched; 26/56, 19/40 originals |
+| Trained exact text D | `819fec9d88332bf03f874d1e` | 32812080 | Completed and fetched; 31/56, 21/40 originals |
+| Current text runtime | `cc5ec4e1db0226c7f6dcbe29` | 32872199 | Completed exit 0 |
+| Objective calibration | `11610fb16bd9af1f197221b1` | 32872812 | Pending H200; inspect ledger |
 
 GPU cells ran sequentially A→C→B→D and used 1,234/1,121/928/857 allocated
-H200-seconds: **4,140 seconds = 1.15 H200 GPU-hours**. B/D counts and elapsed
-allocations were observed in the last successful remote inspection; final
-artifact/ledger accounting must still be persisted locally. Their 40-original
-breakdowns are unknown locally. Do not substitute the correlated 56-presentation
-endpoint for the primary analysis. No other Task 17 GPU allocations were made.
+H200-seconds: **4,140 seconds = 1.15 H200 GPU-hours**. All four artifacts and
+allocation records are fetched and analyzed. Base strict/text original-task
+repairs were 5/40 and 19/40; B2026 strict/text were 27/40 and 21/40. The
+correlated 56-presentation endpoint is exploratory. Calibration is a new Phase 2
+allocation, currently pending; do not duplicate it. Its original two-hour
+reservation remains in the budget ledger after a documented pending wall-limit
+reduction to one hour.
 The rejected eight-CPU submission `dc2a6394ef94ef1bd7768b1e` had no scheduler job;
 corrected resources use five trainer plus one worker CPU. Preallocation failures
 and failed preparation ledgers remain auditable. Historical Task 15 is immutable.
@@ -74,28 +78,19 @@ Latest local CPU selection: **426 passed, 20 skipped, 18 deselected**, using
 Ruff lint/format and mypy (51 source files) pass. This selection excludes actual
 GPU, download and sandbox execution. Hosted CI at `54867ec` passed
 ([run 42888954364](https://github.com/tatsu432/self-play-opsd-coding-agent/actions/runs/42888954364));
-latest optional-interface/collector changes require their own CI result.
+the optional-interface/collector changes also passed hosted CI
+([run 42898769683](https://github.com/tatsu432/self-play-opsd-coding-agent/actions/runs/42898769683)).
 The executed Yale checks and preparation used the accepted isolated worker.
 Generated programs were never executed on the host.
 
-## Recovery and remaining work
+## Remaining work
 
-Restore normal Yale VPN access and run:
-
-```bash
-uv run selfplay hpc login
-uv run python scripts/collect_task17_interfaces.py
-```
-
-This retrieves existing cells, reconciles statuses and actual Slurm allocation,
-then performs paired analysis in `runs/task17/interface-analysis-v1`. No task is
-resubmitted. Inspect original-task effects, uncertainty, failure modes and costs;
-finish outcome/efficiency figures and make the Phase 1 decision. Only then freeze
-an evidence-backed objective control, calibrate, run the bounded pilot and
-continue informative Phase 2 arms within the separate 24-hour ceiling. No full
-C/D. Reconcile telemetry/checkpoints and final costs; complete the scientific
-report and merge the finished branch to local main and push. The current branch
-is preserved on GitHub for recovery; it is not merged as completed work.
+Inspect calibration job `32872812` and its ledger; never submit a duplicate.
+On successful completion, fetch and verify its coefficient and checksum, freeze
+the final control, then run and assess bounded GRPO/gated pilots. Continue
+informative arms within the separate 24-hour ceiling. Reconcile telemetry,
+checkpoints and final costs; complete the scientific report, update README,
+then merge the finished branch into local main and push. Full C/D remains deferred.
 
 See the [results](../investigations/task17-repair-interface-results.md),
 [current decision](../investigations/task17-research-decision.md) and
