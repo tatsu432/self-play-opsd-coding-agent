@@ -10,6 +10,7 @@ import numpy as np
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+from selfplay_opsd.data import TaskRepository
 from selfplay_opsd.storage import active_events, atomic_json, file_hash
 from selfplay_opsd.task16_analysis import paired_statistics
 
@@ -90,7 +91,7 @@ def load_run(item, pool_info, pool_hash, control_hash, control):
     if set(records) != {0, 40, 80}:
         raise ValueError(f"Run {root} lacks required development milestones")
     metrics = [e["payload"]["metrics"]["student"] for e in iterations]
-    monitor_curve = []
+    monitor_curve, monitor_records = [], {}
     for iteration in (0, 5, 10):
         evaluations = [
             e["payload"]
@@ -108,6 +109,10 @@ def load_run(item, pool_info, pool_hash, control_hash, control):
                 "tasks": len(evaluations),
             }
         )
+        monitor_records[iteration * 8] = [
+            {"task_id": x["task_id"], "parent_id": x["parent_id"], "success": bool(x["success"])}
+            for x in evaluations
+        ]
     hours = float(item["allocated_gpu_hours"])
     if not np.isfinite(hours) or hours <= 0:
         raise ValueError("Actual allocated GPU-hours must be positive")
@@ -157,6 +162,7 @@ def load_run(item, pool_info, pool_hash, control_hash, control):
             "max_scoring_mismatch": max(x["pre_update_logprob_abs_max"] for x in metrics),
         },
         records,
+        monitor_records,
         hashes,
         identity,
     )
@@ -167,6 +173,7 @@ def main():
     parser.add_argument("--manifest", required=True, type=Path)
     parser.add_argument("--pool", required=True, type=Path)
     parser.add_argument("--control", required=True, type=Path)
+    parser.add_argument("--data", type=Path, default=Path("data/protocol-v3"))
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
     if args.output.exists():
@@ -186,13 +193,27 @@ def main():
     pool = json.loads(args.pool.read_text())
     info = {r["task"]["task_id"]: r for r in pool["rows"]}
     families = {r["task"]["parent_id"]: r["family_id"] for r in pool["rows"]}
+    repository = TaskRepository(args.data)
+    families.update({p.parent_id: p.family_id for p in repository.parents("dev_monitor")})
     control_hash, pool_hash = file_hash(args.control), file_hash(args.pool)
     control = json.loads(args.control.read_text())
     if control["pool_sha256"] != pool_hash or control["episodes"] != 80:
         raise ValueError("Control does not match pool and endpoint")
-    summaries, by_run, hashes, identities, snapshots, code_hashes = [], {}, {}, [], {}, {}
+    summaries, by_run, monitors, hashes, identities, snapshots, code_hashes = (
+        [],
+        {},
+        {},
+        {},
+        [],
+        {},
+        {},
+    )
     for item in items:
-        summary, records, used, identity = load_run(item, info, pool_hash, control_hash, control)
+        summary, records, monitoring, used, identity = load_run(
+            item, info, pool_hash, control_hash, control
+        )
+        if identity["dataset_hash"] != repository.hash:
+            raise ValueError("Run dataset differs from prepared data")
         summaries.append(summary)
         code_hash = identity.pop("scientific_code_hash")
         if item["seed"] in code_hashes and code_hashes[item["seed"]] != code_hash:
@@ -204,6 +225,7 @@ def main():
         snapshots[item["seed"]] = snapshot
         identities.append(identity)
         by_run[item["arm"], item["seed"]] = records
+        monitors[item["arm"], item["seed"]] = monitoring
         hashes.update(used)
         root = Path(item["run_dir"])
         for name in ("manifest.json", "complete.json", "resolved_config.json"):
@@ -229,6 +251,11 @@ def main():
                         "episodes": episode,
                         "development": paired_statistics(
                             by_run[first, seed][episode], by_run[second, seed][episode], families
+                        ),
+                        "monitoring": paired_statistics(
+                            monitors[first, seed][episode],
+                            monitors[second, seed][episode],
+                            families,
                         ),
                     }
                 )

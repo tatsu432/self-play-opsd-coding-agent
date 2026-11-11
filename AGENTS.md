@@ -83,7 +83,7 @@ model, task data and exposure are unchanged. Seed-2026 scientific-code hash is
 corrected code hash is `b67494efc404b9da743c0c7ef66ff1941fb16b4dd66eeb5d3ae1f4cfe9ffe6a2`.
 Matching CPU runtime job `32919444` / run `2a20b7742d8c69f349ba8893` was
 submitted once from `10529c50e8081cd53063aa9c3de35619fd0d2860`; inspect its
-ledger and never duplicate it.
+ledger and never duplicate it. It completed exit 0.
 Paired methods within each seed must use the same code and initial adapter;
 cross-seed analysis must explicitly document the bookkeeping-only revision.
 Total Phase 2 allocated time through this failure is 11,082 H200-seconds

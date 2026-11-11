@@ -62,8 +62,10 @@ monitoring was 21/27/28 out of 41 and independent development was 7/9/10 out of
 16. GRPO was 21/25/25 and 7/9/10, respectively. At the endpoint each method
 solved one independent task the other missed. The gated-minus-GRPO paired
 difference was 0/16 with a family-bootstrap 95% interval of −18.75 to +18.75
-percentage points, conditional on seed 2026. This small development set and
-one training seed cannot establish equivalence or robust superiority.
+percentage points, conditional on seed 2026. On monitoring, the
+parent-macro difference was +6.52 points across 23 families, with a 95%
+family-bootstrap interval of −10.87 to +23.91 points. These development sets
+and one training seed cannot establish equivalence or robust superiority.
 
 GRPO/gated used 1.422/1.409 H200-hours and generated 24,990/22,481 training
 tokens respectively. On-policy training success was 54/80 versus 58/80;
@@ -89,7 +91,7 @@ revision; model, objective math, data and exposure are unchanged. Revalidate the
 changed code before a distinct replacement, and report the two scientific-code
 hashes explicitly when pooling seeds. Total Phase 2 allocated time is **11,082
 H200-seconds (3.07833 GPU-hours)**, including both failed allocations. The objective analysis is at
-`runs/task17/objective-analysis-seed2026-v3/`; its family-bootstrap interval
+`runs/task17/objective-analysis-seed2026-v4/`; its family-bootstrap interval
 reflects task sampling conditional on one training seed, not seed variation.
 
 ## Reproduction after endpoints
