@@ -142,6 +142,16 @@ preceding turn, method and each checkpoint/seed; source and specification
 features overlap. Reproduce with `scripts/analyze_task17_strata.py` against
 `runs/task17/recovery-full-v1/`, using a new output directory.
 
+In the trained external trajectories, tasks with at most three public cases
+had 13/2,944 accepted edits and those with more than three had 0/1,370. Across
+mutation categories, `Eq→NotEq` had 2/1,004 accepted and constant-value changes
+5/1,636; other categories have smaller samples. Method A had 10/2,196 accepted
+versus B's 3/2,118. These describe repeated actions from six distinct trained
+runs, not independent trials or a gating effect. No edits among 1,962 attempts
+at zero-based turns 0–3 were accepted, versus 13/2,352 at turns 4–7; turn-level
+composition and survivor effects prevent a causal interpretation. The saved
+strata also report each checkpoint and mutation operator.
+
 Secondary admission after metadata recovery rejects another 27 ID actions
 (26 syntax failures, one API change) and 25 external actions (22 syntax failures,
 three executable-module source-policy violations). Their original first error
