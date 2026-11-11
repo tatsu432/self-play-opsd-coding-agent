@@ -19,12 +19,16 @@ control and aggregate evidence. Evidence SHA-256 is
 `1755dc0788a38c3e915fdd19e0b186cd46873f7cb84165e573b4ac73e395852d`, uploaded
 to `/runs/repair-selfplay-2026-task17-interface-v1/evidence/phase1-summary.json`.
 CPU runtime job `32872199`, run `cc5ec4e1db0226c7f6dcbe29`, was submitted once
-from that commit. Inspect its live ledger; do not duplicate. No calibration or
-objective training is submitted yet. Once it passes, submit calibration once,
-freeze its measured coefficient and checksum, then run bounded GRPO/gated pilots
-and assess them before any continuation. Preserve the 24-hour Phase 2 ceiling,
+from that commit and completed exit 0. Freeze the measured calibration
+coefficient and checksum, then run bounded GRPO/gated pilots and assess them
+before any continuation. Preserve the 24-hour Phase 2 ceiling,
 isolation, actual behavior denominators, data separation and no-duplicate rules.
-The following Task 17 retrieval snapshot is historical.
+Runtime job 32872199 completed exit 0. Calibration job `32872812`, run
+`11610fb16bd9af1f197221b1`, was submitted once from
+`f99b4f491c3dfbc65c5d513169c3dd45e3b4255f`; inspect this ledger and Slurm,
+never duplicate it. Freeze the measured coefficient/checksum only after it
+completes. No objective pilot has been submitted. The following Task 17 retrieval
+snapshot is historical.
 
 ## Historical — Task 17 retrieval blocked (2026-11-10)
 
