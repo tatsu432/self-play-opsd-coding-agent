@@ -87,10 +87,13 @@ ledger and never duplicate it. It completed exit 0.
 Paired methods within each seed must use the same code and initial adapter;
 cross-seed analysis must explicitly document the bookkeeping-only revision.
 Total Phase 2 allocated time through this failure is 11,082 H200-seconds
-(3.07833 GPU-hours), including both failed allocations. After validation, submit
-a distinct corrected seed-2027 GRPO replacement, then matched gated, followed
-by seed 2028 and ungated controls as budget permits. No other seed-2027/2028
-objective job has been submitted. The following Task 17 retrieval
+(3.07833 GPU-hours), including both failed allocations. Corrected seed-2027 GRPO replacement job `32920928` / run
+`f479a008edceec432c10d1eb` was submitted once from
+`afd69368e095eb117b920ddf9a1ad1f451c551e4` to 80 episodes. Its pending wall
+was reduced from six to three hours using the 5,119-second matched seed-2026
+run; the original budget reservation remains. Inspect its ledger and never
+duplicate it. After review, run matched gated, then seed 2028 and ungated
+controls as budget permits. No other seed-2027/2028 objective job is submitted. The following Task 17 retrieval
 snapshot is historical.
 
 ## Historical — Task 17 retrieval blocked (2026-11-10)

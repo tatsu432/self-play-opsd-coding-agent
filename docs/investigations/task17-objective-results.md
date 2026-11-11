@@ -88,8 +88,11 @@ seed-2026 record. The failed directory and original ledger are archived. The
 corrected trainer preserves the seed-2026 path and uses seed-specific records
 for later Task 17 objective seeds. This is an initialization-bookkeeping code
 revision; model, objective math, data and exposure are unchanged. Revalidate the
-changed code before a distinct replacement, and report the two scientific-code
-hashes explicitly when pooling seeds. Total Phase 2 allocated time is **11,082
+changed code passed matching CPU validation. A distinct corrected seed-2027
+GRPO replacement was submitted once as job `32920928` / run
+`f479a008edceec432c10d1eb`; its pending wall was reduced to three hours while
+retaining the original six-hour reservation. Inspect it and never duplicate.
+Report the two scientific-code hashes explicitly when pooling seeds. Total Phase 2 allocated time is **11,082
 H200-seconds (3.07833 GPU-hours)**, including both failed allocations. The objective analysis is at
 `runs/task17/objective-analysis-seed2026-v4/`; its family-bootstrap interval
 reflects task sampling conditional on one training seed, not seed variation.
