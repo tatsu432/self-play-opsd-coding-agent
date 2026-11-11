@@ -1,0 +1,95 @@
+study_id: repair-selfplay-2026-task17-objectives-D-v1
+proposer_representation: unified_diff
+method: GRPO
+sd_gap_definition: same_scorer_v2
+online_supply: null
+seed: 2026
+iterations: 10
+parents_per_iteration: 2
+proposals_per_parent: 2
+episodes_per_task: 4
+proposer_max_tokens: 512
+checkpoint_every: 1
+evaluate_every: 11
+diagnostic_attempts: 320
+gradient_diagnostics: true
+output_root: runs
+data_root: data/protocol-v3
+max_active_hours: null
+max_gpu_hours: null
+model:
+  name: Qwen/Qwen3-4B-Instruct-2507
+  revision: cdbee75f17c01a7cc42f958dc650907174af0554
+  tokenizer_revision: cdbee75f17c01a7cc42f958dc650907174af0554
+  dtype: bfloat16
+  rank: 32
+  alpha: 64
+  dropout: 0.0
+  target_modules:
+  - q_proj
+  - k_proj
+  - v_proj
+  - o_proj
+  - gate_proj
+  - up_proj
+  - down_proj
+  backend: verl
+  tiny: false
+episode:
+  edit_protocol: replace_text
+  max_turns: 8
+  max_generated_tokens: 4096
+  max_turn_generated_tokens: 1024
+  max_student_sequence_tokens: 10240
+  max_teacher_sequence_tokens: 12288
+  privilege_reserve: 2048
+  max_observation_tokens: 1024
+objective:
+  clip: 0.2
+  sd_lambda: 0.1
+  gate_beta: 1.0
+  gap_clip: 5.0
+  student_lr: 1.0e-05
+  proposer_lr: 5.0e-06
+  grad_clip: 1.0
+  near_zero: 1.0e-12
+  fixed_base_kl: 0.0
+hardware:
+  profile: single_gpu_80gb
+  gpu_count: 1
+  allocated_gpu_count: null
+  min_vram_gib: 79
+  microbatch_episodes: 1
+  proposer_batch_size: 1
+  cpu_workers: 5
+  rollout_concurrency: 1
+  host_ram_gib: 128
+  tensor_parallel: 1
+  activation_checkpointing: true
+  offload: true
+  rollout_memory_fraction: 0.5
+  enable_prefix_caching: false
+  enforce_eager: true
+sandbox:
+  backend: remote
+  image: selfplay-worker:local
+  runtime: docker
+  remote_url: http://127.0.0.1:8765
+  remote_token_env: SELFPLAY_WORKER_TOKEN
+  cpus: 1
+  memory_mib: 1024
+  pids: 32
+  process_policy: single_process
+  resource_backend: slurm
+  output_bytes: 4198400
+  disk_mib: 64
+  retries: 2
+  public_seconds: 10.0
+  verifier_seconds: 30.0
+logging:
+  mode: online
+  project: self-play-opsd-coding-agent
+  entity: null
+  sample_every: 20
+  table_rows: 32
+  upload_checkpoints: false
