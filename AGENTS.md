@@ -6,6 +6,31 @@ After completing each task, update `README.md` to concisely describe the researc
 problem, approaches, current progress and results. Link detailed evidence and
 procedures to the relevant Markdown documents; keep the README short and current.
 
+## CURRENT — Task 17 seed-2026 calibrated running (2026-11-11)
+
+Nominal ungated seed-2027 job `32956169` / `b61e831028a66f9a447ba5bf`
+completed exit 0 in 5,085 H200-seconds; its endpoint identity and three checkpoint
+checksums were verified. Monitoring at 0/40/80 was 21/25/32 out of 41 and
+independent development was 7/9/11 out of 16. At 80 it solved three independent
+tasks gated missed; gated solved no independent task nominal missed. The
+family-bootstrap 95% interval for gated minus nominal was [−0.375, 0],
+conditional on this seed. Do not duplicate. The updated multi-arm analysis is
+`runs/task17/objective-analysis-controls/`.
+
+Seed-2026 calibrated student job `32965435` / `c2b42d3907d2eefdd2c8fbe1`
+is running from original immutable execution `3197d06167956e0e6019c1e2f22e4595737a44ce`
+with matching original-code executed proof. Initial adapter records match seed-
+2026 GRPO exactly. Its original six-hour reservation and three-hour pending
+wall adjustment are retained. Inspect its live ledger, never duplicate. Phase 2
+completed allocations total 45,296 H200-seconds (12.58222 GPU-hours); its
+reservation is additional. The original-code checkout and staged proof location
+are described in the following section. After this run finishes, use the now
+available budget to launch nominal ungated seed 2026 from the original-code
+checkout and nominal ungated seed 2028 from current code, refreshing A readiness
+proofs between submissions as necessary. Keep original six-hour reservations,
+inspect live Slurm/ledgers before every submission, preserve proof history, and
+never duplicate existing runs. No full proposer C/D.
+
 ## CURRENT — Task 17 seed-2026 calibrated control (2026-11-11)
 
 Seed-2028 calibrated ungated student job `32956243` / `29dfbeda3055a7ad827da642`

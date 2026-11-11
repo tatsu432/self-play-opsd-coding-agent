@@ -204,6 +204,23 @@ seed-2026 GRPO/gated comparators. It is pending. Completed Phase 2 allocations
 are 40,211 H200-seconds; the two original six-hour reservations remain within
 24 H200-hours. These are student-objective controls, not proposer C/D studies.
 
+## Nominal ungated seed 2027 endpoint
+
+Nominal ungated job `32956169` / `b61e831028a66f9a447ba5bf` completed exit 0
+in 5,085 H200-seconds; its endpoint identity and checkpoint checksums passed.
+Monitoring at 0/40/80 was 21/25/32 out of 41, and independent development was
+7/9/11 out of 16. The matched gated endpoint was 29/41 and 8/16. Nominal alone
+solved three independent tasks and gated alone none; the family-bootstrap 95%
+interval for gated minus nominal was [−0.375, 0]. This is one training seed and
+not a population claim. Calibrated ungated seed 2028 completed at 26/41 and
+9/16, compared with gated 31/41 and 10/16. The [current multi-arm curves](../figures/task17/objective-learning-efficiency-controls.png)
+include unequal numbers of seeds per arm and should be interpreted accordingly.
+
+Completed Phase 2 allocations total 45,296 H200-seconds, including failures and
+calibration. Seed-2026 calibrated job `32965435` / `c2b42d3907d2eefdd2c8fbe1`
+is running with the original seed-2026 scientific-code and adapter identities.
+Further nominal ungated controls remain planned within the 24-hour ceiling.
+
 ## Reproduction after endpoints
 
 Fetch each existing run with `uv run selfplay hpc fetch RUN_ID`, verify its
