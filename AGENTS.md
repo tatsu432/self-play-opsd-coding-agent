@@ -61,7 +61,9 @@ matched GRPO task-by-task (21/41 and 7/16). Checkpoint `000004` metadata and
 all three file checksums were verified; code, pool and control identities match.
 GRPO continuation `32898057` was submitted once from verified checkpoint
 `000004` for the frozen 80-episode endpoint; inspect its ledger and never
-duplicate it. Monitor 40-episode development and numerical health, then continue
+duplicate it. Its pending wall limit was reduced from six to three hours,
+allowing for two baseline-sized evaluations; the original six-hour reservation
+remains and the change is recorded in the ledger. Monitor 40-episode development and numerical health, then continue
 the gated arm from its verified checkpoint with matched exposure. Total Phase 2 allocation so far is
 4,576 H200-seconds (1.27111 GPU-hours), including failed calibration. The following Task 17 retrieval
 snapshot is historical.
