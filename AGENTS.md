@@ -42,8 +42,13 @@ GRPO pilot `32880497` / `8bfce0676900d87de4a8e700` was submitted once from
 `2ffbb1794743e0549ecbff1247369396e28b34f1` with stop after iteration 4
 (32 attempted episodes). Its pending wall limit was reduced from six to three and then two
 hours using measured inference/calibration times; the original six-hour budget
-reservation remains, and both adjustments are recorded in the ledger. Inspect its live ledger; never duplicate it. The gated pilot
-has not been submitted. The following Task 17 retrieval
+reservation remains, and both adjustments are recorded in the ledger. It
+completed exit 0 at iteration 4 in 1,851 H200-seconds: 26/32 rollout successes,
+five of eight mixed task groups, three finite optimizer steps, and maximum
+rollout/rescoring mismatch 1.1153. The baseline was 21/41 monitoring and 7/16
+independent development tasks. Checkpoint `000004` metadata and all three file
+SHA-256 values were verified; scientific and pool/control identities match.
+Never duplicate this pilot. The gated pilot has not been submitted. The following Task 17 retrieval
 snapshot is historical.
 
 ## Historical — Task 17 retrieval blocked (2026-11-10)

@@ -60,7 +60,7 @@ the bounded objective pilots and final scientific decision remain pending.
 | Objective calibration | `11610fb16bd9af1f197221b1` | 32872812 | Failed `update_norm`, 265 H200-seconds; archived |
 | Corrected runtime | `472ee2f34cce416bd7294356` | 32876383 | Completed exit 0 |
 | Corrected calibration | `06982710d021357786a605aa` | 32877712 | Completed, 32 rollouts / eight groups, 556 H200-seconds |
-| GRPO pilot | `8bfce0676900d87de4a8e700` | 32880497 | Submitted once; stop after iteration 4 |
+| GRPO pilot | `8bfce0676900d87de4a8e700` | 32880497 | Completed stop at iteration 4; 1,851 H200-seconds |
 
 GPU cells ran sequentially A→C→B→D and used 1,234/1,121/928/857 allocated
 H200-seconds: **4,140 seconds = 1.15 H200 GPU-hours**. All four artifacts and
@@ -104,3 +104,18 @@ then merge the finished branch into local main and push. Full C/D remains deferr
 See the [results](../investigations/task17-repair-interface-results.md),
 [current decision](../investigations/task17-research-decision.md) and
 [execution plan](../plan/17-repair-interface-plan.md).
+
+## GRPO pilot review
+
+The seed-2026 fresh-base text-interface pilot completed 32 attempted episodes:
+26 succeeded, five of eight four-rollout groups were mixed, and three finite
+nonzero optimizer updates occurred. Baseline monitoring and independent
+development were 21/41 and 7/16 respectively; there is no post-training
+development result at the four-iteration stop. Maximum behavior/rescoring
+log-probability difference was 1.1153, with warnings in all four iterations;
+the behavior denominator is preserved, and a causal impact is unverified.
+Checkpoint `000004` metadata and three file checksums were verified on the
+shared filesystem, with pool, control, model and scientific identities matching.
+This single pilot supports running the matched gated pilot; it is not an
+objective-comparison result. The three Phase 2 allocations (failed calibration,
+successful calibration, and GRPO pilot) used 2,672 H200-seconds (0.74222 hours).
