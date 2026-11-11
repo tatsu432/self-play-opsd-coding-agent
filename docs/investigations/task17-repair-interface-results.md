@@ -264,8 +264,11 @@ On the eight selected source-comment parents, B2026 solved 5/8 originals and
 variants, and 1/8 in both specification presentations. These small training-only
 perturbation results suggest sensitivity to source presentation; they do not
 isolate length from comment content or establish a HumanEval transfer effect.
-The exact-text counterparts are needed before interpreting an interface
-interaction. Public tests were called four times on base originals versus
+In the exact-text runs on those same eight source-comment parents, base
+repairs changed from 1/8 originals to 3/8 variants (two gains, zero losses),
+and trained B2026 from 2/8 to 4/8 (two gains, zero losses). This small
+exploratory interaction is consistent with interface/presentation sensitivity,
+but it cannot isolate source length, prompt conditioning or task composition. Public tests were called four times on base originals versus
 39 times on trained originals, showing that accepted edits and testing behavior
 both differ across snapshots.
 
