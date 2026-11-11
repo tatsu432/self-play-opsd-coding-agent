@@ -6,6 +6,29 @@ After completing each task, update `README.md` to concisely describe the researc
 problem, approaches, current progress and results. Link detailed evidence and
 procedures to the relevant Markdown documents; keep the README short and current.
 
+## CURRENT — Task 17 seed-2028 replication (2026-11-11)
+
+The seed-2027 gated job `32931504` / run `72a763ad7097ffd776f2ef54` completed
+exit 0 in 4,834 H200-seconds. Its iteration-10 checkpoint and all three file
+checksums were verified; never duplicate it. At 0/40/80 episodes, monitoring
+was 21/26/29 out of 41 and independent development was 7/8/8 out of 16. The
+seed-2027 GRPO values were 21/22/26 and 7/8/8; both arms solved the same eight
+independent tasks at 40 and 80, while at 80 gated alone solved three monitoring
+tasks. Initial adapters and both baseline sets matched task by task. Maximum
+gated scoring difference 2.8961 remains a numerical limitation. All ten gated
+gradients were finite. The two-seed family-aware analysis is at
+`runs/task17/objective-analysis-two-seeds/`; do not interpret identical outcomes
+or a zero-width empirical interval as equivalence. Completed Phase 2 allocation
+is 20,824 H200-seconds (5.78444 GPU-hours), including failed allocations.
+
+Seed-2028 GRPO job `32940325` / run `bcca1b8b4d205d2ae64e311d` was submitted
+once from `3dfa36121240d1a54dcc1114f01b6e6cf2aa36ca` after reconciliation and a
+passing preview. It is pending; its pending wall was reduced to three hours
+based on matching completed runs, retaining the six-hour reservation and ledger
+record. Inspect live state and never duplicate. Continue to its endpoint, then
+matched gated 2028 and ungated controls as budget permits. Preserve differing
+scientific-code hashes between 2026 and 2027/2028 in the analysis manifest.
+
 ## CURRENT — Task 17 seed-2027 replication (2026-11-11)
 
 Corrected GRPO job `32920928` / run `f479a008edceec432c10d1eb` completed

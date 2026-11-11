@@ -112,6 +112,30 @@ allocations total 15,990 H200-seconds, including both failures. A dry-run
 attempt to use a scheduler dependency was rejected because dependencies are
 limited to interface operations; it submitted no job.
 
+## Two-seed replication
+
+The matched seed-2027 gated run `72a763ad7097ffd776f2ef54` (job `32931504`)
+completed exit 0 in 4,834 H200-seconds; its endpoint checkpoint identity and
+file checksums passed. Its monitoring curve was 21/26/29 out of 41 and its
+independent development curve was 7/8/8 out of 16. Matched GRPO scored
+21/22/26 and 7/8/8. Both independent baselines matched task by task, and both
+arms solved exactly the same eight independent tasks at 40 and 80 episodes.
+At 80 episodes gated alone solved three monitoring tasks. Family-macro paired
+monitoring difference was +0.0652, family-bootstrap 95% interval [0, 0.1304];
+this interval conditions on seed 2027. Gated gradients were finite in all ten
+iterations; its maximum rollout/rescoring difference was 2.8961. The impact of
+this mismatch is unresolved. Neither the zero independent difference nor its
+zero-width empirical interval demonstrates equivalence.
+
+Across seeds 2026 and 2027, both arms reached 10/16 and 8/16 independent
+repairs respectively. [Learning curves and allocation](../figures/task17/objective-learning-efficiency-two-seeds.png)
+use actual Slurm charges, including the 70-second failed seed-2027 GRPO attempt.
+These are two training seeds, with family-bootstrap task uncertainty reported
+separately; causal and population claims require more evidence. The completed
+Phase 2 allocation totals 20,824 H200-seconds, including calibration and both
+failed allocations. Seed-2028 GRPO job `32940325` / run
+`bcca1b8b4d205d2ae64e311d` has been submitted once and is pending.
+
 ## Reproduction after endpoints
 
 Fetch each existing run with `uv run selfplay hpc fetch RUN_ID`, verify its
