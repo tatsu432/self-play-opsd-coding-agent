@@ -65,8 +65,10 @@ monitoring scores were 21/25/25 out of 41 at 0/40/80 episodes; independent
 development was 7/9/10 out of 16. The matched gated continuation `32908569`
 was submitted once from verified checkpoint `000004` to the 80-episode endpoint;
 inspect its ledger, never duplicate it, and monitor 40-episode development and
-numerical health. GRPO pending wall adjustment is preserved in its ledger. Total Phase 2 allocation so far is
-4,576 H200-seconds (1.27111 GPU-hours), including failed calibration. The following Task 17 retrieval
+numerical health. Its pending wall was reduced from six to three hours using
+the measured 3,268-second GRPO continuation; the six-hour reservation remains.
+GRPO pending wall adjustment is preserved in its ledger. Total Phase 2 allocation
+so far is 7,844 H200-seconds (2.17889 GPU-hours), including failed calibration. The following Task 17 retrieval
 snapshot is historical.
 
 ## Historical — Task 17 retrieval blocked (2026-11-10)

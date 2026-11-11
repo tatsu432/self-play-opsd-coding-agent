@@ -57,7 +57,9 @@ checkpoint files and metadata were checksum-verified. These are single-seed
 development observations, not an objective comparison.
 
 Gated continuation `32908569` was submitted once from verified checkpoint
-000004 for the matched 80-episode endpoint. Inspect its ledger; never duplicate.
+000004 for the matched 80-episode endpoint. Its pending wall was reduced from
+six to three hours based on the 3,268-second GRPO continuation; the original
+six-hour budget reservation remains. Inspect its ledger; never duplicate.
 Total Phase 2 allocation before the gated continuation is **7,844 H200-seconds
 (2.17889 GPU-hours)**, including failed calibration.
 
