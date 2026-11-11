@@ -154,6 +154,38 @@ once, alongside the pending gated 2028 job, with both six-hour reservations
 within the Phase 2 ceiling. It uses the identical seed-2027 scientific code
 and calibrated coefficient; this is not a full proposer C study.
 
+## Three-seed GRPO/gated comparison and calibrated control
+
+The third paired gated endpoint `c28f8436ea7fb25863e13330` (job `32948815`)
+completed exit 0 in 4,929 H200-seconds with its checkpoint verified. Its
+monitoring curve was 21/25/31 and independent curve 7/8/10, versus GRPO's
+21/15/24 and 7/6/9. At 80, gated alone solved one additional independent task;
+it solved nine monitoring tasks GRPO missed and missed two GRPO solved. The
+family-macro monitoring difference was +0.1304, family-bootstrap 95% interval
+[−0.0652, +0.3043].
+
+Across seeds 2026–2028, independent endpoint scores for gated versus GRPO were
+10/10, 8/8 and 10/9 out of 16. These are three seeds and the same fixed tasks,
+not independent replications of the test set. Per-seed family bootstrap is
+conditional on the training seed. [Curves and allocated time](../figures/task17/objective-learning-efficiency-three-seeds.png)
+include actual Slurm charges and the failed 2027 attempt.
+
+The calibrated ungated seed-2027 student control `33169d7814bd4982be57365c`
+(job `32949054`) completed exit 0 in 4,765 H200-seconds with verified endpoint.
+Its monitoring curve was 21/26/33 and independent curve 7/8/9. At 80 it solved
+one independent task gated missed; gated solved no task it missed. Its paired
+monitoring advantage over gated was +0.0870 family macro, family-bootstrap 95%
+interval [−0.0217, +0.2174]. This is one seed and is not conclusive. Both
+calibrated and gated gradients were finite; maximum scoring mismatch was 0.9187
+and 1.2569, respectively. Its causal significance remains unknown.
+
+Nominal ungated seed-2027 job `32956169` / `b61e831028a66f9a447ba5bf` and
+calibrated seed-2028 job `32956243` / `29dfbeda3055a7ad827da642` have each
+been submitted once and are pending. Completed Phase 2 allocations total
+35,420 H200-seconds, including calibration and failures; original reservations
+for these jobs remain inside the 24-hour ceiling. These are student controls,
+not full proposer C/D studies.
+
 ## Reproduction after endpoints
 
 Fetch each existing run with `uv run selfplay hpc fetch RUN_ID`, verify its

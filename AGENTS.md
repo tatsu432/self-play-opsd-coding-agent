@@ -6,6 +6,33 @@ After completing each task, update `README.md` to concisely describe the researc
 problem, approaches, current progress and results. Link detailed evidence and
 procedures to the relevant Markdown documents; keep the README short and current.
 
+## CURRENT — Task 17 ungated student controls (2026-11-11)
+
+The seed-2028 gated job `32948815` / `c28f8436ea7fb25863e13330` completed exit
+0 in 4,929 H200-seconds and its endpoint identity and three checkpoint file
+checksums were verified. Monitoring at 0/40/80 was 21/25/31 out of 41;
+independent development was 7/8/10 out of 16. GRPO was 21/15/24 and 7/6/9.
+Do not duplicate. The seed-2027 calibrated ungated student control `32949054`
+/ `33169d7814bd4982be57365c` completed exit 0 in 4,765 H200-seconds with
+verified endpoint; monitoring was 21/26/33 and independent was 7/8/9. Its
+matching GRPO/gated independent endpoint was 8/8; calibrated alone solved one
+additional task relative to gated. Do not duplicate. Maximum scoring mismatch
+was 0.9187 calibrated and 1.2569 gated 2028; gradients were finite. The three-
+seed paired analysis is `runs/task17/objective-analysis-three-seeds/`; at 80,
+gated versus GRPO independent endpoints are 10/10, 8/8 and 10/9 by seed.
+Family-bootstrap task uncertainty is not uncertainty over training seeds.
+
+Nominal ungated seed-2027 job `32956169` / `b61e831028a66f9a447ba5bf` and
+calibrated ungated seed-2028 job `32956243` / `29dfbeda3055a7ad827da642` were
+submitted once from `b27ed7e9306a97385908c94c1de6a2e410f1e379` after passing
+previews and matching proofs. Both are pending; both three-hour pending wall
+adjustments retain the original six-hour budget reservations. Inspect the live
+scheduler and ledgers; never duplicate. Both are student controls, not full
+proposer C/D. Completed Phase 2 allocation is 35,420 H200-seconds (9.83889
+GPU-hours); both six-hour reservations remain within the 24-hour ceiling.
+Continue the matched 2027/2028 controls, analyze endpoints and assess feasible
+seed-2026 controls without mixing their different scientific-code identities.
+
 ## CURRENT — Task 17 calibrated control submitted (2026-11-11)
 
 Seed-2028 gated job `32948815` / `c28f8436ea7fb25863e13330` remains pending

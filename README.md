@@ -21,9 +21,9 @@ Isolated metadata-only replay found correct reconstructed states in 242 previous
 failed trained HumanEval+ episodes. These are saved-state diagnostics, not new
 agent accuracy. On 40 training-only families, base strict/text solved 5/40 and 19/40;
 trained B2026 solved 27/40 and 21/40. The comparison used 1.15 H200-hours.
-Exact text was selected for a controlled objective study. At 80 episodes, GRPO
-and gated OPSD each solved 10/16 and 8/16 independent development tasks in the
-first two seeds, respectively; further replication is underway. See the [objective results](docs/investigations/task17-objective-results.md). See the [Task 17 evidence](docs/investigations/task17-repair-interface-results.md)
+Exact text was selected for a controlled objective study. At 80 episodes, gated
+OPSD versus GRPO solved 10/10, 8/8 and 10/9 independent development tasks out
+of 16 across three seeds. Ungated controls are underway; uncertainty remains. See the [objective results](docs/investigations/task17-objective-results.md). See the [Task 17 evidence](docs/investigations/task17-repair-interface-results.md)
 and [current research decision](docs/investigations/task17-research-decision.md).
 
 See the [A/B results](docs/investigations/task15-final-results.md) and
