@@ -6,6 +6,24 @@ After completing each task, update `README.md` to concisely describe the researc
 problem, approaches, current progress and results. Link detailed evidence and
 procedures to the relevant Markdown documents; keep the README short and current.
 
+## CURRENT — Task 17 calibrated control submitted (2026-11-11)
+
+Seed-2028 gated job `32948815` / `c28f8436ea7fb25863e13330` remains pending
+with its original six-hour reservation and logged three-hour pending wall limit.
+Separately, seed-2027 calibrated ungated student objective job `32949054` /
+`33169d7814bd4982be57365c` was submitted once from
+`7e11a39a6ffb7c9cb044ac681efd89538fc9054f` after matching dependency proofs and
+a passing preview. It uses coefficient `0.02958647361953192`, scientific code
+hash `b67494efc404b9da743c0c7ef66ff1941fb16b4dd66eeb5d3ae1f4cfe9ffe6a2`,
+and the seed-2027 paired initial state. This is a student-objective control,
+not a full proposer C study. Its pending wall was reduced from six to three
+hours; the original reservation and ledger adjustment are retained. Both jobs
+are pending. The completed Phase 2 total is 25,726 H200-seconds; the two
+six-hour reservations leave the locked 24-hour ceiling intact. Inspect live
+ledgers and scheduler and never duplicate either job. Continue monitoring,
+endpoint verification, paired analysis, and nominal ungated controls as budget
+permits. Preserve seed-2026's older scientific-code identity when pairing arms.
+
 ## CURRENT — Task 17 final GRPO/gated pair (2026-11-11)
 
 Seed-2028 GRPO `32940325` / `bcca1b8b4d205d2ae64e311d` completed exit 0 in

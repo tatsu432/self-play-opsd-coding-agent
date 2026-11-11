@@ -148,7 +148,11 @@ but the intervening regression remains important. All ten gradients were finite
 Matched gated job `32948815` / `c28f8436ea7fb25863e13330` was submitted once
 and is pending. Completed Phase 2 jobs total 25,726 H200-seconds, including
 calibration and failed attempts. Dependency-matching worker and runtime evidence
-has been prepared for the remaining ungated controls, with no jobs submitted.
+has been prepared for the remaining ungated controls. Seed-2027 calibrated
+ungated student job `32949054` / `33169d7814bd4982be57365c` was then submitted
+once, alongside the pending gated 2028 job, with both six-hour reservations
+within the Phase 2 ceiling. It uses the identical seed-2027 scientific code
+and calibrated coefficient; this is not a full proposer C study.
 
 ## Reproduction after endpoints
 
