@@ -20,9 +20,9 @@ analysis is `runs/task17/objective-analysis-eleven-all-pairs/`.
 
 The final nominal ungated seed-2028 job `32983291` / `69d4506e58066c32f5fc8e3b`
 was submitted once from `87c3b27ef6c3694671a887a81faf65129017d621` with the
-matching seed-2028 scientific code and executed proof. It is pending; the
-three-hour pending wall adjustment and original six-hour budget reservation are
-recorded. Inspect live Slurm/ledger and never duplicate. Completed Phase 2
+matching seed-2028 scientific code and executed proof. It is pending; pending wall was reduced from six to three and then two hours,
+based on matching endpoints of 4,635–5,085 seconds (two hours leaves at least
+41% headroom), with both adjustments and original six-hour reservation recorded. Inspect live Slurm/ledger and never duplicate. Completed Phase 2
 allocation totals 54,538 H200-seconds (15.14944 GPU-hours), including failed
 jobs and calibration. After completion, fetch, verify checkpoint and accounting,
 include all 12 arms, analyze/report numerical issues and uncertainty, update the
