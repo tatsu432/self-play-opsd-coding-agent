@@ -6,6 +6,35 @@ After completing each task, update `README.md` to concisely describe the researc
 problem, approaches, current progress and results. Link detailed evidence and
 procedures to the relevant Markdown documents; keep the README short and current.
 
+## CURRENT — Task 17 final control requires Yale reauthentication (2026-11-11)
+
+Final nominal seed-2028 job `32983291` / run `69d4506e58066c32f5fc8e3b` was
+last observed RUNNING on 2026-11-11 during the baseline monitoring evaluation. Initial adapter matched seed-2028 GRPO; no result or
+terminal status is known. The Yale SSH master expired, and the Duo refresh
+push timed out; the stale interactive login was stopped. The Slurm job is
+independent of the login; do not assume it stopped or submit a duplicate.
+After Yale VPN access and `uv run selfplay hpc login` with Duo approval, first
+inspect `uv run selfplay hpc status 69d4506e58066c32f5fc8e3b` and its ledger,
+then monitor or fetch the existing job. It has a two-hour scheduler limit,
+with the original six-hour reservation retained. If interrupted, reconcile
+Slurm and checkpoints before a supported continuation. After its successful
+endpoint, verify three checkpoint checksums and identity, fetch artifacts and
+actual H200-seconds, append A/2028 to `runs/task17/objective-manifest-eleven.json`,
+and run all-pairs analysis. Update the research decision/completion/README and
+figures, run needed checks, then merge the genuinely completed branch to local
+main and push. No full proposer C/D and preserve Task 15/private artifacts.
+
+Eleven of twelve objective arms are complete. Completed Phase 2 allocation is
+54,538 H200-seconds (15.14944 hours), including failures and calibration;
+Phase 1 is 4,140 seconds (1.15 hours). Current local checks: 429 passed,
+20 skipped, 18 deselected; Ruff lint/format and mypy (51 files) passed. The
+[objective results](docs/investigations/task17-objective-results.md) and
+[provisional research decision](docs/investigations/task17-research-decision.md)
+record results, uncertainty, the 5.4899 scoring mismatch, and W&B's local SDK
+delivery status (cloud history independently unverified). Task 17 remains
+unfinished; keep the pushed branch unmerged until the final arm and analysis
+are complete.
+
 ## CURRENT — Task 17 final control running (2026-11-11)
 
 The final nominal ungated seed-2028 student job `32983291` / run

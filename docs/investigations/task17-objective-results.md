@@ -4,6 +4,11 @@ The [frozen study specification](../task/17-objective-comparison-spec.md) uses
 exact text, a common fixed curriculum and an 80-attempted-episode endpoint.
 This document records actual results; objective superiority is not yet measured.
 
+The dated execution sections below preserve contemporaneous status and costs;
+the latest completed-run table and research decision supersede older references
+to jobs being pending. The final nominal seed-2028 arm was last observed
+running; Yale SSH reauthentication is required to reconcile its current state.
+
 ## Calibration
 
 The initial calibration allocation failed after four saved rollouts because the
@@ -286,7 +291,7 @@ GRPO attempt. These descriptive counts are not matched-token comparisons.
 The 11 completed runs' local telemetry reports SDK delivery through iteration
 10 with no recorded delivery errors; this is not an independent cloud-history
 verification. All rows use the same fixed evaluation sets, so training-seed and
-family uncertainty must remain separate. Nominal 2028 is pending.
+family uncertainty must remain separate. Nominal 2028 was last observed running.
 
 ## Reproduction after endpoints
 
