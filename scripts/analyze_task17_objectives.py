@@ -78,6 +78,24 @@ def load_run(item, pool_info, pool_hash, control_hash, control):
     if set(records) != {0, 40, 80}:
         raise ValueError(f"Run {root} lacks required development milestones")
     metrics = [e["payload"]["metrics"]["student"] for e in iterations]
+    monitor_curve = []
+    for iteration in (0, 5, 10):
+        evaluations = [
+            e["payload"]
+            for e in events
+            if e["kind"] == "evaluation"
+            and e["completed_iteration"] == iteration
+            and e["payload"]["split"] == "dev_monitor"
+        ]
+        if len(evaluations) != 41 or len({x["task_id"] for x in evaluations}) != 41:
+            raise ValueError(f"Run {root} has incomplete monitoring evaluation at {iteration}")
+        monitor_curve.append(
+            {
+                "episodes": iteration * 8,
+                "successes": sum(bool(x["success"]) for x in evaluations),
+                "tasks": len(evaluations),
+            }
+        )
     hours = float(item["allocated_gpu_hours"])
     if not np.isfinite(hours) or hours <= 0:
         raise ValueError("Actual allocated GPU-hours must be positive")
@@ -98,6 +116,7 @@ def load_run(item, pool_info, pool_hash, control_hash, control):
             "arm": item["arm"],
             "seed": item["seed"],
             "curve": sorted(curve, key=lambda x: x["episodes"]),
+            "monitor_curve": monitor_curve,
             "allocated_gpu_hours": hours,
             "rollout_successes": sum(x["success_numerator"] for x in metrics),
             "rollout_episodes": sum(x["success_denominator"] for x in metrics),
@@ -123,7 +142,10 @@ def main():
     items = json.loads(args.manifest.read_text())["runs"]
     if (
         not items
-        or any(r["arm"] not in "ABCD" or r["seed"] not in {2026, 2027, 2028} for r in items)
+        or any(
+            r["arm"] not in {"A", "B", "C", "D"} or r["seed"] not in {2026, 2027, 2028}
+            for r in items
+        )
         or len({(r["arm"], r["seed"]) for r in items}) != len(items)
     ):
         raise ValueError("Run arm/seed identities must be unique")

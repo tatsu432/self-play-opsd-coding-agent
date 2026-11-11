@@ -62,12 +62,25 @@ def test_objective_analysis_requires_complete_matched_evidence(tmp_path, monkeyp
         events.append(
             {"kind": "task17_development", "payload": {"episodes": episodes, "path": name}}
         )
+        for task in range(41):
+            events.append(
+                {
+                    "kind": "evaluation",
+                    "completed_iteration": episodes // 8,
+                    "payload": {"split": "dev_monitor", "task_id": str(task), "success": True},
+                }
+            )
     monkeypatch.setattr(module, "active_events", lambda _: events)
     item = {"arm": "D", "seed": 2026, "run_dir": str(tmp_path), "allocated_gpu_hours": 1}
     control = {"calibration_coefficient": 0.03}
     summary, records, _, _ = module.load_run(item, pool, "pool", "control", control)
     assert summary["rollout_episodes"] == 80 and set(records) == {0, 40, 80}
-    events.pop()
+    events = [
+        e
+        for e in events
+        if not (e["kind"] == "task17_development" and e["payload"]["episodes"] == 80)
+    ]
+    monkeypatch.setattr(module, "active_events", lambda _: events)
     with pytest.raises(ValueError, match="lacks required"):
         module.load_run(item, pool, "pool", "control", control)
     config["method"] = "B"
