@@ -111,6 +111,22 @@ def load_run(item, pool_info, pool_hash, control_hash, control):
             "scientific_code_hash",
         )
     }
+    identity["common_training"] = {
+        key: resolved[key]
+        for key in (
+            "iterations",
+            "parents_per_iteration",
+            "proposals_per_parent",
+            "episodes_per_task",
+            "sd_gap_definition",
+            "gradient_diagnostics",
+            "hardware",
+            "sandbox",
+        )
+    }
+    identity["common_training"]["objective"] = {
+        key: value for key, value in resolved["objective"].items() if key != "sd_lambda"
+    }
     return (
         {
             "arm": item["arm"],
@@ -156,10 +172,14 @@ def main():
     control = json.loads(args.control.read_text())
     if control["pool_sha256"] != pool_hash or control["episodes"] != 80:
         raise ValueError("Control does not match pool and endpoint")
-    summaries, by_run, hashes, identities = [], {}, {}, []
+    summaries, by_run, hashes, identities, snapshots = [], {}, {}, [], {}
     for item in items:
         summary, records, used, identity = load_run(item, info, pool_hash, control_hash, control)
         summaries.append(summary)
+        snapshot = identity.pop("snapshot")
+        if item["seed"] in snapshots and snapshots[item["seed"]] != snapshot:
+            raise ValueError("Paired runs do not share the same initial adapter")
+        snapshots[item["seed"]] = snapshot
         identities.append(identity)
         by_run[item["arm"], item["seed"]] = records
         hashes.update(used)

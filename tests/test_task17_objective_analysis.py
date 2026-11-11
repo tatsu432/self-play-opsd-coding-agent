@@ -33,6 +33,11 @@ def test_objective_analysis_requires_complete_matched_evidence(tmp_path, monkeyp
         "sd_gap_definition": "same_scorer_v2",
         "episodes_per_task": 4,
         "iterations": 10,
+        "parents_per_iteration": 2,
+        "proposals_per_parent": 2,
+        "gradient_diagnostics": True,
+        "hardware": {},
+        "sandbox": {},
     }
     for name, value in (
         ("manifest.json", manifest),
