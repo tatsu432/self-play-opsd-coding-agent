@@ -204,6 +204,7 @@ def interfaces(manifest_path: Path, pool_path: Path):
             cell["episode"]["edit_protocol"] == "replace_text" for cell in (left, right)
         )
         gate = None
+        expansion = None
         if serialization_pair:
             plain, native = (
                 (exposure["left"], exposure["right"])
@@ -211,6 +212,18 @@ def interfaces(manifest_path: Path, pool_path: Path):
                 else (exposure["right"], exposure["left"])
             )
             gate = native_expansion_gate(plain, native)
+            new_ids = set(left.get("new_task_ids", right.get("new_task_ids", []))) & ids
+            if new_ids:
+                new_ar, new_br = ([r for r in rows if r["task_id"] in new_ids] for rows in (ar, br))
+                expansion = {
+                    "common_families": len(new_ids),
+                    "success": paired_statistics(new_ar, new_br, families),
+                    "paired_exposure": {
+                        "left": paired_exposure(new_ar),
+                        "right": paired_exposure(new_br),
+                    },
+                    "interpretation": "Prespecified remaining tasks after the eight-task screen; all families were previously inspected.",
+                }
         strata = []
         for feature in ("source_tokens", "spec_tokens", "branches"):
             if not all(feature in row for row in ar + br):
@@ -239,6 +252,7 @@ def interfaces(manifest_path: Path, pool_path: Path):
                 "common_families": len(ids),
                 "paired_exposure": exposure,
                 "native_expansion_gate": gate,
+                "native_expansion_new_tasks": expansion,
                 "editing_changed": left["episode"]["edit_protocol"]
                 != right["episode"]["edit_protocol"],
                 "serialization_changed": left["episode"].get("tool_serialization", "plain_json")
