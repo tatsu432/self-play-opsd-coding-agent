@@ -26,9 +26,12 @@ checkpoint tensors locally. Direct saved-array analysis reproduces iteration
 the active clipped-surrogate branch relative to a ratio-one diagnostic. This
 is not a measured gradient or optimizer-update effect. The exact generating
 checkpoint 3 was retired; retained checkpoints 0/5/9 match batches 1/6/10.
-Task 18 therefore targets original batches 1 and 6 for restored-state GPU
-replay, retaining the original calibrated coefficient and both optimizer states.
-Neither replay can establish the worst batch's causal effect.
+Task 18 therefore targets calibrated-2028 batch 10 (a mixed-reward group) and
+calibrated-2026 batch 6 (uniform-reward controls) for restored-state GPU replay,
+retaining each original objective, coefficient and both optimizer states.
+Neither replay can establish the worst batch's causal effect. All 495 saved
+calibrated-2026 turn prefixes and token/probability lengths passed a CPU check
+with the pinned tokenizer; none of its six >0.2 outliers was an EOS token.
 
 ![Historical aggregate numerical differences](../figures/task18/numerical-history.png)
 
@@ -61,6 +64,13 @@ All new interface comparisons reuse previously inspected training families.
   identities remain bound. It does not certify loss math or native generation.
   A matching proof can cover interface/objective arms without repeating the
   unchanged full dataset audit for each arm.
+
+The first matching CPU runtime allocation is job `33574512`, controller run
+`96daa9183384957cd9ea58b5`, submitted once from `dd068f0`; inspect its existing
+ledger and never duplicate it. Its verifier evidence can be reused after
+changes confined to learning runners only when every file in the explicit
+verifier dependency list and every non-code runtime identity still matches the
+archived executed checkout. Changed verifier dependencies require a new check.
 
 ## Frozen execution sequence
 

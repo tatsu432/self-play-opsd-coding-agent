@@ -295,3 +295,123 @@ def test_runtime_proof_scope_preserves_model_and_verifier_but_reuses_across_form
     cfg = configure_operation(base, "native", "A", Path("configs/task18-control.json"))
     cfg.episode.max_observation_tokens += 1
     assert execution_identity(cfg, repository=repository) != plain
+
+
+def test_replay_keeps_original_ungated_objective_and_optimizer_state(tmp_path, monkeypatch):
+    monkeypatch.syspath_prepend("scripts")
+    runner = script("task18_experiment")
+    rows = episodes()
+    path = tmp_path / "episodes.json"
+    path.write_text(json.dumps([e.model_dump(mode="json") for e in rows]))
+    checkpoint = tmp_path / "checkpoint"
+    checkpoint.mkdir()
+    (checkpoint / "complete.json").write_text("{}")
+    cfg = configure_operation(
+        load_config(Path("configs/task18.yaml")),
+        "numerical",
+        "A",
+        Path("configs/task18-control.json"),
+    )
+    original = cfg.model_copy(deep=True)
+    original.method = "A"
+    original.objective.sd_lambda = 0.029
+    state = {"policy": {"original_optimizers": True}, "rng": {}}
+    metadata = {
+        "manifests_hash": "data",
+        "resolved_config": {
+            "model": cfg.model.model_dump(mode="json"),
+            "method": "A",
+            "objective": original.objective.model_dump(mode="json"),
+            "sd_gap_definition": "same_scorer_v2",
+        },
+    }
+    monkeypatch.setattr(runner.CheckpointManager, "load", lambda p: (state, metadata))
+    monkeypatch.setattr(runner, "restore_rng", lambda p: None)
+    monkeypatch.setattr(runner, "score_teacher", lambda p, e, o, limits: (e, None, None))
+    monkeypatch.setattr(runner, "gradient_mode_probe", lambda *a: {"tested": True})
+    seen = []
+
+    def audit(policy, config, *args):
+        seen.append((config.method, config.objective.sd_lambda, policy.loaded))
+        return {"training_ready": False}
+
+    monkeypatch.setattr(runner, "audit_updates", audit)
+    oracle = {
+        "task_id": rows[0].task_id,
+        "correct_source": "def f(x):\n return x\n",
+        "inverse_patch": "",
+        "public_cases": [],
+        "hidden_cases": [],
+        "provenance": {},
+    }
+    from selfplay_opsd.core import OracleSpec
+
+    # Use a validated oracle without executing its source.
+    oracle = OracleSpec.model_validate(oracle)
+    pool = {
+        "rows": [
+            {
+                "purpose": "curriculum",
+                "task": {"task_id": e.task_id},
+                "oracle": oracle.model_dump(mode="json"),
+            }
+            for e in rows
+        ]
+    }
+
+    class Policy:
+        def load_state_dict(self, value):
+            self.loaded = value
+
+        def version(self, role):
+            return rows[0].policy_version
+
+    control = {
+        "numerical_sources": [
+            {
+                "episodes": str(path),
+                "episodes_sha256": file_hash(path),
+                "checkpoint": str(checkpoint),
+                "checkpoint_complete_sha256": file_hash(checkpoint / "complete.json"),
+            }
+        ],
+        "update_relative_l2_screen": 0.01,
+        "update_cosine_screen": 0.99,
+    }
+    runner.replay_numerical(Policy(), cfg, SimpleNamespace(hash="data"), pool, control, tmp_path)
+    assert seen == [("A", 0.029, state["policy"])]
+
+
+def test_verifier_reuse_accepts_only_unchanged_verified_dependencies(tmp_path):
+    remote = script("hpc_remote")
+    previous, current = "a" * 40, "b" * 40
+    for commit in (previous, current):
+        for name in remote.TASK18_VERIFIER_FILES:
+            path = tmp_path / "checkouts" / commit / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(name)
+    actual = {
+        "code_hash": "old",
+        "scientific_code_hash": "old",
+        "prompt_hash": "p",
+        "common_hash": "v",
+        "manifest_hash": "d",
+    }
+    expected = actual | {"code_hash": "new", "scientific_code_hash": "new"}
+    report = {
+        "ready": True,
+        "runtime_identity": actual,
+        "provenance": {"git_commit": previous},
+        "validation": {"ready": True, "executed": True},
+        "isolation": {"ready": True},
+    }
+    payload = {"study_id": STUDY, "commit": current}
+    assert remote.task18_verifier_compatible(report, expected, payload, tmp_path)
+    assert not remote.task18_verifier_compatible(
+        report, expected | {"manifest_hash": "other"}, payload, tmp_path
+    )
+    assert not remote.task18_verifier_compatible(
+        report, expected, payload | {"study_id": "historical"}, tmp_path
+    )
+    (tmp_path / "checkouts" / current / "src/selfplay_opsd/worker_policy.py").write_text("changed")
+    assert not remote.task18_verifier_compatible(report, expected, payload, tmp_path)

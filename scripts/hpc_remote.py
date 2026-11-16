@@ -1602,6 +1602,55 @@ def recover_allocation(payload: dict) -> dict:
     return {"recovered": True, "job_id": job, "evidence": str(target), "recovery_gpu_hours": 0}
 
 
+TASK18_VERIFIER_FILES = (
+    "uv.lock",
+    "src/selfplay_opsd/core.py",
+    "src/selfplay_opsd/codec.py",
+    "src/selfplay_opsd/config.py",
+    "src/selfplay_opsd/data.py",
+    "src/selfplay_opsd/evaluation.py",
+    "src/selfplay_opsd/mutations.py",
+    "src/selfplay_opsd/protocol.py",
+    "src/selfplay_opsd/environment.py",
+    "src/selfplay_opsd/policy.py",
+    "src/selfplay_opsd/readiness.py",
+    "src/selfplay_opsd/task18_protocol.py",
+    "src/selfplay_opsd/task17_recovery.py",
+    "src/selfplay_opsd/sandbox.py",
+    "src/selfplay_opsd/worker.py",
+    "src/selfplay_opsd/remote_worker.py",
+    "src/selfplay_opsd/worker_runtime.py",
+    "src/selfplay_opsd/worker_policy.py",
+    "scripts/hpc_job.py",
+)
+
+
+def task18_verifier_compatible(report: dict, expected: dict, payload: dict, base: Path) -> bool:
+    if not task18_budget(payload) or not report.get("ready"):
+        return False
+    actual = report.get("runtime_identity", {})
+    ignored = {"code_hash", "scientific_code_hash"}
+    if not expected or {k: v for k, v in actual.items() if k not in ignored} != {
+        k: v for k, v in expected.items() if k not in ignored
+    }:
+        return False
+    previous = report.get("provenance", {}).get("git_commit", "")
+    current = payload.get("commit", "")
+    if not SHA.fullmatch(previous) or not SHA.fullmatch(current):
+        return False
+    old, new = base / "checkouts" / previous, base / "checkouts" / current
+    for relative in TASK18_VERIFIER_FILES:
+        a, b = old / relative, new / relative
+        if not a.is_file() or not b.is_file() or sha256(a) != sha256(b):
+            return False
+    validation = report.get("validation", {})
+    return bool(
+        validation.get("ready")
+        and validation.get("executed")
+        and report.get("isolation", {}).get("ready")
+    )
+
+
 def study_state(payload: dict) -> dict:
     base = workspace(payload)
     study = payload["study_id"]
@@ -1684,6 +1733,8 @@ def study_state(payload: dict) -> dict:
         expected = payload.get("backend_identity") if backend else identity
         field = "backend_identity" if backend else "runtime_identity"
         gates[name] = bool(report and expected and report.get(field) == expected)
+        if name == "runtime" and not gates[name]:
+            gates[name] = task18_verifier_compatible(report, expected or {}, payload, base)
         if name in {"runtime", "single", "target", "base"}:
             gates[name] = gates[name] and bool(report.get("ready"))
         if name == "target":

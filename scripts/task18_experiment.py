@@ -68,6 +68,9 @@ def replay_numerical(policy, cfg, repo, pool, control, output):
         episodes = [EpisodeRecord.model_validate(row) for row in json.loads(path.read_text())]
         if not episodes or any(e.task_id not in oracles for e in episodes):
             raise ValueError("Replay must use frozen training curriculum tasks")
+        cfg.method = metadata["resolved_config"]["method"]
+        if metadata["resolved_config"]["sd_gap_definition"] != "same_scorer_v2":
+            raise ValueError("Task 18 replay requires the original same-scorer SD gap")
         cfg.objective = ObjectiveConfig.model_validate(metadata["resolved_config"]["objective"])
         policy.load_state_dict(state["policy"])
         restore_rng(state["rng"])

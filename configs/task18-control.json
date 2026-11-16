@@ -14,10 +14,10 @@
   "update_cosine_screen": 0.99,
   "numerical_sources": [
     {
-      "episodes": "/runs/repair-selfplay-2026-task17-objectives-C-v1/A-seed2026/trajectories/e66d8cd763cf44ae8208292d5228e485/000001-episodes.json",
-      "episodes_sha256": "b5eea7f3b669ed91ea24dd3303a63b717367ff74ffaf49096716da4607844295",
-      "checkpoint": "/runs/repair-selfplay-2026-task17-objectives-C-v1/A-seed2026/checkpoints/000000",
-      "checkpoint_complete_sha256": "fdf4d0526cbf7f97644f302aa541b3c67e30fbf10be7ed995e44d7de49d54066"
+      "episodes": "/runs/repair-selfplay-2026-task17-objectives-C-v1/A-seed2028/trajectories/cbc8d3cd36e140ac9a4ff6b8d973d149/000010-episodes.json",
+      "episodes_sha256": "7b77fac232f44f46029bfa4876a4da6d64c6a2d6a0e835a577e463ac244210e3",
+      "checkpoint": "/runs/repair-selfplay-2026-task17-objectives-C-v1/A-seed2028/checkpoints/000009",
+      "checkpoint_complete_sha256": "2a9efa38c23f204db66189aa4b6b19b292289979083cc4a5b8a1afe76a390bc2"
     },
     {
       "episodes": "/runs/repair-selfplay-2026-task17-objectives-C-v1/A-seed2026/trajectories/e66d8cd763cf44ae8208292d5228e485/000006-episodes.json",
