@@ -679,14 +679,26 @@ def run_payload(
 
     predecessor = None
     if afterok_run is not None:
-        if operation not in {"task17-interface", "task17-normalized"} or not re.fullmatch(
-            r"[a-f0-9]{24}", afterok_run
-        ):
-            raise HpcError("Sequential dependency requires a Task 17 interface run ID")
+        if operation not in {
+            "task17-interface",
+            "task17-normalized",
+            "task18-normalized",
+            "task18-native",
+        } or not re.fullmatch(r"[a-f0-9]{24}", afterok_run):
+            raise HpcError("Sequential dependency requires an interface run ID")
         prior = remote.call("status", {"storage_root": storage, "run_id": afterok_run})
         spec = prior["ledger"]["specification"]
-        if spec["operation"] != operation or spec["study_id"] != cfg.study_id:
+        compatible_operation = spec["operation"] == operation or (
+            operation in {"task18-normalized", "task18-native"}
+            and spec["operation"] in {"task18-normalized", "task18-native"}
+        )
+        if not compatible_operation or spec["study_id"] != cfg.study_id:
             raise HpcError("Sequential predecessor belongs to a different operation/study")
+        if operation.startswith("task18-") and (
+            spec.get("task18_control_sha256") != cfg.model_dump()["task18_control_sha256"]
+            or spec.get("runtime_identity") != runtime_identity
+        ):
+            raise HpcError("Sequential Task 18 dependencies differ")
         if not prior.get("attempts"):
             raise HpcError("Sequential predecessor has no scheduler attempt")
         attempt = prior["attempts"][-1]

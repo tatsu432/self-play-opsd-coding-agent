@@ -415,3 +415,14 @@ def test_verifier_reuse_accepts_only_unchanged_verified_dependencies(tmp_path):
     )
     (tmp_path / "checkouts" / current / "src/selfplay_opsd/worker_policy.py").write_text("changed")
     assert not remote.task18_verifier_compatible(report, expected, payload, tmp_path)
+
+
+def test_interface_dependencies_keep_single_gpu_sequence_and_exclude_training():
+    remote = script("hpc_remote")
+    dependency = {"run_id": "a" * 24, "job_id": "123"}
+    for operation in ("task18-normalized", "task18-native"):
+        assert remote.sequential_dependency({"operation": operation, "afterok": dependency}) == [
+            "--dependency=afterok:123"
+        ]
+    with pytest.raises(ValueError, match="sequential"):
+        remote.sequential_dependency({"operation": "task18-student", "afterok": dependency})

@@ -741,11 +741,12 @@ def sequential_dependency(payload: dict) -> list[str]:
     if dependency is None:
         return []
     if (
-        payload["operation"] not in {"task17-interface", "task17-normalized"}
+        payload["operation"]
+        not in {"task17-interface", "task17-normalized", "task18-normalized", "task18-native"}
         or not re.fullmatch(r"[1-9][0-9]{0,11}", str(dependency.get("job_id", "")))
         or not re.fullmatch(r"[a-f0-9]{24}", str(dependency.get("run_id", "")))
     ):
-        raise ValueError("Invalid sequential Task 17 dependency")
+        raise ValueError("Invalid sequential interface dependency")
     return [f"--dependency=afterok:{dependency['job_id']}"]
 
 
