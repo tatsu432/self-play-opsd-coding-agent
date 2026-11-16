@@ -8,6 +8,17 @@ procedures to the relevant Markdown documents; keep the README short and current
 
 ## CURRENT — Task 18 implementation and queued diagnostics (2026-11-16)
 
+Corrected native v2 base/trained jobs **33587596 / 33587602**, controller runs
+`bcab3d7c1784f7df90862f6b` / `c540fda607c5768db29fc04d`, were submitted once
+from `b8144b0`. They are pending in sequence. Each pending wall was reduced
+30→15 minutes, retaining the original half-hour reservation and adjustment.
+Never duplicate them. Matching updated CPU runtime `33586413` /
+`5523522c27d08d3e1e5d7b9e` completed exit 0 (306 tasks); no GPU allocated.
+All other Task 18 jobs are terminal, including never-started cancellation of
+native v1 trained `33576446`. Local full suite: 451 passed, 20 skipped,
+18 deselected; Ruff lint/format and mypy passed. Finish v2 gate and final
+research decision before merge. See the newer Task 18 results document.
+
 Native v1 base `33576276` completed in 351 H200-seconds but exposed a parser
 compatibility defect: it rejects assistant commentary allowed alongside Qwen
 tool calls. Do not treat its 2/8 score as a compatible-native result. Trained

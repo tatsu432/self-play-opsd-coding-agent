@@ -4,7 +4,7 @@ The [specification](../task/18-interface-signla-bottleneck-fix-spec.md) is being
 executed under a hard 12 new allocated H200-hour cap. The
 [current evidence/status](../investigations/task18-status.md) and
 [provisional decision](../investigations/task18-research-decision.md) distinguish
-completed results from three queued operations. No new student-training arm is
+completed results from the two corrected native probes. No new student-training arm is
 enabled. Do not merge this task as complete yet.
 
 ## Delivered implementation
@@ -40,14 +40,18 @@ contract and binary student/proposer rewards are unchanged.
   8/20 guaranteed informative groups versus binary's 7/20. No program execution,
   new feedback, or learning result is implied.
 
-Completed new GPU allocation is **1,997 seconds = 0.554722 H200-hours**. Native
-jobs **33576276 / 33576446** and cache/frozen-rollout job **33580028** remain
-queued; exact controller IDs and pending-wall adjustments are in the status
-record. Their outcomes, final accounting and research decision remain required.
+Completed new GPU allocation is **2,615 seconds = 0.726389 H200-hours**. Cache
+job **33580028** completed in 267 seconds. Native v1 base **33576276** completed
+in 351 seconds and exposed rejection of Qwen-compatible assistant commentary;
+its trained counterpart **33576446** was cancelled before starting. Corrected
+v2 jobs **33587596 / 33587602** remain pending. Updated CPU runtime **33586413**
+passed after the parser dependency changed. Exact controller IDs and pending
+wall adjustments are in the status record. Native outcomes, final accounting
+and the research decision remain required.
 
 ## Validation
 
-The full selected local suite passed **450 tests**, with 20 skipped and 18
+The full selected local suite passed **451 tests**, with 20 skipped and 18
 deselected; Ruff lint/format and mypy for 55 source files passed. Focused tests
 cover historical prompt/configuration parity, native duplicate/extra fields and
 path restrictions, real Adam restoration after injected failure, cached prefix/

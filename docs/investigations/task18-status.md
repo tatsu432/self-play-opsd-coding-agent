@@ -2,6 +2,20 @@
 
 ## Current status (2026-11-16)
 
+Corrected native v2 base/trained jobs are **33587596 / 33587602**, controller
+runs **`bcab3d7c1784f7df90862f6b` / `c540fda607c5768db29fc04d`**, executed
+from `b8144b0`. Both are PENDING; trained has afterok base. Both pending wall
+limits were reduced 30→15 minutes using the measured 351-second v1 probe,
+retaining original half-hour reservations and ledger adjustments. Never
+duplicate these runs. Matching CPU runtime **33586413** / run
+`5523522c27d08d3e1e5d7b9e` completed exit 0, verifying all 306 tasks; this was
+required because the parser is an explicit verifier dependency. The previous
+executed runtime proof is archived under its SHA-256
+`cf3d60139e8c7fe703b4e95a4035491f0b6b40b9a156f6b96999c9c8fde150e5`.
+Both CPU checks allocated zero GPUs. Full local validation is now 451 passed,
+20 skipped, 18 deselected; Ruff lint/format and mypy passed. Earlier pending
+snapshots below are historical where superseded by this current section.
+
 The native v1 base probe completed with 2/8 repairs versus plain JSON's 4/8 on
 the same families. However, all 34 rejected calls contained assistant prose
 before a delimited call. The v1 parser incorrectly rejected that content, which
