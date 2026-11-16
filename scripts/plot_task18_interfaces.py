@@ -19,6 +19,14 @@ def main():
     cells = json.loads(args.summary.read_text())["cells"]
     fig, axes = plt.subplots(1, 2, figsize=(9, 3.8), sharey=True, layout="constrained")
     modes = ("strict", "normalized", "text")
+    if "base-native" in cells and "trained-native" in cells:
+        modes += ("native",)
+    labels = {
+        "strict": "Strict diff",
+        "normalized": "Normalized diff",
+        "text": "Exact text",
+        "native": "Qwen native\nexact text",
+    }
     for ax, snapshot, title in zip(
         axes, ("base", "trained"), ("Fresh base", "Frozen trained B2026"), strict=True
     ):
@@ -46,7 +54,7 @@ def main():
         ax.set(
             title=title,
             xticks=positions,
-            xticklabels=["Strict diff", "Normalized diff", "Exact text"],
+            xticklabels=[labels[mode] for mode in modes],
             ylim=(0, 44),
             yticks=np.arange(0, 41, 10),
         )

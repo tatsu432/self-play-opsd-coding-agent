@@ -13,6 +13,7 @@ import numpy as np
 from selfplay_opsd.storage import active_events, atomic_json, file_hash, provenance
 from selfplay_opsd.task16_analysis import ast_features, paired_statistics
 from selfplay_opsd.task17_analysis import verify_cell_execution
+from selfplay_opsd.task18 import load_native_probe
 from selfplay_opsd.task18_analysis import metrics as episode_metrics
 from selfplay_opsd.task18_analysis import native_expansion_gate, paired_exposure
 
@@ -22,6 +23,10 @@ def analysis_code_hashes():
     names = (
         "scripts/analyze_task18.py",
         "src/selfplay_opsd/task18_analysis.py",
+        "src/selfplay_opsd/task18.py",
+        "src/selfplay_opsd/task18_protocol.py",
+        "src/selfplay_opsd/core.py",
+        "src/selfplay_opsd/mutations.py",
         "src/selfplay_opsd/task17_analysis.py",
         "src/selfplay_opsd/task16_analysis.py",
         "src/selfplay_opsd/task17_recovery.py",
@@ -120,6 +125,29 @@ def interfaces(manifest_path: Path, pool_path: Path):
             raise ValueError("Interface completion or pool identity differs")
         if complete.get("episodes_sha256", file_hash(paths[2])) != file_hash(paths[2]):
             raise ValueError("Episode artifact checksum differs")
+        if reference := cell.get("reused_probe"):
+            probe_root = Path(item["reused_probe_dir"])
+            probe_status_path = Path(item["reused_probe_status_path"])
+            probe_status = json.loads(probe_status_path.read_text())
+            scheduler = probe_status["attempts"][-1]["scheduler"]
+            if scheduler.get("state") != "COMPLETED" or scheduler.get("exit_code") != "0:0":
+                raise ValueError("Reused native probe is not terminal exit zero")
+            previous = json.loads((probe_root / "manifest.json").read_text())
+            if (
+                verify_cell_execution(previous, probe_status, "task18-native")
+                != reference["scientific_code_hash"]
+            ):
+                raise ValueError("Reused native probe code identity differs")
+            reused = load_native_probe(
+                reference | {"run_dir": str(probe_root)}, cell, set(cell["task_ids"][:8])
+            )
+            by_task = {e["task_id"]: e for e in episodes}
+            if any(by_task[e.task_id] != e.model_dump(mode="json") for e in reused):
+                raise ValueError("Copied native probe trajectory differs")
+            hashes[str(probe_status_path)] = file_hash(probe_status_path)
+            hashes.update(
+                {str(probe_root / n): file_hash(probe_root / n) for n in reference["sha256"]}
+            )
         selected = [e for e in episodes if e["task_id"] in info]
         if {e["task_id"] for e in selected} != set(cell["task_ids"]) & set(info):
             raise ValueError("Manifest task coverage differs")
@@ -237,6 +265,9 @@ def interfaces(manifest_path: Path, pool_path: Path):
                 "actions": sum(r["actions"] for r in c["records"]),
                 "valid_schema_actions": sum(r["valid_schema_actions"] for r in c["records"]),
                 "accepted_edits": sum(r["accepted_edits"] for r in c["records"]),
+                "metadata_recovered_edits": sum(
+                    r["metadata_recovered_edits"] for r in c["records"]
+                ),
                 "rejected_edits": sum(r["rejected_edits"] for r in c["records"]),
                 "tokens": sum(r["tokens"] for r in c["records"]),
                 "turns": sum(r["turns"] for r in c["records"]),
