@@ -154,6 +154,10 @@ before divergence. On those 176 identical-prefix targets, probability
 differences reach 0.219070. The probe generated 189 targets and executed no
 generated tool action or Python program.
 
+Fresh turns were sampled individually; the original rollout batch schedule was
+not reconstructed. This is an execution-parity probe, not proof that vLLM must
+return identical probabilities across different batching schedules.
+
 Execution arithmetic contributes to the mismatch even without changing weights
 or token prefixes. A fresh engine does not reproduce every original probability,
 so a stale long-lived adapter cache is not a sufficient explanation. These
