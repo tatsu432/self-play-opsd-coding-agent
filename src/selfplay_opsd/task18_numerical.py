@@ -192,8 +192,8 @@ def cached_scoring_probe(policy, episodes):
     version = policy.version("student")
     was_training = policy.model.training
     cached = []
-    with policy.active("student"):
-        try:
+    try:
+        with policy.active("student"):
             policy.model.eval()
             full = [
                 float(value)
@@ -241,8 +241,8 @@ def cached_scoring_probe(policy, episodes):
                 for scores in policy.score_many(requests)
                 for value in scores.detach().float().cpu().tolist()
             ]
-        finally:
-            policy.model.train(was_training)
+    finally:
+        policy.model.train(was_training)
     if policy.version("student") != version:
         raise ExperimentError("Cached scoring mutated model weights")
     if not len(full) == len(cached) == len(repeat) == len(old) == len(frozen):

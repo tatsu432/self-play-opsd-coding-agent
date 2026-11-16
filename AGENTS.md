@@ -67,7 +67,7 @@ replay therefore uses calibrated-2028 batch 10 (mixed) and calibrated-2026 batch
 6 (uniform), restoring their original objective/optimizer states. Saved hidden-
 reward bounds distinguish 8/20 groups versus binary's 7/20, with one guaranteed
 additional group; this is retrospective evidence, not new learning/generalization.
-Local full validation passed 449 tests (20 skipped, 18 deselected), including reward-analysis and cached-scoring tests. Ruff lint/format and mypy (55 files) passed.
+Local full validation passed 450 tests (20 skipped, 18 deselected), including reward-analysis and cached-scoring tests. Ruff lint/format and mypy (55 files) passed.
 
 ## CURRENT — Task 17 complete (2026-11-11)
 

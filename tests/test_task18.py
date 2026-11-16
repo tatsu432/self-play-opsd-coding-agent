@@ -432,11 +432,13 @@ def test_interface_dependencies_keep_single_gpu_sequence_and_exclude_training():
         remote.sequential_dependency({"operation": "task18-student", "afterok": dependency})
 
 
-def test_cached_scoring_uses_saved_ids_and_restores_mode():
+@pytest.mark.parametrize("training", [False, True])
+def test_cached_scoring_uses_saved_ids_and_restores_mode(training):
     from selfplay_opsd.task18_numerical import cached_scoring_probe
 
     cfg = load_config(study_id="task18-cached-test", hardware_profile="cpu_debug")
     policy = HFPolicy(cfg)
+    policy.model.train(training)
     rows = [e.model_copy(update={"policy_version": policy.version("student")}) for e in episodes()]
     was_training = policy.model.training
     report = cached_scoring_probe(policy, rows)

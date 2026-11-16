@@ -10,10 +10,24 @@ from pathlib import Path
 
 import numpy as np
 
-from selfplay_opsd.storage import active_events, atomic_json, file_hash
+from selfplay_opsd.storage import active_events, atomic_json, file_hash, provenance
 from selfplay_opsd.task16_analysis import ast_features, paired_statistics
 from selfplay_opsd.task17_analysis import verify_cell_execution
 from selfplay_opsd.task18_analysis import metrics as episode_metrics
+
+
+def analysis_code_hashes():
+    root = Path(__file__).resolve().parents[1]
+    names = (
+        "scripts/analyze_task18.py",
+        "src/selfplay_opsd/task18_analysis.py",
+        "src/selfplay_opsd/task17_analysis.py",
+        "src/selfplay_opsd/task16_analysis.py",
+        "src/selfplay_opsd/task17_recovery.py",
+        "src/selfplay_opsd/analysis.py",
+        "uv.lock",
+    )
+    return {str(root / name): file_hash(root / name) for name in names}
 
 
 def audit(manifest_path: Path, pool_path: Path):
@@ -236,6 +250,8 @@ def main():
     if args.output.exists():
         raise ValueError("Preserve previous analysis; output already exists")
     report = (audit if args.operation == "audit" else interfaces)(args.manifest, args.pool)
+    report["source_hashes"].update(analysis_code_hashes())
+    report["analysis_provenance"] = provenance()
     atomic_json(args.output / "summary.json", report)
 
 

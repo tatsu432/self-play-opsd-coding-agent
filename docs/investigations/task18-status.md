@@ -198,7 +198,7 @@ changes confined to learning runners only when every file in the explicit
 verifier dependency list and every non-code runtime identity still matches the
 archived executed checkout. Changed verifier dependencies require a new check.
 
-Local validation passed **449 tests**, with 20 skipped and 18 deselected.
+Local validation passed **450 tests**, with 20 skipped and 18 deselected.
 Ruff lint/format and mypy (55 source files) passed. These checks include actual
 small-model Adam restoration and cached pinned-tokenizer prefix/EOS tests; they
 are not GPU research results. The full suite includes saved-reward and cached-scoring checks.
