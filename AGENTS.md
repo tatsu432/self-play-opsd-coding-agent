@@ -8,6 +8,18 @@ procedures to the relevant Markdown documents; keep the README short and current
 
 ## CURRENT — Task 18 implementation and queued diagnostics (2026-11-16)
 
+Native v1 base `33576276` completed in 351 H200-seconds but exposed a parser
+compatibility defect: it rejects assistant commentary allowed alongside Qwen
+tool calls. Do not treat its 2/8 score as a compatible-native result. Trained
+v1 `33576446` was cancelled while PENDING, with an operational ledger record;
+never retry it. Corrected v2 accepts surrounding content but only one delimited
+call, preserving raw IDs and editor restrictions. New v2 cells need new IDs.
+Cache/rollout `33580028` completed exit 0 in 267 seconds: exact full-scoring
+repeat, but incremental/full differences up to 0.431651 and fresh-vLLM/old
+probability differences up to 0.219070 on identical prefixes. New RL remains
+disabled. Completed GPU total is now 2,615 seconds (0.726389 hours). These
+records supersede the earlier pending snapshots below.
+
 Normalized base `33575526` and trained `33575845` completed exit 0 in 925/599
 H200-seconds, scoring 6/40 and 28/40. Reused strict/text were 5/19 (base) and
 27/21 (trained). Paired normalized-minus-strict intervals include zero; base text

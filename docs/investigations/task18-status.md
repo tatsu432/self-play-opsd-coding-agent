@@ -2,6 +2,26 @@
 
 ## Current status (2026-11-16)
 
+The native v1 base probe completed with 2/8 repairs versus plain JSON's 4/8 on
+the same families. However, all 34 rejected calls contained assistant prose
+before a delimited call. The v1 parser incorrectly rejected that content, which
+the [Qwen format permits](https://qwen.readthedocs.io/en/latest/getting_started/concepts.html#tool-calling).
+This is a compatibility failure, not evidence against compatible native tool use.
+The corresponding trained job `33576446` was cancelled while still pending;
+retain its immutable ledger and zero-allocation cancellation evidence. A v2
+parser accepts surrounding assistant text, retains all sampled IDs/history,
+and still rejects multiple calls, duplicate fields and unsafe edit arguments.
+Corrected probes require new scientific identities; no old result is overwritten.
+
+Cache/rollout job `33580028` completed exit 0 in 267 H200-seconds. Full scoring
+exactly matches saved scores and its repeat on 1,372 targets. Incremental HF
+scoring differs from full scoring by up to 0.431651, and from old behavior by
+up to 0.839185 (six targets above 0.2). Three fresh vLLM turns reproduce all
+target IDs; one diverges after four targets. The identical-prefix probability
+differences reach 0.219070. Thus decoding execution differences contribute;
+this does not isolate every kernel/state cause or establish a numerical repair.
+The valid training decision is to defer new RL, preserving behavior denominators.
+
 Implementation and local validation are underway on
 `feat/18-interface-signal-bottlenecks`, from main `48b4839`. The study is
 `repair-selfplay-2026-task18-v1`, with a **hard 12 new allocated H200-hour cap**

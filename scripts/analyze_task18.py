@@ -14,6 +14,7 @@ from selfplay_opsd.storage import active_events, atomic_json, file_hash, provena
 from selfplay_opsd.task16_analysis import ast_features, paired_statistics
 from selfplay_opsd.task17_analysis import verify_cell_execution
 from selfplay_opsd.task18_analysis import metrics as episode_metrics
+from selfplay_opsd.task18_analysis import native_expansion_gate, paired_exposure
 
 
 def analysis_code_hashes():
@@ -167,6 +168,21 @@ def interfaces(manifest_path: Path, pool_path: Path):
         if not ids:
             raise ValueError("No common families")
         ar, br = ([r for r in c["records"] if r["task_id"] in ids] for c in (a, b))
+        exposure = {"left": paired_exposure(ar), "right": paired_exposure(br)}
+        serialization_pair = {
+            left["episode"].get("tool_serialization", "plain_json"),
+            right["episode"].get("tool_serialization", "plain_json"),
+        } == {"plain_json", "qwen_native"} and all(
+            cell["episode"]["edit_protocol"] == "replace_text" for cell in (left, right)
+        )
+        gate = None
+        if serialization_pair:
+            plain, native = (
+                (exposure["left"], exposure["right"])
+                if right["episode"].get("tool_serialization") == "qwen_native"
+                else (exposure["right"], exposure["left"])
+            )
+            gate = native_expansion_gate(plain, native)
         strata = []
         for feature in ("source_tokens", "spec_tokens", "branches"):
             if not all(feature in row for row in ar + br):
@@ -193,6 +209,8 @@ def interfaces(manifest_path: Path, pool_path: Path):
                 "left": a["name"],
                 "right": b["name"],
                 "common_families": len(ids),
+                "paired_exposure": exposure,
+                "native_expansion_gate": gate,
                 "editing_changed": left["episode"]["edit_protocol"]
                 != right["episode"]["edit_protocol"],
                 "serialization_changed": left["episode"].get("tool_serialization", "plain_json")

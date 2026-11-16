@@ -82,10 +82,22 @@ def episode_messages(task, limits):
 def parse_episode_action(raw, limits):
     if getattr(limits, "tool_serialization", "plain_json") != "qwen_native":
         return parse_action(raw, limits.edit_protocol)
+    call = native_tool_call(raw)
+    return parse_action(
+        canonical({"action": call["name"], **call["arguments"]}), limits.edit_protocol
+    )
+
+
+def native_tool_call(raw):
+    # Qwen allows ordinary assistant content around tool calls. Preserve that
+    # content in sampled IDs/history, but execute only the one delimited call.
     text = raw.strip()
-    if not text.startswith("<tool_call>") or not text.endswith("</tool_call>"):
+    if text.count("<tool_call>") != 1 or text.count("</tool_call>") != 1:
         raise ValueError("Expected exactly one Qwen tool call")
-    body = text[len("<tool_call>") : -len("</tool_call>")].strip()
+    start, end = text.index("<tool_call>") + len("<tool_call>"), text.index("</tool_call>")
+    if end < start:
+        raise ValueError("Incorrect Qwen tool-call boundaries")
+    body = text[start:end].strip()
     # strict_json_object also rejects duplicate keys and extra JSON objects.
     call = strict_json_object(body)
     if (
@@ -96,9 +108,7 @@ def parse_episode_action(raw, limits):
         raise ValueError("Incorrect Qwen tool-call fields")
     if "action" in call["arguments"]:
         raise ValueError("Arguments cannot override the tool name")
-    return parse_action(
-        canonical({"action": call["name"], **call["arguments"]}), limits.edit_protocol
-    )
+    return call
 
 
 class NativeTokenizer:

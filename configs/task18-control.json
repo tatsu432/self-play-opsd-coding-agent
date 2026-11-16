@@ -9,6 +9,7 @@
   "selected_interface": "replace_text",
   "selected_serialization": "plain_json",
   "native_families": 8,
+  "native_parser_version": "single-call-with-assistant-content-v2",
   "numerical_groups": 4,
   "update_relative_l2_screen": 0.01,
   "update_cosine_screen": 0.99,

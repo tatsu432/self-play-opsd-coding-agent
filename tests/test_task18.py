@@ -37,14 +37,40 @@ def episodes():
     return make()
 
 
+def test_native_expansion_requires_both_validity_and_repair_screen():
+    from selfplay_opsd.task18_analysis import native_expansion_gate, paired_exposure
+
+    row = {
+        "actions": 10,
+        "valid_schema_actions": 8,
+        "accepted_edits": 1,
+        "rejected_edits": 1,
+        "tokens": 30,
+        "turns": 10,
+        "success": True,
+    }
+    plain = paired_exposure([row])
+    native = paired_exposure([row | {"valid_schema_actions": 9}])
+    assert native_expansion_gate(plain, native)
+    assert not native_expansion_gate(plain, plain)
+    assert not native_expansion_gate(plain, native | {"repairs": 0})
+    assert not native_expansion_gate(plain, native | {"invalid_call_rate": None})
+    with pytest.raises(ValueError):
+        native_expansion_gate(plain, native | {"tasks": 2})
+
+
 def test_native_validator_keeps_existing_edit_restrictions():
     limits = Task18EpisodeConfig(edit_protocol="replace_text", tool_serialization="qwen_native")
     args = {"path": "src/solution.py", "old_text": "x", "new_text": "y"}
     raw = "<tool_call>" + canonical({"name": "replace_text", "arguments": args}) + "</tool_call>"
     assert parse_episode_action(raw, limits) == {"action": "replace_text", **args}
+    assert parse_episode_action("I will edit the source.\n" + raw + "\nDone.", limits) == {
+        "action": "replace_text",
+        **args,
+    }
     for invalid in [
         raw + raw,
-        "prose" + raw,
+        "</tool_call>" + raw.removesuffix("</tool_call>"),
         raw.replace("src/solution.py", "tests/test_public.py"),
         raw.replace('"arguments":', '"extra":1,"arguments":'),
         '<tool_call>{"name":"finish","arguments":{"action":"read_file"}}</tool_call>',
