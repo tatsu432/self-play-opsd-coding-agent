@@ -2,7 +2,8 @@
 
 Study `repair-selfplay-2026-task18-v1` reuses the verified Task 17 training-only
 pool and frozen Qwen3-4B-Instruct-2507 snapshots. New training remains disabled.
-The corrected native probes are still pending; this record is not final.
+The corrected native probes passed their expansion screen; the common-40
+native measurements are pending, so this record is not final.
 See the [execution record](task18-status.md) and
 [research decision](task18-research-decision.md).
 
@@ -86,6 +87,15 @@ It preserves all prose/target IDs in history, rejects duplicate/multiple calls,
 and delegates argument, path, import and public-API checks to the existing
 restricted editor. Corrected cells have new execution/control identities.
 No repaired action is retrospectively relabeled as an end-to-end success.
+
+Corrected base/trained probes both repaired **7/8**, versus **4/8** for their
+paired plain-JSON controls. All 40 base and 32 trained native calls were valid,
+with seven accepted and zero rejected edits per snapshot. Plain controls had
+42/53 and 39/44 valid-schema calls. Generated tokens were 3,139 native versus
+2,395 plain for base; 1,705 versus 2,534 for trained. These eight-task results
+pass both frozen expansion criteria, but are not a full interface selection.
+The full comparison reuses the checksum-bound eight episodes and generates
+only the remaining 32 per snapshot. New RL remains disabled.
 
 ## Numerical replay and training decision
 

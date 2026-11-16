@@ -8,7 +8,7 @@
   "student_episodes": 80,
   "selected_interface": "replace_text",
   "selected_serialization": "plain_json",
-  "native_families": 8,
+  "native_families": 40,
   "native_parser_version": "single-call-with-assistant-content-v2",
   "numerical_groups": 4,
   "update_relative_l2_screen": 0.01,
@@ -22,5 +22,51 @@
     }
   ],
   "numerical_stage": "cached-scoring",
-  "replay_rollout_turns": 4
+  "replay_rollout_turns": 4,
+  "native_probe_reuse": {
+    "A": {
+      "run_dir": "/runs/repair-selfplay-2026-task18-v1/bcab3d7c1784f7df90862f6b",
+      "sha256": {
+        "manifest.json": "eb11899fc9bb09a33d7a977e0c41151815592cbe42b2224d6f68f96481f0b369",
+        "complete.json": "be84eaef2025a118659b047b37a5dfe771d84ac8cf4aa72311cd85ea2f4cfa9e",
+        "episodes.json": "5ceefd34e7e51fe826f2889eb67c0b48ca56babbacf7dd4538937186836f99a4"
+      },
+      "control_sha256": "224967ece238c2f264a17a8d672909cff4771b9ac8b1c83d2f56594168bc2afb",
+      "scientific_code_hash": "11db0b88f671e870574f7ed2b7c27b723ab965b03a8701db47db8c046dad7a4d",
+      "commit": "b8144b0c06ece9a91fe4d720df7496f2cc351e6c"
+    },
+    "B": {
+      "run_dir": "/runs/repair-selfplay-2026-task18-v1/c540fda607c5768db29fc04d",
+      "sha256": {
+        "manifest.json": "7b8f26a0cc7c9d7e67c840880dc1ce6dd7d6973cd72a6ffbc65bf9c391925c83",
+        "complete.json": "d18934a39bb05d16f12fa056cfde169d5bdacf75ff3dc397dbd05bf8ad04420f",
+        "episodes.json": "207d34172fb9894a88d27dbc0ac782ff6a754fc1ca7993d5306a1f31e3c7fec9"
+      },
+      "control_sha256": "224967ece238c2f264a17a8d672909cff4771b9ac8b1c83d2f56594168bc2afb",
+      "scientific_code_hash": "11db0b88f671e870574f7ed2b7c27b723ab965b03a8701db47db8c046dad7a4d",
+      "commit": "b8144b0c06ece9a91fe4d720df7496f2cc351e6c"
+    }
+  },
+  "native_expansion_decision": {
+    "probe_analysis_sha256": "f14b0d5b2fe46d3c8bfb3f2d20214fe8c6831d40ef32622185e88aa7cc540212",
+    "base_native_plain_repairs": [
+      7,
+      4
+    ],
+    "trained_native_plain_repairs": [
+      7,
+      4
+    ],
+    "native_valid_actions": [
+      40,
+      32
+    ],
+    "native_total_actions": [
+      40,
+      32
+    ],
+    "both_predeclared_gates_pass": true,
+    "reused_episodes_per_snapshot": 8,
+    "new_episodes_per_snapshot": 32
+  }
 }

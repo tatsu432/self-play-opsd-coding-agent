@@ -33,8 +33,9 @@ for uncertainty, limitations and the research decision.
 
 Task 18 reproduced a material numerical effect: a diagnostic denominator change
 altered one restored Adam update by 21.4%, versus 0.4% repeat variation. A bounded
-backend check and normalized-diff/Qwen-native interface comparisons are underway
-under a new 12 H200-hour cap. Saved hidden-reward bounds distinguish one extra
+backend check is complete. Normalized diff scored 6/40 base and 28/40 trained;
+compatible Qwen-native probes scored 7/8 for both snapshots versus plain JSON's
+4/8, supporting a common-40 evaluation under the 12 H200-hour cap. Saved hidden-reward bounds distinguish one extra
 group among 20 examined. New RL remains disabled pending the numerical decision.
 See the [Task 18 status and procedures](docs/investigations/task18-status.md).
 

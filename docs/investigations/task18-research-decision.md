@@ -1,8 +1,9 @@
 # Task 18 research decision — provisional
 
 The [execution status and evidence](task18-status.md) are authoritative. Numerical
-replay and normalized-diff cells are complete; the cached/frozen-rollout check
-and native serialization probes are still queued. Task 18 is unfinished.
+replay, normalized-diff cells and backend probes are complete. Compatible native
+serialization repaired 7/8 for each snapshot versus plain JSON's 4/8, passing
+both expansion screens; its common-40 evaluation remains required. Task 18 is unfinished.
 
 1. **Interface.** Exact text remains the strongest evaluated fresh-base option:
    19/40, against strict 5/40 and normalized 6/40. Trained B2026 scores are
@@ -22,8 +23,10 @@ and native serialization probes are still queued. Task 18 is unfinished.
    0.4% repeat variation. Gradient-mode/frozen scoring agree on all tested
    targets, so that mode difference does not explain this sample. The numerical
    effect is not evidence that rescored denominators would be correct or improve
-   repair. Cached scoring and fresh rollout reproduction must distinguish
-   backend arithmetic from state/synchronization causes. New RL remains off.
+   repair. Cached scoring changes six targets by more than 0.2 relative to full
+   scoring; fresh vLLM replay also differs on identical prefixes. Execution
+   arithmetic contributes without isolating all kernel/state causes. This is
+   sufficient to defer new RL, not to certify it as harmless. New RL remains off.
 4. **Gated OPSD.** Reuse the completed Task 17 three-seed evidence. It does not
    establish a credible robust gated advantage over GRPO or nominal ungated.
    Small fixed development sets, repeated families and numerical sensitivity
