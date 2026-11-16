@@ -2,6 +2,17 @@
 
 ## Current status (2026-11-16)
 
+Full native base **33589271** completed exit 0 in **1,009 H200-seconds**:
+27/40 verified repairs, 37 tasks edited, 50 accepted / one rejected edit,
+216/217 valid-schema calls and 24,336 generated tokens. Paired native-minus-
+plain text is +20 points [95% family bootstrap +2.5, +37.5]. The source eight
+episodes are unchanged; only 32 were generated. Trained **33589312** is running.
+Its pending wall was restored to the original 30 minutes after variable base
+latencies; Slurm declined an increase for the already-running base, which
+completed within its 20-minute wall. Both attempts/adjustments are in the
+ledgers. Completed allocations now total **4,018 seconds / 1.116111 hours**;
+the running trained cell retains its original half-hour reservation.
+
 Both corrected native eight-family probes completed exit 0, with 7/8 repairs
 each versus paired plain JSON's 4/8 each. All 40/32 native calls were valid;
 zero edits were rejected. Their charges are 208/186 H200-seconds. Both frozen

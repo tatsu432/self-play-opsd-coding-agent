@@ -2,8 +2,8 @@
 
 Study `repair-selfplay-2026-task18-v1` reuses the verified Task 17 training-only
 pool and frozen Qwen3-4B-Instruct-2507 snapshots. New training remains disabled.
-The corrected native probes passed their expansion screen; the common-40
-native measurements are pending, so this record is not final.
+The corrected native probes passed their expansion screen. Full base native
+evaluation is complete; the trained cell is still running, so this record is not final.
 See the [execution record](task18-status.md) and
 [research decision](task18-research-decision.md).
 
@@ -34,6 +34,7 @@ their whole-allocation hours are not matched-40-task cost measurements.
 | Base / strict, reused | 5/40 | 6 | 7 / 101 | 239 / 308 | 24,066 | 12 / 5 |
 | Base / normalized, new | 6/40 | 7 | 7 / 93 | 233 / 302 | 23,307 | 13 / 6 |
 | Base / exact text, reused | 19/40 | 23 | 25 / 51 | 209 / 275 | 18,994 | 24 / 19 |
+| Base / native exact text, new | 27/40 | 37 | 50 / 1 | 216 / 217 | 24,336 | 30 / 27 |
 | B2026 / strict, reused | 27/40 | 33 | 42 / 101 | 249 / 249 | 21,295 | 30 / 27 |
 | B2026 / normalized, new | 28/40 | 39 | 59 / 36 | 222 / 222 | 13,698 | 32 / 28 |
 | B2026 / exact text, reused | 21/40 | 28 | 37 / 70 | 154 / 226 | 11,343 | 27 / 21 |
@@ -48,6 +49,8 @@ percentage of semantic versus application failures.
 |---|---:|---:|
 | Base normalized minus strict | +2.5 | [0, +7.5] |
 | Base normalized minus text | −32.5 | [−47.5, −17.5] |
+| Base native minus plain text | +20 | [+2.5, +37.5] |
+| Base native minus normalized | +52.5 | [+35, +67.5] |
 | B2026 normalized minus strict | +2.5 | [−5, +12.5] |
 | B2026 normalized minus text | +17.5 | [0, +37.5] |
 
@@ -97,6 +100,15 @@ pass both frozen expansion criteria, but are not a full interface selection.
 The full comparison reuses the checksum-bound eight episodes and generates
 only the remaining 32 per snapshot. New RL remains disabled.
 
+The full base result is **27/40**, including the unchanged 7/8 probe and 20/32
+new repairs. Native alone solved 12 tasks plain text missed; plain alone solved
+four. Native has 99.54% valid-schema calls and 50/51 accepted edit attempts,
+against plain text's 76% and 25/76. Generated tokens increase 28.1%, while
+turns decrease 21.1%. Ten tasks fail after an applied native edit; application
+remains distinct from semantic repair. These are previously inspected training
+families, not new external transfer evidence. The full base allocation used
+1,009 H200-seconds; including its probe, native base cost 1,217 seconds.
+
 ## Numerical replay and training decision
 
 The saved-data audit reconciled 120 committed batches across all twelve Task 17
@@ -114,7 +126,7 @@ between branches. Sixteen saved episodes contain 3,842 targets. Actual behavior
 denominators are preserved; substituting frozen scorer probabilities is a
 counterfactual diagnostic only, with auxiliary coefficients held fixed.
 
-| Quantity | Mixed C2028 batch 10 | Uniform C2026 batch 6 |
+| Quantity | Mixed calibrated-2028 batch 10 | Uniform calibrated-2026 batch 6 |
 |---|---:|---:|
 | Saved targets | 1,372 | 2,470 |
 | Absolute difference >0.2 | 10 (0.7289%) | 12 (0.4858%) |

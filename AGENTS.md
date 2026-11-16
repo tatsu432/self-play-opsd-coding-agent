@@ -8,6 +8,16 @@ procedures to the relevant Markdown documents; keep the README short and current
 
 ## CURRENT — Task 18 implementation and queued diagnostics (2026-11-16)
 
+Full native base **33589271** / `02c9b1ee439d1828fa9636ab` completed exit 0
+in 1,009 H200-seconds, scoring 27/40 (32 new + eight unchanged probe episodes).
+Native-minus-plain-text gain is +20 points [family 95% interval +2.5, +37.5].
+Full trained **33589312** / `4e84c405144439f65a0e38ba` is running, with its
+pending wall restored to original 30 minutes and reservation retained. Slurm
+declined a running-base increase; it finished within 20 minutes. Preserve all
+adjustment records. Completed allocations total 4,018 seconds / 1.116111 hours;
+trained reservation is additional. Finish that existing run, verify combined
+reuse/identity/accounting and final decision, then merge completed task. No RL.
+
 Both compatible native v2 probes completed: base/trained 7/8 each versus
 plain JSON 4/8 each, all 40/32 calls valid, no rejected edits; 208/186 seconds.
 Both expansion gates passed. Full native base/trained **33589271 / 33589312**,
