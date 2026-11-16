@@ -6,11 +6,66 @@ import json
 from pathlib import Path
 
 from selfplay_opsd.config import RunConfig
+from selfplay_opsd.core import EpisodeRecord, keyed_seed
 from selfplay_opsd.storage import file_hash
 from selfplay_opsd.task18_protocol import Task18EpisodeConfig
 
 STUDY = "repair-selfplay-2026-task18-v1"
 OPERATIONS = ("numerical", "normalized", "native", "student")
+
+
+def load_native_probe(reference: dict, current: dict, expected_ids: set[str]):
+    """Reuse a checksum-bound compatible probe; never regenerate its eight tasks."""
+    root = Path(reference["run_dir"])
+    names = {"manifest.json", "complete.json", "episodes.json"}
+    if set(reference["sha256"]) != names or any(
+        file_hash(root / name) != reference["sha256"][name] for name in names
+    ):
+        raise ValueError("Native probe artifact checksum differs")
+    previous = json.loads((root / "manifest.json").read_text())
+    complete = json.loads((root / "complete.json").read_text())
+    if (
+        previous["operation"] != "native"
+        or previous["control_sha256"] != reference["control_sha256"]
+        or previous["scientific_code_hash"] != reference["scientific_code_hash"]
+        or previous["provenance"]["git_commit"] != reference["commit"]
+        or any(
+            previous[key] != current[key]
+            for key in (
+                "arm",
+                "seed",
+                "pool_sha256",
+                "dataset_hash",
+                "snapshot",
+                "episode",
+                "model",
+            )
+        )
+        or current["episode"].get("tool_serialization") != "qwen_native"
+        or current["episode"]["edit_protocol"] != "replace_text"
+    ):
+        raise ValueError("Native probe snapshot, protocol or execution identity differs")
+    records = [
+        EpisodeRecord.model_validate(row)
+        for row in json.loads((root / "episodes.json").read_text())
+    ]
+    if (
+        len(records) != 8
+        or len(expected_ids) != 8
+        or {e.task_id for e in records} != expected_ids
+        or set(previous["task_ids"]) != expected_ids
+        or complete["episodes"] != 8
+        or complete["successes"] != sum(e.reward for e in records)
+        or complete["pool_sha256"] != current["pool_sha256"]
+        or complete["episodes_sha256"] != reference["sha256"]["episodes.json"]
+        or any(
+            e.policy_version != current["snapshot"]
+            or e.seed != keyed_seed(current["seed"], "task17", e.task_id, 0)
+            for e in records
+        )
+    ):
+        raise ValueError("Native probe coverage, seed or completion differs")
+    return records
 
 
 class Task18Config(RunConfig):

@@ -59,6 +59,70 @@ def test_native_expansion_requires_both_validity_and_repair_screen():
         native_expansion_gate(plain, native | {"tasks": 2})
 
 
+def test_native_expansion_reuses_only_bound_completed_probe(tmp_path):
+    from selfplay_opsd.core import keyed_seed
+    from selfplay_opsd.storage import atomic_json
+    from selfplay_opsd.task18 import load_native_probe
+
+    source = episodes()[0]
+    records = [
+        source.model_copy(
+            update={
+                "task_id": str(i),
+                "episode_id": f"episode{i}",
+                "seed": keyed_seed(2026, "task17", str(i), 0),
+                "policy_version": "snapshot",
+            }
+        )
+        for i in range(8)
+    ]
+    manifest = {
+        "operation": "native",
+        "control_sha256": "control",
+        "scientific_code_hash": "code",
+        "provenance": {"git_commit": "commit"},
+        "arm": "A",
+        "seed": 2026,
+        "pool_sha256": "pool",
+        "dataset_hash": "data",
+        "snapshot": "snapshot",
+        "episode": {"tool_serialization": "qwen_native", "edit_protocol": "replace_text"},
+        "model": {"name": "frozen"},
+        "task_ids": [str(i) for i in range(8)],
+    }
+    atomic_json(tmp_path / "manifest.json", manifest)
+    atomic_json(tmp_path / "episodes.json", [e.model_dump(mode="json") for e in records])
+    atomic_json(
+        tmp_path / "complete.json",
+        {
+            "episodes": 8,
+            "successes": sum(e.reward for e in records),
+            "pool_sha256": "pool",
+            "episodes_sha256": file_hash(tmp_path / "episodes.json"),
+        },
+    )
+    reference = {
+        "run_dir": str(tmp_path),
+        "sha256": {
+            name: file_hash(tmp_path / name)
+            for name in ("manifest.json", "episodes.json", "complete.json")
+        },
+        "control_sha256": "control",
+        "scientific_code_hash": "code",
+        "commit": "commit",
+    }
+    ids = set(manifest["task_ids"])
+    assert load_native_probe(reference, manifest, ids) == records
+    with pytest.raises(ValueError, match="identity"):
+        load_native_probe(reference, manifest | {"snapshot": "different"}, ids)
+    with pytest.raises(ValueError, match="coverage"):
+        load_native_probe(reference, manifest, ids - {"0"})
+    with pytest.raises(ValueError, match="checksum"):
+        load_native_probe(
+            reference | {"sha256": reference["sha256"] | {"episodes.json": "bad"}}, manifest, ids
+        )
+
+
 def test_native_validator_keeps_existing_edit_restrictions():
     limits = Task18EpisodeConfig(edit_protocol="replace_text", tool_serialization="qwen_native")
     args = {"path": "src/solution.py", "old_text": "x", "new_text": "y"}

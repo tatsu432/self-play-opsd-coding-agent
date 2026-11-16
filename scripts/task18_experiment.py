@@ -32,7 +32,7 @@ from selfplay_opsd.storage import (
 )
 from selfplay_opsd.task15_audit import gradient_mode_probe
 from selfplay_opsd.task17 import load_pool
-from selfplay_opsd.task18 import OPERATIONS, configure_operation
+from selfplay_opsd.task18 import OPERATIONS, configure_operation, load_native_probe
 from selfplay_opsd.task18_numerical import (
     audit_updates,
     cached_scoring_probe,
@@ -267,6 +267,16 @@ def main():
             },
             "provenance": provenance(),
         }
+        reused = []
+        if args.operation == "native" and control["native_families"] == 40:
+            reference = control.get("native_probe_reuse", {}).get(args.arm)
+            if not reference:
+                raise ValueError("Full native evaluation must reuse its completed eight-task probe")
+            reused = load_native_probe(reference, manifest, {t.task_id for t, _ in items[:8]})
+            manifest["reused_probe"] = reference
+            manifest["new_task_ids"] = [
+                t.task_id for t, _ in items if t.task_id not in {e.task_id for e in reused}
+            ]
         if args.resume:
             previous = json.loads((args.output / "manifest.json").read_text())
             if any(
@@ -315,9 +325,12 @@ def main():
                     "snapshot": policy.version("student"),
                 },
             )
-        episodes = []
+        episodes = list(reused)
+        reused_ids = {e.task_id for e in reused}
         with policy.active("student"):
             for task, oracle in items:
+                if task.task_id in reused_ids:
+                    continue
                 for slot in range(4 if args.operation == "numerical" else 1):
                     episode = run_episode(
                         policy,
@@ -362,6 +375,8 @@ def main():
                 "successes": sum(e.reward for e in episodes),
                 "pool_sha256": pool_hash,
                 "episodes_sha256": file_hash(args.output / "episodes.json"),
+                "reused_episodes": len(reused),
+                "generated_episodes": len(episodes) - len(reused),
             },
         )
     finally:
