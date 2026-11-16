@@ -5,7 +5,10 @@ from __future__ import annotations
 import argparse
 import itertools
 import json
+from collections import Counter
 from pathlib import Path
+
+import numpy as np
 
 from selfplay_opsd.storage import active_events, atomic_json, file_hash
 from selfplay_opsd.task16_analysis import ast_features, paired_statistics
@@ -85,7 +88,11 @@ def interfaces(manifest_path: Path, pool_path: Path):
         cell, complete, episodes = [json.loads(p.read_text()) for p in paths]
         if cell["pool_sha256"] != file_hash(pool_path) or complete["episodes"] != len(episodes):
             raise ValueError("Interface completion or pool identity differs")
+        if complete.get("episodes_sha256", file_hash(paths[2])) != file_hash(paths[2]):
+            raise ValueError("Episode artifact checksum differs")
         selected = [e for e in episodes if e["task_id"] in info]
+        if {e["task_id"] for e in selected} != set(cell["task_ids"]) & set(info):
+            raise ValueError("Manifest task coverage differs")
         if len(selected) != len({e["task_id"] for e in selected}):
             raise ValueError("Duplicate task outcomes")
         records = [
@@ -131,11 +138,33 @@ def interfaces(manifest_path: Path, pool_path: Path):
         if not ids:
             raise ValueError("No common families")
         ar, br = ([r for r in c["records"] if r["task_id"] in ids] for c in (a, b))
+        strata = []
+        for feature in ("source_tokens", "spec_tokens", "branches"):
+            if not all(feature in row for row in ar + br):
+                continue
+            threshold = float(np.median([row[feature] for row in ar]))
+            for high in (False, True):
+                selected = {row["task_id"] for row in ar if (row[feature] > threshold) == high}
+                if selected:
+                    strata.append(
+                        {
+                            "feature": feature,
+                            "threshold": threshold,
+                            "above_median": high,
+                            "families": len(selected),
+                            "paired": paired_statistics(
+                                [r for r in ar if r["task_id"] in selected],
+                                [r for r in br if r["task_id"] in selected],
+                                families,
+                            ),
+                        }
+                    )
         comparisons.append(
             {
                 "left": a["name"],
                 "right": b["name"],
                 "common_families": len(ids),
+                "exploratory_strata": strata,
                 "success": paired_statistics(ar, br, families),
                 "applied_edit": paired_statistics(
                     [r | {"success": r["applied_edit"]} for r in ar],
@@ -159,6 +188,16 @@ def interfaces(manifest_path: Path, pool_path: Path):
                 "accepted_edits": sum(r["accepted_edits"] for r in c["records"]),
                 "rejected_edits": sum(r["rejected_edits"] for r in c["records"]),
                 "tokens": sum(r["tokens"] for r in c["records"]),
+                "turns": sum(r["turns"] for r in c["records"]),
+                "public_successes": sum(r["public_pass"] for r in c["records"]),
+                "hidden_successes": sum(r["hidden_pass"] for r in c["records"]),
+                "tasks_with_applied_edit": sum(r["applied_edit"] for r in c["records"]),
+                "failures_after_applied_edit": sum(
+                    r["semantic_failure_after_applied_edit"] for r in c["records"]
+                ),
+                "rejection_taxonomy": dict(
+                    sum((Counter(r["rejection_taxonomy"]) for r in c["records"]), Counter())
+                ),
                 "allocated_gpu_hours": c["allocated_gpu_hours"],
             }
             for c in cells

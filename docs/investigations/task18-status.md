@@ -66,11 +66,16 @@ All new interface comparisons reuse previously inspected training families.
   unchanged full dataset audit for each arm.
 
 The first matching CPU runtime allocation is job `33574512`, controller run
-`96daa9183384957cd9ea58b5`, submitted once from `dd068f0`; inspect its existing
-ledger and never duplicate it. Its verifier evidence can be reused after
+`96daa9183384957cd9ea58b5`, submitted once from `dd068f0`, completed exit 0.
+Its ledger remains authoritative; never duplicate it. Its verifier evidence can be reused after
 changes confined to learning runners only when every file in the explicit
 verifier dependency list and every non-code runtime identity still matches the
 archived executed checkout. Changed verifier dependencies require a new check.
+
+Local validation passed **443 tests**, with 20 skipped and 18 deselected.
+Ruff lint/format and mypy (55 source files) passed. These checks include actual
+small-model Adam restoration and cached pinned-tokenizer prefix/EOS tests; they
+are not GPU research results.
 
 ## Frozen execution sequence
 
