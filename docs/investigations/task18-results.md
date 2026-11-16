@@ -58,6 +58,8 @@ from 101/143 to 36/95 and generated tokens by 35.7%, while its repair-rate gain
 over strict remains uncertain. Historical/new executable identities differ;
 default prompt/action parity is tested locally, not inferred from matching counts.
 
+![Edit application and verified repair on the common 40 families](../figures/task18/interface-repairs.png)
+
 Exploratory source/specification-length and branch-count strata are in the
 private paired analysis. Small groups and prior inspection preclude a claim
 that any length or complexity subgroup generalizes better.
