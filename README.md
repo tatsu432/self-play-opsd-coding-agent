@@ -40,4 +40,4 @@ uv run selfplay smoke --output runs/local-smoke
 ```
 
 See the [operations guide](docs/operations.md) for setup, Yale execution,
-checkpoints, evaluation and reproducibility.
+checkpoints, evaluation, reproducibility and the preserved base-model snapshot.

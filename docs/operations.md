@@ -251,6 +251,16 @@ compute node and runs the mounted immutable code with `uv`-locked dependencies
 inside Apptainer. It writes results/checkpoints to durable project storage and
 uses course scratch for model caches. The actual time, CPU, memory and GPU
 request is checked against live Slurm associations and node advertisements.
+
+On 2026-11-16, the Qwen/Qwen3-4B-Instruct-2507 base-model snapshot at revision
+`cdbee75f17c01a7cc42f958dc650907174af0554` was copied from the scratch
+Hugging Face cache to project storage before the scheduled scratch purge:
+`/nfs/roberts/project/cpsc4880/cpsc4880_ts2236/selfplay-opsd-cpsc4880_ts2236/preserved-models/Qwen3-4B-Instruct-2507-cdbee75f17c01a7cc42f958dc650907174af0554`.
+Each file was verified against the source using SHA-256; the directory includes
+`SHA256SUMS` and `SOURCE.txt`. This is an archival model directory, not an
+automatically configured Hugging Face cache. Scratch cache files may need to be
+restored or downloaded again before future runs. The purge list contained cache
+files, not experiment checkpoints; run artifacts remain in project storage.
 The pre-timeout signal creates a shared stop request for checkpointing at a safe
 iteration boundary. Never run model or generated-code work on a login node.
 
