@@ -8,6 +8,20 @@ procedures to the relevant Markdown documents; keep the README short and current
 
 ## CURRENT — Task 18 implementation and queued diagnostics (2026-11-16)
 
+Normalized base `33575526` and trained `33575845` completed exit 0 in 925/599
+H200-seconds, scoring 6/40 and 28/40. Reused strict/text were 5/19 (base) and
+27/21 (trained). Paired normalized-minus-strict intervals include zero; base text
+remains substantially better than normalized on these previously inspected
+families. New completed GPU time totals 1,997 seconds (0.554722 hours).
+
+Cached/frozen-rollout follow-up `33580028` / `dd5cd03f30f77dccaa411e81` was
+submitted once from `0d55297`; it and the two native probes were last PENDING.
+Its pending wall was reduced 30 to 20 minutes, with the original half-hour
+reservation and ledger adjustment retained. Inspect and never duplicate it.
+The current control selects this new numerical stage; all earlier jobs retain
+immutable execution/control identities. Native probes remain in their existing
+sequence. Finish these jobs and the research decision before merging as complete.
+
 Numerical job `33575206` completed exit 0 in 473 H200-seconds. On a retained
 mixed batch, diagnostic denominator substitution changed Adam-update cosine to
 0.977223 / relative difference 21.374%, beyond the repeat's 0.3993%; uniform

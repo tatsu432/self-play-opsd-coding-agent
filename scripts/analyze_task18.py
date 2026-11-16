@@ -12,6 +12,7 @@ import numpy as np
 
 from selfplay_opsd.storage import active_events, atomic_json, file_hash
 from selfplay_opsd.task16_analysis import ast_features, paired_statistics
+from selfplay_opsd.task17_analysis import verify_cell_execution
 from selfplay_opsd.task18_analysis import metrics as episode_metrics
 
 
@@ -86,6 +87,20 @@ def interfaces(manifest_path: Path, pool_path: Path):
         root = Path(item["run_dir"])
         paths = [root / name for name in ("manifest.json", "complete.json", "episodes.json")]
         cell, complete, episodes = [json.loads(p.read_text()) for p in paths]
+        if not item.get("status_path"):
+            raise ValueError("Completed interface analysis requires controller status evidence")
+        status_path = Path(item["status_path"])
+        status = json.loads(status_path.read_text())
+        attempt = status["attempts"][-1]["scheduler"]
+        if attempt.get("state") != "COMPLETED" or attempt.get("exit_code") != "0:0":
+            raise ValueError("Interface allocation is not terminal exit zero")
+        executed_code = verify_cell_execution(
+            cell, status, status["ledger"]["specification"]["operation"]
+        )
+        if cell.get("scientific_code_hash", executed_code) != executed_code:
+            raise ValueError("Interface code differs from its immutable controller identity")
+        cell["scientific_code_hash"] = executed_code
+        hashes[str(status_path)] = file_hash(status_path)
         if cell["pool_sha256"] != file_hash(pool_path) or complete["episodes"] != len(episodes):
             raise ValueError("Interface completion or pool identity differs")
         if complete.get("episodes_sha256", file_hash(paths[2])) != file_hash(paths[2]):
@@ -164,6 +179,10 @@ def interfaces(manifest_path: Path, pool_path: Path):
                 "left": a["name"],
                 "right": b["name"],
                 "common_families": len(ids),
+                "editing_changed": left["episode"]["edit_protocol"]
+                != right["episode"]["edit_protocol"],
+                "serialization_changed": left["episode"].get("tool_serialization", "plain_json")
+                != right["episode"].get("tool_serialization", "plain_json"),
                 "exploratory_strata": strata,
                 "success": paired_statistics(ar, br, families),
                 "applied_edit": paired_statistics(

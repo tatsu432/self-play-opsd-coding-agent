@@ -23,6 +23,8 @@ both optimizers and RNG. Sixteen saved episodes were replayed with no new
 sampling. Frozen rescoring reproduced the saved discrepancy distributions;
 gradient-mode scoring matched frozen scoring on all 3,842 target tokens.
 
+![Restored-state update sensitivity](../figures/task18/update-sensitivity.png)
+
 | Restored-state update comparison | Mixed calibrated-2028 batch 10 | Uniform calibrated-2026 batch 6 |
 |---|---:|---:|
 | Diagnostic denominator-substitution cosine | 0.977223 | 0.999998 |
@@ -74,11 +76,52 @@ presentation variants. Only one originally reserved eligible parent remains
 unassigned after preparation replacements; it is not a new confirmation set.
 All new interface comparisons reuse previously inspected training families.
 
+## Completed normalized-diff comparison
+
+Both normalized cells completed exit 0 with matching frozen snapshots, pool,
+primary task sets, and controller/allocated-node identities. Base job `33575526`
+used 925 H200-seconds; trained job `33575845` used 599. No old cell was rerun.
+
+| Verified repairs /40 primary families | Fresh base | Trained B2026 |
+|---|---:|---:|
+| Strict diff, reused Task 17 | 5 | 27 |
+| Normalized diff, new | 6 | 28 |
+| Exact text, reused Task 17 | 19 | 21 |
+
+Normalized-minus-strict paired family-bootstrap 95% intervals are [0, +7.5]
+percentage points for base and [−5, +12.5] for trained; both point differences
+are +2.5 points. Normalized-minus-text is −32.5 points [−47.5, −17.5] for base
+and +17.5 [0, +37.5] for trained. These are task-family intervals conditional on
+the named snapshots, not uncertainty across training seeds. All families were
+previously inspected. The base applied an edit on 7/40 tasks, with five metadata-
+recovered edits; strict applied edits on 6/40, and text on 23/40.
+
+Metadata recovery alone does not explain the fresh-base text gain. The trained
+snapshot's point scores still favor its familiar diff interface, with substantial
+uncertainty. Native probes are pending; do not select a new training interface
+from the eight-family probe alone. Historical cells used 56 rows including
+presentation variants, so whole-allocation times are not matched-40-task cost
+comparisons. Primary token/turn metrics are reported on the common 40 only.
+
+The six-cell private analysis is `runs/task18/interface-analysis-normalized/`;
+it validates controller completion, code/prompt/data/allocation identities,
+paired coverage and budgets, then reports outcomes, rejection taxonomy and
+exploratory length/structure strata. Different historical/new code identities
+remain explicit; prompt/action parity is locally checked, and historical
+cross-revision comparisons retain that limitation.
+
+Completed Task 18 GPU allocations total **1,997 H200-seconds (0.554722 hours)**.
+The two native probes and cached/frozen-rollout diagnostic remain pending.
+The follow-up is job `33580028` / run `dd5cd03f30f77dccaa411e81`, from `0d55297`.
+Its pending wall was reduced 30→20 minutes to permit shorter backfill; the
+original half-hour reservation and adjustment record are preserved. Never
+resubmit these existing jobs. Training remains disabled.
+
 ## Partial-reward evidence without new verification
 
 A new saved-count analysis covers calibrated-2026's 80 historical rollouts / 20
 training-family groups. It recovers exact hidden-training pass fractions for
-67 episodes and conservative intervals for the other 13. Public-test observations
+67 episodes and conservative logical bounds (not confidence intervals) for the other 13. Public-test observations
 are used only for the identical source with no final runtime failure; otherwise
 unknown public/hidden allocation of failed cases remains an interval.
 
@@ -208,7 +251,10 @@ uv run python scripts/plot_task18_numerical.py \
   --summary runs/task18/saved-audit-v1/summary.json --output docs/figures/task18
 ```
 
-After synchronization and readiness, preview first, then submit the same command
+These are initial-submission command forms; the current allocations already
+exist and must not be resubmitted. Use status/fetch with the run IDs above.
+For a genuinely new authorized allocation after synchronization/readiness,
+preview first, then submit the same command
 without `--dry-run`. Interface arms use A=base, B=trained B2026; student arms
 use D=GRPO, B=gated, A=nominal ungated. These labels do not authorize full C/D.
 
