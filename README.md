@@ -10,34 +10,29 @@ See [methods](docs/methods.md) for the full design.
 
 ## Progress and results
 
-All six three-seed A/B runs are complete. On held-out MBPP+-derived repairs,
-A solved 57–64/115 tasks and B 68–71/115; the base solved 7/115. On
-HumanEval+-derived repairs, A/B solved 0–3/116, near the base's 2/116.
-Across the six trained external evaluations, 4,301 patch attempts were rejected
-and 13 accepted. These results concern repair tasks and do not isolate gating
-from changes in the evolving proposer and student. C/D training is deferred;
-Task 17 implements exact-text replacement and a matched frozen-model study.
-Isolated metadata-only replay found correct reconstructed states in 242 previously
-failed trained HumanEval+ episodes. These are saved-state diagnostics, not new
-agent accuracy. On 40 training-only families, base strict/text solved 5/40 and 19/40;
-trained B2026 solved 27/40 and 21/40. The comparison used 1.15 H200-hours.
-Exact text was selected for a controlled objective study. At 80 episodes, gated
-OPSD versus GRPO solved 10/10, 8/8 and 10/9 independent development tasks out
-of 16 across three seeds. Calibrated ungated scored 9/9/9; nominal ungated
-scored 11/11/10. These fixed-task results remain uncertain. See the [objective results](docs/investigations/task17-objective-results.md). See the [Task 17 evidence](docs/investigations/task17-repair-interface-results.md)
-and [current research decision](docs/investigations/task17-research-decision.md).
+The six three-seed A/B runs are complete. On held-out MBPP+-derived repairs,
+A solved 57–64/115 and B 68–71/115, versus base 7/115. HumanEval+-derived
+repairs remained 0–3/116, near base 2/116. These evolving proposer/student runs
+do not isolate gating. See [A/B results](docs/investigations/task15-final-results.md)
+and [transfer analysis](docs/investigations/task16-generalization-checkpoint-decision.md).
+Retrospective replay recovered correct saved states in 242 failed external
+episodes; that is not new end-to-end accuracy.
 
-See the [A/B results](docs/investigations/task15-final-results.md) and
-[transfer, checkpoint and compute analysis](docs/investigations/task16-generalization-checkpoint-decision.md)
-for uncertainty, limitations and the research decision.
+Task 17's matched 80-episode objective study found no robust gated advantage:
+independent development endpoints were GRPO 10/8/9, gated 10/8/10, nominal
+ungated 11/11/10 and calibrated ungated 9/9/9 out of 16 across three seeds.
+See the [objective evidence](docs/investigations/task17-objective-results.md).
 
-Task 18 reproduced a material numerical effect: a diagnostic denominator change
-altered one restored Adam update by 21.4%, versus 0.4% repeat variation. A bounded
-backend check is complete. Normalized diff scored 6/40 base and 28/40 trained;
-compatible Qwen-native probes scored 7/8 for both snapshots versus plain JSON's
-4/8, supporting a common-40 evaluation under the 12 H200-hour cap. Saved hidden-reward bounds distinguish one extra
-group among 20 examined. New RL remains disabled pending the numerical decision.
-See the [Task 18 status and procedures](docs/investigations/task18-status.md).
+Task 18 selected Qwen-native exact-text calling: **27/40 base and 31/40 trained**
+repairs, versus plain JSON's 19/40 and 21/40 on the same inspected training
+families. Normalized diff scored 6/40 and 28/40. New allocation was **1.275
+H200-hours**. A restored numerical diagnostic changed one Adam update by 21.4%
+versus 0.4% repeat variation; new RL remains disabled pending numerical
+qualification. These results do not establish new external generalization.
+See [Task 18 results](docs/investigations/task18-results.md), the
+[current research decision](docs/investigations/task18-research-decision.md)
+and [completion record](docs/task_completion/18-implemented-interface-signal-bottlenecks.md).
+C/D, SFT and adapter transfer remain deferred.
 
 ## Getting started
 

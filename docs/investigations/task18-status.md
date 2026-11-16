@@ -1,339 +1,157 @@
-# Task 18: interface and learning-signal investigation
+# Task 18 execution and reproduction record
 
-## Current status (2026-11-16)
+Task 18's bounded phase is complete (2026-11-16). The selected interface is
+Qwen-native serialization plus exact-text replacement. All existing allocations
+are terminal; **never resubmit them**. New RL remains disabled after material
+numerical update sensitivity. See the [results](task18-results.md),
+[research decision](task18-research-decision.md) and
+[completion record](../task_completion/18-implemented-interface-signal-bottlenecks.md).
 
-Full native base **33589271** completed exit 0 in **1,009 H200-seconds**:
-27/40 verified repairs, 37 tasks edited, 50 accepted / one rejected edit,
-216/217 valid-schema calls and 24,336 generated tokens. Paired native-minus-
-plain text is +20 points [95% family bootstrap +2.5, +37.5]. The source eight
-episodes are unchanged; only 32 were generated. Trained **33589312** is running.
-Its pending wall was restored to the original 30 minutes after variable base
-latencies; Slurm declined an increase for the already-running base, which
-completed within its 20-minute wall. Both attempts/adjustments are in the
-ledgers. Completed allocations now total **4,018 seconds / 1.116111 hours**;
-the running trained cell retains its original half-hour reservation.
+## Identity, data and safety
 
-Both corrected native eight-family probes completed exit 0, with 7/8 repairs
-each versus paired plain JSON's 4/8 each. All 40/32 native calls were valid;
-zero edits were rejected. Their charges are 208/186 H200-seconds. Both frozen
-expansion gates pass. Completed new GPU allocation totals **3,009 seconds
-(0.835833 hours)**, including the v1 compatibility failure.
+The branch began from main `48b48398871519640e0b808e37daa1aec555e002`.
+Study `repair-selfplay-2026-task18-v1` has one locked **12 new allocated
+H200-hour** allowance across operations, seeds, failures and continuations.
+Historical budgets are not imported. Actual charge is **4,589 seconds /
+1.274722 hours**, including the 351-second compatibility failure; every
+reservation is reconciled. No job remained active for the project user at final
+Slurm inspection; other account users' jobs are unrelated.
 
-Full native base/trained allocations **33589271 / 33589312**, controller runs
-**`02c9b1ee439d1828fa9636ab` / `4e84c405144439f65a0e38ba`**, were submitted
-once from `9047078`. They reuse the checksum-bound eight episodes and generate
-only 32 additional episodes each. Both are pending; trained is afterok base.
-Both pending walls were reduced 30→20 minutes using measured probes, retaining
-their original half-hour reservations and ledger adjustments. Never duplicate.
-No new CPU audit was needed: verifier dependencies match the accepted v2 check.
-The control checksum freezes both source artifact hashes and the paired gate
-decision. Local validation now passes 452 tests (20 skipped, 18 deselected),
-Ruff lint/format and mypy. See the newer results document for measured evidence.
+The frozen pool SHA-256 remains
+`602eaf506f8ac2cf17924596dae7c0ff3891ef5034a546d4d3751b9803412c83`.
+It has 104 independent families / 120 rows; only one originally reserved
+eligible parent remains unused after replacements. New interface cells use
+40 previously inspected training families, not an untouched confirmation set.
+No new HumanEval evaluation or tuning occurred. Historical Task 15–17 configs,
+checkpoints, results and execution identities remain unchanged.
 
-Corrected native v2 base/trained jobs are **33587596 / 33587602**, controller
-runs **`bcab3d7c1784f7df90862f6b` / `c540fda607c5768db29fc04d`**, executed
-from `b8144b0`. Both are PENDING; trained has afterok base. Both pending wall
-limits were reduced 30→15 minutes using the measured 351-second v1 probe,
-retaining original half-hour reservations and ledger adjustments. Never
-duplicate these runs. Matching CPU runtime **33586413** / run
-`5523522c27d08d3e1e5d7b9e` completed exit 0, verifying all 306 tasks; this was
-required because the parser is an explicit verifier dependency. The previous
-executed runtime proof is archived under its SHA-256
-`cf3d60139e8c7fe703b4e95a4035491f0b6b40b9a156f6b96999c9c8fde150e5`.
-Both CPU checks allocated zero GPUs. Full local validation is now 451 passed,
-20 skipped, 18 deselected; Ruff lint/format and mypy passed. Earlier pending
-snapshots below are historical where superseded by this current section.
+All ten scratch model files matched the preserved project archive's SHA-256
+manifest; no download/restoration was needed. See [operations](../operations.md).
+The accepted isolated worker, restricted virtual files, API/import validation,
+read-only specification/public tests and private-oracle boundary remain intact.
+Generated Python executes only in that worker. Hidden expected outputs do not
+enter student prompts/observations. New raw trajectories, oracles, tensors and
+credentials remain ignored under `runs/`, not in Git or public W&B artifacts.
 
-The native v1 base probe completed with 2/8 repairs versus plain JSON's 4/8 on
-the same families. However, all 34 rejected calls contained assistant prose
-before a delimited call. The v1 parser incorrectly rejected that content, which
-the [Qwen format permits](https://qwen.readthedocs.io/en/latest/getting_started/concepts.html#tool-calling).
-This is a compatibility failure, not evidence against compatible native tool use.
-The corresponding trained job `33576446` was cancelled while still pending;
-retain its immutable ledger and zero-allocation cancellation evidence. A v2
-parser accepts surrounding assistant text, retains all sampled IDs/history,
-and still rejects multiple calls, duplicate fields and unsafe edit arguments.
-Corrected probes require new scientific identities; no old result is overwritten.
+The legacy `PROMPT_HASH` field is retained. Native conditioning is additionally
+bound by serialization, control checksum, Task 18 code hash and the pinned
+tokenizer; a matching legacy prompt hash alone does not imply equal prompts.
+The reusable CPU proof certifies data/verifier isolation, not generation or loss
+mathematics; real native and numerical GPU probes provide separate evidence.
 
-Cache/rollout job `33580028` completed exit 0 in 267 H200-seconds. Full scoring
-exactly matches saved scores and its repeat on 1,372 targets. Incremental HF
-scoring differs from full scoring by up to 0.431651, and from old behavior by
-up to 0.839185 (six targets above 0.2). Three fresh vLLM turns reproduce all
-target IDs; one diverges after four targets. The identical-prefix probability
-differences reach 0.219070. Thus decoding execution differences contribute;
-this does not isolate every kernel/state cause or establish a numerical repair.
-The valid training decision is to defer new RL, preserving behavior denominators.
+## Immutable executions
 
-Implementation and local validation are underway on
-`feat/18-interface-signal-bottlenecks`, from main `48b4839`. The study is
-`repair-selfplay-2026-task18-v1`, with a **hard 12 new allocated H200-hour cap**
-including failures and continuations. Historical Tasks 15–17 remain complete
-and unchanged. The numerical replay is complete; interface and backend follow-up conclusions
-remain pending. Training is disabled in the
-checked-in control until numerical and interface evidence supports it.
+All GPU rows below completed exit 0 except the explicit never-started
+cancellation. Full native cells generate 32 new episodes and reuse eight
+checksum-bound probe records. Do not add probe and combined outcome counts as
+independent evidence.
 
-Yale login was refreshed successfully and live inspection found no active
-account jobs. All ten files in the existing scratch model snapshot matched the
-preserved project's `SHA256SUMS`; no model files were downloaded or restored.
+| Operation | Controller run | Job | Execution commit | H200 seconds |
+|---|---|---:|---|---:|
+| Complete-state numerical replay | `7635b59fe85fddd9e88b4c39` | 33575206 | `61b5457` | 473 |
+| Normalized base | `bd76e6a6fbb83abf263b0d83` | 33575526 | `61b5457` | 925 |
+| Normalized trained | `d1e5601f947494053b477b4a` | 33575845 | `d490a49` | 599 |
+| Native v1 base compatibility failure | `069afeb246a83ece920c06cb` | 33576276 | `d490a49` | 351 |
+| Native v1 trained, cancelled pending | `4fbbb1272d0b3fd48a2394a4` | 33576446 | `d490a49` | 0 |
+| Cached scoring / fresh rollout | `dd5cd03f30f77dccaa411e81` | 33580028 | `0d55297` | 267 |
+| Native v2 base probe | `bcab3d7c1784f7df90862f6b` | 33587596 | `b8144b0` | 208 |
+| Native v2 trained probe | `c540fda607c5768db29fc04d` | 33587602 | `b8144b0` | 186 |
+| Native base expansion | `02c9b1ee439d1828fa9636ab` | 33589271 | `9047078` | 1,009 |
+| Native trained expansion | `4e84c405144439f65a0e38ba` | 33589312 | `9047078` | 571 |
 
-## Numerical replay result and bounded follow-up
+The first native parser wrongly rejected assistant commentary around one tool
+call. Its 2/8 base result is a harness diagnostic, not compatible-native evidence.
+The trained v1 job was cancelled while PENDING, with zero elapsed allocation and
+an operator-action ledger record. Fix `fd9a3e4` preserves all generated IDs and
+content while executing exactly one delimited, validated call. The corrected
+probes both scored 7/8 versus plain JSON's 4/8, with lower invalid-call rates,
+passing the frozen expansion gate. Full results are 27/40 and 31/40.
 
-Job `33575206` / run `7635b59fe85fddd9e88b4c39` completed exit 0 in **473
-H200-seconds (0.131389 hours)**. Both original complete checkpoints and their
-checksums were loaded and verified; every diagnostic restored both adapters,
-both optimizers and RNG. Sixteen saved episodes were replayed with no new
-sampling. Frozen rescoring reproduced the saved discrepancy distributions;
-gradient-mode scoring matched frozen scoring on all 3,842 target tokens.
+Pending resource changes and failed adjustment attempts are retained in each
+ledger. Numerical wall was shortened two→one hour with original two-hour
+reservation retained; cache 30→20 minutes; corrected probes 30→15 minutes.
+Full native walls were shortened 30→20 minutes. Variable base latencies led to
+restoring the pending trained wall to the original 30 minutes; Slurm rejected
+an increase for the already-running base, which finished within 20 minutes.
+Original reservations were never reduced or reset.
 
-![Restored-state update sensitivity](../figures/task18/update-sensitivity.png)
+CPU runtime jobs `33574512` / `96daa9183384957cd9ea58b5` (commit `dd068f0`)
+and `33586413` / `5523522c27d08d3e1e5d7b9e` (commit `fd9a3e4`) both completed
+exit 0 and verified all 306 tasks, allocating zero GPUs. The second followed
+an explicit verifier-dependency change. Original executed proof SHA-256
+`cf3d60139e8c7fe703b4e95a4035491f0b6b40b9a156f6b96999c9c8fde150e5`
+is preserved in the private compatibility archive. Later runner/analysis-only
+changes reused the matching proof after checking the explicit dependency files
+and every non-code runtime identity; no repeated dataset audit was required.
 
-| Restored-state update comparison | Mixed calibrated-2028 batch 10 | Uniform calibrated-2026 batch 6 |
-|---|---:|---:|
-| Diagnostic denominator-substitution cosine | 0.977223 | 0.999998 |
-| Diagnostic relative update difference | 21.374% | 0.1747% |
-| Identical-operation repeat relative difference | 0.3993% | 0.1743% |
+## Evidence and analysis
 
-The mixed batch exceeds the predeclared 1% / 0.99 screen beyond repeat noise.
-Its 10/1,372 tokens above 0.2 include four active clipped-surrogate branch
-changes; the corresponding gradient cosine is 0.936806. This is a material
-conditional update effect, not proof of harm or a reason to replace true
-behavior denominators. The uniform groups have zero GRPO advantages and serve
-as a control; any diagnostic displacement difference there is numerical repeat
-variation in the unchanged auxiliary update and restored momentum.
+- `runs/task18/interface-manifest-final.json` and `interface-analysis-final/`
+  bind eight common-40 cells to controller completion, code/prompt/data/model/
+  snapshot identities, budgets, source checksums and family coverage. Copied
+  probe records are compared field by field; new/reused counts must be 32/8.
+  The 32 new-family expansion is reported separately from the screen.
+- `runs/task18/interface-analysis-native-v2-probes/` records both gate decisions.
+  The control freezes their evidence and probe-source hashes. The final control
+  selects native serialization but retains `training_ready: false`.
+- `runs/task18/saved-audit-v1/` reconciles 120 historical iteration commits.
+  Recovered calibrated-2026 arrays reproduce the 5.48991494 maximum;
+  `recovered-token-audit-v1/` checks all 495 turn prefixes/lengths. Eleven
+  recovered trajectory files match remote SHA-256 values in
+  `runs/task18/recovery-checksums.json`.
+- Numerical artifacts are under the controller run IDs above in
+  `runs/hpc/yale-hpc-cpsc4880/`. Both original complete checkpoints and all
+  three checkpoint-file checksums were verified on GPU. State restoration
+  includes both adapters, both optimizers and RNG. The worst batch's generating
+  checkpoint 3 was already retired; retained calibrated-2028 checkpoint 9 and
+  calibrated-2026 checkpoint 5 do not establish its causal effect.
+- `runs/task18/saved-reward-bounds-v2/` contains logical hidden-fraction bounds,
+  not statistical confidence intervals or new program executions.
+- `runs/task18/accounting-final.txt`, `budget-final.json` and artifact-checksum
+  records retain scheduler charges and byte verification. No new online W&B
+  cloud-history completeness claim is made; local artifacts are authoritative.
 
-New RL remains disabled. The current control now selects a separate bounded
-cached-scoring/frozen-rollout diagnostic against the mixed checkpoint. It
-compares full-sequence versus incremental KV-cache scoring on the exact saved
-IDs and replays up to four original unprivileged turns through a fresh vLLM
-engine with their original seeds. Comparisons stop at the first differing token;
-no generated action or Python program is executed. This is a new scientific
-execution, not a continuation of the completed replay or a historical study.
-Numerical follow-up allocations now reserve 30 minutes, based on the measured
-473-second full replay. The original replay's reservation history is preserved.
+## Reproduction without duplicate jobs
 
-## Saved-data findings
-
-The read-only audit reconciles all 12 Task 17 objective endpoints and their
-120 committed iteration events. A sampled-token maximum exceeds 0.2 in 119
-batches; the affected-token fraction ranges from zero to 0.9622%. These are
-batch statistics, not an estimate of harmful optimization.
-
-The calibrated-2026 training shards were retrieved separately, without copying
-checkpoint tensors locally. Direct saved-array analysis reproduces iteration
-4's maximum 5.48991494, with 6/3,346 tokens above 0.2. One sampled token changes
-the active clipped-surrogate branch relative to a ratio-one diagnostic. This
-is not a measured gradient or optimizer-update effect. The exact generating
-checkpoint 3 was retired; retained checkpoints 0/5/9 match batches 1/6/10.
-Task 18 therefore targets calibrated-2028 batch 10 (a mixed-reward group) and
-calibrated-2026 batch 6 (uniform-reward controls) for restored-state GPU replay,
-retaining each original objective, coefficient and both optimizer states.
-Neither replay can establish the worst batch's causal effect. All 495 saved
-calibrated-2026 turn prefixes and token/probability lengths passed a CPU check
-with the pinned tokenizer; none of its six >0.2 outliers was an EOS token.
-
-![Historical aggregate numerical differences](../figures/task18/numerical-history.png)
-
-The final Task 17 pool contains 104 independent families and 120 rows including
-presentation variants. Only one originally reserved eligible parent remains
-unassigned after preparation replacements; it is not a new confirmation set.
-All new interface comparisons reuse previously inspected training families.
-
-## Completed normalized-diff comparison
-
-Both normalized cells completed exit 0 with matching frozen snapshots, pool,
-primary task sets, and controller/allocated-node identities. Base job `33575526`
-used 925 H200-seconds; trained job `33575845` used 599. No old cell was rerun.
-
-| Verified repairs /40 primary families | Fresh base | Trained B2026 |
-|---|---:|---:|
-| Strict diff, reused Task 17 | 5 | 27 |
-| Normalized diff, new | 6 | 28 |
-| Exact text, reused Task 17 | 19 | 21 |
-
-Normalized-minus-strict paired family-bootstrap 95% intervals are [0, +7.5]
-percentage points for base and [−5, +12.5] for trained; both point differences
-are +2.5 points. Normalized-minus-text is −32.5 points [−47.5, −17.5] for base
-and +17.5 [0, +37.5] for trained. These are task-family intervals conditional on
-the named snapshots, not uncertainty across training seeds. All families were
-previously inspected. The base applied an edit on 7/40 tasks, with five metadata-
-recovered edits; strict applied edits on 6/40, and text on 23/40.
-
-Metadata recovery alone does not explain the fresh-base text gain. The trained
-snapshot's point scores still favor its familiar diff interface, with substantial
-uncertainty. Native probes are pending; do not select a new training interface
-from the eight-family probe alone. Historical cells used 56 rows including
-presentation variants, so whole-allocation times are not matched-40-task cost
-comparisons. Primary token/turn metrics are reported on the common 40 only.
-
-The six-cell private analysis is `runs/task18/interface-analysis-normalized/`;
-it validates controller completion, code/prompt/data/allocation identities,
-paired coverage and budgets, then reports outcomes, rejection taxonomy and
-exploratory length/structure strata. Different historical/new code identities
-remain explicit; prompt/action parity is locally checked, and historical
-cross-revision comparisons retain that limitation.
-
-Completed Task 18 GPU allocations total **1,997 H200-seconds (0.554722 hours)**.
-The two native probes and cached/frozen-rollout diagnostic remain pending.
-The follow-up is job `33580028` / run `dd5cd03f30f77dccaa411e81`, from `0d55297`.
-Its pending wall was reduced 30→20 minutes to permit shorter backfill; the
-original half-hour reservation and adjustment record are preserved. Never
-resubmit these existing jobs. Training remains disabled.
-
-## Partial-reward evidence without new verification
-
-A new saved-count analysis covers calibrated-2026's 80 historical rollouts / 20
-training-family groups. It recovers exact hidden-training pass fractions for
-67 episodes and conservative logical bounds (not confidence intervals) for the other 13. Public-test observations
-are used only for the identical source with no final runtime failure; otherwise
-unknown public/hidden allocation of failed cases remains an interval.
-
-Binary rewards distinguish 7/20 groups. Hidden-fraction bounds guarantee
-variation in 8/20, with one additional informative all-binary-failure group;
-9/20 could vary given the unresolved intervals. Initial-mutant baselines are
-observed for only six families (24 episodes), with 11 guaranteed fraction
-improvements and no guaranteed regression within that subset. These are
-correlated saved rollouts from one training run, not new repairs, a causal
-training comparison, or generalization evidence. The modest extra signal does
-not justify displacing the interface investigation. Binary student rewards and
-binary-solve proposer difficulty remain unchanged. No verifier/model/GPU work
-was needed for this analysis.
-
-## Queued allocations — never duplicate
-
-| Operation | Controller run | Slurm job | Scope | Dependency |
-|---|---|---:|---|---|
-| Numerical replay | `7635b59fe85fddd9e88b4c39` | 33575206 | Two original complete-state batches | None |
-| Normalized base | `bd76e6a6fbb83abf263b0d83` | 33575526 | 40 primary families | None |
-| Normalized trained | `d1e5601f947494053b477b4a` | 33575845 | 40 primary families | afterok 33575526 |
-| Native base | `069afeb246a83ece920c06cb` | 33576276 | Eight primary families | afterok 33575845 |
-| Native trained | `4fbbb1272d0b3fd48a2394a4` | 33576446 | Eight primary families | afterok 33576276 |
-
-All five were reconciled PENDING on November 16. The numerical and normalized
-base jobs await priority/capacity; their start estimates fluctuate and are not
-guarantees. The three dependent jobs wait for successful predecessors. The
-four interface cells are sequential; only the independent numerical diagnostic
-can overlap them. Every allocation requests one H200.
-
-The numerical pending wall was reduced from two to one hour based on prior
-measured replay times; its original two-hour reservation and ledger adjustment
-remain. Each interface reserves half an hour. Direct summation of the five
-locked reservation records is **4.0 H200-hours of the 12-hour ceiling**;
-the completed numerical job is charged at 473 seconds; other outcomes remain
-pending. This four-hour figure describes the initial reservations. The persisted convenience total can lag the last
-reservation, so reconciliation uses reservation/charge entries themselves.
-
-After a job becomes terminal, inspect its existing ledger, fetch its artifacts,
-verify completion/checkpoint identity and actual scheduler charges, and analyze
-before deciding further work. A failed predecessor leaves children waiting;
-reconcile those existing jobs instead of submitting replacements. Training is
-still disabled. The research task and merge to main remain pending these results.
-
-## Implementation and decisions
-
-- Extend existing numerical helpers with distribution, clipping-branch,
-  repeat-controlled gradient/sign and actual Adam displacement diagnostics.
-  Restore both adapters, both optimizers, RNG and model mode after every branch
-  and after failure. Rescored denominators are diagnostic only.
-- Use existing normalized diff for the missing fresh-base/B2026 comparisons,
-  with the same strict prompts and observations. No new editor is introduced.
-- Add opt-in Qwen-native serialization with the pinned tokenizer's `tools`
-  argument, exact sampled IDs, single-call parsing, and existing action/path/
-  import/API validation. Tool serialization is separate from editing semantics.
-- Task 18-only configuration binds the control checksum and serialization to
-  scientific identity. Historical configuration hashes remain unchanged;
-  changed runtime code has a new code/prompt identity and is never a historical
-  continuation. Historical interface controls require behavioral parity and are
-  otherwise contextual evidence.
-- Extend the existing controller, worker launch and transactional continuation
-  paths. One locked Task 18 budget spans operations, seeds, readiness GPU work,
-  failures and continuations. No historical budget is imported.
-- Task 18 runtime proof covers data/verifier dependencies, model revision and
-  numeric observation/sequence budgets; full code, prompt, image and worker
-  identities remain bound. It does not certify loss math or native generation.
-  A matching proof can cover interface/objective arms without repeating the
-  unchanged full dataset audit for each arm.
-
-The first matching CPU runtime allocation is job `33574512`, controller run
-`96daa9183384957cd9ea58b5`, submitted once from `dd068f0`, completed exit 0.
-Its ledger remains authoritative; never duplicate it. Its verifier evidence can be reused after
-changes confined to learning runners only when every file in the explicit
-verifier dependency list and every non-code runtime identity still matches the
-archived executed checkout. Changed verifier dependencies require a new check.
-
-Local validation passed **450 tests**, with 20 skipped and 18 deselected.
-Ruff lint/format and mypy (55 source files) passed. These checks include actual
-small-model Adam restoration and cached pinned-tokenizer prefix/EOS tests; they
-are not GPU research results. The full suite includes saved-reward and cached-scoring checks.
-
-## Frozen execution sequence
-
-1. Reconcile Slurm and existing logical-run ledgers, synchronize a clean commit,
-   reuse unchanged worker containment, and run one matching CPU runtime check.
-2. Replay the two checksum-bound historical batches under their exact complete
-   checkpoints. Compare fresh scoring, gradient-mode scoring, repeat updates
-   and diagnostic denominator substitution. Relative update difference above
-   1% or cosine below 0.99 beyond repeat noise requires investigation; passing
-   this screen alone cannot enable training.
-3. Run normalized diff on 40 primary families for base and B2026. Run native
-   exact-text serialization on eight deterministic families per snapshot.
-   Expand native to 40 only if validity improves without fewer repairs and the
-   remaining interface budget permits. Select by common-40-family verified
-   repairs, token cost, then simplicity; retain plain exact-text on a tie.
-4. Train only for a substantive new interface/numerical comparison. Freeze
-   GRPO/gated/nominal ungated, two paired seeds, binary reward and an 80-episode
-   target; stop all six arms at iteration 4 (32 episodes). Continue all six only
-   after credible nonzero updates and a conservative whole-study cost forecast.
-   Development performance cannot decide continuation. Otherwise report the
-   common pilot endpoint; do not selectively extend favorable arms.
-
-Initial earmarks are 2 numerical / 2 interface / 8 training H200-hours. Unused
-budget may move forward, but actual charges plus outstanding scheduler
-reservations may never exceed 12. Training, partial-reward training, C/D, SFT,
-new editors, observation changes and adapter transfer are not enabled by this
-preparation record.
-
-## Reproduction
-
-Private outputs stay ignored under `runs/task18/`. No source, oracle, raw
-trajectory or credential is published.
+Fetch or inspect an existing run by its ID; do not submit it again:
 
 ```bash
-uv run python scripts/analyze_task18.py \
-  --manifest runs/task17/objective-manifest-final.json \
+uv run selfplay hpc status 02c9b1ee439d1828fa9636ab
+uv run selfplay hpc fetch 02c9b1ee439d1828fa9636ab
+```
+
+The recorded commits and `configs/task18.yaml` / their exact archived
+`configs/task18-control.json` files define each execution. The final checked-in
+control records the decision; it must not be substituted for an older job's
+immutable control. New replication requires a separately identified study and
+budget decision, not a silent continuation of these completed cells.
+
+Read-only analysis commands (choose a fresh output directory):
+
+```bash
+uv run python scripts/analyze_task18.py --operation interfaces \
+  --manifest runs/task18/interface-manifest-final.json \
   --pool runs/hpc/yale-hpc-cpsc4880/86e2df49bb04a9321f7d755d/pool.json \
-  --output runs/task18/saved-audit-v1
+  --output runs/task18/interface-analysis-reproduction
 uv run python scripts/analyze_task18_tokens.py \
   --source runs/task18/recovered-calibrated-2026 \
-  --output runs/task18/recovered-token-audit-v1
+  --output runs/task18/token-analysis-reproduction
 uv run python scripts/analyze_task18_rewards.py \
   --pool runs/hpc/yale-hpc-cpsc4880/86e2df49bb04a9321f7d755d/pool.json \
   --source runs/task18/recovered-calibrated-2026 \
-  --output runs/task18/saved-reward-bounds-v2
-uv run python scripts/plot_task18_numerical.py \
-  --summary runs/task18/saved-audit-v1/summary.json --output docs/figures/task18
+  --output runs/task18/reward-analysis-reproduction
+uv run python scripts/plot_task18_interfaces.py \
+  --summary runs/task18/interface-analysis-final/summary.json \
+  --output docs/figures/task18
 ```
 
-These are initial-submission command forms; the current allocations already
-exist and must not be resubmitted. Use status/fetch with the run IDs above.
-For a genuinely new authorized allocation after synchronization/readiness,
-preview first, then submit the same command
-without `--dry-run`. Interface arms use A=base, B=trained B2026; student arms
-use D=GRPO, B=gated, A=nominal ungated. These labels do not authorize full C/D.
+The manifest references private local fetch/status paths, including
+`reused_probe_dir` and `reused_probe_status_path` for native full cells; update
+local path prefixes if relocating artifacts, preserving hashes and IDs.
+Historical controls are reused, never silently rerun or relabeled as new data.
+All figures have standalone PNG/PDF exports and were visually inspected.
 
-```bash
-uv run selfplay hpc inspect
-uv run selfplay hpc sync --settings configs/task18.yaml
-uv run selfplay hpc reuse-worker repair-selfplay-2026-task17-interface-v1 --settings configs/task18.yaml
-uv run selfplay hpc submit --operation runtime-check --method B \
-  --profile single_gpu_80gb --gpu-type h200 --settings configs/task18.yaml
-uv run selfplay hpc submit --operation task18-numerical --method A \
-  --profile single_gpu_80gb --gpu-type h200 --settings configs/task18.yaml --dry-run
-uv run selfplay hpc submit --operation task18-normalized --method A \
-  --profile single_gpu_80gb --gpu-type h200 --settings configs/task18.yaml --dry-run
-uv run selfplay hpc submit --operation task18-native --method A \
-  --profile single_gpu_80gb --gpu-type h200 --settings configs/task18.yaml --dry-run
-```
-
-The native model's pinned template is documented in its
-[tokenizer configuration](https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507/blob/cdbee75f17c01a7cc42f958dc650907174af0554/tokenizer_config.json).
-Compatibility tests use that locally cached tokenizer with no download.
+Local validation: **452 passed, 20 skipped, 18 deselected**; Ruff lint/format
+and mypy (55 source files) passed. These are distinct from the real Yale CPU
+and H200 results above. GPU/download/sandbox/online-W&B markers were excluded
+locally; accepted worker execution and full-model probes ran on Yale.

@@ -6,113 +6,52 @@ After completing each task, update `README.md` to concisely describe the researc
 problem, approaches, current progress and results. Link detailed evidence and
 procedures to the relevant Markdown documents; keep the README short and current.
 
-## CURRENT — Task 18 implementation and queued diagnostics (2026-11-16)
+## CURRENT — Task 18 bounded phase complete (2026-11-16)
 
-Full native base **33589271** / `02c9b1ee439d1828fa9636ab` completed exit 0
-in 1,009 H200-seconds, scoring 27/40 (32 new + eight unchanged probe episodes).
-Native-minus-plain-text gain is +20 points [family 95% interval +2.5, +37.5].
-Full trained **33589312** / `4e84c405144439f65a0e38ba` is running, with its
-pending wall restored to original 30 minutes and reservation retained. Slurm
-declined a running-base increase; it finished within 20 minutes. Preserve all
-adjustment records. Completed allocations total 4,018 seconds / 1.116111 hours;
-trained reservation is additional. Finish that existing run, verify combined
-reuse/identity/accounting and final decision, then merge completed task. No RL.
+Task 18 is complete: native exact-text calling scored 27/40 base and 31/40
+trained, versus plain JSON 19/40 and 21/40. Normalized scored 6/40 and 28/40.
+Select native for this benchmark; trained native-minus-normalized is uncertain.
+All families were previously inspected; no new external confirmation is claimed.
+See `docs/investigations/task18-results.md`, its research decision/status and
+`docs/task_completion/18-implemented-interface-signal-bottlenecks.md`.
 
-Both compatible native v2 probes completed: base/trained 7/8 each versus
-plain JSON 4/8 each, all 40/32 calls valid, no rejected edits; 208/186 seconds.
-Both expansion gates passed. Full native base/trained **33589271 / 33589312**,
-runs `02c9b1ee439d1828fa9636ab` / `4e84c405144439f65a0e38ba`, were submitted
-once from `9047078` and are pending in sequence. They reuse the completed eight
-episodes and generate only the remaining 32 per snapshot. Both pending walls
-30→20 minutes retain original half-hour reservations and ledger records.
-Never duplicate. Completed new GPU allocation is 3,009 seconds / 0.835833 hours.
-All other Task 18 jobs are terminal. New RL stays disabled after material
-numerical sensitivity. Local suite: 452 passed, 20 skipped, 18 deselected;
-Ruff lint/format and mypy passed. Finish full native evidence and decision before merge.
+New RL remains disabled. Exact-state diagnostic denominator substitution changed
+one Adam displacement by 21.374% versus 0.3993% repeat variation. Cached/full and
+fresh-vLLM differences show execution sensitivity without isolating every cause.
+Keep actual behavior denominators. Do not rerun the historical objective cohort;
+a new precision/execution-parity qualification precedes further RL. No full C/D,
+SFT, new reward, adapter transfer or model scaling. Private artifacts stay ignored.
 
-Corrected native v2 base/trained jobs **33587596 / 33587602**, controller runs
-`bcab3d7c1784f7df90862f6b` / `c540fda607c5768db29fc04d`, were submitted once
-from `b8144b0`. They are pending in sequence. Each pending wall was reduced
-30→15 minutes, retaining the original half-hour reservation and adjustment.
-Never duplicate them. Matching updated CPU runtime `33586413` /
-`5523522c27d08d3e1e5d7b9e` completed exit 0 (306 tasks); no GPU allocated.
-All other Task 18 jobs are terminal, including never-started cancellation of
-native v1 trained `33576446`. Local full suite: 451 passed, 20 skipped,
-18 deselected; Ruff lint/format and mypy passed. Finish v2 gate and final
-research decision before merge. See the newer Task 18 results document.
+All Task 18 jobs are terminal; never duplicate:
 
-Native v1 base `33576276` completed in 351 H200-seconds but exposed a parser
-compatibility defect: it rejects assistant commentary allowed alongside Qwen
-tool calls. Do not treat its 2/8 score as a compatible-native result. Trained
-v1 `33576446` was cancelled while PENDING, with an operational ledger record;
-never retry it. Corrected v2 accepts surrounding content but only one delimited
-call, preserving raw IDs and editor restrictions. New v2 cells need new IDs.
-Cache/rollout `33580028` completed exit 0 in 267 seconds: exact full-scoring
-repeat, but incremental/full differences up to 0.431651 and fresh-vLLM/old
-probability differences up to 0.219070 on identical prefixes. New RL remains
-disabled. Completed GPU total is now 2,615 seconds (0.726389 hours). These
-records supersede the earlier pending snapshots below.
+| Operation | Job | Controller run |
+|---|---:|---|
+| Numerical replay | 33575206 | `7635b59fe85fddd9e88b4c39` |
+| Normalized base/trained | 33575526 / 33575845 | `bd76e6a6fbb83abf263b0d83` / `d1e5601f947494053b477b4a` |
+| Native v1 base compatibility failure | 33576276 | `069afeb246a83ece920c06cb` |
+| Native v1 trained cancelled before allocation | 33576446 | `4fbbb1272d0b3fd48a2394a4` |
+| Cache/fresh rollout | 33580028 | `dd5cd03f30f77dccaa411e81` |
+| Native v2 probes | 33587596 / 33587602 | `bcab3d7c1784f7df90862f6b` / `c540fda607c5768db29fc04d` |
+| Native expansions | 33589271 / 33589312 | `02c9b1ee439d1828fa9636ab` / `4e84c405144439f65a0e38ba` |
 
-Normalized base `33575526` and trained `33575845` completed exit 0 in 925/599
-H200-seconds, scoring 6/40 and 28/40. Reused strict/text were 5/19 (base) and
-27/21 (trained). Paired normalized-minus-strict intervals include zero; base text
-remains substantially better than normalized on these previously inspected
-families. New completed GPU time totals 1,997 seconds (0.554722 hours).
+Full native cells reused their unchanged eight probe episodes and generated
+only 32 new episodes each, from immutable `9047078`. Combined outcome counts
+must not double-count the probe. Both CPU runtime checks (33574512 / 33586413)
+passed 306 tasks with zero GPUs; original evidence and all resource-adjustment
+records remain preserved. The first native parser defect is fixed and tested;
+its 2/8 result is a compatibility diagnostic, not native-model performance.
 
-Cached/frozen-rollout follow-up `33580028` / `dd5cd03f30f77dccaa411e81` was
-submitted once from `0d55297`; it and the two native probes were last PENDING.
-Its pending wall was reduced 30 to 20 minutes, with the original half-hour
-reservation and ledger adjustment retained. Inspect and never duplicate it.
-The current control selects this new numerical stage; all earlier jobs retain
-immutable execution/control identities. Native probes remain in their existing
-sequence. Finish these jobs and the research decision before merging as complete.
-
-Numerical job `33575206` completed exit 0 in 473 H200-seconds. On a retained
-mixed batch, diagnostic denominator substitution changed Adam-update cosine to
-0.977223 / relative difference 21.374%, beyond the repeat's 0.3993%; uniform
-controls were within repeat variation. Training-mode/frozen scoring matched all
-3,842 targets. Original denominators remain unchanged. New RL stays disabled;
-the next bounded diagnostic compares cached/full scoring and replays up to four
-original unprivileged turns without executing generated actions. The current
-control selects this new diagnostic stage; original jobs retain their immutable
-commits/control files. The queue snapshot below is historical where superseded.
-
-Task 18 is in progress on `feat/18-interface-signal-bottlenecks`; do not merge it
-as complete until the numerical/interface evidence and research decision are
-finished. See `docs/investigations/task18-status.md`. The new study has a hard
-12 allocated H200-hour ceiling, including failures/continuations; it does not
-inherit historical budgets. The five reservations total 4.0 hours (sum actual
-reservation/charge entries; the persisted convenience total may lag an insert).
-
-Matching CPU runtime job `33574512` / run `96daa9183384957cd9ea58b5` completed
-exit 0 and verified all 306 frozen tasks. Model cache files matched the preserved
-archive's ten SHA-256 entries; no download/restoration was necessary. Current
-GPU allocations were submitted once and reconciled PENDING; never duplicate:
-
-- Numerical replay `33575206` / `7635b59fe85fddd9e88b4c39`, execution `61b5457`.
-  Pending wall reduced two to one hour; original two-hour reservation retained
-  with a ledger adjustment. Inspect existing scheduler/ledger before action.
-- Normalized base `33575526` / `bd76e6a6fbb83abf263b0d83`, execution `61b5457`.
-- Normalized B2026 `33575845` / `d1e5601f947494053b477b4a`, afterok base.
-- Native base `33576276` / `069afeb246a83ece920c06cb`, afterok normalized B2026.
-- Native B2026 `33576446` / `4fbbb1272d0b3fd48a2394a4`, afterok native base.
-  These last three use `d490a49`; their model-execution code matches `61b5457`.
-
-The four interface cells are sequential and each reserves 30 minutes on one
-H200 (40 normalized primary families; eight native probe families per snapshot).
-After completion, fetch and verify identities/checksums/accounting, analyze
-against the existing strict/text cells, then decide native expansion/training.
-A failed predecessor leaves children waiting; reconcile them rather than
-submitting replacements. New student training remains disabled in the control.
-The numerical result above supersedes this initial queue snapshot. Preserve all Tasks 15–17 artifacts and identities.
-
-CPU saved-array work reproduces calibrated-2026's 5.4899 discrepancy and verifies
-495 turn prefixes. Its exact pre-iteration-4 checkpoint was retired; numerical
-replay therefore uses calibrated-2028 batch 10 (mixed) and calibrated-2026 batch
-6 (uniform), restoring their original objective/optimizer states. Saved hidden-
-reward bounds distinguish 8/20 groups versus binary's 7/20, with one guaranteed
-additional group; this is retrospective evidence, not new learning/generalization.
-Local full validation passed 450 tests (20 skipped, 18 deselected), including reward-analysis and cached-scoring tests. Ruff lint/format and mypy (55 files) passed.
+Actual new charge is 4,589 H200-seconds / 1.274722 hours, including the 351-second
+compatibility failure. Every reservation in the shared hard 12-hour ledger is
+charged; no own jobs were active at reconciliation. No historical budget imports.
+Private final manifest/analysis are `runs/task18/interface-manifest-final.json`
+and `runs/task18/interface-analysis-final/`; accounting is `runs/task18/budget-final.json`.
+The final control records the selected interface and keeps `training_ready: false`;
+older jobs retain their exact archived controls/commits. Preserve all Tasks 15–17
+identities, failed attempts, checkpoints and privacy/no-duplicate safeguards.
+Local validation: 452 passed, 20 skipped, 18 deselected; Ruff lint/format and
+mypy (55 source files) passed. The completed branch may be merged locally to
+main and pushed under the user's standing preference.
 
 ## CURRENT — Task 17 complete (2026-11-11)
 

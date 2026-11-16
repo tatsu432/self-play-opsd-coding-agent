@@ -3,11 +3,11 @@
   "max_gpu_hours": 12,
   "pool_sha256": "602eaf506f8ac2cf17924596dae7c0ff3891ef5034a546d4d3751b9803412c83",
   "training_ready": false,
-  "substantive_change": false,
+  "substantive_change": true,
   "evidence": [],
   "student_episodes": 80,
   "selected_interface": "replace_text",
-  "selected_serialization": "plain_json",
+  "selected_serialization": "qwen_native",
   "native_families": 40,
   "native_parser_version": "single-call-with-assistant-content-v2",
   "numerical_groups": 4,
@@ -68,5 +68,7 @@
     "both_predeclared_gates_pass": true,
     "reused_episodes_per_snapshot": 8,
     "new_episodes_per_snapshot": 32
-  }
+  },
+  "numerical_training_decision": "defer_new_rl_material_update_sensitivity",
+  "final_interface_analysis_sha256": "844876686b6f69d6d3f1600d1b02aa1665d016b09f6cb527547b0f34d596979d"
 }
