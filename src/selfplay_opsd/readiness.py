@@ -132,18 +132,30 @@ def execution_identity(config: RunConfig, *, repository: TaskRepository | None =
     repository = repository if repository is not None else TaskRepository(config.data_root)
     if repository.root.resolve() != config.data_root.resolve():
         raise ExperimentError("Repository root differs from configured data_root")
+    if config.study_id.startswith("repair-selfplay-2026-task18-"):
+        # This proof executes the immutable data verifier, not model generation
+        # or optimization. Full code/prompt/image/data identities remain bound.
+        common = {
+            "scope": "task18-data-verifier-v1",
+            "model": config.model.model_dump(mode="json"),
+            "execution_limits": config.sandbox.execution_limits(),
+            "episode_budgets": {
+                k: v
+                for k, v in config.episode.model_dump(mode="json").items()
+                if k not in {"edit_protocol", "tool_serialization"}
+            },
+        }
+    else:
+        common = (
+            config.model_copy(update={"seed": 2026})
+            if config.online_supply or config.study_id.startswith("repair-selfplay-2026-task17-")
+            else config
+        ).scientific_settings(common=True, calibration=True)
     return {
         "code_hash": scientific_code_hash(),
         "allocation_code_hash": allocation_code_hash(),
         "scientific_code_hash": scientific_code_hash(),
-        "common_hash": digest(
-            (
-                config.model_copy(update={"seed": 2026})
-                if config.online_supply
-                or config.study_id.startswith("repair-selfplay-2026-task17-")
-                else config
-            ).scientific_settings(common=True, calibration=True)
-        ),
+        "common_hash": digest(common),
         "manifest_hash": repository.hash,
         "prompt_hash": PROMPT_HASH,
         "model_revision": config.model.revision,

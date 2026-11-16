@@ -1,0 +1,176 @@
+"""Read-only saved-token analysis and state-restored Task 18 update diagnostics."""
+
+from __future__ import annotations
+
+import copy
+import math
+from collections import defaultdict
+
+import numpy as np
+import torch
+
+from selfplay_opsd.core import ExperimentError
+from selfplay_opsd.diagnostics import _optimizer_digest
+from selfplay_opsd.numerical_audit import compare_gradients
+from selfplay_opsd.objectives import advantages
+from selfplay_opsd.storage import restore_rng, rng_state
+from selfplay_opsd.task15_audit import intervention_examples
+
+
+def mismatch_statistics(values):
+    signed = np.asarray(values, dtype=float)
+    if not np.isfinite(signed).all():
+        raise FloatingPointError("Nonfinite rollout/rescoring difference")
+    absolute = np.abs(signed)
+    return {
+        "tokens": len(signed),
+        "mean_absolute": float(absolute.mean()) if len(signed) else None,
+        "quantiles_0_50_90_95_99_100": np.quantile(absolute, [0, 0.5, 0.9, 0.95, 0.99, 1]).tolist()
+        if len(signed)
+        else [],
+        "above_005": int((absolute > 0.05).sum()),
+        "above_02": int((absolute > 0.2).sum()),
+        "above_02_fraction": float((absolute > 0.2).mean()) if len(signed) else None,
+    }
+
+
+def saved_token_report(episodes, clip=0.2):
+    groups = defaultdict(list)
+    for episode in episodes:
+        groups[episode.task_id].append(episode)
+    deltas, branch_changes = [], 0
+    bins = defaultdict(list)
+    for group in groups.values():
+        advs = advantages(torch.tensor([e.reward for e in group])).tolist()
+        for episode, advantage in zip(group, advs, strict=True):
+            for turn in episode.turns:
+                n = len(turn.target_ids)
+                if len(turn.old_logps) != n or len(turn.frozen_unprivileged_logps) != n:
+                    raise ExperimentError("Incomplete saved token probability mapping")
+                for i, (old, score) in enumerate(
+                    zip(turn.old_logps, turn.frozen_unprivileged_logps, strict=True)
+                ):
+                    delta = score - old
+                    if not math.isfinite(delta):
+                        raise FloatingPointError("Nonfinite probability difference")
+                    deltas.append(delta)
+                    bins["first" if i == 0 else "later"].append(delta)
+                    # Ratio-one counterfactual has an unclipped gradient. Actual
+                    # positive/negative advantages clip on opposite ratio sides.
+                    branch_changes += int(
+                        (advantage > 0 and delta > math.log1p(clip))
+                        or (advantage < 0 and delta < math.log1p(-clip))
+                    )
+    return mismatch_statistics(deltas) | {
+        "clipped_surrogate_branch_changes": branch_changes,
+        "by_position": {key: mismatch_statistics(value) for key, value in bins.items()},
+        "groups": len(groups),
+        "mixed_groups": sum(len({e.reward for e in group}) > 1 for group in groups.values()),
+        "uniform_success_groups": sum(
+            all(e.reward == 1 for e in group) for group in groups.values()
+        ),
+        "uniform_failure_groups": sum(
+            all(e.reward == 0 for e in group) for group in groups.values()
+        ),
+        "interpretation": "Frozen-score versus actual behavior; targeted records, not a population estimate",
+    }
+
+
+def select_groups(episodes, maximum=4):
+    """Worst mismatch first, then mixed/uniform controls; retain whole groups."""
+    if maximum < 1:
+        raise ValueError("Positive group limit required")
+    groups = defaultdict(list)
+    for episode in episodes:
+        groups[episode.task_id].append(episode)
+    if not groups:
+        raise ValueError("No diagnostic groups")
+    errors = {
+        key: max(
+            (
+                abs(a - b)
+                for e in group
+                for t in e.turns
+                for a, b in zip(t.old_logps, t.frozen_unprivileged_logps, strict=True)
+            ),
+            default=0,
+        )
+        for key, group in groups.items()
+    }
+    ordered = sorted(groups, key=lambda key: (-errors[key], key))
+    selected = ordered[:1]
+    for mixed in (True, False):
+        candidates = [
+            key
+            for key in ordered
+            if (len({e.reward for e in groups[key]}) > 1) == mixed and key not in selected
+        ]
+        if candidates and len(selected) < maximum:
+            selected.append(candidates[0])
+    selected.extend(key for key in ordered if key not in selected)
+    return [episode for key in selected[:maximum] for episode in groups[key]]
+
+
+def audit_updates(policy, cfg, episodes, relative_screen=0.01, cosine_screen=0.99):
+    """Three restored branches isolate denominator influence under the current SD gap."""
+    if not episodes or any(e.policy_version != policy.version("student") for e in episodes):
+        raise ExperimentError("Audit requires the complete generating snapshot")
+    initial, random_state = copy.deepcopy(policy.state_dict()), rng_state()
+    initial_mode = policy.model.training
+    results = {}
+    try:
+        with policy.active("student"):
+            for label, denominator in (
+                ("behavior", "behavior"),
+                ("repeat", "behavior"),
+                ("rescored_diagnostic", "scorer"),
+            ):
+                policy.load_state_dict(copy.deepcopy(initial))
+                restore_rng(random_state)
+                policy.model.train(initial_mode)
+                examples = intervention_examples(
+                    episodes, cfg, denominator=denominator, gap="scorer"
+                )
+                gradient, _ = policy.gradients(examples)
+                _, metrics = policy.gradients(examples, step=True)
+                after = policy.state_dict()
+                names = initial["parameter_names"]["student"]
+                update = [
+                    after["adapters"][name].double() - initial["adapters"][name].double()
+                    for name in names
+                ]
+                results[label] = {"gradient": gradient, "update": update, "metrics": metrics}
+        comparisons: dict[str, dict] = {}
+        for label in ("repeat", "rescored_diagnostic"):
+            comparisons[label] = {}
+            for kind in ("gradient", "update"):
+                left, right = results["behavior"][kind], results[label][kind]
+                comparison = compare_gradients(left, right, policy, cfg.objective.near_zero)
+                comparison["coordinate_sign_changes"] = sum(
+                    int(((a * b) < 0).sum()) for a, b in zip(left, right, strict=True)
+                )
+                comparisons[label][kind] = comparison
+        repeat, causal = (
+            comparisons["repeat"]["update"],
+            comparisons["rescored_diagnostic"]["update"],
+        )
+        material = (
+            causal["relative_l2"] is not None
+            and causal["relative_l2"] > max(relative_screen, repeat["relative_l2"] or 0)
+        ) or (
+            causal["cosine"] is not None
+            and causal["cosine"] < min(cosine_screen, repeat["cosine"] or cosine_screen)
+        )
+        return {
+            "comparisons": comparisons,
+            "metrics": {key: value["metrics"] for key, value in results.items()},
+            "requires_investigation": material,
+            "training_ready": False,
+            "note": "Screen only: alignment, synchronization and numerical-mode checks also required. Original behavior denominators are unchanged.",
+        }
+    finally:
+        policy.load_state_dict(initial)
+        restore_rng(random_state)
+        policy.model.train(initial_mode)
+        if _optimizer_digest(policy.state_dict()) != _optimizer_digest(initial):
+            raise ExperimentError("Task 18 audit failed full state restoration")

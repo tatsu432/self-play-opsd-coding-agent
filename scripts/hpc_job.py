@@ -912,6 +912,21 @@ def task13_command_args(env: dict) -> list[str]:
         "--output",
         env["SELFPLAY_OUTPUT"],
     ]
+    if operation.startswith("task18-"):
+        return (
+            prefix
+            + ["/workspace/scripts/task18_experiment.py"]
+            + common
+            + [
+                "--operation",
+                operation.removeprefix("task18-"),
+                "--arm",
+                method,
+                "--seed",
+                env["SELFPLAY_SEED"],
+            ]
+            + (["--resume", env["SELFPLAY_RESUME"]] if env.get("SELFPLAY_RESUME") else [])
+        )
     if operation.startswith("task17-"):
         return (
             (["python"] if operation in {"task17-prepare", "task17-replay"} else prefix)
@@ -1143,6 +1158,10 @@ def execute(env: dict) -> int:
         "task17-normalized",
         "task17-calibrate",
         "task17-student",
+        "task18-numerical",
+        "task18-normalized",
+        "task18-native",
+        "task18-student",
         "task14-counterfactual",
         "task14-counterfactual-replay",
         "task14-calibrate",
@@ -1184,6 +1203,10 @@ def execute(env: dict) -> int:
         "task17-normalized",
         "task17-calibrate",
         "task17-student",
+        "task18-numerical",
+        "task18-normalized",
+        "task18-native",
+        "task18-student",
         "task14-counterfactual",
         "task14-counterfactual-replay",
         "task14-calibrate",
@@ -1428,6 +1451,10 @@ def execute(env: dict) -> int:
             "task17-normalized",
             "task17-calibrate",
             "task17-student",
+            "task18-numerical",
+            "task18-normalized",
+            "task18-native",
+            "task18-student",
             "task14-counterfactual",
             "task14-counterfactual-replay",
             "task14-calibrate",

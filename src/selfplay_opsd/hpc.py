@@ -418,6 +418,10 @@ def run_payload(
         "task17-normalized",
         "task17-calibrate",
         "task17-student",
+        "task18-numerical",
+        "task18-normalized",
+        "task18-native",
+        "task18-student",
         "task14-counterfactual",
         "task14-counterfactual-replay",
         "task14-calibrate",
@@ -501,11 +505,13 @@ def run_payload(
     partition = partition or GPU_PARTITIONS[chosen_gpu]
     cfg = load_config(settings, method=method, hardware_profile=profile, seed=seed)
     if seed is not None and (
-        not operation.startswith(("task15-", "task17-")) or seed not in {2026, 2027, 2028}
+        not operation.startswith(("task15-", "task17-", "task18-"))
+        or seed not in {2026, 2027, 2028}
     ):
         raise HpcError("Explicit training seed is supported only for Task 15 paired seeds")
     if stop_after_iteration is not None and (
-        operation not in {"train", "task15-online", "task15-stabilize", "task17-student"}
+        operation
+        not in {"train", "task15-online", "task15-stabilize", "task17-student", "task18-student"}
         or not 1 <= stop_after_iteration < cfg.iterations
     ):
         raise HpcError("A bounded stop requires training and an iteration below the frozen budget")
@@ -517,6 +523,12 @@ def run_payload(
             operation.removeprefix("task17-"),
             method,
             ROOT / "configs/task17-objective-control.json",
+        )
+    if operation.startswith("task18-"):
+        from selfplay_opsd.task18 import configure_operation as configure_task18
+
+        cfg = configure_task18(
+            cfg, operation.removeprefix("task18-"), method, ROOT / "configs/task18-control.json"
         )
     state = remote.call("study", {"storage_root": storage, "study_id": cfg.study_id})
     if (
@@ -597,6 +609,10 @@ def run_payload(
         "task17-normalized",
         "task17-calibrate",
         "task17-student",
+        "task18-numerical",
+        "task18-normalized",
+        "task18-native",
+        "task18-student",
         "task14-counterfactual",
         "task14-counterfactual-replay",
         "task14-calibrate",
@@ -902,6 +918,22 @@ def run_payload(
             payload["max_continuations"] = 8
             payload["iterations"] = payload["target_iterations"] = cfg.iterations
 
+    if operation.startswith("task18-"):
+        payload["readiness_budget"] = 12
+        payload["time"] = (
+            "02:00:00" if operation in {"task18-numerical", "task18-student"} else "00:30:00"
+        )
+        payload["output"] = (
+            f"/runs/{cfg.study_id}/{cfg.method}-seed{cfg.seed}"
+            if operation == "task18-student"
+            else f"/runs/{cfg.study_id}/{identity[:24]}"
+        )
+        payload["task18_control_sha256"] = cfg.model_dump()["task18_control_sha256"]
+        if operation == "task18-student":
+            payload["effective_method"] = cfg.method
+            payload["max_continuations"] = 8
+            payload["iterations"] = payload["target_iterations"] = cfg.iterations
+
     if operation == "task14-student":
         if (
             method not in {"A", "B", "C", "D"}
@@ -1045,6 +1077,10 @@ def run_payload(
             "task17-normalized",
             "task17-calibrate",
             "task17-student",
+            "task18-numerical",
+            "task18-normalized",
+            "task18-native",
+            "task18-student",
             "task14-counterfactual",
             "task14-counterfactual-replay",
             "task14-calibrate",
@@ -1070,6 +1106,8 @@ def run_payload(
         payload["readiness_budget"] = (
             24 if "-objectives-" in cfg.study_id or operation == "task17-calibrate" else 10
         )
+    if cfg.study_id.startswith("repair-selfplay-2026-task18-"):
+        payload["readiness_budget"] = 12
     if predecessor is not None:
         payload["afterok"] = predecessor
     return payload

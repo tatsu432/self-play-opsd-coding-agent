@@ -409,7 +409,7 @@ def verified_checkpoint(payload: dict) -> str:
     )
     run_dir = (
         artifact_dir(payload)
-        if payload["operation"] == "task17-student"
+        if payload["operation"] in {"task17-student", "task18-student"}
         else p["runs"] / study / f"{payload['method']}-seed{payload['seed']}"
     )
     latest = json.loads((run_dir / "checkpoints/latest.json").read_text())
@@ -731,7 +731,7 @@ def completed_job_is_final(payload: dict) -> bool:
     """Task 15 training may continue only with an explicitly verified checkpoint."""
     operation = payload["operation"]
     return operation not in {"pilot", "train"} and not (
-        operation in {"task15-online", "task15-stabilize", "task17-student"}
+        operation in {"task15-online", "task15-stabilize", "task17-student", "task18-student"}
         and payload.get("resume")
     )
 
@@ -1161,8 +1161,10 @@ def artifact_dir(payload: dict) -> Path:
         return runs / "repair-diagnosis-2026-probe-v1" / payload["run_id"]
     if operation == "task14-probe":
         return runs / "repair-diagnosis-2026-task14-probe-v1" / payload["run_id"]
-    if operation == "task17-student":
+    if operation in {"task17-student", "task18-student"}:
         return runs / payload["study_id"] / f"{payload['effective_method']}-seed{payload['seed']}"
+    if operation.startswith("task18-"):
+        return runs / study / payload["run_id"]
     if operation.startswith("task17-"):
         suffix = (
             "prepared"
@@ -1215,7 +1217,15 @@ def task17_budget(payload: dict) -> bool:
     ).startswith("repair-selfplay-2026-task17-")
 
 
+def task18_budget(payload: dict) -> bool:
+    return payload.get("operation", "").startswith("task18-") or payload.get(
+        "study_id", ""
+    ).startswith("repair-selfplay-2026-task18-")
+
+
 def readiness_limit(payload: dict) -> int:
+    if task18_budget(payload):
+        return 12
     if not task17_budget(payload):
         return 24
     return (
@@ -1231,6 +1241,8 @@ def budget_path(payload: dict) -> Path:
         raise ValueError("Unsafe study ID")
     # Readiness authorization spans protocol/study revisions. Never let a new
     # scientific identity create a fresh allowance.
+    if task18_budget(payload):
+        return workspace(payload) / "state" / "task18-budget.json"
     if task17_budget(payload):
         phase = "phase2" if readiness_limit(payload) == 24 else "phase1"
         return workspace(payload) / "state" / f"task17-{phase}-budget.json"
@@ -1242,14 +1254,22 @@ def refreshed_budget(payload: dict) -> dict:
     task17 = task17_budget(payload)
     limit = readiness_limit(payload)
     budget = json.loads(path.read_text()) if path.exists() else {"limit": limit, "reservations": {}}
-    authorization = f"cpsc4880-task17-{limit}h-v1" if task17 else "cpsc4880-readiness-24h-v1"
+    authorization = (
+        "cpsc4880-task18-12h-v1"
+        if task18_budget(payload)
+        else f"cpsc4880-task17-{limit}h-v1"
+        if task17
+        else "cpsc4880-readiness-24h-v1"
+    )
     if budget.get("authorization_id", authorization) != authorization:
         raise ValueError("Readiness authorization identity mismatch")
     budget["authorization_id"] = authorization
     # Import every legacy study, not just the caller's study. Keep source hashes
     # so a legacy writer cannot silently fork the allowance after migration.
     imported = budget.setdefault("legacy_sources", {})
-    for legacy in [] if task17 else sorted(path.parent.glob("budget-*.json")):
+    for legacy in (
+        [] if task17 or task18_budget(payload) else sorted(path.parent.glob("budget-*.json"))
+    ):
         if legacy == path:
             continue
         checksum = sha256(legacy)
@@ -1330,6 +1350,8 @@ def reserve_budget(payload: dict, token: str):
         if not payload.get("readiness_budget") or not payload["gpu_count"]:
             return
         limit = float(payload["readiness_budget"])
+        if task18_budget(payload) and limit != 12:
+            raise ValueError("Task 18 has a hard 12 GPU-hour ceiling")
         if not 0 < limit <= 24:
             raise ValueError("Readiness budget must be positive and at most 24 GPU-hours")
         budget = refreshed_budget(payload)
@@ -1777,7 +1799,14 @@ def precheck(payload: dict):
             stop
             and (
                 operation
-                not in {"train", "pilot", "task15-online", "task15-stabilize", "task17-student"}
+                not in {
+                    "train",
+                    "pilot",
+                    "task15-online",
+                    "task15-stabilize",
+                    "task17-student",
+                    "task18-student",
+                }
                 or stop >= payload.get("target_iterations", 0)
             )
         )
@@ -1827,6 +1856,10 @@ def precheck(payload: dict):
         "task17-normalized",
         "task17-calibrate",
         "task17-student",
+        "task18-numerical",
+        "task18-normalized",
+        "task18-native",
+        "task18-student",
         "task14-counterfactual",
         "task14-counterfactual-replay",
         "task14-calibrate",
@@ -1930,6 +1963,10 @@ def precheck(payload: dict):
         "task17-normalized",
         "task17-calibrate",
         "task17-student",
+        "task18-numerical",
+        "task18-normalized",
+        "task18-native",
+        "task18-student",
         "task14-counterfactual",
         "task14-counterfactual-replay",
         "task14-calibrate",
@@ -2009,6 +2046,10 @@ def precheck(payload: dict):
         "task17-normalized",
         "task17-calibrate",
         "task17-student",
+        "task18-numerical",
+        "task18-normalized",
+        "task18-native",
+        "task18-student",
         "task14-counterfactual",
         "task14-counterfactual-replay",
         "task14-calibrate",
@@ -2078,6 +2119,25 @@ def precheck(payload: dict):
             or payload.get("checkpoint")
         ):
             raise ValueError("Task 14 probe requires a fixed base-model arm")
+        if operation.startswith("task18-"):
+            expected_time = (
+                "02:00:00" if operation in {"task18-numerical", "task18-student"} else "00:30:00"
+            )
+            control_path = paths(payload)["checkout"] / "configs/task18-control.json"
+            if (
+                payload.get("account") != "cpsc4880"
+                or not payload.get("study_id", "").startswith("repair-selfplay-2026-task18-")
+                or payload.get("gpu_count") != 1
+                or payload.get("gpu_type") != "h200"
+                or payload.get("readiness_budget") != 12
+                or payload.get("time") != expected_time
+                or payload.get("seed") not in {2026, 2027}
+                or not control_path.is_file()
+                or sha256(control_path) != payload.get("task18_control_sha256")
+            ):
+                raise ValueError(
+                    "Task 18 requires its bounded one-H200 allocation and frozen control"
+                )
         if operation.startswith("task17-"):
             cpu = operation in {"task17-prepare", "task17-replay"}
             phase2 = operation in {"task17-calibrate", "task17-student"}

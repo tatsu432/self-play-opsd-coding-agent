@@ -1,0 +1,29 @@
+{
+  "study_id": "repair-selfplay-2026-task18-v1",
+  "max_gpu_hours": 12,
+  "pool_sha256": "602eaf506f8ac2cf17924596dae7c0ff3891ef5034a546d4d3751b9803412c83",
+  "training_ready": false,
+  "substantive_change": false,
+  "evidence": [],
+  "student_episodes": 80,
+  "selected_interface": "replace_text",
+  "selected_serialization": "plain_json",
+  "native_families": 8,
+  "numerical_groups": 4,
+  "update_relative_l2_screen": 0.01,
+  "update_cosine_screen": 0.99,
+  "numerical_sources": [
+    {
+      "episodes": "/runs/repair-selfplay-2026-task17-objectives-C-v1/A-seed2026/trajectories/e66d8cd763cf44ae8208292d5228e485/000001-episodes.json",
+      "episodes_sha256": "b5eea7f3b669ed91ea24dd3303a63b717367ff74ffaf49096716da4607844295",
+      "checkpoint": "/runs/repair-selfplay-2026-task17-objectives-C-v1/A-seed2026/checkpoints/000000",
+      "checkpoint_complete_sha256": "fdf4d0526cbf7f97644f302aa541b3c67e30fbf10be7ed995e44d7de49d54066"
+    },
+    {
+      "episodes": "/runs/repair-selfplay-2026-task17-objectives-C-v1/A-seed2026/trajectories/e66d8cd763cf44ae8208292d5228e485/000006-episodes.json",
+      "episodes_sha256": "36d5bbb31407e2b5ea285b26a6ed3360bc3e67124bf58c3bee5895a6d8ae5655",
+      "checkpoint": "/runs/repair-selfplay-2026-task17-objectives-C-v1/A-seed2026/checkpoints/000005",
+      "checkpoint_complete_sha256": "4aef2ccd722ce4c30068923585e1ea040dcb74635e7e5a241314236b9ab159f4"
+    }
+  ]
+}

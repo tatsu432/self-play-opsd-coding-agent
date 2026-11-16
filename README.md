@@ -31,6 +31,13 @@ See the [A/B results](docs/investigations/task15-final-results.md) and
 [transfer, checkpoint and compute analysis](docs/investigations/task16-generalization-checkpoint-decision.md)
 for uncertainty, limitations and the research decision.
 
+Task 18 is auditing numerical discrepancies and preparing missing normalized-diff
+and Qwen-native tool comparisons under a new 12 H200-hour cap. Saved-array
+analysis reproduces the largest discrepancy; its exact generating checkpoint
+was retired, so causal replay targets retained matching snapshots. New GPU
+results and any further training decision remain pending. See the
+[Task 18 status and procedures](docs/investigations/task18-status.md).
+
 ## Getting started
 
 ```bash

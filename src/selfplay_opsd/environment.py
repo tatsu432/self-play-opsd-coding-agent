@@ -23,16 +23,16 @@ from selfplay_opsd.core import (
 )
 from selfplay_opsd.mutations import (
     apply_patch,
-    parse_action,
     replace_function_body,
     replace_text,
     signature,
     validate_source,
 )
 from selfplay_opsd.policy import HFPolicy
-from selfplay_opsd.protocol import PROMPT_HASH, budget, student_messages, teacher_messages
+from selfplay_opsd.protocol import PROMPT_HASH, budget, teacher_messages
 from selfplay_opsd.sandbox import SandboxBackend, Verification
 from selfplay_opsd.task17_recovery import admit_repair, recover_diff
+from selfplay_opsd.task18_protocol import episode_messages, parse_episode_action
 
 
 def verify_with_retry(
@@ -169,7 +169,7 @@ def bounded_observation(policy: HFPolicy, observation: dict, cap: int) -> str:
 def check_admission(
     policy: HFPolicy, task: TaskSpec, oracle: OracleSpec, limits: EpisodeConfig
 ) -> None:
-    history = student_messages(task, limits)
+    history = episode_messages(task, limits)
     student = policy.encode_history(history)
     teacher = policy.encode_history(teacher_messages(history, oracle))
     if len(teacher) - len(student) > limits.privilege_reserve:
@@ -218,7 +218,7 @@ def run_episode(
 ) -> EpisodeRecord:
     started = time.monotonic()
     check_admission(policy, task, oracle, limits)
-    history = student_messages(task, limits)
+    history = episode_messages(task, limits)
     prompt = policy.encode_history(history)
     env = RepairEnvironment(
         task,
@@ -253,7 +253,7 @@ def run_episode(
         if not output.ids:
             termination = "empty_response"
         try:
-            parsed = parse_action(output.text, limits.edit_protocol)
+            parsed = parse_episode_action(output.text, limits)
             action = parsed["action"]
             parse_status = "valid"
             observation = env.step(parsed)
@@ -461,7 +461,7 @@ def canonical_trajectory(
     limits: EpisodeConfig,
 ) -> dict:
     check_admission(policy, task, oracle, limits)
-    history = student_messages(task, limits)
+    history = episode_messages(task, limits)
     prompt = policy.encode_history(history)
     env = RepairEnvironment(task, oracle, sandbox, policy)
     edit = None
