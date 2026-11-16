@@ -6,6 +6,46 @@ After completing each task, update `README.md` to concisely describe the researc
 problem, approaches, current progress and results. Link detailed evidence and
 procedures to the relevant Markdown documents; keep the README short and current.
 
+## CURRENT — Task 18 implementation and queued diagnostics (2026-11-16)
+
+Task 18 is in progress on `feat/18-interface-signal-bottlenecks`; do not merge it
+as complete until the numerical/interface evidence and research decision are
+finished. See `docs/investigations/task18-status.md`. The new study has a hard
+12 allocated H200-hour ceiling, including failures/continuations; it does not
+inherit historical budgets. The five reservations total 4.0 hours (sum actual
+reservation/charge entries; the persisted convenience total may lag an insert).
+
+Matching CPU runtime job `33574512` / run `96daa9183384957cd9ea58b5` completed
+exit 0 and verified all 306 frozen tasks. Model cache files matched the preserved
+archive's ten SHA-256 entries; no download/restoration was necessary. Current
+GPU allocations were submitted once and reconciled PENDING; never duplicate:
+
+- Numerical replay `33575206` / `7635b59fe85fddd9e88b4c39`, execution `61b5457`.
+  Pending wall reduced two to one hour; original two-hour reservation retained
+  with a ledger adjustment. Inspect existing scheduler/ledger before action.
+- Normalized base `33575526` / `bd76e6a6fbb83abf263b0d83`, execution `61b5457`.
+- Normalized B2026 `33575845` / `d1e5601f947494053b477b4a`, afterok base.
+- Native base `33576276` / `069afeb246a83ece920c06cb`, afterok normalized B2026.
+- Native B2026 `33576446` / `4fbbb1272d0b3fd48a2394a4`, afterok native base.
+  These last three use `d490a49`; their model-execution code matches `61b5457`.
+
+The four interface cells are sequential and each reserves 30 minutes on one
+H200 (40 normalized primary families; eight native probe families per snapshot).
+After completion, fetch and verify identities/checksums/accounting, analyze
+against the existing strict/text cells, then decide native expansion/training.
+A failed predecessor leaves children waiting; reconcile them rather than
+submitting replacements. New student training remains disabled in the control.
+No new GPU result is known. Preserve all Tasks 15–17 artifacts and identities.
+
+CPU saved-array work reproduces calibrated-2026's 5.4899 discrepancy and verifies
+495 turn prefixes. Its exact pre-iteration-4 checkpoint was retired; numerical
+replay therefore uses calibrated-2028 batch 10 (mixed) and calibrated-2026 batch
+6 (uniform), restoring their original objective/optimizer states. Saved hidden-
+reward bounds distinguish 8/20 groups versus binary's 7/20, with one guaranteed
+additional group; this is retrospective evidence, not new learning/generalization.
+Local full validation passed 444 tests (20 skipped, 18 deselected); two subsequent
+reward-analysis tests passed. Ruff lint/format and mypy (55 files) passed.
+
 ## CURRENT — Task 17 complete (2026-11-11)
 
 The final nominal ungated seed-2028 job `32983291` / controller run

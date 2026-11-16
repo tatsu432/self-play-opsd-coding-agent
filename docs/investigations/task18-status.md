@@ -40,6 +40,54 @@ presentation variants. Only one originally reserved eligible parent remains
 unassigned after preparation replacements; it is not a new confirmation set.
 All new interface comparisons reuse previously inspected training families.
 
+## Partial-reward evidence without new verification
+
+A new saved-count analysis covers calibrated-2026's 80 historical rollouts / 20
+training-family groups. It recovers exact hidden-training pass fractions for
+67 episodes and conservative intervals for the other 13. Public-test observations
+are used only for the identical source with no final runtime failure; otherwise
+unknown public/hidden allocation of failed cases remains an interval.
+
+Binary rewards distinguish 7/20 groups. Hidden-fraction bounds guarantee
+variation in 8/20, with one additional informative all-binary-failure group;
+9/20 could vary given the unresolved intervals. Initial-mutant baselines are
+observed for only six families (24 episodes), with 11 guaranteed fraction
+improvements and no guaranteed regression within that subset. These are
+correlated saved rollouts from one training run, not new repairs, a causal
+training comparison, or generalization evidence. The modest extra signal does
+not justify displacing the interface investigation. Binary student rewards and
+binary-solve proposer difficulty remain unchanged. No verifier/model/GPU work
+was needed for this analysis.
+
+## Queued allocations — never duplicate
+
+| Operation | Controller run | Slurm job | Scope | Dependency |
+|---|---|---:|---|---|
+| Numerical replay | `7635b59fe85fddd9e88b4c39` | 33575206 | Two original complete-state batches | None |
+| Normalized base | `bd76e6a6fbb83abf263b0d83` | 33575526 | 40 primary families | None |
+| Normalized trained | `d1e5601f947494053b477b4a` | 33575845 | 40 primary families | afterok 33575526 |
+| Native base | `069afeb246a83ece920c06cb` | 33576276 | Eight primary families | afterok 33575845 |
+| Native trained | `4fbbb1272d0b3fd48a2394a4` | 33576446 | Eight primary families | afterok 33576276 |
+
+All five were reconciled PENDING on November 16. The numerical and normalized
+base jobs await priority/capacity; their start estimates fluctuate and are not
+guarantees. The three dependent jobs wait for successful predecessors. The
+four interface cells are sequential; only the independent numerical diagnostic
+can overlap them. Every allocation requests one H200.
+
+The numerical pending wall was reduced from two to one hour based on prior
+measured replay times; its original two-hour reservation and ledger adjustment
+remain. Each interface reserves half an hour. Direct summation of the five
+locked reservation records is **4.0 H200-hours of the 12-hour ceiling**;
+no new GPU outcome exists yet. The persisted convenience total can lag the last
+reservation, so reconciliation uses reservation/charge entries themselves.
+
+After a job becomes terminal, inspect its existing ledger, fetch its artifacts,
+verify completion/checkpoint identity and actual scheduler charges, and analyze
+before deciding further work. A failed predecessor leaves children waiting;
+reconcile those existing jobs instead of submitting replacements. Training is
+still disabled. The research task and merge to main remain pending these results.
+
 ## Implementation and decisions
 
 - Extend existing numerical helpers with distribution, clipping-branch,
@@ -72,10 +120,11 @@ changes confined to learning runners only when every file in the explicit
 verifier dependency list and every non-code runtime identity still matches the
 archived executed checkout. Changed verifier dependencies require a new check.
 
-Local validation passed **443 tests**, with 20 skipped and 18 deselected.
+Local validation passed **444 tests**, with 20 skipped and 18 deselected.
 Ruff lint/format and mypy (55 source files) passed. These checks include actual
 small-model Adam restoration and cached pinned-tokenizer prefix/EOS tests; they
-are not GPU research results.
+are not GPU research results. Two subsequent focused saved-reward analysis
+tests also passed.
 
 ## Frozen execution sequence
 
@@ -117,6 +166,10 @@ uv run python scripts/analyze_task18.py \
 uv run python scripts/analyze_task18_tokens.py \
   --source runs/task18/recovered-calibrated-2026 \
   --output runs/task18/recovered-token-audit-v1
+uv run python scripts/analyze_task18_rewards.py \
+  --pool runs/hpc/yale-hpc-cpsc4880/86e2df49bb04a9321f7d755d/pool.json \
+  --source runs/task18/recovered-calibrated-2026 \
+  --output runs/task18/saved-reward-bounds-v2
 uv run python scripts/plot_task18_numerical.py \
   --summary runs/task18/saved-audit-v1/summary.json --output docs/figures/task18
 ```
