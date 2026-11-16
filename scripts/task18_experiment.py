@@ -33,7 +33,12 @@ from selfplay_opsd.storage import (
 from selfplay_opsd.task15_audit import gradient_mode_probe
 from selfplay_opsd.task17 import load_pool
 from selfplay_opsd.task18 import OPERATIONS, configure_operation
-from selfplay_opsd.task18_numerical import audit_updates, saved_token_report
+from selfplay_opsd.task18_numerical import (
+    audit_updates,
+    cached_scoring_probe,
+    frozen_rollout_replay,
+    saved_token_report,
+)
 from selfplay_opsd.task18_protocol import NativePolicy
 from selfplay_opsd.trainer import SelfPlayTrainer
 
@@ -76,6 +81,18 @@ def replay_numerical(policy, cfg, repo, pool, control, output):
         restore_rng(state["rng"])
         if any(e.policy_version != policy.version("student") for e in episodes):
             raise ValueError("Replay checkpoint is not the exact generating snapshot")
+        if control.get("numerical_stage") == "cached-scoring":
+            reports.append(
+                {
+                    "source": source,
+                    "cached_scoring": cached_scoring_probe(policy, episodes),
+                    "rollout_replay": frozen_rollout_replay(
+                        policy, episodes, control.get("replay_rollout_turns", 4)
+                    ),
+                }
+            )
+            atomic_json(output / "numerical-replays.json", reports)
+            continue
         original = saved_token_report(episodes, cfg.objective.clip)
         scored = [score_teacher(policy, e, oracles[e.task_id], cfg.episode)[0] for e in episodes]
         reports.append(
@@ -96,7 +113,14 @@ def replay_numerical(policy, cfg, repo, pool, control, output):
         atomic_json(output / "numerical-replays.json", reports)
     atomic_json(
         output / "complete.json",
-        {"replayed_sources": len(reports), "generated_episodes": 0, "training_ready": False},
+        {
+            "replayed_sources": len(reports),
+            "generated_episodes": 0,
+            "generated_tokens": sum(
+                r.get("rollout_replay", {}).get("new_generated_tokens", 0) for r in reports
+            ),
+            "training_ready": False,
+        },
     )
 
 
@@ -196,6 +220,7 @@ def main():
                 {
                     "study_id": cfg.study_id,
                     "operation": "numerical-replay",
+                    "numerical_stage": control.get("numerical_stage", "updates"),
                     "control_sha256": file_hash(args.control),
                     "provenance": provenance(),
                     "sources": control["numerical_sources"],

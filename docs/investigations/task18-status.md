@@ -6,12 +6,46 @@ Implementation and local validation are underway on
 `feat/18-interface-signal-bottlenecks`, from main `48b4839`. The study is
 `repair-selfplay-2026-task18-v1`, with a **hard 12 new allocated H200-hour cap**
 including failures and continuations. Historical Tasks 15–17 remain complete
-and unchanged. New GPU conclusions are pending; training is disabled in the
+and unchanged. The numerical replay is complete; interface and backend follow-up conclusions
+remain pending. Training is disabled in the
 checked-in control until numerical and interface evidence supports it.
 
 Yale login was refreshed successfully and live inspection found no active
 account jobs. All ten files in the existing scratch model snapshot matched the
 preserved project's `SHA256SUMS`; no model files were downloaded or restored.
+
+## Numerical replay result and bounded follow-up
+
+Job `33575206` / run `7635b59fe85fddd9e88b4c39` completed exit 0 in **473
+H200-seconds (0.131389 hours)**. Both original complete checkpoints and their
+checksums were loaded and verified; every diagnostic restored both adapters,
+both optimizers and RNG. Sixteen saved episodes were replayed with no new
+sampling. Frozen rescoring reproduced the saved discrepancy distributions;
+gradient-mode scoring matched frozen scoring on all 3,842 target tokens.
+
+| Restored-state update comparison | Mixed calibrated-2028 batch 10 | Uniform calibrated-2026 batch 6 |
+|---|---:|---:|
+| Diagnostic denominator-substitution cosine | 0.977223 | 0.999998 |
+| Diagnostic relative update difference | 21.374% | 0.1747% |
+| Identical-operation repeat relative difference | 0.3993% | 0.1743% |
+
+The mixed batch exceeds the predeclared 1% / 0.99 screen beyond repeat noise.
+Its 10/1,372 tokens above 0.2 include four active clipped-surrogate branch
+changes; the corresponding gradient cosine is 0.936806. This is a material
+conditional update effect, not proof of harm or a reason to replace true
+behavior denominators. The uniform groups have zero GRPO advantages and serve
+as a control; any diagnostic displacement difference there is numerical repeat
+variation in the unchanged auxiliary update and restored momentum.
+
+New RL remains disabled. The current control now selects a separate bounded
+cached-scoring/frozen-rollout diagnostic against the mixed checkpoint. It
+compares full-sequence versus incremental KV-cache scoring on the exact saved
+IDs and replays up to four original unprivileged turns through a fresh vLLM
+engine with their original seeds. Comparisons stop at the first differing token;
+no generated action or Python program is executed. This is a new scientific
+execution, not a continuation of the completed replay or a historical study.
+Numerical follow-up allocations now reserve 30 minutes, based on the measured
+473-second full replay. The original replay's reservation history is preserved.
 
 ## Saved-data findings
 
@@ -79,7 +113,8 @@ The numerical pending wall was reduced from two to one hour based on prior
 measured replay times; its original two-hour reservation and ledger adjustment
 remain. Each interface reserves half an hour. Direct summation of the five
 locked reservation records is **4.0 H200-hours of the 12-hour ceiling**;
-no new GPU outcome exists yet. The persisted convenience total can lag the last
+the completed numerical job is charged at 473 seconds; other outcomes remain
+pending. This four-hour figure describes the initial reservations. The persisted convenience total can lag the last
 reservation, so reconciliation uses reservation/charge entries themselves.
 
 After a job becomes terminal, inspect its existing ledger, fetch its artifacts,
@@ -120,11 +155,10 @@ changes confined to learning runners only when every file in the explicit
 verifier dependency list and every non-code runtime identity still matches the
 archived executed checkout. Changed verifier dependencies require a new check.
 
-Local validation passed **444 tests**, with 20 skipped and 18 deselected.
+Local validation passed **449 tests**, with 20 skipped and 18 deselected.
 Ruff lint/format and mypy (55 source files) passed. These checks include actual
 small-model Adam restoration and cached pinned-tokenizer prefix/EOS tests; they
-are not GPU research results. Two subsequent focused saved-reward analysis
-tests also passed.
+are not GPU research results. The full suite includes saved-reward and cached-scoring checks.
 
 ## Frozen execution sequence
 

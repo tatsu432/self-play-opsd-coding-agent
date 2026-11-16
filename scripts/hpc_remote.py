@@ -2182,7 +2182,11 @@ def precheck(payload: dict):
                 or payload.get("gpu_count") != 1
                 or payload.get("gpu_type") != "h200"
                 or payload.get("readiness_budget") != 12
-                or payload.get("time") != expected_time
+                or (
+                    payload.get("time") not in {"00:30:00", "01:00:00", "02:00:00"}
+                    if operation == "task18-numerical"
+                    else payload.get("time") != expected_time
+                )
                 or payload.get("seed") not in {2026, 2027}
                 or not control_path.is_file()
                 or sha256(control_path) != payload.get("task18_control_sha256")

@@ -932,9 +932,7 @@ def run_payload(
 
     if operation.startswith("task18-"):
         payload["readiness_budget"] = 12
-        payload["time"] = (
-            "02:00:00" if operation in {"task18-numerical", "task18-student"} else "00:30:00"
-        )
+        payload["time"] = "02:00:00" if operation == "task18-student" else "00:30:00"
         payload["output"] = (
             f"/runs/{cfg.study_id}/{cfg.method}-seed{cfg.seed}"
             if operation == "task18-student"

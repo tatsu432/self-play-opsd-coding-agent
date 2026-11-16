@@ -215,7 +215,7 @@ def test_allocated_command_preserves_arm_seed_and_continuation():
 @pytest.mark.parametrize(
     "operation,interface,time_limit",
     [
-        ("numerical", "replace_text", "02:00:00"),
+        ("numerical", "replace_text", "00:30:00"),
         ("normalized", "normalized_diff", "00:30:00"),
         ("native", "replace_text", "00:30:00"),
     ],
@@ -297,7 +297,8 @@ def test_runtime_proof_scope_preserves_model_and_verifier_but_reuses_across_form
     assert execution_identity(cfg, repository=repository) != plain
 
 
-def test_replay_keeps_original_ungated_objective_and_optimizer_state(tmp_path, monkeypatch):
+@pytest.mark.parametrize("stage", ["updates", "cached-scoring"])
+def test_replay_keeps_original_ungated_objective_and_optimizer_state(tmp_path, monkeypatch, stage):
     monkeypatch.syspath_prepend("scripts")
     runner = script("task18_experiment")
     rows = episodes()
@@ -336,6 +337,8 @@ def test_replay_keeps_original_ungated_objective_and_optimizer_state(tmp_path, m
         return {"training_ready": False}
 
     monkeypatch.setattr(runner, "audit_updates", audit)
+    monkeypatch.setattr(runner, "cached_scoring_probe", lambda policy, rows: audit(policy, cfg))
+    monkeypatch.setattr(runner, "frozen_rollout_replay", lambda *args: {"new_generated_tokens": 4})
     oracle = {
         "task_id": rows[0].task_id,
         "correct_source": "def f(x):\n return x\n",
@@ -367,6 +370,7 @@ def test_replay_keeps_original_ungated_objective_and_optimizer_state(tmp_path, m
             return rows[0].policy_version
 
     control = {
+        "numerical_stage": stage,
         "numerical_sources": [
             {
                 "episodes": str(path),
@@ -426,3 +430,52 @@ def test_interface_dependencies_keep_single_gpu_sequence_and_exclude_training():
         ]
     with pytest.raises(ValueError, match="sequential"):
         remote.sequential_dependency({"operation": "task18-student", "afterok": dependency})
+
+
+def test_cached_scoring_uses_saved_ids_and_restores_mode():
+    from selfplay_opsd.task18_numerical import cached_scoring_probe
+
+    cfg = load_config(study_id="task18-cached-test", hardware_profile="cpu_debug")
+    policy = HFPolicy(cfg)
+    rows = [e.model_copy(update={"policy_version": policy.version("student")}) for e in episodes()]
+    was_training = policy.model.training
+    report = cached_scoring_probe(policy, rows)
+    assert report["cached_vs_full"]["quantiles_0_50_90_95_99_100"][-1] < 1e-5
+    assert report["full_repeat"]["mean_absolute"] == 0
+    assert policy.model.training == was_training
+    assert report["tokens"] == sum(len(t.target_ids) for e in rows for t in e.turns)
+    policy.close()
+
+
+def test_frozen_replay_compares_probabilities_only_before_target_divergence():
+    from contextlib import nullcontext
+
+    from selfplay_opsd.policy import Generation
+    from selfplay_opsd.task18_numerical import frozen_rollout_replay
+
+    rows = episodes()
+
+    class Policy:
+        config = SimpleNamespace(model=SimpleNamespace(backend="verl"))
+
+        def version(self, role):
+            return rows[0].policy_version
+
+        def active(self, role):
+            return nullcontext()
+
+        def generate(self, prompt, max_tokens, seed, *, greedy):
+            assert greedy is False
+            return Generation([2, 99], [-1.9, -100], "unexecuted")
+
+    report = frozen_rollout_replay(Policy(), rows, 4)
+    assert all(r["identical_prefix_tokens"] == 1 for r in report["turns"])
+    assert all(
+        r["probability_difference_on_identical_prefix"]["max_absolute"]
+        if "max_absolute" in r["probability_difference_on_identical_prefix"]
+        else r["probability_difference_on_identical_prefix"]["quantiles_0_50_90_95_99_100"][-1]
+        < 0.11
+        for r in report["turns"]
+    )
+    with pytest.raises(ValueError, match="1..4"):
+        frozen_rollout_replay(Policy(), rows, 5)

@@ -174,3 +174,151 @@ def audit_updates(policy, cfg, episodes, relative_screen=0.01, cosine_screen=0.9
         policy.model.train(initial_mode)
         if _optimizer_digest(policy.state_dict()) != _optimizer_digest(initial):
             raise ExperimentError("Task 18 audit failed full state restoration")
+
+
+def cached_scoring_probe(policy, episodes):
+    """Teacher force the exact saved IDs incrementally; no sampling or updates."""
+    import torch.nn.functional as F
+
+    if not episodes or any(e.policy_version != policy.version("student") for e in episodes):
+        raise ExperimentError("Cached scoring requires the exact generating snapshot")
+    requests = [
+        (turn.prompt_ids, turn.target_ids) for e in episodes for turn in e.turns if turn.target_ids
+    ]
+    old = [value for e in episodes for turn in e.turns for value in turn.old_logps]
+    frozen = [
+        value for e in episodes for turn in e.turns for value in turn.frozen_unprivileged_logps
+    ]
+    version = policy.version("student")
+    was_training = policy.model.training
+    cached = []
+    with policy.active("student"):
+        try:
+            policy.model.eval()
+            full = [
+                float(value)
+                for scores in policy.score_many(requests)
+                for value in scores.detach().float().cpu().tolist()
+            ]
+            with torch.no_grad():
+                for prompt, targets in requests:
+                    output = policy.model(
+                        input_ids=torch.tensor([prompt], device=policy.device),
+                        attention_mask=torch.ones(
+                            (1, len(prompt)), device=policy.device, dtype=torch.long
+                        ),
+                        position_ids=torch.arange(len(prompt), device=policy.device).unsqueeze(0),
+                        use_cache=True,
+                        logits_to_keep=1,
+                    )
+                    for index, target in enumerate(targets):
+                        cached.append(
+                            float(
+                                -F.cross_entropy(
+                                    output.logits[:, -1].float(),
+                                    torch.tensor([target], device=policy.device),
+                                )
+                            )
+                        )
+                        if index + 1 < len(targets):
+                            output = policy.model(
+                                input_ids=torch.tensor([[target]], device=policy.device),
+                                attention_mask=torch.ones(
+                                    (1, len(prompt) + index + 1),
+                                    device=policy.device,
+                                    dtype=torch.long,
+                                ),
+                                position_ids=torch.tensor(
+                                    [[len(prompt) + index]], device=policy.device
+                                ),
+                                past_key_values=output.past_key_values,
+                                use_cache=True,
+                                logits_to_keep=1,
+                            )
+                    del output
+            repeat = [
+                float(value)
+                for scores in policy.score_many(requests)
+                for value in scores.detach().float().cpu().tolist()
+            ]
+        finally:
+            policy.model.train(was_training)
+    if policy.version("student") != version:
+        raise ExperimentError("Cached scoring mutated model weights")
+    if not len(full) == len(cached) == len(repeat) == len(old) == len(frozen):
+        raise ExperimentError("Cached scoring lost target alignment")
+    outliers = [i for i, (a, b) in enumerate(zip(full, old, strict=True)) if abs(a - b) > 0.2]
+    return {
+        "tokens": len(old),
+        "full_vs_behavior": mismatch_statistics([a - b for a, b in zip(full, old, strict=True)]),
+        "cached_vs_behavior": mismatch_statistics(
+            [a - b for a, b in zip(cached, old, strict=True)]
+        ),
+        "cached_vs_full": mismatch_statistics([a - b for a, b in zip(cached, full, strict=True)]),
+        "full_vs_saved_frozen": mismatch_statistics(
+            [a - b for a, b in zip(full, frozen, strict=True)]
+        ),
+        "full_repeat": mismatch_statistics([a - b for a, b in zip(repeat, full, strict=True)]),
+        "cached_vs_behavior_at_full_outliers": mismatch_statistics(
+            [cached[i] - old[i] for i in outliers]
+        ),
+        "mode": {
+            "attention": getattr(policy.model.config, "_attn_implementation", None),
+            "float32_matmul_precision": torch.get_float32_matmul_precision(),
+            "cuda_tf32": torch.backends.cuda.matmul.allow_tf32,
+            "model_parameter_dtypes": sorted({str(p.dtype) for p in policy.model.parameters()}),
+        },
+        "note": "Exact saved target IDs, including EOS. No constrained decoding, sampling, denominator substitution or optimizer update.",
+    }
+
+
+def frozen_rollout_replay(policy, episodes, maximum=4):
+    """Recreate bounded unprivileged turns in a fresh production rollout engine."""
+    if policy.config.model.backend != "verl" or not 1 <= maximum <= 4:
+        raise ValueError("Frozen rollout replay requires the production sampler and 1..4 turns")
+    candidates = []
+    for episode in episodes:
+        if episode.policy_version != policy.version("student"):
+            raise ExperimentError("Frozen rollout replay snapshot differs")
+        for index, turn in enumerate(episode.turns):
+            if turn.target_ids:
+                error = max(
+                    abs(a - b)
+                    for a, b in zip(turn.old_logps, turn.frozen_unprivileged_logps, strict=True)
+                )
+                candidates.append((error, episode.episode_id, index, episode.seed + index, turn))
+    selected = sorted(candidates, key=lambda row: (-row[0], row[1], row[2]))[:maximum]
+    records = []
+    with policy.active("student"):
+        for _, episode_id, index, seed, turn in selected:
+            output = policy.generate(turn.prompt_ids, len(turn.target_ids), seed, greedy=False)
+            matched = 0
+            for a, b in zip(turn.target_ids, output.ids, strict=False):
+                if a != b:
+                    break
+                matched += 1
+            records.append(
+                {
+                    "episode_id": episode_id,
+                    "turn": index,
+                    "seed": seed,
+                    "original_tokens": len(turn.target_ids),
+                    "new_tokens": len(output.ids),
+                    "identical_target_ids": turn.target_ids == output.ids,
+                    "identical_prefix_tokens": matched,
+                    "probability_difference_on_identical_prefix": mismatch_statistics(
+                        [
+                            a - b
+                            for a, b in zip(
+                                output.logps[:matched], turn.old_logps[:matched], strict=True
+                            )
+                        ]
+                    ),
+                }
+            )
+    return {
+        "turns": records,
+        "new_generated_tokens": sum(r["new_tokens"] for r in records),
+        "selection": "up to four largest saved mismatch turns; original sampling seeds and exact unprivileged prefixes",
+        "note": "No generated action or Python program is executed. Probability comparisons stop at the first differing target ID.",
+    }

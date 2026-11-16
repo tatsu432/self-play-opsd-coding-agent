@@ -8,6 +8,16 @@ procedures to the relevant Markdown documents; keep the README short and current
 
 ## CURRENT — Task 18 implementation and queued diagnostics (2026-11-16)
 
+Numerical job `33575206` completed exit 0 in 473 H200-seconds. On a retained
+mixed batch, diagnostic denominator substitution changed Adam-update cosine to
+0.977223 / relative difference 21.374%, beyond the repeat's 0.3993%; uniform
+controls were within repeat variation. Training-mode/frozen scoring matched all
+3,842 targets. Original denominators remain unchanged. New RL stays disabled;
+the next bounded diagnostic compares cached/full scoring and replays up to four
+original unprivileged turns without executing generated actions. The current
+control selects this new diagnostic stage; original jobs retain their immutable
+commits/control files. The queue snapshot below is historical where superseded.
+
 Task 18 is in progress on `feat/18-interface-signal-bottlenecks`; do not merge it
 as complete until the numerical/interface evidence and research decision are
 finished. See `docs/investigations/task18-status.md`. The new study has a hard
@@ -35,7 +45,7 @@ After completion, fetch and verify identities/checksums/accounting, analyze
 against the existing strict/text cells, then decide native expansion/training.
 A failed predecessor leaves children waiting; reconcile them rather than
 submitting replacements. New student training remains disabled in the control.
-No new GPU result is known. Preserve all Tasks 15–17 artifacts and identities.
+The numerical result above supersedes this initial queue snapshot. Preserve all Tasks 15–17 artifacts and identities.
 
 CPU saved-array work reproduces calibrated-2026's 5.4899 discrepancy and verifies
 495 turn prefixes. Its exact pre-iteration-4 checkpoint was retired; numerical
@@ -43,8 +53,7 @@ replay therefore uses calibrated-2028 batch 10 (mixed) and calibrated-2026 batch
 6 (uniform), restoring their original objective/optimizer states. Saved hidden-
 reward bounds distinguish 8/20 groups versus binary's 7/20, with one guaranteed
 additional group; this is retrospective evidence, not new learning/generalization.
-Local full validation passed 444 tests (20 skipped, 18 deselected); two subsequent
-reward-analysis tests passed. Ruff lint/format and mypy (55 files) passed.
+Local full validation passed 449 tests (20 skipped, 18 deselected), including reward-analysis and cached-scoring tests. Ruff lint/format and mypy (55 files) passed.
 
 ## CURRENT — Task 17 complete (2026-11-11)
 

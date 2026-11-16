@@ -31,11 +31,12 @@ See the [A/B results](docs/investigations/task15-final-results.md) and
 [transfer, checkpoint and compute analysis](docs/investigations/task16-generalization-checkpoint-decision.md)
 for uncertainty, limitations and the research decision.
 
-Task 18's numerical replay and normalized-diff/Qwen-native interface comparisons
-are queued under a new 12 H200-hour cap. Saved traces reproduce the largest
-numerical discrepancy; hidden-training reward bounds distinguish one additional
-group among 20 examined. Numerical causal effects and new interface outcomes
-remain pending. See the [Task 18 status and procedures](docs/investigations/task18-status.md).
+Task 18 reproduced a material numerical effect: a diagnostic denominator change
+altered one restored Adam update by 21.4%, versus 0.4% repeat variation. A bounded
+backend check and normalized-diff/Qwen-native interface comparisons are underway
+under a new 12 H200-hour cap. Saved hidden-reward bounds distinguish one extra
+group among 20 examined. New RL remains disabled pending the numerical decision.
+See the [Task 18 status and procedures](docs/investigations/task18-status.md).
 
 ## Getting started
 
