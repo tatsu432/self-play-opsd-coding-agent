@@ -141,6 +141,12 @@ def interfaces(manifest_path: Path, pool_path: Path):
             reused = load_native_probe(
                 reference | {"run_dir": str(probe_root)}, cell, set(cell["task_ids"][:8])
             )
+            if (
+                set(cell["new_task_ids"]) != set(cell["task_ids"]) - {e.task_id for e in reused}
+                or complete.get("reused_episodes") != 8
+                or complete.get("generated_episodes") != 32
+            ):
+                raise ValueError("Native new/reused exposure differs")
             by_task = {e["task_id"]: e for e in episodes}
             if any(by_task[e.task_id] != e.model_dump(mode="json") for e in reused):
                 raise ValueError("Copied native probe trajectory differs")
