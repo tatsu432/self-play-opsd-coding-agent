@@ -8,6 +8,18 @@ procedures to the relevant Markdown documents; keep the README short and current
 
 ## CURRENT — Task 18 implementation and queued diagnostics (2026-11-16)
 
+Both compatible native v2 probes completed: base/trained 7/8 each versus
+plain JSON 4/8 each, all 40/32 calls valid, no rejected edits; 208/186 seconds.
+Both expansion gates passed. Full native base/trained **33589271 / 33589312**,
+runs `02c9b1ee439d1828fa9636ab` / `4e84c405144439f65a0e38ba`, were submitted
+once from `9047078` and are pending in sequence. They reuse the completed eight
+episodes and generate only the remaining 32 per snapshot. Both pending walls
+30→20 minutes retain original half-hour reservations and ledger records.
+Never duplicate. Completed new GPU allocation is 3,009 seconds / 0.835833 hours.
+All other Task 18 jobs are terminal. New RL stays disabled after material
+numerical sensitivity. Local suite: 452 passed, 20 skipped, 18 deselected;
+Ruff lint/format and mypy passed. Finish full native evidence and decision before merge.
+
 Corrected native v2 base/trained jobs **33587596 / 33587602**, controller runs
 `bcab3d7c1784f7df90862f6b` / `c540fda607c5768db29fc04d`, were submitted once
 from `b8144b0`. They are pending in sequence. Each pending wall was reduced

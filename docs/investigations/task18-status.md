@@ -2,6 +2,23 @@
 
 ## Current status (2026-11-16)
 
+Both corrected native eight-family probes completed exit 0, with 7/8 repairs
+each versus paired plain JSON's 4/8 each. All 40/32 native calls were valid;
+zero edits were rejected. Their charges are 208/186 H200-seconds. Both frozen
+expansion gates pass. Completed new GPU allocation totals **3,009 seconds
+(0.835833 hours)**, including the v1 compatibility failure.
+
+Full native base/trained allocations **33589271 / 33589312**, controller runs
+**`02c9b1ee439d1828fa9636ab` / `4e84c405144439f65a0e38ba`**, were submitted
+once from `9047078`. They reuse the checksum-bound eight episodes and generate
+only 32 additional episodes each. Both are pending; trained is afterok base.
+Both pending walls were reduced 30→20 minutes using measured probes, retaining
+their original half-hour reservations and ledger adjustments. Never duplicate.
+No new CPU audit was needed: verifier dependencies match the accepted v2 check.
+The control checksum freezes both source artifact hashes and the paired gate
+decision. Local validation now passes 452 tests (20 skipped, 18 deselected),
+Ruff lint/format and mypy. See the newer results document for measured evidence.
+
 Corrected native v2 base/trained jobs are **33587596 / 33587602**, controller
 runs **`bcab3d7c1784f7df90862f6b` / `c540fda607c5768db29fc04d`**, executed
 from `b8144b0`. Both are PENDING; trained has afterok base. Both pending wall
