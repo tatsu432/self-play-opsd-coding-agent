@@ -16,11 +16,13 @@ round-tripped to the original correct source. Five figure templates rendered
 to PNG and PDF with synthetic test values. GPU image construction, numerical
 qualification, measured costs, evaluation and method comparisons are pending.
 
-Bouchet reached the SSH server and returned
-`Permission denied (keyboard-interactive)` during noninteractive inspection.
-The controller socket was absent, and the interactive Duo push timed out.
-Task 19 has no observed Slurm allocation, W&B study record or benchmark
-result. Allocated compute for this implementation turn was zero H200-hours.
+Yale authentication succeeded. CPU image check job `33706240` completed exit 0.
+Trainer image build job `33706414` completed exit 0. H200 qualification job
+`33707814`, controller run `170dd97ea69313f0badb1268`, was submitted once from
+commit `122604ebbe432da8225aab3eb4315fbbbeeeff12`. It is pending on priority.
+The shared ledger reserves four H200-hours and has no actual GPU charge yet.
+Inspect this existing job and its ledger before any submission. No Task 19
+benchmark or training result is available.
 
 ## Yale execution
 
