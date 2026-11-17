@@ -7,16 +7,20 @@ lock and SIF identity. Its initial control has empty calibration and
 qualification hashes. The controller requires real evidence before launching
 the five-arm study.
 
-Local CPU checks exercise the native protocol, objective, joint step and
-checkpoint restoration. An isolated environment with Transformers 5.13.0,
+Local validation passed 462 tests, with 20 skipped and 18 deselected. Ruff
+lint and format, mypy, and the Task 19 lock check passed. CPU tests cover the
+native protocol, objective, joint step and checkpoint restoration. An isolated environment with Transformers 5.13.0,
 PEFT 0.19.1 and PyTorch 2.10.0 exercised the real Qwen3.5 model classes with
-tiny CPU weights and the pinned tokenizer. GPU image construction, numerical
+tiny CPU weights and the pinned tokenizer. All 14 frozen reference edits
+round-tripped to the original correct source. Five figure templates rendered
+to PNG and PDF with synthetic test values. GPU image construction, numerical
 qualification, measured costs, evaluation and method comparisons are pending.
 
 Bouchet reached the SSH server and returned
 `Permission denied (keyboard-interactive)` during noninteractive inspection.
-The controller socket was absent. Task 19 has no observed Slurm allocation,
-W&B study record or benchmark result.
+The controller socket was absent, and the interactive Duo push timed out.
+Task 19 has no observed Slurm allocation, W&B study record or benchmark
+result. Allocated compute for this implementation turn was zero H200-hours.
 
 ## Yale execution
 
