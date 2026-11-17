@@ -26,6 +26,13 @@ GPU_VRAM_GB = {"h100": 80, "h200": 141, "rtx_pro_6000_blackwell": 96}
 SAFE_NAME = re.compile(r"^[A-Za-z0-9_.-]+$")
 SHA = re.compile(r"^[0-9a-f]{40}$")
 DIGEST = re.compile(r"^[0-9a-f]{64}$")
+TASK19_OPERATIONS = {
+    "task19-qualify",
+    "task19-qualify-uncached",
+    "task19-base",
+    "task19-pilot",
+    "task19-train",
+}
 ACTIVE = {"PENDING", "CONFIGURING", "RUNNING", "COMPLETING", "SUSPENDED", "REQUEUED"}
 
 
@@ -409,7 +416,7 @@ def verified_checkpoint(payload: dict) -> str:
     )
     run_dir = (
         artifact_dir(payload)
-        if payload["operation"] in {"task17-student", "task18-student"}
+        if payload["operation"] in TASK19_OPERATIONS | {"task17-student", "task18-student"}
         else p["runs"] / study / f"{payload['method']}-seed{payload['seed']}"
     )
     latest = json.loads((run_dir / "checkpoints/latest.json").read_text())
@@ -429,6 +436,16 @@ def check_checkpoint(checkpoint: Path, payload: dict) -> dict:
         if Path(filename).name != filename or sha256(checkpoint / filename) != expected:
             raise ValueError("Latest checkpoint verification failed")
     metadata = json.loads((checkpoint / "metadata.json").read_text())
+    if payload.get("operation") in TASK19_OPERATIONS:
+        identity = metadata.get("identity", {})
+        if (
+            identity.get("study") != payload["study_id"]
+            or identity.get("arm") != payload["method"]
+            or metadata.get("manifests_hash") != payload["manifests_hash"]
+            or identity.get("execution", {}).get("image") != payload["image_sha256"]
+        ):
+            raise ValueError("Task 19 checkpoint study, dataset or image differs")
+        return metadata
     if (
         payload.get("runtime_identity")
         and metadata.get("runtime_identity") != payload["runtime_identity"]
@@ -514,6 +531,11 @@ def recover(payload: dict) -> dict:
     if state in ACTIVE or state == "UNKNOWN":
         return {"submitted": False, "state": state}
     planned = bool(payload.get("explicit_continue")) and state in {"COMPLETED", "TIMEOUT"}
+    if payload.get("operation") in TASK19_OPERATIONS:
+        if completed_job_is_final(payload):
+            return {"submitted": False, "state": state, "reason": "scientifically_complete"}
+        if payload["operation"] in {"task19-qualify", "task19-qualify-uncached"}:
+            return {"submitted": False, "state": state, "reason": "qualification_requires_review"}
     if requested_stop is not None and not planned:
         return {"submitted": False, "state": state, "reason": "not_a_clean_continuation"}
     if state == "COMPLETED" and not planned:
@@ -547,7 +569,7 @@ def recover(payload: dict) -> dict:
         "target_iterations", payload.get("iterations", 0)
     ):
         return {"submitted": False, "state": state, "reason": "scientifically_complete"}
-    task15_timeout = state == "TIMEOUT" and payload["operation"] in {
+    task15_timeout = state == "TIMEOUT" and payload["operation"] in TASK19_OPERATIONS | {
         "task15-online",
         "task15-stabilize",
     }
@@ -730,6 +752,20 @@ def can_supersede_empty_pilot(payload: dict, prior: dict, owner: dict, artifact:
 def completed_job_is_final(payload: dict) -> bool:
     """Task 15 training may continue only with an explicitly verified checkpoint."""
     operation = payload["operation"]
+    if operation in TASK19_OPERATIONS:
+        directory = artifact_dir(payload)
+        if operation.startswith("task19-qualify"):
+            complete = directory / "calibrated-control.json"
+        elif operation == "task19-base":
+            complete = directory / "complete-base.json"
+        else:
+            endpoint = 32
+            if operation == "task19-train":
+                endpoint = json.loads((directory.parent / "main-control.json").read_text())[
+                    "endpoint"
+                ]
+            complete = directory / f"complete-{endpoint}.json"
+        return complete.is_file()
     return operation not in {"pilot", "train"} and not (
         operation in {"task15-online", "task15-stabilize", "task17-student", "task18-student"}
         and payload.get("resume")
@@ -919,6 +955,14 @@ def submit(payload: dict) -> dict:
             slot = method_slot(method)
             peers = "ABCD" if method == "D" else method + "D"
             checked_slots = [slot, parent_slot, legacy_slot, *[method_slot(m) for m in peers]]
+        if payload["operation"] in {"task19-pilot", "task19-train"}:
+            other = "task19-train" if payload["operation"] == "task19-pilot" else "task19-pilot"
+            other_slot = (
+                p["state"]
+                / "slots"
+                / (hashlib.sha256(f"{artifact}:{other}".encode()).hexdigest() + ".json")
+            )
+            checked_slots.append(other_slot)
         for candidate_slot in dict.fromkeys(checked_slots):
             if not candidate_slot.exists():
                 continue
@@ -965,6 +1009,8 @@ def submit(payload: dict) -> dict:
                         "state": states[-1] if states else "UNKNOWN",
                         "run_id": owner["run_id"],
                     }
+                if payload["operation"] in TASK19_OPERATIONS and candidate_slot == slot:
+                    raise ValueError("Task 19 stage already has an immutable controller run")
                 if payload["operation"] in {"train", "pilot", "task15-online", "task15-stabilize"}:
                     if can_supersede_empty_pilot(payload, prior, owner, artifact):
                         ledger["supersedes_preflight_only_run"] = owner["run_id"]
@@ -1027,6 +1073,12 @@ def submit(payload: dict) -> dict:
             "SELFPLAY_RUN_ID": payload["run_id"],
             "SELFPLAY_RESUME": (payload.get("resume") or "").replace(str(p["runs"]), "/runs", 1),
             "SELFPLAY_OUTPUT": payload.get("output") or "",
+            "SELFPLAY_TASK19_RUN_ID": payload["run_id"]
+            if payload["operation"] in TASK19_OPERATIONS
+            else "",
+            "SELFPLAY_TASK19_COMMIT": payload["commit"]
+            if payload["operation"] in TASK19_OPERATIONS
+            else "",
             "SELFPLAY_TASK15_FREEZE": payload.get("task15_freeze") or "",
             "SELFPLAY_AUDIT_SOURCE": payload.get("audit_source") or "",
             "SELFPLAY_DECISION": payload.get("decision") or "",
@@ -1164,6 +1216,15 @@ def artifact_dir(payload: dict) -> Path:
         return runs / "repair-diagnosis-2026-task14-probe-v1" / payload["run_id"]
     if operation in {"task17-student", "task18-student"}:
         return runs / payload["study_id"] / f"{payload['effective_method']}-seed{payload['seed']}"
+    if operation in TASK19_OPERATIONS:
+        suffix = {
+            "task19-qualify": "qualification",
+            "task19-qualify-uncached": "qualification-uncached",
+            "task19-base": "base",
+            "task19-pilot": f"{payload['method']}-seed2026",
+            "task19-train": f"{payload['method']}-seed2026",
+        }[operation]
+        return runs / study / suffix
     if operation.startswith("task18-"):
         return runs / study / payload["run_id"]
     if operation.startswith("task17-"):
@@ -1224,7 +1285,15 @@ def task18_budget(payload: dict) -> bool:
     ).startswith("repair-selfplay-2026-task18-")
 
 
+def task19_budget(payload: dict) -> bool:
+    return payload.get("operation") in TASK19_OPERATIONS or payload.get("study_id", "").startswith(
+        "repair-selfplay-2026-task19-"
+    )
+
+
 def readiness_limit(payload: dict) -> int:
+    if task19_budget(payload):
+        return 80
     if task18_budget(payload):
         return 12
     if not task17_budget(payload):
@@ -1242,6 +1311,8 @@ def budget_path(payload: dict) -> Path:
         raise ValueError("Unsafe study ID")
     # Readiness authorization spans protocol/study revisions. Never let a new
     # scientific identity create a fresh allowance.
+    if task19_budget(payload):
+        return workspace(payload) / "state" / "task19-budget.json"
     if task18_budget(payload):
         return workspace(payload) / "state" / "task18-budget.json"
     if task17_budget(payload):
@@ -1256,7 +1327,9 @@ def refreshed_budget(payload: dict) -> dict:
     limit = readiness_limit(payload)
     budget = json.loads(path.read_text()) if path.exists() else {"limit": limit, "reservations": {}}
     authorization = (
-        "cpsc4880-task18-12h-v1"
+        "cpsc4880-task19-80h-v1"
+        if task19_budget(payload)
+        else "cpsc4880-task18-12h-v1"
         if task18_budget(payload)
         else f"cpsc4880-task17-{limit}h-v1"
         if task17
@@ -1269,7 +1342,9 @@ def refreshed_budget(payload: dict) -> dict:
     # so a legacy writer cannot silently fork the allowance after migration.
     imported = budget.setdefault("legacy_sources", {})
     for legacy in (
-        [] if task17 or task18_budget(payload) else sorted(path.parent.glob("budget-*.json"))
+        []
+        if task17 or task18_budget(payload) or task19_budget(payload)
+        else sorted(path.parent.glob("budget-*.json"))
     ):
         if legacy == path:
             continue
@@ -1329,6 +1404,9 @@ def refreshed_budget(payload: dict) -> dict:
             # Keep the reservation unless the actual allocation can be verified.
             if gpu:
                 item["charged"] = int(parts[2]) * int(gpu[1]) / 3600
+                if task19_budget(payload) and len(parts) >= 5:
+                    item["allocation_start"] = parts[4]
+                    item["allocated_gpu_seconds"] = int(parts[2]) * int(gpu[1])
             elif (
                 len(parts) >= 5
                 and parts[2] == "0"
@@ -1353,14 +1431,22 @@ def reserve_budget(payload: dict, token: str):
         limit = float(payload["readiness_budget"])
         if task18_budget(payload) and limit != 12:
             raise ValueError("Task 18 has a hard 12 GPU-hour ceiling")
-        if not 0 < limit <= 24:
+        if task19_budget(payload):
+            if limit != 80:
+                raise ValueError("Task 19 uses its shared 80 H200-hour ceiling")
+        elif not 0 < limit <= 24:
             raise ValueError("Readiness budget must be positive and at most 24 GPU-hours")
         budget = refreshed_budget(payload)
         if budget["reservations"] and budget["limit"] != limit:
             raise ValueError("Cannot change the recorded readiness budget")
         hours, minutes, seconds = map(int, payload["time"].split(":"))
         reserved = payload["gpu_count"] * (hours + minutes / 60 + seconds / 3600)
-        if budget["committed_gpu_hours"] + reserved > limit + 1e-9:
+        spend_cap = limit
+        if task19_budget(payload):
+            control = workspace(payload) / "runs" / payload["study_id"] / "main-plan.json"
+            if control.is_file():
+                spend_cap = min(limit, json.loads(control.read_text())["cap"])
+        if budget["committed_gpu_hours"] + reserved > spend_cap + 1e-9:
             raise ValueError("Readiness GPU-hour budget exhausted; no job submitted")
         if payload["operation"] == "pilot":
             spent = sum(
@@ -1662,7 +1748,10 @@ def study_state(payload: dict) -> dict:
     def read(path):
         return json.loads(path.read_text()) if path.is_file() else {}
 
-    images = {kind: read(base / "images" / f"{kind}.json") for kind in ("worker", "trainer")}
+    images = {
+        kind: read(base / "images" / f"{kind}.json")
+        for kind in ("worker", "trainer", "task19-trainer")
+    }
     evidence = runs / "readiness" / study
     identity = payload.get("runtime_identity")
 
@@ -1841,6 +1930,77 @@ def study_state(payload: dict) -> dict:
     }
 
 
+def check_task19(payload: dict) -> None:
+    operation = payload["operation"]
+    path = artifact_dir(payload)
+    control = paths(payload)["checkout"] / Path(payload["settings"]).parent / "task19-control.json"
+    wall = re.fullmatch(r"([0-9]{2}):([0-5][0-9]):00", payload.get("time", ""))
+    minutes = int(wall[1]) * 60 + int(wall[2]) if wall else 0
+    if (
+        payload.get("account") != "cpsc4880"
+        or not payload.get("study_id", "").startswith("repair-selfplay-2026-task19-")
+        or payload.get("gpu_count") != 1
+        or payload.get("gpu_type") != "h200"
+        or payload.get("readiness_budget") != 80
+        or payload.get("seed") != 2026
+        or payload.get("method") not in {"control", "A", "B", "C", "D"}
+        or not 30 <= minutes <= (360 if operation == "task19-base" else 240)
+        or payload.get("output") != f"/runs/{payload['study_id']}/{path.name}"
+        or sha256(control) != payload.get("task19_control_sha256")
+    ):
+        raise ValueError("Task 19 requires the bounded H200 allocation and pinned initial control")
+    if not study_state(payload)["gates"]["worker"]:
+        raise ValueError("Task 19 requires accepted worker evidence")
+    if (
+        operation in {"task19-qualify", "task19-qualify-uncached", "task19-base"}
+        and payload["method"] != "control"
+    ):
+        raise ValueError("Task 19 qualification and base require the shared control initialization")
+    if operation == "task19-qualify-uncached":
+        cached = path.parent / "qualification"
+        if not (cached / "uncached-control.json").is_file() or json.loads(
+            (cached / "numerical.json").read_text()
+        ).get("passed"):
+            raise ValueError("Uncached fallback requires a recorded cached qualification failure")
+    if operation in {"task19-base", "task19-pilot", "task19-train"}:
+        choices = [
+            path.parent / folder
+            for folder in ("qualification", "qualification-uncached")
+            if (path.parent / folder / "calibrated-control.json").is_file()
+        ]
+        if len(choices) != 1:
+            raise ValueError("Task 19 requires one executed calibration and qualification")
+        evidence = choices[0]
+        cfg = json.loads((evidence / "calibrated-control.json").read_text())
+        if (
+            sha256(evidence / "calibration.json") != cfg.get("calibration_hash")
+            or sha256(evidence / "numerical.json") != cfg.get("qualification_hash")
+            or not json.loads((evidence / "numerical.json").read_text()).get("passed")
+        ):
+            raise ValueError("Task 19 qualification evidence differs")
+        if operation != "task19-base" and not (path.parent / "base/complete-base.json").is_file():
+            raise ValueError("Task 19 requires completed matched base evaluations before training")
+        if operation == "task19-train":
+            main = json.loads((path.parent / "main-control.json").read_text())
+            endpoint = main.pop("endpoint", None)
+            cfg.pop("endpoint", None)
+            if (
+                main != cfg
+                or type(endpoint) is not int
+                or not 64 <= endpoint <= 1024
+                or endpoint % 32
+            ):
+                raise ValueError("Task 19 common endpoint or scientific settings differ")
+            pilot = json.loads((path / "complete-32.json").read_text())
+            info = path / "checkpoints" / pilot["checkpoint"]
+            if (
+                not re.fullmatch(r"\d{6}", pilot["checkpoint"])
+                or sha256(info / "complete.json") != pilot["checkpoint_sha256"]
+            ):
+                raise ValueError("Task 19 main requires a verified pilot checkpoint")
+            check_checkpoint(info, payload)
+
+
 def precheck(payload: dict):
     operation = payload["operation"]
     stop = payload.get("stop_after_iteration", 0)
@@ -1880,7 +2040,7 @@ def precheck(payload: dict):
         "backend-check",
     }:
         raise ValueError("scavenge_gpu is enabled only for trusted stateless diagnostics")
-    if operation not in {
+    if operation not in TASK19_OPERATIONS and operation not in {
         "image-convert",
         "image-build",
         "method-smoke",
@@ -1936,7 +2096,7 @@ def precheck(payload: dict):
         raise ValueError("Unsupported submission operation")
     if operation == "image-build":
         validate_source_input(payload)
-        if payload["image_metadata"]["kind"] == "trainer":
+        if payload["image_metadata"]["kind"] in {"trainer", "task19-trainer"}:
             proof = workspace(payload) / "images/build-check.json"
             report = json.loads(proof.read_text()) if proof.is_file() else {}
             if not report.get("ready") or report.get("source_commit") != payload["commit"]:
@@ -1996,7 +2156,7 @@ def precheck(payload: dict):
         ):
             raise ValueError("Rollout parity requires accepted one-H200 backend and bounded budget")
         return
-    uses_worker = operation in {
+    uses_worker = operation in TASK19_OPERATIONS or operation in {
         "worker-check",
         "runtime-check",
         "train",
@@ -2044,6 +2204,9 @@ def precheck(payload: dict):
             payload.get("worker_sha256", "")
         ):
             raise ValueError("Pinned worker SIF missing")
+    if operation in TASK19_OPERATIONS:
+        check_task19(payload)
+        return
     if operation == "worker-check":
         prior_path = paths(payload)["runs"] / "readiness" / payload["study_id"] / "worker.json"
         if prior_path.is_file():
@@ -2489,7 +2652,7 @@ def validate_source_input(payload: dict):
         ).encode()
     ).hexdigest()
     if (
-        metadata.get("kind") not in {"trainer", "build-check"}
+        metadata.get("kind") not in {"trainer", "task19-trainer", "build-check"}
         or metadata.get("build_mode") != "yale"
         or metadata.get("source_commit") != payload["commit"]
         or metadata.get("platform") != "linux/amd64"
@@ -2865,6 +3028,121 @@ def reuse_study(payload: dict) -> dict:
     }
 
 
+def task19_budget_status(payload: dict) -> dict:
+    if not re.fullmatch(r"repair-selfplay-2026-task19-[A-Za-z0-9_.-]+", payload["study_id"]):
+        raise ValueError("Invalid Task 19 study")
+    with locked(workspace(payload) / "state/.budget.lock"):
+        return refreshed_budget(payload)
+
+
+def publish_task19_endpoint(payload: dict) -> dict:
+    base = workspace(payload)
+    study = payload["study_id"]
+    cap = payload["cap"]
+    if type(cap) not in {int, float} or not 0 < cap <= 80:
+        raise ValueError("Use the verified total Yale allowance, up to 80 H200-hours")
+    root = base / "runs" / study
+    with locked(base / "state/.submit.lock"):
+        budget = task19_budget_status(payload)
+        if (root / "main-control.json").is_file():
+            plan = json.loads((root / "main-plan.json").read_text())
+            if plan["cap"] != cap:
+                raise ValueError("Task 19 already has a frozen common endpoint")
+            return plan | {"control": json.loads((root / "main-control.json").read_text())}
+        qualified = [
+            path
+            for path in (root / "qualification", root / "qualification-uncached")
+            if (path / "calibrated-control.json").is_file()
+        ]
+        if len(qualified) != 1:
+            raise ValueError("Expected one successful Task 19 qualification")
+        control = json.loads((qualified[0] / "calibrated-control.json").read_text())
+
+        def stage(operation: str, directory: Path, marker: str) -> tuple[dict, float, str]:
+            slot = hashlib.sha256(f"{directory}:{operation}".encode()).hexdigest()
+            run_id = json.loads((base / "state/slots" / f"{slot}.json").read_text())["run_id"]
+            state = status(payload | {"run_id": run_id})
+            if (
+                state["ledger"].get("pending_intent")
+                or not state["attempts"]
+                or state["attempts"][-1]["scheduler"]["state"] != "COMPLETED"
+            ):
+                raise ValueError(
+                    "Pilot/base allocation lacks reconciled successful Slurm completion"
+                )
+            costs = [
+                item["charged"]
+                for item in budget["reservations"].values()
+                if item["run_id"] == run_id
+            ]
+            if not costs or any(cost is None for cost in costs):
+                raise ValueError("Endpoint freeze requires actual allocated GPU time")
+            proof = json.loads((directory / marker).read_text())
+            return proof, sum(costs), run_id
+
+        basemarker, base_hours, base_run = stage("task19-base", root / "base", "complete-base.json")
+        pilots = {}
+        initial = basemarker["identity"]["initial"]
+        for arm in ("control", "A", "B", "C", "D"):
+            directory = root / f"{arm}-seed2026"
+            pilot, hours, run_id = stage("task19-pilot", directory, "complete-32.json")
+            name = pilot["checkpoint"]
+            if not re.fullmatch(r"\d{6}", name) or pilot["episodes"] != 32 or hours <= 0:
+                raise ValueError("Pilot exposure, checkpoint name or actual allocation differs")
+            cp = directory / "checkpoints" / name
+            if sha256(cp / "complete.json") != pilot["checkpoint_sha256"]:
+                raise ValueError("Pilot checkpoint checksum differs")
+            spec = read_ledger(base / "state" / f"{run_id}.json")["specification"]
+            meta = check_checkpoint(cp, spec)
+            identity = meta["identity"]
+            if (
+                identity != pilot["identity"]
+                or identity["initial"] != initial
+                or any(
+                    identity[key] != basemarker["identity"][key]
+                    for key in (
+                        "study",
+                        "science",
+                        "data",
+                        "worker",
+                        "execution",
+                    )
+                )
+            ):
+                raise ValueError("Pilot/base initialization or common identity differs")
+            pilots[arm] = {
+                "controller_run": run_id,
+                "gpu_hours": hours,
+                "checkpoint": name,
+                "checkpoint_sha256": pilot["checkpoint_sha256"],
+            }
+        student_rate = max(pilots[arm]["gpu_hours"] for arm in ("control", "A", "B")) / 32
+        alignment_rate = max(pilots[arm]["gpu_hours"] for arm in ("C", "D")) / 32
+        fixed_hours = 5 * base_hours
+        remaining = (cap - budget["committed_gpu_hours"]) / 1.2 - fixed_hours
+        block_hours = 32 * (3 * student_rate + 2 * alignment_rate)
+        endpoint = min(1024, 32 + 32 * int(max(0.0, remaining) / block_hours))
+        plan = {
+            "study": study,
+            "cap": cap,
+            "spent_gpu_hours": budget["committed_gpu_hours"],
+            "base": {"controller_run": base_run, "gpu_hours": base_hours},
+            "pilots": pilots,
+            "endpoint": endpoint,
+            "ready": endpoint > 32,
+            "planned_evaluation_hours": fixed_hours,
+            "student_hours_per_1000_episodes": student_rate * 1000,
+            "alignment_hours_per_1000_episodes": alignment_rate * 1000,
+            "contingency": 0.2,
+        }
+        if endpoint > 32:
+            main_control = control | {"endpoint": endpoint}
+            write_json(root / "main-plan.json", plan)
+            write_json(root / "main-control.json", main_control)
+            return plan | {"control": main_control}
+        return plan
+
+
 COMMANDS = {
     "inspect": inspect,
     "context": context,
@@ -2886,6 +3164,8 @@ COMMANDS = {
     "reuse_allocation": reuse_allocation,
     "reuse_study": reuse_study,
     "publish_resource_plan": publish_resource_plan,
+    "task19_budget_status": task19_budget_status,
+    "publish_task19_endpoint": publish_task19_endpoint,
 }
 
 

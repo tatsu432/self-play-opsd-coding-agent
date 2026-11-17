@@ -497,9 +497,14 @@ def source_image(env: dict):
         != metadata["source_commit"]
     ):
         raise ValueError("Source build checkout mismatch")
-    checked_image(str(root / "uv.lock"), metadata["lock_sha256"])
-    if metadata["kind"] == "trainer":
-        checked_image(str(root / "docker/trainer.Dockerfile"), metadata["dockerfile_sha256"])
+    task19 = metadata["kind"] == "task19-trainer"
+    directory = "/opt/task19" if task19 else "/opt/selfplay"
+    python = directory + "/.venv/bin/python"
+    lock_path = "docker/task19/uv.lock" if task19 else "uv.lock"
+    checked_image(str(root / lock_path), metadata["lock_sha256"])
+    if metadata["kind"] in {"trainer", "task19-trainer"}:
+        dockerfile = "task19.Dockerfile" if task19 else "trainer.Dockerfile"
+        checked_image(str(root / "docker" / dockerfile), metadata["dockerfile_sha256"])
     definition = Path(env["SELFPLAY_BUILD_DEFINITION"])
     checked_image(str(definition), metadata["definition_sha256"])
     target, manifest = Path(env["SELFPLAY_IMAGE_TARGET"]), Path(env["SELFPLAY_IMAGE_MANIFEST"])
@@ -511,10 +516,10 @@ def source_image(env: dict):
     check = metadata["kind"] == "build-check"
     cache = Path(env["SELFPLAY_CACHE"]).parent / "image-builds"
     cache.mkdir(parents=True, exist_ok=True)
-    minimum = (2 if check else 150) * 1024**3
+    minimum = (2 if check else 50 if task19 else 150) * 1024**3
     if shutil.disk_usage(cache).free < minimum:
         raise ValueError(f"Insufficient build scratch capacity: need {minimum // 1024**3} GiB")
-    if shutil.disk_usage(target.parent).free < (1 if check else 30) * 1024**3:
+    if shutil.disk_usage(target.parent).free < (1 if check else 10 if task19 else 30) * 1024**3:
         raise ValueError("Insufficient project capacity for completed SIF")
     started = time.monotonic()
     staged = target.with_name(f".{env['SLURM_JOB_ID']}.pending.sif")
@@ -582,7 +587,7 @@ def source_image(env: dict):
                 "--cleanenv",
                 "--no-home",
                 "--pwd",
-                "/opt/selfplay",
+                directory,
                 str(staged),
             ]
             if check:
@@ -594,7 +599,7 @@ def source_image(env: dict):
                         "--cleanenv",
                         "--no-home",
                         "--pwd",
-                        "/opt/selfplay",
+                        directory,
                         str(staged),
                     ],
                     env=process_env,
@@ -605,7 +610,7 @@ def source_image(env: dict):
                 python_version = subprocess.check_output(
                     command
                     + [
-                        "/opt/selfplay/.venv/bin/python",
+                        python,
                         "-c",
                         "import platform; print(platform.python_version())",
                     ],
@@ -615,21 +620,31 @@ def source_image(env: dict):
                 ).strip()
                 if python_version.split(".")[:2] != ["3", "12"]:
                     raise ValueError("Trainer requires the pinned base's Python 3.12 interpreter")
+                packages = (
+                    (("torch", "2.10.0"), ("transformers", "5.13.0"), ("peft", "0.19.1"))
+                    if task19
+                    else (
+                        ("torch", "2.8.0"),
+                        ("transformers", "4.57.1"),
+                        ("peft", "0.17.1"),
+                        ("verl", "0.7.1"),
+                        ("vllm", "0.11.0"),
+                    )
+                )
                 validation = (
-                    "import importlib.metadata as m, torch, transformers, peft, verl, vllm; "
+                    "import importlib.metadata as m, torch, transformers, peft; "
+                    + (
+                        "from transformers import Qwen3_5ForConditionalGeneration; "
+                        if task19
+                        else "import verl, vllm; "
+                    )
                     + "; ".join(
                         f"assert m.version({package!r}).split('+')[0]=={expected!r}"
-                        for package, expected in (
-                            ("torch", "2.8.0"),
-                            ("transformers", "4.57.1"),
-                            ("peft", "0.17.1"),
-                            ("verl", "0.7.1"),
-                            ("vllm", "0.11.0"),
-                        )
+                        for package, expected in packages
                     )
                 )
                 subprocess.run(
-                    command + ["/opt/selfplay/.venv/bin/python", "-c", validation],
+                    command + [python, "-c", validation],
                     env=process_env,
                     check=True,
                     timeout=180,
@@ -638,12 +653,13 @@ def source_image(env: dict):
                     command + ["uv", "--version"], env=process_env, text=True, timeout=30
                 ).split()[:2] != ["uv", "0.8.15"]:
                     raise ValueError("Trainer uv version mismatch")
-                subprocess.run(
-                    command + ["/opt/selfplay/.venv/bin/selfplay", "--help"],
-                    env=process_env,
-                    check=True,
-                    timeout=180,
-                )
+                if not task19:
+                    subprocess.run(
+                        command + ["/opt/selfplay/.venv/bin/selfplay", "--help"],
+                        env=process_env,
+                        check=True,
+                        timeout=180,
+                    )
             # Measure retained scratch use before deleting this build's context,
             # extracted image and temporary cache. Filesystem changes by other
             # jobs may affect the free-space delta; it is not a peak guarantee.
@@ -912,6 +928,13 @@ def task13_command_args(env: dict) -> list[str]:
         "--output",
         env["SELFPLAY_OUTPUT"],
     ]
+    if operation.startswith("task19-"):
+        return (
+            ["python", "/workspace/scripts/task19_experiment.py"]
+            + common
+            + ["--operation", operation.removeprefix("task19-"), "--arm", method]
+            + (["--resume", env["SELFPLAY_RESUME"]] if env.get("SELFPLAY_RESUME") else [])
+        )
     if operation.startswith("task18-"):
         return (
             prefix
@@ -1184,7 +1207,7 @@ def execute(env: dict) -> int:
         "readiness-check",
     }:
         raise ValueError("Unsupported allocation operation")
-    uses_worker = operation in {
+    uses_worker = operation.startswith("task19-") or operation in {
         "worker-check",
         "runtime-check",
         "train",
@@ -1421,6 +1444,9 @@ def execute(env: dict) -> int:
             "SLURM_CPUS_PER_TASK",
             "SLURM_JOB_GPUS",
             "SLURM_JOB_ACCOUNT",
+            "SLURM_JOB_END_TIME",
+            "SELFPLAY_TASK19_RUN_ID",
+            "SELFPLAY_TASK19_COMMIT",
         ):
             if key in process_env and key not in overrides:
                 overrides[key] = process_env[key]
@@ -1441,7 +1467,7 @@ def execute(env: dict) -> int:
             "--settings",
             "/workspace/" + env["SELFPLAY_SETTINGS"],
         ]
-        if operation in {
+        if operation.startswith("task19-") or operation in {
             "task13-probe",
             "task14-probe",
             "task14-student",

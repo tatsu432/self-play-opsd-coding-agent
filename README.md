@@ -32,7 +32,12 @@ qualification. These results do not establish new external generalization.
 See [Task 18 results](docs/investigations/task18-results.md), the
 [current research decision](docs/investigations/task18-research-decision.md)
 and [completion record](docs/task_completion/18-implemented-interface-signal-bottlenecks.md).
-C/D, SFT and adapter transfer remain deferred.
+Task 19 implements the next study with Qwen3.5-4B, native student thinking,
+one shared LoRA, and Dr. GRPO. The planned seed-2026 arms are a Dr. GRPO
+control and four OPSD/proposer-reward variants. Yale authentication is required
+for GPU qualification and the five runs. See the
+[Task 19 plan](docs/plan/19-fix-plan.md) and
+[execution status](docs/investigations/task19-status.md).
 
 ## Getting started
 

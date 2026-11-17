@@ -42,6 +42,13 @@ TASK13_MODELS = {
 }
 GPU_PARTITIONS = {"h100": "gpu_h100", "h200": "gpu_h200", "rtx_pro_6000_blackwell": "gpu_rtx6000"}
 GPU_VRAM = {"h100": 80, "h200": 141, "rtx_pro_6000_blackwell": 96}
+TASK19_OPERATIONS = {
+    "task19-qualify",
+    "task19-qualify-uncached",
+    "task19-base",
+    "task19-pilot",
+    "task19-train",
+}
 ACTIVE = {"PENDING", "CONFIGURING", "RUNNING", "COMPLETING", "SUSPENDED", "REQUEUED"}
 TRANSIENT = {"PREEMPTED", "NODE_FAIL", "BOOT_FAIL"}
 
@@ -137,6 +144,8 @@ class YaleSSH:
             "reuse_allocation",
             "reuse_study",
             "publish_resource_plan",
+            "task19_budget_status",
+            "publish_task19_endpoint",
             "logs",
         }:
             raise HpcError("Unsupported remote operation")
@@ -396,8 +405,9 @@ def run_payload(
     stop_after_iteration: int | None = None,
     seed: int | None = None,
     afterok_run: str | None = None,
+    task19_wall_minutes: int | None = None,
 ) -> dict:
-    if operation not in {
+    if operation not in TASK19_OPERATIONS and operation not in {
         "backend-check",
         "rollout-parity",
         "numerical-audit",
@@ -503,7 +513,31 @@ def run_payload(
     ):
         raise HpcError("Node exclusions require trusted diagnostics and explicit node names")
     partition = partition or GPU_PARTITIONS[chosen_gpu]
-    cfg = load_config(settings, method=method, hardware_profile=profile, seed=seed)
+    task19 = operation in TASK19_OPERATIONS
+    if task19_wall_minutes is not None and not task19:
+        raise HpcError("Task 19 wall minutes apply only to its scientific allocations")
+    if task19:
+        from selfplay_opsd.task19 import ARMS
+
+        if (
+            method not in ARMS
+            or alias != ALIASES[0]
+            or chosen_gpu != "h200"
+            or profile != "single_gpu_80gb"
+        ):
+            raise HpcError("Task 19 requires a supported arm and one cpsc4880 H200")
+        if (
+            operation in {"task19-qualify", "task19-qualify-uncached", "task19-base"}
+            and method != "control"
+        ):
+            raise HpcError("Task 19 qualification and base use the shared control initialization")
+        remote.call("inspect")  # Current Slurm/account snapshot before preview or submission.
+    cfg = load_config(
+        settings,
+        method="B" if task19 and method == "control" else method,
+        hardware_profile=profile,
+        seed=seed,
+    )
     if seed is not None and (
         not operation.startswith(("task15-", "task17-", "task18-"))
         or seed not in {2026, 2027, 2028}
@@ -541,7 +575,7 @@ def run_payload(
         pinned_commit = state["reports"]["freeze"].get("execution_commit")
         if pinned_commit:
             snap["commit"] = pinned_commit
-    trainer = state["images"]["trainer"]
+    trainer = state["images"].get("task19-trainer", {}) if task19 else state["images"]["trainer"]
     worker = state["images"]["worker"]
     worker_setup_id = worker_setup_id or state["reports"]["worker"].get("worker_setup_id", "")
     image = image or trainer.get("path", "")
@@ -588,7 +622,7 @@ def run_payload(
         raise HpcError("Checkpoint iteration is outside the study budget")
     if cfg.hardware.min_vram_gib > GPU_VRAM[chosen_gpu]:
         raise HpcError("GPU VRAM is below the selected hardware profile")
-    gpu_operation = operation in {
+    gpu_operation = task19 or operation in {
         "backend-check",
         "rollout-parity",
         "numerical-audit",
@@ -944,6 +978,30 @@ def run_payload(
             payload["max_continuations"] = 8
             payload["iterations"] = payload["target_iterations"] = cfg.iterations
 
+    if task19:
+        control = ROOT / relative_settings.parent / "task19-control.json"
+        suffix = {
+            "task19-qualify": "qualification",
+            "task19-qualify-uncached": "qualification-uncached",
+            "task19-base": "base",
+            "task19-pilot": f"{method}-seed2026",
+            "task19-train": f"{method}-seed2026",
+        }[operation]
+        maximum = 360 if operation == "task19-base" else 240
+        minutes = task19_wall_minutes if task19_wall_minutes is not None else maximum
+        if not 30 <= minutes <= maximum:
+            raise HpcError("Task 19 wall time must be within the stage allocation bounds")
+        hours, minutes = divmod(minutes, 60)
+        payload.update(
+            readiness_budget=80,
+            output=f"/runs/{cfg.study_id}/{suffix}",
+            task19_control_sha256=sha256(control),
+            time=f"{hours:02d}:{minutes:02d}:00",
+            max_continuations=16,
+            target_iterations=cfg.iterations,
+            cpus=cfg.hardware.cpu_workers + cfg.sandbox.cpus,
+            memory_gib=cfg.hardware.host_ram_gib + math.ceil(cfg.sandbox.memory_mib / 1024),
+        )
     if operation == "task14-student":
         if (
             method not in {"A", "B", "C", "D"}
@@ -1565,6 +1623,49 @@ def reuse_study_command(
     typer.echo(json.dumps(remote.call("reuse_study", request), indent=2))
 
 
+@app.command("task19-budget")
+def task19_budget_command(settings: Path = Path("configs/task19-yale.yaml")):
+    """Reconcile Task 19 reservations against Slurm accounting."""
+    remote = YaleSSH()
+    context = remote_context(remote, remote.alias)
+    output(
+        remote.call(
+            "task19_budget_status",
+            {
+                "storage_root": context["storage_root"],
+                "study_id": load_config(settings).study_id,
+            },
+        )
+    )
+
+
+@app.command("task19-freeze")
+def task19_freeze_command(
+    settings: Path = Path("configs/task19-yale.yaml"),
+    cap: Annotated[float, typer.Option(help="Total verified Yale GPU-hour allowance")] = 80.0,
+    export: Annotated[
+        Path | None, typer.Option(help="Write the frozen control to this local file")
+    ] = None,
+):
+    """Select the common endpoint from completed matched pilots and actual charges."""
+    remote = YaleSSH()
+    remote.call("inspect")
+    context = remote_context(remote, remote.alias)
+    report = remote.call(
+        "publish_task19_endpoint",
+        {
+            "storage_root": context["storage_root"],
+            "study_id": load_config(settings).study_id,
+            "cap": cap,
+        },
+    )
+    if export is not None and report.get("ready"):
+        from selfplay_opsd.storage import atomic_json
+
+        atomic_json(export, report["control"])
+    output(report)
+
+
 @app.command("sync")
 def sync_command(
     alias: Annotated[str, typer.Option()] = ALIASES[0], settings: Path = Path("configs/yale.yaml")
@@ -1594,6 +1695,7 @@ def submit_command(
     stop_after_iteration: int | None = None,
     seed: int | None = None,
     afterok_run: str | None = None,
+    task19_wall_minutes: int | None = None,
     dry_run: bool = False,
     alias: str = ALIASES[0],
 ):
@@ -1619,6 +1721,7 @@ def submit_command(
         stop_after_iteration=stop_after_iteration,
         seed=seed,
         afterok_run=afterok_run,
+        task19_wall_minutes=task19_wall_minutes,
     )
     output(remote.call("preview" if dry_run else "submit", payload))
 

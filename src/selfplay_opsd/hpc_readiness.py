@@ -198,12 +198,14 @@ def register(app: typer.Typer):
         force: bool = False,
     ):
         """Build worker first; --kind all also attempts the much larger trainer."""
-        if kind not in {"worker", "trainer", "all"}:
-            raise HpcError("Image kind must be worker, trainer or all")
+        if kind not in {"worker", "trainer", "task19-trainer", "all"}:
+            raise HpcError("Image kind must be worker, trainer, task19-trainer or all")
         if build_mode not in {"docker", "yale"}:
             raise HpcError("Build mode must be docker or yale")
-        if (check_only or build_mode == "yale") and kind != "trainer":
+        if (check_only or build_mode == "yale") and kind not in {"trainer", "task19-trainer"}:
             raise HpcError("Yale source builds/checks apply to the trainer only")
+        if kind == "task19-trainer" and build_mode != "yale":
+            raise HpcError("The Task 19 image uses the Yale source builder")
         if check_only and build_mode != "yale":
             raise HpcError("--check-only requires --build-mode yale")
         if build_mode == "yale" and (build_root or builder or alias != ALIASES[0]):
@@ -219,6 +221,7 @@ def register(app: typer.Typer):
             alias == ALIASES[0]
             and cfg.sandbox.resource_backend == "slurm"
             and not force
+            and kind != "task19-trainer"
             and build_root is None
             and builder is None
         ):
@@ -252,7 +255,11 @@ def register(app: typer.Typer):
             )
 
             with tempfile.TemporaryDirectory() as temporary:
-                dockerfile = ROOT / "docker/trainer.Dockerfile"
+                dockerfile = (
+                    ROOT
+                    / "docker"
+                    / ("task19.Dockerfile" if kind == "task19-trainer" else "trainer.Dockerfile")
+                )
                 if check_only:
                     dockerfile = Path(temporary) / "check.Dockerfile"
                     dockerfile.write_text(BUILD_CHECK_DOCKERFILE)

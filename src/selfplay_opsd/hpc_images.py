@@ -210,14 +210,15 @@ def source_build(
     definition = definition.replace(
         "%post\n", "%post\nset -eu\n" + "\n".join(environment) + "\n", 1
     )
+    task19 = dockerfile.name == "task19.Dockerfile"
     metadata = {
         "schema_version": 2,
-        "kind": "build-check" if check else "trainer",
+        "kind": "build-check" if check else "task19-trainer" if task19 else "trainer",
         "build_mode": "yale",
         "platform": "linux/amd64",
         "source_commit": commit,
         "dockerfile_sha256": file_hash(dockerfile),
-        "lock_sha256": file_hash(root / "uv.lock"),
+        "lock_sha256": file_hash(root / ("docker/task19/uv.lock" if task19 else "uv.lock")),
         "converter": {"name": "spython", "version": CONVERTER_VERSION},
         "base_image": base,
         "bootstrap_reference": recipe.fromHeader,

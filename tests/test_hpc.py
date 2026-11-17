@@ -665,3 +665,21 @@ def test_main_preview_uses_frozen_main_budget_and_resource_plan(
     else:
         assert payload["commit"] == "a" * 40
         assert payload["signal_seconds"] == 300
+
+
+def test_task19_budget_is_shared_across_revisions_and_excludes_task18(tmp_path, monkeypatch):
+    remote = remote_module()
+    monkeypatch.setattr(remote, "workspace", lambda _: tmp_path)
+    payload = {
+        "operation": "task19-pilot",
+        "study_id": "repair-selfplay-2026-task19-v1",
+        "gpu_count": 1,
+        "readiness_budget": 80,
+        "time": "04:00:00",
+        "run_id": "pilot1",
+    }
+    remote.reserve_budget(payload, "task19-test")
+    successor = payload | {"study_id": "repair-selfplay-2026-task19-v2"}
+    assert remote.refreshed_budget(successor)["committed_gpu_hours"] == 4
+    historical = {"study_id": "repair-selfplay-2026-task18-v1"}
+    assert remote.refreshed_budget(historical)["committed_gpu_hours"] == 0
