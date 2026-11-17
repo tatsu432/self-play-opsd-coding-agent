@@ -22,7 +22,11 @@ Trainer image build job `33706414` completed exit 0. H200 qualification job
 commit `122604ebbe432da8225aab3eb4315fbbbeeeff12`. It failed before worker startup because the allocation dispatcher rejected the
 Task 19 operation. Slurm charged 2 H200-seconds. The dispatcher is corrected
 and its local tests passed.
-Inspect this existing job and its ledger before any submission. No Task 19
+Replacement qualification job `33720283`, controller run
+`01a3a1ca9cbf435ad60584db`, was submitted once from
+`2436cedded42bbdd4b224d6272f057cf234906e3` after a passing preview. It is
+pending on priority with a four-H200-hour reservation. Inspect this existing
+job and its ledger before any submission. No Task 19
 benchmark or training result is available.
 
 ## Yale execution
