@@ -19,8 +19,9 @@ qualification, measured costs, evaluation and method comparisons are pending.
 Yale authentication succeeded. CPU image check job `33706240` completed exit 0.
 Trainer image build job `33706414` completed exit 0. H200 qualification job
 `33707814`, controller run `170dd97ea69313f0badb1268`, was submitted once from
-commit `122604ebbe432da8225aab3eb4315fbbbeeeff12`. It is pending on priority.
-The shared ledger reserves four H200-hours and has no actual GPU charge yet.
+commit `122604ebbe432da8225aab3eb4315fbbbeeeff12`. It failed before worker startup because the allocation dispatcher rejected the
+Task 19 operation. Slurm charged 2 H200-seconds. The dispatcher is corrected
+and its local tests passed.
 Inspect this existing job and its ledger before any submission. No Task 19
 benchmark or training result is available.
 

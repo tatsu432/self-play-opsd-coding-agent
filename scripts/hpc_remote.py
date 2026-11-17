@@ -1010,6 +1010,21 @@ def submit(payload: dict) -> dict:
                         "run_id": owner["run_id"],
                     }
                 if payload["operation"] in TASK19_OPERATIONS and candidate_slot == slot:
+                    if (
+                        payload["operation"] == "task19-qualify"
+                        and states[-1] == "FAILED"
+                        and not artifact.exists()
+                        and "ValueError: Unsupported allocation operation"
+                        in logs(
+                            {
+                                "storage_root": payload["storage_root"],
+                                "run_id": owner["run_id"],
+                                "lines": 100,
+                            }
+                        ).get("tail", "")
+                    ):
+                        ledger["supersedes_preflight_only_run"] = owner["run_id"]
+                        continue
                     raise ValueError("Task 19 stage already has an immutable controller run")
                 if payload["operation"] in {"train", "pilot", "task15-online", "task15-stabilize"}:
                     if can_supersede_empty_pilot(payload, prior, owner, artifact):

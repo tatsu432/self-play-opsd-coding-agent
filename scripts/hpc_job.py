@@ -1155,7 +1155,7 @@ def task13_command_args(env: dict) -> list[str]:
 
 def execute(env: dict) -> int:
     operation = env["SELFPLAY_OPERATION"]
-    if operation not in {
+    if not operation.startswith("task19-") and operation not in {
         "backend-check",
         "rollout-parity",
         "numerical-audit",
