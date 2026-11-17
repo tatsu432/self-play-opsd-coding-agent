@@ -461,8 +461,10 @@ def run_payload(
         "readiness-check",
     }:
         raise HpcError("Unsupported submission operation")
-    if method not in "ABCD" or len(method) != 1:
-        raise HpcError("Method must be A, B, C, or D")
+    if method not in {"A", "B", "C", "D"} and not (
+        operation in TASK19_OPERATIONS and method == "control"
+    ):
+        raise HpcError("Method must be A, B, C, D, or the Task 19 control")
     if profile not in PROFILES or profile == "cpu_debug":
         raise HpcError("Choose a production hardware profile")
     if operation == "pilot" and method != "D":
