@@ -817,6 +817,60 @@ def can_supersede_empty_pilot(payload: dict, prior: dict, owner: dict, artifact:
     )
 
 
+def can_supersede_empty_task19_base(
+    payload: dict, prior: dict, owner: dict, artifact: Path
+) -> bool:
+    """Replace an explicitly identified terminal base that saved no scientific state."""
+    ledger, attempts = prior["ledger"], prior["attempts"]
+    old = ledger.get("specification", {})
+    if (
+        payload.get("supersede_empty_base") != owner.get("run_id")
+        or payload.get("operation") != "task19-base"
+        or old.get("operation") != "task19-base"
+        or ledger.get("pending_intent")
+        or len(attempts) != 1
+        or attempts[-1]["scheduler"]["state"] not in {"CANCELLED", "FAILED", "TIMEOUT"}
+        or any(path.is_file() or path.is_symlink() for path in artifact.rglob("*"))
+        or not SHA.fullmatch(old.get("commit", ""))
+        or not SHA.fullmatch(payload.get("commit", ""))
+        or old["commit"] == payload["commit"]
+    ):
+        return False
+    keys = (
+        "study_id",
+        "method",
+        "seed",
+        "scientific_hash",
+        "manifests_hash",
+        "runtime_identity",
+        "image_sha256",
+        "worker_sha256",
+        "gpu_type",
+        "profile",
+        "task19_control_sha256",
+        "common_config",
+    )
+    if any(key not in old or key not in payload or old[key] != payload[key] for key in keys):
+        return False
+    new_checkout = paths(payload)["checkout"]
+    old_checkout = new_checkout.parent / old["commit"]
+    names = (
+        "src/selfplay_opsd/task19.py",
+        "src/selfplay_opsd/task19_policy.py",
+        "src/selfplay_opsd/task19_protocol.py",
+        "src/selfplay_opsd/task19_qualification.py",
+        "src/selfplay_opsd/task19_rollout.py",
+        "src/selfplay_opsd/task19_train.py",
+        "scripts/task19_experiment.py",
+        "docker/task19/uv.lock",
+        "docker/task19.Dockerfile",
+    )
+    try:
+        return all(sha256(old_checkout / name) == sha256(new_checkout / name) for name in names)
+    except OSError:
+        return False
+
+
 def completed_job_is_final(payload: dict) -> bool:
     """Task 15 training may continue only with an explicitly verified checkpoint."""
     operation = payload["operation"]
@@ -1078,6 +1132,9 @@ def submit(payload: dict) -> dict:
                         "run_id": owner["run_id"],
                     }
                 if payload["operation"] in TASK19_OPERATIONS and candidate_slot == slot:
+                    if can_supersede_empty_task19_base(payload, prior, owner, artifact):
+                        ledger["supersedes_empty_base_run"] = owner["run_id"]
+                        continue
                     if (
                         payload["operation"] == "task19-qualify"
                         and states[-1] == "FAILED"

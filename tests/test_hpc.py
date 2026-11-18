@@ -739,6 +739,60 @@ def test_task19_remote_enforces_the_same_training_wall_limit(tmp_path, monkeypat
         remote.check_task19(payload | {"time": "12:01:00"})
 
 
+def test_empty_base_replacement_requires_terminal_empty_and_identical_science(
+    tmp_path, monkeypatch
+):
+    remote = remote_module()
+    old_commit, new_commit = "a" * 40, "b" * 40
+    old_root, new_root = tmp_path / old_commit, tmp_path / new_commit
+    names = (
+        "src/selfplay_opsd/task19.py",
+        "src/selfplay_opsd/task19_policy.py",
+        "src/selfplay_opsd/task19_protocol.py",
+        "src/selfplay_opsd/task19_qualification.py",
+        "src/selfplay_opsd/task19_rollout.py",
+        "src/selfplay_opsd/task19_train.py",
+        "scripts/task19_experiment.py",
+        "docker/task19/uv.lock",
+        "docker/task19.Dockerfile",
+    )
+    for root in (old_root, new_root):
+        for name in names:
+            file = root / name
+            file.parent.mkdir(parents=True, exist_ok=True)
+            file.write_text(name)
+    monkeypatch.setattr(remote, "paths", lambda _: {"checkout": new_root})
+    keys = (
+        "study_id",
+        "method",
+        "seed",
+        "scientific_hash",
+        "manifests_hash",
+        "runtime_identity",
+        "image_sha256",
+        "worker_sha256",
+        "gpu_type",
+        "profile",
+        "task19_control_sha256",
+        "common_config",
+    )
+    common = dict.fromkeys(keys, "same") | {"operation": "task19-base"}
+    old = common | {"commit": old_commit}
+    payload = common | {"commit": new_commit, "supersede_empty_base": "prior"}
+    prior = {"ledger": {"specification": old}, "attempts": [{"scheduler": {"state": "CANCELLED"}}]}
+    artifact = tmp_path / "base"
+    artifact.mkdir()
+    assert remote.can_supersede_empty_task19_base(payload, prior, {"run_id": "prior"}, artifact)
+    prior["attempts"][0]["scheduler"]["state"] = "RUNNING"
+    assert not remote.can_supersede_empty_task19_base(payload, prior, {"run_id": "prior"}, artifact)
+    prior["attempts"][0]["scheduler"]["state"] = "CANCELLED"
+    (artifact / "state.json").write_text("{}")
+    assert not remote.can_supersede_empty_task19_base(payload, prior, {"run_id": "prior"}, artifact)
+    (artifact / "state.json").unlink()
+    (new_root / names[0]).write_text("changed")
+    assert not remote.can_supersede_empty_task19_base(payload, prior, {"run_id": "prior"}, artifact)
+
+
 def test_task19_qualification_continue_requires_saved_progress_and_is_single_use(
     tmp_path, monkeypatch
 ):

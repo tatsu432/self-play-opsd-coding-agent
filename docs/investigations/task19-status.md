@@ -278,10 +278,9 @@ three student turns; a simple token-rate extrapolation suggests calibration
 alone could take over 20 hours, but this is only an early estimate and does not
 account for changing context lengths or processing costs.
 After four v6 student turns were saved, a `USR1` safe-stop request was sent to
-job `33796439` to preserve the remaining budget while the FP32 comparison is
-running. The stop request file exists; the current turn must finish before the
-job can exit and save its next checkpoint. Do not assume it is already terminal
-or submit a continuation while it remains active.
+job `33796439` to preserve the remaining budget while the FP32 comparison ran.
+It exited cleanly after saving a fifth turn, with health `stopped`, in 4,499
+H200-seconds. Preserve the checkpoint and ledger; do not rerun it.
 V7 started and saved its first 16 training-only episodes in approximately
 19 minutes of allocation. FP32 cached execution passed the unchanged numerical
 limits: 64 comparisons, zero replay maximum and clip changes, relative gradient
@@ -298,8 +297,7 @@ tasks within each group had equal measured solve rates. The nonzero proposer
 calibration gradient therefore includes valid-versus-invalid discrimination;
 it does not establish meaningful discrimination among valid tasks. Preserve
 this limitation and assess proposer rewards in the bounded C/D pilots, as the
-specification requires. V6's requested safe stop remains pending until its
-current turn completes.
+specification requires.
 The FP32 base evaluation was submitted once after a passing preview as job
 `33799453` / controller run `662c76b708905dfc47d55b2f` from immutable commit
 `4376159e6ee92d734ce4ea11833c9514bf415e48`, with a six-hour reservation.
@@ -310,4 +308,7 @@ before model initialization; a bounded connectivity check timed out. Future
 Task 19 allocations are configured to load the already-qualified pinned model
 and tokenizer from the shared cache offline, failing explicitly if unavailable.
 The existing base job retains its original immutable code and must be inspected;
-this change does not alter or duplicate that active allocation.
+this change does not alter or duplicate that active allocation. An explicit
+empty-base recovery guard permits a replacement only after the prior job is
+terminal, saved no files, and its scientific settings, dependencies and source
+files match. The old run and its allocation remain in the shared ledger.

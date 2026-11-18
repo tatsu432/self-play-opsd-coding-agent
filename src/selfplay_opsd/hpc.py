@@ -415,6 +415,7 @@ def run_payload(
     seed: int | None = None,
     afterok_run: str | None = None,
     task19_wall_minutes: int | None = None,
+    supersede_empty_base: str | None = None,
 ) -> dict:
     if operation not in TASK19_OPERATIONS and operation not in {
         "backend-check",
@@ -527,6 +528,10 @@ def run_payload(
     task19 = operation in TASK19_OPERATIONS
     if task19_wall_minutes is not None and not task19:
         raise HpcError("Task 19 wall minutes apply only to its scientific allocations")
+    if supersede_empty_base is not None and (
+        operation != "task19-base" or not re.fullmatch(r"[a-f0-9]{24}", supersede_empty_base)
+    ):
+        raise HpcError("Empty-base recovery requires the prior Task 19 base run ID")
     if task19:
         from selfplay_opsd.task19 import ARMS
 
@@ -928,6 +933,8 @@ def run_payload(
         "logging_mode": cfg.logging.mode,
         "telemetry_identity": telemetry_identity(),
     }
+    if supersede_empty_base is not None:
+        payload["supersede_empty_base"] = supersede_empty_base
     if operation == "diagnose":
         payload["output"] = f"/runs/{cfg.study_id}/diagnostics/{checkpoint_iteration:06d}"
     if operation == "task13-probe":
@@ -1711,6 +1718,7 @@ def submit_command(
     seed: int | None = None,
     afterok_run: str | None = None,
     task19_wall_minutes: int | None = None,
+    supersede_empty_base: str | None = None,
     dry_run: bool = False,
     alias: str = ALIASES[0],
 ):
@@ -1737,6 +1745,7 @@ def submit_command(
         seed=seed,
         afterok_run=afterok_run,
         task19_wall_minutes=task19_wall_minutes,
+        supersede_empty_base=supersede_empty_base,
     )
     output(remote.call("preview" if dry_run else "submit", payload))
 
