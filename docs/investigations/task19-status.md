@@ -225,3 +225,7 @@ The related draft `7492261` checks the v5 batch and numerical checksums,
 scientific settings, model, worker, dataset, adapter and unchanged rollout,
 policy and objective files before reusing the batch in a future v6 namespace.
 These drafts remain isolated and have not been submitted.
+The optional v6 configuration is prepared at `fbcdff0`; the broader draft
+checks passed 468 tests with 20 skipped and 18 deselected, plus Ruff and mypy.
+Reusing the frozen batch still requires the draft's runtime identity checks
+and a fresh numerical qualification under its changed execution code.
