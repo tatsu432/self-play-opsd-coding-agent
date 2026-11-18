@@ -179,4 +179,8 @@ but its continuation code sorts saved task keys and may change calibration
 order. Do not resume it blindly. A tested ordering fix is isolated at
 `d7ded10` on `wip/task19-qualification-recovery`; review an identity-bound
 migration or another safe resolution against its saved evidence before any
-continuation. Numerical and calibration phases may still exceed one allocation.
+continuation. A separate guarded first-wave reordering utility and tests are at
+`6a74126` on that draft branch; it requires a verified terminal controller job,
+archives the original bytes and rejects ambiguous order. It has not been run
+on the live checkpoint. Numerical and calibration phases may still exceed one
+allocation.
