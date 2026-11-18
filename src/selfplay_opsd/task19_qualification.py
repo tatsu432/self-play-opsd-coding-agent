@@ -9,16 +9,16 @@ from pathlib import Path
 
 import torch
 
-from selfplay_opsd.core import digest, keyed_seed, read_json
+from selfplay_opsd.core import OracleSpec, TaskSpec, digest, keyed_seed, read_json
 from selfplay_opsd.objectives import alignment, difficulty
 from selfplay_opsd.storage import atomic_json, file_hash, restore_rng, rng_state
 from selfplay_opsd.task19 import GROUP, Task19Control, centered_rewards, clipped_sum
 from selfplay_opsd.task19_policy import STUDENT_SAMPLING
-from selfplay_opsd.task19_rollout import Proposal, Repair
-from selfplay_opsd.task19_train import Study, joint_step, norm
+from selfplay_opsd.task19_rollout import Proposal, Repair, privilege, repair
+from selfplay_opsd.task19_train import SegmentStop, Study, joint_step, norm
 
 
-def qualify(study: Study) -> Task19Control:
+def qualify(study: Study, should_stop=lambda: False) -> Task19Control:
     output = study.output
     cfg = study.cfg
     references = study.references()
@@ -63,14 +63,94 @@ def qualify(study: Study) -> Task19Control:
         expected = None
         proposed = [{"source": "fresh_uncached", "reused_groups": 0}]
         before_caps = {"reused_episodes": 0}
-    for _ in range(5):
+    progress_path = output / "qualification-progress.json"
+    pending_tasks = {}
+    completed_waves = 0
+    if progress_path.is_file():
+        progress = read_json(progress_path)
+        if progress["identity"] != study.identity or progress["snapshot"] != study.snapshot:
+            raise ValueError("Qualification progress identity differs")
+        groups = [[Proposal.model_validate(row) for row in group] for group in progress["groups"]]
+        rolls = {
+            key: [Repair.model_validate(row) for row in rows]
+            for key, rows in progress["repairs"].items()
+        }
+        pending_tasks = {
+            key: (TaskSpec.model_validate(row["task"]), OracleSpec.model_validate(row["oracle"]))
+            for key, row in progress["tasks"].items()
+        }
+        study.seen = set(progress["seen"])
+        study.proposal_groups = progress["proposal_groups"]
+        completed_waves = progress["completed_waves"]
+        if not 0 <= completed_waves <= 5:
+            raise ValueError("Qualification progress wave count differs")
+        for task_id, rows in rolls.items():
+            if len(rows) > GROUP or (len(rows) < GROUP and task_id not in pending_tasks):
+                raise ValueError("Qualification progress contains an incomplete group")
+            for slot, saved_repair in enumerate(rows):
+                seed = keyed_seed(cfg.seed, "student", study.iteration, task_id, slot)
+                if saved_repair.task_id != task_id or saved_repair.seed != seed:
+                    raise ValueError("Qualification progress episode identity differs")
+                if any(
+                    turn.teacher_prompt is None
+                    or turn.teacher_logps is None
+                    or turn.frozen_student_logps is None
+                    or len(turn.logps) != len(turn.ids)
+                    or len(turn.teacher_logps) != len(turn.ids)
+                    or len(turn.frozen_student_logps) != len(turn.ids)
+                    for turn in saved_repair.turns
+                ):
+                    raise ValueError("Qualification progress has incomplete teacher scores")
+
+    def save_progress() -> None:
+        atomic_json(
+            progress_path,
+            {
+                "identity": study.identity,
+                "snapshot": study.snapshot,
+                "groups": [[row.model_dump(mode="json") for row in group] for group in groups],
+                "repairs": {
+                    key: [row.model_dump(mode="json") for row in rows]
+                    for key, rows in rolls.items()
+                },
+                "tasks": {
+                    key: {
+                        "task": task.model_dump(mode="json"),
+                        "oracle": oracle.model_dump(mode="json"),
+                    }
+                    for key, (task, oracle) in pending_tasks.items()
+                },
+                "seen": sorted(study.seen),
+                "proposal_groups": study.proposal_groups,
+                "completed_waves": completed_waves,
+            },
+        )
+
+    if not progress_path.is_file():
+        save_progress()
+    for _ in range(completed_waves, 5):
         mixed = any(0 < sum(row.success for row in values) < GROUP for values in rolls.values())
-        if mixed:
+        if mixed and not pending_tasks:
             break
-        extra_groups, tasks, _ = study.collect(4)
-        extra_rolls, _ = study.rollouts(tasks, distill=True)
-        groups.extend(extra_groups)
-        rolls.update(extra_rolls)
+        if not pending_tasks:
+            if should_stop():
+                raise SegmentStop("Qualification stopped before proposal collection")
+            extra_groups, pending_tasks, _ = study.collect(4)
+            groups.extend(extra_groups)
+            save_progress()
+        for task_id, (task, oracle) in pending_tasks.items():
+            rows = rolls.setdefault(task_id, [])
+            for slot in range(len(rows), GROUP):
+                if should_stop():
+                    raise SegmentStop("Qualification stopped between saved episodes")
+                seed = keyed_seed(cfg.seed, "student", study.iteration, task_id, slot)
+                repair_row = repair(study.policy, study.sandbox, cfg, task, oracle, seed)
+                privilege(study.policy, cfg, oracle, repair_row)
+                rows.append(repair_row)
+                save_progress()
+        pending_tasks = {}
+        completed_waves += 1
+        save_progress()
         atomic_json(
             output / "frozen-training-batch.json",
             {

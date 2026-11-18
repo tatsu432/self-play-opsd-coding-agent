@@ -535,7 +535,66 @@ def recover(payload: dict) -> dict:
         if completed_job_is_final(payload):
             return {"submitted": False, "state": state, "reason": "scientifically_complete"}
         if payload["operation"] in {"task19-qualify", "task19-qualify-uncached"}:
-            return {"submitted": False, "state": state, "reason": "qualification_requires_review"}
+            if not planned:
+                return {
+                    "submitted": False,
+                    "state": state,
+                    "reason": "qualification_requires_review",
+                }
+            progress = Path(ledger.get("run_dir", "")) / "qualification-progress.json"
+            health_path = progress.parent / "state/health.json"
+            if not progress.is_file() or not health_path.is_file():
+                return {
+                    "submitted": False,
+                    "state": state,
+                    "reason": "qualification_progress_missing",
+                }
+            health = json.loads(health_path.read_text())
+            if health.get("allocation") != ledger["attempts"][-1]["job_id"] or health.get(
+                "phase"
+            ) not in ({"stopped"} if state == "COMPLETED" else {"stopped", "running"}):
+                return {
+                    "submitted": False,
+                    "state": state,
+                    "reason": "qualification_requires_review",
+                }
+            saved = json.loads(progress.read_text())
+            if not saved.get("identity") or not saved.get("snapshot"):
+                return {
+                    "submitted": False,
+                    "state": state,
+                    "reason": "qualification_progress_invalid",
+                }
+            with locked(path.with_suffix(".lock")):
+                current = read_ledger(path)
+                previous_job = ledger["attempts"][-1]["job_id"]
+                if (
+                    current["attempts"][-1]["job_id"] != previous_job
+                    or current.get("recovery_from_job") == previous_job
+                    or current.get("continuations", 0) >= payload.get("max_continuations", 0)
+                ):
+                    return {
+                        "submitted": False,
+                        "state": state,
+                        "reason": "concurrent_or_limited_recovery",
+                    }
+                current["continuations"] = current.get("continuations", 0) + 1
+                current["recovery_from_job"] = previous_job
+                current.setdefault("qualification_recoveries", []).append(
+                    {
+                        "job_id": previous_job,
+                        "progress_sha256": sha256(progress),
+                    }
+                )
+                write_json(path, current)
+            result = submit(
+                {
+                    **payload,
+                    "resume": str(progress),
+                    "time": payload.get("continuation_time", payload["time"]),
+                }
+            )
+            return {**result, "state": state, "resume": str(progress)}
     if requested_stop is not None and not planned:
         return {"submitted": False, "state": state, "reason": "not_a_clean_continuation"}
     if state == "COMPLETED" and not planned:

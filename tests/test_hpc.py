@@ -683,3 +683,38 @@ def test_task19_budget_is_shared_across_revisions_and_excludes_task18(tmp_path, 
     assert remote.refreshed_budget(successor)["committed_gpu_hours"] == 4
     historical = {"study_id": "repair-selfplay-2026-task18-v1"}
     assert remote.refreshed_budget(historical)["committed_gpu_hours"] == 0
+
+
+def test_task19_qualification_continue_requires_saved_progress_and_is_single_use(
+    tmp_path, monkeypatch
+):
+    remote = remote_module()
+    monkeypatch.setattr(remote, "workspace", lambda _: tmp_path)
+    monkeypatch.setattr(remote, "job_state", lambda _: {"state": "COMPLETED"})
+    monkeypatch.setattr(remote, "completed_job_is_final", lambda _: False)
+    submitted = []
+    monkeypatch.setattr(remote, "submit", lambda p: submitted.append(p) or {"submitted": True})
+    run = tmp_path / "runs/qualification"
+    (run / "state").mkdir(parents=True)
+    (run / "state/health.json").write_text(json.dumps({"phase": "stopped", "allocation": "123"}))
+    ledger = tmp_path / "state/run1.json"
+    ledger.parent.mkdir()
+    ledger.write_text(
+        json.dumps({"identity": "same", "run_dir": str(run), "attempts": [{"job_id": "123"}]})
+    )
+    payload = {
+        "storage_root": str(tmp_path),
+        "run_id": "run1",
+        "identity": "same",
+        "operation": "task19-qualify",
+        "max_continuations": 2,
+        "time": "04:00:00",
+        "explicit_continue": True,
+    }
+    assert remote.recover(payload)["reason"] == "qualification_progress_missing"
+    progress = run / "qualification-progress.json"
+    progress.write_text(json.dumps({"identity": {"id": "fixture"}, "snapshot": "snapshot"}))
+    assert remote.recover(payload)["submitted"] is True
+    assert submitted[0]["resume"] == str(progress)
+    assert remote.recover(payload)["reason"] == "concurrent_or_limited_recovery"
+    assert len(submitted) == 1

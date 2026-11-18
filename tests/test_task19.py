@@ -199,3 +199,91 @@ def test_isolated_gradient_measurement_preserves_production_gradients(tmp_path):
     assert parameter.grad.tolist() == [0.5, 0.25]
     assert not policy.optimizer.state
     assert parameter.tolist() == [1.0, 2.0]
+
+
+def test_qualification_resumes_saved_episodes_without_resampling(tmp_path, monkeypatch):
+    import selfplay_opsd.task19_qualification as qualification
+    from selfplay_opsd.core import OracleSpec, TaskSpec
+    from selfplay_opsd.task19_qualification import qualify
+    from selfplay_opsd.task19_rollout import Repair
+    from selfplay_opsd.task19_train import SegmentStop
+
+    task = TaskSpec(
+        task_id="t",
+        parent_id="p",
+        split="train",
+        specification="s",
+        initial_source="x",
+        entry_point="f",
+        public_tests="",
+        source_hash="h",
+        mutation_seed=1,
+    )
+    oracle = OracleSpec(
+        task_id="t",
+        correct_source="x",
+        inverse_patch="",
+        public_cases=[],
+        hidden_cases=[],
+        provenance={},
+    )
+    calls = []
+
+    def fake_repair(policy, sandbox, cfg, task, oracle, seed):
+        calls.append(seed)
+        success = len(calls) == 1
+        return Repair(
+            task_id="t",
+            parent_id="p",
+            seed=seed,
+            turns=[],
+            success=success,
+            public_pass=success,
+            hidden_pass=success,
+            termination="finish",
+            failure="",
+            verifier_status="ok",
+            final_source_hash="h",
+            test_calls=0,
+            timings={},
+        )
+
+    monkeypatch.setattr(qualification, "repair", fake_repair)
+    monkeypatch.setattr(qualification, "privilege", lambda *args: None)
+
+    def stop_at_numerical(*args):
+        raise RuntimeError("reached numerical")
+
+    monkeypatch.setattr(qualification, "numerical", stop_at_numerical)
+
+    def study(identity):
+        obj = SimpleNamespace(
+            output=tmp_path,
+            cfg=Task19Control(cached_rollout=False),
+            snapshot="snap",
+            identity=identity,
+            proposal_groups=0,
+            seen=set(),
+            iteration=0,
+            policy=None,
+            sandbox=None,
+            references=lambda: [],
+            reference_gradient=lambda _: None,
+        )
+
+        def collect(_):
+            obj.proposal_groups += 1
+            return [], {"t": (task, oracle)}, {}
+
+        obj.collect = collect
+        return obj
+
+    with pytest.raises(SegmentStop):
+        qualify(study({"id": "same"}), lambda: len(calls) >= 1)
+    assert len(calls) == 1
+    with pytest.raises(ValueError, match="identity differs"):
+        qualify(study({"id": "different"}))
+    with pytest.raises(RuntimeError, match="reached numerical"):
+        qualify(study({"id": "same"}))
+    assert len(calls) == 4
+    assert len(set(calls)) == 4

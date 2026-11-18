@@ -185,7 +185,10 @@ def main():
             or file_hash(checkpoint) != pilot["checkpoint_sha256"]
         ):
             raise ValueError("Main requires the matching completed pilot checkpoint")
-    if args.resume is not None:
+    if args.resume is not None and args.operation.startswith("qualify"):
+        if args.resume.resolve() != (args.output / "qualification-progress.json").resolve():
+            raise ValueError("Controller resume differs from qualification progress")
+    elif args.resume is not None:
         latest = read_json(study.checkpoints.root / "latest.json")
         if args.resume.resolve() != (study.checkpoints.root / latest["path"]).resolve():
             raise ValueError("Controller resume differs from the latest committed checkpoint")
@@ -215,7 +218,7 @@ def main():
 
     try:
         if args.operation.startswith("qualify"):
-            qualify(study)
+            qualify(study, should_stop)
         elif args.operation == "base":
             pointer = study.checkpoints.root / "latest.json"
             if pointer.is_file():
