@@ -148,3 +148,15 @@ The uncached v4 qualification job `33740964`, controller run
 `a0b78624a286c1eead3ef86389fa5a98f4fd5d7f` after a passing preview. It has a
 four-hour reservation in the shared ledger. Inspect this existing job before
 any retry or submission.
+
+The v4 worker was still running after 2 hours 54 minutes without a complete
+wave checkpoint. Slurm reported active GPU use; progress within the wave is
+unknown. Its immutable code cannot save the individual episodes already in
+progress. An isolated, unmerged recovery draft is at commit `797b35e`, branch
+`wip/task19-qualification-recovery` in `/private/tmp/selfplay-task19-recovery`.
+It saves fully scored episodes with their scientific identity and adds a
+guarded same-run continuation; it cannot recover unsaved v4 episodes. In that
+checkout, 464 tests passed, 20 skipped and 18 deselected, and focused recovery
+tests, Ruff and mypy passed. Review its controller, budget and execution
+identity handling before using it in any new study namespace. Never launch a
+replacement while v4 remains active or its terminal accounting is uncertain.
