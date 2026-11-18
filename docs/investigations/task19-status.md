@@ -184,3 +184,9 @@ it requires a verified terminal controller job, archives the original bytes,
 and handles only a partial first wave or a completed wave with no pending
 tasks. It rejects ambiguous later partial waves. It has not been run on the
 live checkpoint. Numerical and calibration phases may still exceed one allocation.
+
+During its first uninterrupted allocation, v5 saved twelve fully scored
+episodes by 3 hours 2 minutes, forming groups with 4/4, 4/4 and 3/4 verified
+successes. The mixed and uniform groups are training-only diagnostic inputs,
+not benchmark results. The fourth task and numerical qualification remain
+unfinished; inspect the current progress and scheduler before any action.
