@@ -178,8 +178,22 @@ def qualify(study: Study, should_stop=lambda: False) -> Task19Control:
         },
     )
 
-    diagnostic = numerical(study, rolls)
-    atomic_json(output / "numerical.json", diagnostic)
+    numerical_path = output / "numerical.json"
+    binding_path = output / "numerical-binding.json"
+    binding = {
+        "identity": study.identity,
+        "batch_sha256": file_hash(output / "frozen-training-batch.json"),
+    }
+    if numerical_path.is_file() and binding_path.is_file():
+        if read_json(binding_path) != binding | {"numerical_sha256": file_hash(numerical_path)}:
+            raise ValueError("Qualification numerical evidence identity differs")
+        diagnostic = read_json(numerical_path)
+    else:
+        if should_stop():
+            raise SegmentStop("Qualification stopped before numerical diagnostics")
+        diagnostic = numerical(study, rolls)
+        atomic_json(numerical_path, diagnostic)
+        atomic_json(binding_path, binding | {"numerical_sha256": file_hash(numerical_path)})
     if not diagnostic["passed"]:
         if diagnostic.get("reason") == "No informative replay gradients":
             raise RuntimeError(
@@ -195,6 +209,8 @@ def qualify(study: Study, should_stop=lambda: False) -> Task19Control:
             "Cached execution failed qualification; use the emitted uncached control"
         )
 
+    if should_stop():
+        raise SegmentStop("Qualification stopped before calibration")
     ratios, rl_norms = [], []
     calibration_rolls = sorted(
         rolls.values(), key=lambda rows: not (0 < sum(row.success for row in rows) < GROUP)

@@ -287,3 +287,15 @@ def test_qualification_resumes_saved_episodes_without_resampling(tmp_path, monke
         qualify(study({"id": "same"}))
     assert len(calls) == 4
     assert len(set(calls)) == 4
+    diagnostics = []
+
+    def passed_numerical(*args):
+        diagnostics.append(True)
+        return {"passed": True}
+
+    monkeypatch.setattr(qualification, "numerical", passed_numerical)
+    with pytest.raises(SegmentStop, match="before calibration"):
+        qualify(study({"id": "same"}), lambda: bool(diagnostics))
+    with pytest.raises(SegmentStop, match="before calibration"):
+        qualify(study({"id": "same"}), lambda: True)
+    assert len(diagnostics) == 1
