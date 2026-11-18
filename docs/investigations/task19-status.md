@@ -277,3 +277,8 @@ V7 was pending due to H200 capacity at the first check. V6 continued and saved
 three student turns; a simple token-rate extrapolation suggests calibration
 alone could take over 20 hours, but this is only an early estimate and does not
 account for changing context lengths or processing costs.
+After four v6 student turns were saved, a `USR1` safe-stop request was sent to
+job `33796439` to preserve the remaining budget while the FP32 comparison is
+running. The stop request file exists; the current turn must finish before the
+job can exit and save its next checkpoint. Do not assume it is already terminal
+or submit a continuation while it remains active.
