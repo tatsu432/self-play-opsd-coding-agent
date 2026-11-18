@@ -2019,6 +2019,13 @@ def check_task19(payload: dict) -> None:
     control = paths(payload)["checkout"] / Path(payload["settings"]).parent / "task19-control.json"
     wall = re.fullmatch(r"([0-9]{2}):([0-5][0-9]):00", payload.get("time", ""))
     minutes = int(wall[1]) * 60 + int(wall[2]) if wall else 0
+    maximum = (
+        720
+        if operation in {"task19-pilot", "task19-train"}
+        else 360
+        if operation == "task19-base"
+        else 240
+    )
     if (
         payload.get("account") != "cpsc4880"
         or not payload.get("study_id", "").startswith("repair-selfplay-2026-task19-")
@@ -2027,7 +2034,7 @@ def check_task19(payload: dict) -> None:
         or payload.get("readiness_budget") != 80
         or payload.get("seed") != 2026
         or payload.get("method") not in {"control", "A", "B", "C", "D"}
-        or not 30 <= minutes <= (360 if operation == "task19-base" else 240)
+        or not 30 <= minutes <= maximum
         or payload.get("output") != f"/runs/{payload['study_id']}/{path.name}"
         or sha256(control) != payload.get("task19_control_sha256")
     ):

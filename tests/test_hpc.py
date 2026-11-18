@@ -699,6 +699,35 @@ def test_task19_training_wall_limit_is_explicit_and_bounded():
             task19_wall_minutes_for(operation, minutes)
 
 
+def test_task19_remote_enforces_the_same_training_wall_limit(tmp_path, monkeypatch):
+    remote = remote_module()
+    control = tmp_path / "configs/task19-control.json"
+    control.parent.mkdir()
+    control.write_text("{}")
+    run = tmp_path / "runs/repair-selfplay-2026-task19-v6/control-seed2026"
+    monkeypatch.setattr(remote, "paths", lambda _: {"checkout": tmp_path})
+    monkeypatch.setattr(remote, "artifact_dir", lambda _: run)
+    monkeypatch.setattr(remote, "study_state", lambda _: {"gates": {"worker": True}})
+    payload = {
+        "operation": "task19-pilot",
+        "settings": "configs/task19-yale.yaml",
+        "time": "12:00:00",
+        "account": "cpsc4880",
+        "study_id": "repair-selfplay-2026-task19-v6",
+        "gpu_count": 1,
+        "gpu_type": "h200",
+        "readiness_budget": 80,
+        "seed": 2026,
+        "method": "control",
+        "output": "/runs/repair-selfplay-2026-task19-v6/control-seed2026",
+        "task19_control_sha256": remote.sha256(control),
+    }
+    with pytest.raises(ValueError, match="requires one executed calibration"):
+        remote.check_task19(payload)
+    with pytest.raises(ValueError, match="bounded H200 allocation"):
+        remote.check_task19(payload | {"time": "12:01:00"})
+
+
 def test_task19_qualification_continue_requires_saved_progress_and_is_single_use(
     tmp_path, monkeypatch
 ):
