@@ -60,6 +60,17 @@ def qualify(study: Study, should_stop=lambda: False) -> Task19Control:
         }
         proposed = [{"source": str(source), "sha256": expected, "reused_groups": len(rolls)}]
         before_caps = {"reused_episodes": sum(map(len, rolls.values()))}
+    elif cfg.study.endswith("-v6"):
+        groups, rolls, source, expected = load_v5_batch(study)
+        study.proposal_groups = max(row.group for group in groups for row in group) + 1
+        study.seen = {
+            digest([row.parent, row.mutation_key])
+            for group in groups
+            for row in group
+            if row.mutation_key and row.task
+        }
+        proposed = [{"source": str(source), "sha256": expected, "reused_groups": len(rolls)}]
+        before_caps = {"reused_episodes": sum(map(len, rolls.values()))}
     else:
         groups, rolls = [], {}
         expected = None
@@ -280,6 +291,63 @@ def qualify(study: Study, should_stop=lambda: False) -> Task19Control:
     )
     atomic_json(output / "calibrated-control.json", result.model_dump(mode="json"))
     return result
+
+
+def load_v5_batch(
+    study, expected="c3d885680074b9566d279c440729e048200997808cbb07e6afd369fbae3611d7"
+):
+    """Reuse the immutable uncached v5 training batch with verified behavior data."""
+    root = study.output.parent.parent
+    source_root = root / "repair-selfplay-2026-task19-v5/qualification"
+    source = source_root / "frozen-training-batch.json"
+    if file_hash(source) != expected:
+        raise ValueError("V5 frozen batch checksum differs")
+    binding = read_json(source_root / "numerical-binding.json")
+    numerical_path = source_root / "numerical.json"
+    progress = read_json(source_root / "qualification-progress.json")
+    old = progress["identity"]
+    current = study.identity
+    package = Path(__file__).resolve().parent
+    scientific_files = (
+        "task19.py",
+        "task19_policy.py",
+        "task19_protocol.py",
+        "task19_rollout.py",
+        "task19_train.py",
+    )
+    if (
+        binding["identity"] != old
+        or binding["batch_sha256"] != expected
+        or binding["numerical_sha256"] != file_hash(numerical_path)
+        or not read_json(numerical_path)["passed"]
+        or read_json(numerical_path)["cached_rollout"]
+        or old["study"] != "repair-selfplay-2026-task19-v5"
+        or old["arm"] != current["arm"]
+        or old["execution"]["code"]
+        != "3bfd3a64a254325e60ed395e933181d9f0f28a67cc3a15bf68bba55df37246d5"
+        or digest({name: file_hash(package / name) for name in scientific_files})
+        != "62228b2135f534193de08d47e02d5ac123c2de442302d2b0a8f73f2c13270429"
+        or old["data"] != current["data"]
+        or old["initial"] != current["initial"]
+        or old["worker"] != current["worker"]
+        or {k: v for k, v in old["execution"].items() if k != "code"}
+        != {k: v for k, v in current["execution"].items() if k != "code"}
+    ):
+        raise ValueError("V5 batch execution identity differs")
+    old_control = study.cfg.model_copy(update={"study": "repair-selfplay-2026-task19-v5"})
+    if old_control.cached_rollout or old_control.science != old["science"]:
+        raise ValueError("V5 and V6 scientific controls differ")
+    batch = read_json(source)
+    if batch["snapshot"] != study.snapshot:
+        raise ValueError("V5 batch policy snapshot differs")
+    groups = [[Proposal.model_validate(row) for row in group] for group in batch["proposals"]]
+    order = list(
+        dict.fromkeys(row.task for group in groups for row in group if row.task in batch["repairs"])
+    )
+    if len(order) != len(batch["repairs"]) or set(order) != set(batch["repairs"]):
+        raise ValueError("V5 batch task ordering is ambiguous")
+    rolls = {key: [Repair.model_validate(row) for row in batch["repairs"][key]] for key in order}
+    return groups, rolls, source, expected
 
 
 def calibration_measurements(study, student_groups, proposer_groups, binding, should_stop):

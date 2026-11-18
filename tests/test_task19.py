@@ -350,3 +350,55 @@ def test_calibration_group_checkpoint_restores_rng_and_avoids_repeating_work(tmp
     actual = calibration_measurements(study(resumed), students, proposers, binding, lambda: False)
     assert actual == expected
     assert calls == ["student", "student", "proposer"]
+
+
+def test_v5_batch_reuse_requires_matching_control_execution_and_checksums(tmp_path):
+    from selfplay_opsd.storage import atomic_json, file_hash
+    from selfplay_opsd.task19_qualification import load_v5_batch
+
+    runs = tmp_path / "runs"
+    source = runs / "repair-selfplay-2026-task19-v5/qualification"
+    target = runs / "repair-selfplay-2026-task19-v6/qualification"
+    source.mkdir(parents=True)
+    target.mkdir(parents=True)
+    cfg = Task19Control(study="repair-selfplay-2026-task19-v6", cached_rollout=False)
+    old_cfg = cfg.model_copy(update={"study": "repair-selfplay-2026-task19-v5"})
+    execution = {
+        "code": "3bfd3a64a254325e60ed395e933181d9f0f28a67cc3a15bf68bba55df37246d5",
+        "model": "same-model",
+    }
+    old = {
+        "study": old_cfg.study,
+        "science": old_cfg.science,
+        "arm": "control",
+        "data": "data",
+        "initial": "initial",
+        "worker": "worker",
+        "execution": execution,
+    }
+    current = {**old, "study": cfg.study, "execution": {"code": "new-code", "model": "same-model"}}
+    atomic_json(
+        source / "frozen-training-batch.json",
+        {"snapshot": "initial", "proposals": [], "repairs": {}},
+    )
+    batch_hash = file_hash(source / "frozen-training-batch.json")
+    atomic_json(source / "numerical.json", {"passed": True, "cached_rollout": False})
+    atomic_json(source / "qualification-progress.json", {"identity": old})
+    atomic_json(
+        source / "numerical-binding.json",
+        {
+            "identity": old,
+            "batch_sha256": batch_hash,
+            "numerical_sha256": file_hash(source / "numerical.json"),
+        },
+    )
+    study = SimpleNamespace(output=target, identity=current, cfg=cfg, snapshot="initial")
+    groups, rolls, _, _ = load_v5_batch(study, expected=batch_hash)
+    assert groups == [] and rolls == {}
+    study.identity = {**current, "data": "different"}
+    with pytest.raises(ValueError, match="execution identity"):
+        load_v5_batch(study, expected=batch_hash)
+    study.identity = current
+    atomic_json(source / "numerical.json", {"passed": False, "cached_rollout": False})
+    with pytest.raises(ValueError, match="execution identity"):
+        load_v5_batch(study, expected=batch_hash)
