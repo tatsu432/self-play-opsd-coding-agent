@@ -3213,6 +3213,7 @@ def stage_task19_baseline(payload: dict) -> dict:
         qualified = choices[0]
         qualification = json.loads((qualified / "calibration.json").read_text())
         calibrated = json.loads((qualified / "calibrated-control.json").read_text())
+        numerical = json.loads((qualified / "numerical.json").read_text())
         identity = marker["identity"]
         if (
             any(
@@ -3221,6 +3222,7 @@ def stage_task19_baseline(payload: dict) -> dict:
             )
             or calibrated.get("calibration_hash") != sha256(qualified / "calibration.json")
             or calibrated.get("qualification_hash") != sha256(qualified / "numerical.json")
+            or numerical.get("passed") is not True
             or identity.get("study") != study
             or identity.get("arm") != "control"
             or marker["snapshot"] != identity.get("initial")
@@ -3231,6 +3233,7 @@ def stage_task19_baseline(payload: dict) -> dict:
         ):
             raise ValueError("Initial monitoring identity differs from qualification")
         task_ids = [row["task_id"] for row in summary["tasks"]]
+        summary_rows = {row["task_id"]: row for row in summary["tasks"]}
         if (
             not task_ids
             or len(task_ids) != summary["count"]
@@ -3246,11 +3249,15 @@ def stage_task19_baseline(payload: dict) -> dict:
                 raise ValueError("Initial monitoring task record missing")
             row = json.loads(path.read_text())
             row_identity = row["identity"]
+            summary_row = summary_rows[task]
             if (
                 row_identity.get("task") != task
                 or row_identity.get("data") != identity["data"]
                 or row_identity.get("science") != identity["science"]
                 or row_identity.get("snapshot") != marker["snapshot"]
+                or row.get("repair", {}).get("parent_id") != summary_row.get("parent_id")
+                or row.get("metrics")
+                != {k: v for k, v in summary_row.items() if k not in {"task_id", "parent_id"}}
             ):
                 raise ValueError("Initial monitoring task identity differs")
             records[task] = sha256(path)

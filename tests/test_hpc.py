@@ -769,7 +769,7 @@ def test_task19_initial_monitoring_reuse_checks_identity_and_refuses_tampering(
             "episodes": 0,
             "split": "dev_monitor",
             "count": 1,
-            "tasks": [{"task_id": task}],
+            "tasks": [{"task_id": task, "parent_id": "parent", "success": True}],
         },
     )
     row = {
@@ -780,8 +780,8 @@ def test_task19_initial_monitoring_reuse_checks_identity_and_refuses_tampering(
             "snapshot": "snapshot",
             "seed": 123,
         },
-        "metrics": {},
-        "repair": {},
+        "metrics": {"success": True},
+        "repair": {"parent_id": "parent"},
     }
     remote.write_json(summary_path.parent / "tasks" / f"{task}.json", row)
     qualification = root / "qualification"
@@ -807,6 +807,13 @@ def test_task19_initial_monitoring_reuse_checks_identity_and_refuses_tampering(
         },
     )
     payload = {"study_id": study}
+    summary = json.loads(summary_path.read_text())
+    summary["tasks"][0]["success"] = False
+    remote.write_json(summary_path, summary)
+    with pytest.raises(ValueError, match="task identity differs"):
+        remote.stage_task19_baseline(payload)
+    summary["tasks"][0]["success"] = True
+    remote.write_json(summary_path, summary)
     result = remote.stage_task19_baseline(payload)
     assert result == {"base_run": "base-run", "tasks": 1, "arms": ["control", "A", "B", "C", "D"]}
     for arm in result["arms"]:
