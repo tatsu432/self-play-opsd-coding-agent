@@ -1,4 +1,4 @@
-study_id: repair-selfplay-2026-task19-v6
+study_id: repair-selfplay-2026-task19-v7
 method: B
 seed: 2026
 iterations: 2000
@@ -10,6 +10,7 @@ model:
   revision: 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
   tokenizer_revision: 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
   backend: hf
+  dtype: float32
 hardware:
   profile: single_gpu_80gb
   cpu_workers: 5

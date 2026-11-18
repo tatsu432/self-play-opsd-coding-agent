@@ -25,7 +25,7 @@ def qualify(study: Study, should_stop=lambda: False) -> Task19Control:
     cfg = study.cfg
     references = study.references()
     study.reference_gradient(references)
-    if cfg.cached_rollout:
+    if cfg.cached_rollout and cfg.precision == "bfloat16":
         previous = output.parent.parent / "repair-selfplay-2026-task19-v1/qualification"
         source = (
             output.parent.parent
