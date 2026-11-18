@@ -334,6 +334,21 @@ families. Monitoring, ID and external summaries share the verified initial
 snapshot. Total reconciled Task 19 allocation is 21.358889 H200-hours.
 The 41 verified initial monitoring records were staged for all five arms using
 the guarded reuse procedure. Never duplicate this completed baseline.
+After passing previews, the five 32-episode pilots were submitted once from
+`e2fbe083a3c0aff7a20c8d8a7a2d6c5547910190`, each with a four-hour reservation:
+
+| Arm | Slurm job | Controller run |
+|---|---:|---|
+| Control | 33828139 | `826f6ae808dc186b477bc945` |
+| A | 33828371 | `2ae1a78b54cd011fc21623ef` |
+| B | 33828377 | `9016ab34ca892ee6f6ae633d` |
+| C | 33828380 | `f5c5a6c6f900e5c11b9a9f34` |
+| D | 33828391 | `fd4b69da407f990319580e8d` |
+
+Inspect each existing job and its ledger before any action; never duplicate.
+W&B runs use offline transport for later synchronization from the authenticated
+local workspace. The total committed reservation after submission is at most
+41.358889 H200-hours, subject to reconciliation of actual charges.
 After the offline, recovery and reuse safeguards, the full local suite passed 476
 tests (20 skipped, 18 deselected), Ruff lint/format and mypy (61 source files).
 After the complete baseline is reconciled, `uv run selfplay hpc
