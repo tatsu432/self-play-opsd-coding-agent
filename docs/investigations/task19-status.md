@@ -252,3 +252,7 @@ reconciliation and a passing preview, v6 was submitted once as job
 `6a41e5f3b18793c9b5cfd04db47712d29e2f4ff1`. Inspect this run and its ledger;
 never duplicate it. Monitor the private calibration progress summary and use
 actual throughput to assess the remaining budget for all five arms.
+Because a training update can exceed the four-hour checkpoint interval,
+pilot and training submissions now permit an explicit wall time up to twelve
+hours; the default remains four hours. The shared ledger reserves the entire
+requested duration, and no longer allocation has yet been submitted.

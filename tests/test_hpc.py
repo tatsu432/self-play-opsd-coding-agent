@@ -683,6 +683,20 @@ def test_task19_budget_is_shared_across_revisions_and_excludes_task18(tmp_path, 
     assert remote.refreshed_budget(successor)["committed_gpu_hours"] == 4
     historical = {"study_id": "repair-selfplay-2026-task18-v1"}
     assert remote.refreshed_budget(historical)["committed_gpu_hours"] == 0
+    long_run = payload | {"time": "12:00:00", "run_id": "pilot2"}
+    remote.reserve_budget(long_run, "task19-long")
+    assert remote.refreshed_budget(long_run)["committed_gpu_hours"] == 16
+
+
+def test_task19_training_wall_limit_is_explicit_and_bounded():
+    from selfplay_opsd.hpc import HpcError, task19_wall_minutes_for
+
+    assert task19_wall_minutes_for("task19-pilot", None) == 240
+    assert task19_wall_minutes_for("task19-train", 720) == 720
+    assert task19_wall_minutes_for("task19-base", None) == 360
+    for operation, minutes in (("task19-train", 721), ("task19-qualify", 241)):
+        with pytest.raises(HpcError, match="allocation bounds"):
+            task19_wall_minutes_for(operation, minutes)
 
 
 def test_task19_qualification_continue_requires_saved_progress_and_is_single_use(

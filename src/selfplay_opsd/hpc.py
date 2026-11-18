@@ -380,6 +380,15 @@ def choose_account(report: dict, partition: str) -> str:
     return accounts.pop()
 
 
+def task19_wall_minutes_for(operation: str, requested: int | None) -> int:
+    default = 360 if operation == "task19-base" else 240
+    maximum = 720 if operation in {"task19-pilot", "task19-train"} else default
+    minutes = requested if requested is not None else default
+    if not 30 <= minutes <= maximum:
+        raise HpcError("Task 19 wall time must be within the stage allocation bounds")
+    return minutes
+
+
 def run_payload(
     remote: Scheduler,
     alias: str,
@@ -989,10 +998,10 @@ def run_payload(
             "task19-pilot": f"{method}-seed2026",
             "task19-train": f"{method}-seed2026",
         }[operation]
-        maximum = 360 if operation == "task19-base" else 240
-        minutes = task19_wall_minutes if task19_wall_minutes is not None else maximum
-        if not 30 <= minutes <= maximum:
-            raise HpcError("Task 19 wall time must be within the stage allocation bounds")
+        # An uncached training update can exceed four hours before its next
+        # checkpoint. A longer explicit reservation is still charged in full
+        # against the shared Task 19 ledger until Slurm reports actual use.
+        minutes = task19_wall_minutes_for(operation, task19_wall_minutes)
         hours, minutes = divmod(minutes, 60)
         payload.update(
             readiness_budget=80,
