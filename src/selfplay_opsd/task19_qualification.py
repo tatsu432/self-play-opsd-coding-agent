@@ -23,43 +23,46 @@ def qualify(study: Study) -> Task19Control:
     cfg = study.cfg
     references = study.references()
     study.reference_gradient(references)
-    if not cfg.cached_rollout:
-        raise ValueError("Uncached qualification requires newly sampled behavior trajectories")
-    previous = output.parent.parent / "repair-selfplay-2026-task19-v1/qualification"
-    source = (
-        output.parent.parent
-        / "repair-selfplay-2026-task19-v2/qualification/frozen-training-batch.json"
-    )
-    expected = "4cd5991768348988e351bbebf43ed59c58bc14c822a5a20dfdb2c2ea30a3194d"
-    if file_hash(source) != expected:
-        raise ValueError("Prior frozen training batch checksum differs")
-    batch = read_json(source)
-    if batch["snapshot"] != study.snapshot:
-        raise ValueError("Prior batch policy snapshot differs")
-    old_control = Task19Control.read(previous / "uncached-control.json")
-    cfg = cfg.model_copy(
-        update={
-            "episode": old_control.episode,
-            "proposer_thinking": old_control.proposer_thinking,
-            "proposal_tokens": old_control.proposal_tokens,
-            "cached_rollout": True,
+    if cfg.cached_rollout:
+        previous = output.parent.parent / "repair-selfplay-2026-task19-v1/qualification"
+        source = (
+            output.parent.parent
+            / "repair-selfplay-2026-task19-v2/qualification/frozen-training-batch.json"
+        )
+        expected = "4cd5991768348988e351bbebf43ed59c58bc14c822a5a20dfdb2c2ea30a3194d"
+        if file_hash(source) != expected:
+            raise ValueError("Prior frozen training batch checksum differs")
+        batch = read_json(source)
+        if batch["snapshot"] != study.snapshot:
+            raise ValueError("Prior batch policy snapshot differs")
+        old_control = Task19Control.read(previous / "uncached-control.json")
+        cfg = cfg.model_copy(
+            update={
+                "episode": old_control.episode,
+                "proposer_thinking": old_control.proposer_thinking,
+                "proposal_tokens": old_control.proposal_tokens,
+            }
+        )
+        study.cfg = cfg
+        groups = [[Proposal.model_validate(row) for row in group] for group in batch["proposals"]]
+        rolls = {
+            key: [Repair.model_validate(row) for row in values]
+            for key, values in batch["repairs"].items()
         }
-    )
-    study.cfg = cfg
-    groups = [[Proposal.model_validate(row) for row in group] for group in batch["proposals"]]
-    rolls = {
-        key: [Repair.model_validate(row) for row in values]
-        for key, values in batch["repairs"].items()
-    }
-    study.proposal_groups = max(row.group for group in groups for row in group) + 1
-    study.seen = {
-        digest([row.parent, row.mutation_key])
-        for group in groups
-        for row in group
-        if row.mutation_key and row.task
-    }
-    proposed = [{"source": str(source), "sha256": expected, "reused_groups": len(rolls)}]
-    before_caps = {"reused_episodes": sum(map(len, rolls.values()))}
+        study.proposal_groups = max(row.group for group in groups for row in group) + 1
+        study.seen = {
+            digest([row.parent, row.mutation_key])
+            for group in groups
+            for row in group
+            if row.mutation_key and row.task
+        }
+        proposed = [{"source": str(source), "sha256": expected, "reused_groups": len(rolls)}]
+        before_caps = {"reused_episodes": sum(map(len, rolls.values()))}
+    else:
+        groups, rolls = [], {}
+        expected = None
+        proposed = [{"source": "fresh_uncached", "reused_groups": 0}]
+        before_caps = {"reused_episodes": 0}
     for _ in range(5):
         mixed = any(0 < sum(row.success for row in values) < GROUP for values in rolls.values())
         if mixed:

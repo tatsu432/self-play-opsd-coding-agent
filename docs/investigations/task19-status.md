@@ -129,3 +129,16 @@ pending on priority with a four-hour reservation. Its saved batch source is
 v2 `frozen-training-batch.json` SHA-256
 `4cd5991768348988e351bbebf43ed59c58bc14c822a5a20dfdb2c2ea30a3194d`.
 Inspect this run and the shared ledger before further actions.
+
+The v3 numerical job `33739684` failed its prespecified 5% relative threshold
+in 447 H200-seconds. Gradient difference was 8.003%, cosine 0.999642; restored
+AdamW displacement difference was 5.967%, cosine 0.998284. Same-operation
+repeat variation and clipping-decision changes were zero, and sampled cached
+replay matched the saved behavior probabilities. These measurements compare
+cached generation with full scoring, while keeping actual behavior denominators.
+The Task 19 ledger totals 9,442 H200-seconds (2.622778 hours).
+
+Task 19 v4 begins the planned single-backend uncached qualification with newly
+sampled behavior trajectories. It keeps the previously selected token limits.
+Its execution cost remains to be measured. The v1–v3 batches, controls,
+accounting and failed job identities remain intact.
