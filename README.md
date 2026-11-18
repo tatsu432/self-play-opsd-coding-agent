@@ -35,8 +35,8 @@ and [completion record](docs/task_completion/18-implemented-interface-signal-bot
 Task 19 implements the next study with Qwen3.5-4B, native student thinking,
 one shared LoRA, and Dr. GRPO. The planned seed-2026 arms are a Dr. GRPO
 control and four OPSD/proposer-reward variants. Cached execution failed the
-numerical parity threshold; uncached GPU qualification continues with
-incremental checkpoints before the five runs. See the
+numerical parity threshold; uncached rollout and update checks passed, and
+training-only calibration is running before the five arms. See the
 [Task 19 plan](docs/plan/19-fix-plan.md) and
 [execution status](docs/investigations/task19-status.md).
 
