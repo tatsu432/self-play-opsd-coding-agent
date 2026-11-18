@@ -393,3 +393,34 @@ files with full artifacts, synchronize from the authenticated local workspace,
 and verify cloud history before claiming delivery. Offline SDK capture was
 exercised locally, and the local W&B API authenticated successfully; cloud
 synchronization of Task 19 has not yet occurred.
+
+## 96-episode continuations (2026-11-18)
+
+All five 32-episode pilots completed exit 0. Their actual allocations were
+4,696/4,804/4,905/4,764/4,804 H200-seconds for control/A/B/C/D. The shared
+ledger reconciled 28.018056 H200-hours across all Task 19 attempts. Before
+inspecting endpoint treatment outcomes, the controller verified the pilot
+checkpoints and froze a common 96-episode endpoint, with 23.725 H200-hours
+reserved in the projection for five final evaluations and a 20% contingency.
+The private control is `runs/task19/main-control.json`. The base external
+families were previously inspected and are not untouched confirmation.
+
+The five main segments were submitted once from immutable commit
+`7150a8b31cc94c876998c6f5362186596c59af29`, each with a four-hour reservation:
+
+| Arm | Slurm job | Controller run |
+|---|---:|---|
+| Control | 33838200 | `562da119c0ee91f60ff3c932` |
+| A | 33838204 | `ad1f59aa48704da5e8887dcd` |
+| B | 33838208 | `51f3b27715d01a0b843ec36f` |
+| C | 33838211 | `ae25de421c2c804155ac8bec` |
+| D | 33838215 | `4ce3511806b176d79c16a3a3` |
+
+All were pending at the first scheduler check. Inspect the existing jobs and
+ledger before any action; never submit duplicates. They resume the verified
+pilot checkpoints and include final ID and external evaluation. If stopped,
+reconcile checkpoint and accounting before using the supported continuation.
+W&B transport is offline; retrieve and synchronize saved segments locally,
+then verify cloud history before claiming delivery. Do not merge as complete
+until the five endpoints, final accounting, analysis, and documentation are
+complete.
