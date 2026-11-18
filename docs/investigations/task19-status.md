@@ -214,3 +214,10 @@ variation were zero. Relative gradient and restored AdamW update differences
 were 1.355887% and 1.938686%, with cosines 0.999908 and 0.999812. Calibration
 is running and has not yet produced evidence. Inspect this existing allocation
 rather than submitting another run.
+
+Calibration has no intermediate checkpoint in the live immutable execution.
+An isolated draft at `cc47244` on `wip/task19-qualification-recovery` saves
+complete calibration group measurements and random state; a focused CPU test
+checks equality with uninterrupted computation. It has not been applied to
+the live job and requires further review, evidence migration and qualification
+before any potential use. Inspect the current allocation first.
