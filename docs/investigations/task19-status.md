@@ -323,3 +323,10 @@ The replacement started on the previously affected node, loaded the pinned
 model from cache, and reached health `running`; task evaluation is in progress.
 After the offline and recovery safeguards, the full local suite passed 474
 tests (20 skipped, 18 deselected), Ruff lint/format and mypy (61 source files).
+After the complete baseline is reconciled, `uv run selfplay hpc
+task19-stage-baseline --settings configs/task19-yale.yaml` can copy the
+checksum-verified initial monitoring task records to all five arms before any
+pilot submission. All arms use the same initial adapter, task seeds and data;
+each pilot still verifies every task identity on read. The helper refuses
+incomplete baselines, mismatched evidence, altered copies and existing arm
+slots. This reuses the single initial evaluation, not later milestone results.
