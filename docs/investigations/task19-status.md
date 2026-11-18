@@ -312,3 +312,10 @@ this change does not alter or duplicate that active allocation. An explicit
 empty-base recovery guard permits a replacement only after the prior job is
 terminal, saved no files, and its scientific settings, dependencies and source
 files match. The old run and its allocation remain in the shared ledger.
+After 18 minutes blocked in HTTPS with no saved files, base job `33799453` was
+cancelled and reconciled at 1,121 H200-seconds. The guarded offline replacement
+was submitted once as job `33801734` / run `eec3440e2c5b56338c30b555`, from
+`783c3c37d2f855b46c513541a1eb21b4b1b0968c`; its ledger records the superseded
+run `662c76b708905dfc47d55b2f`. Inspect this existing job, never duplicate it,
+and include both base allocations in final accounting. At submission the shared
+ledger held 16.613889 charged plus the new six-hour reservation.
