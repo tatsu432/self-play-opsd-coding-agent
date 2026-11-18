@@ -289,6 +289,9 @@ above 0.9999999999. Calibration is underway; no scale or training outcome is
 yet available. The source is now on the task branch with the same scientific
 files as the immutable job; preserve the separate v6/v7 run identities.
 V7 qualification job `33797457` completed exit 0 in 1,521 H200-seconds.
+Its training-only sample contained 16 episodes, 31,317 generated tokens and
+101 turns; summed generation time was 896.4 seconds. This is an initial
+throughput observation, not a pilot cost or benchmark accuracy estimate.
 Calibration selected OPSD scale `0.09882062828499757` and proposer scale
 `0.062588360570449`; calibration SHA-256 is
 `84ddf061e553ed86f2cf686e0aa8b1cd4da3b67f1ea0bd29fae545ddd281b1b7`.
