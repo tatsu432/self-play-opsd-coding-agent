@@ -355,6 +355,14 @@ pending. The SSH master then disconnected and the Duo refresh timed out. These
 Slurm jobs are independent of the login: after reauthentication, inspect all
 five controller runs and the shared ledger before any action, and never assume
 their current state or submit duplicates.
+After a successful Duo refresh, all five pilots were observed RUNNING and all
+five initial snapshots matched the base. Control had committed 32 attempted
+episodes and A 16; B/C/D had not committed their first updates. Control's two
+updates were finite and nonzero, but neither had distinct valid proposer rewards;
+the second had a zero student RL gradient. A's first update was finite and
+nonzero and likewise lacked distinct valid proposer rewards. These are training
+diagnostics, not independent evaluation outcomes. Inspect the existing jobs
+and ledger before continuing; W&B is captured offline pending local sync.
 After the offline, recovery and reuse safeguards, the full local suite passed 476
 tests (20 skipped, 18 deselected), Ruff lint/format and mypy (61 source files).
 After the complete baseline is reconciled, `uv run selfplay hpc
