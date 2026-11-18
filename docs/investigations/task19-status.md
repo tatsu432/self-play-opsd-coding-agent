@@ -456,3 +456,10 @@ episodes and began their 41-task monitoring evaluations. They were still
 RUNNING at the last check; these milestones are development monitoring, not
 final ID or external outcomes. Inspect the existing jobs and ledger before
 continuing, particularly if their four-hour segments reach the safe stop.
+For local disk pressure, the redundant local `state.pt` binaries for pilot
+checkpoints `000000` and `000002` were removed after verifying the protected
+Yale copies against their SHA-256 manifests. Their metadata and all local
+`000001` binaries remain: the latter had already been pruned remotely and may
+be unique. Re-fetch protected binaries before any analysis that requires full
+local checkpoints. A reproducible local Hugging Face Xet chunk cache was also
+cleared; the local model hub snapshots and remote run data were not removed.
