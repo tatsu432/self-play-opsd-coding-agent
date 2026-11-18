@@ -283,5 +283,9 @@ running. The stop request file exists; the current turn must finish before the
 job can exit and save its next checkpoint. Do not assume it is already terminal
 or submit a continuation while it remains active.
 V7 started and saved its first 16 training-only episodes in approximately
-19 minutes of allocation. It reached numerical qualification; no acceptance
-result or calibrated scale is yet available.
+19 minutes of allocation. FP32 cached execution passed the unchanged numerical
+limits: 64 comparisons, zero replay maximum and clip changes, relative gradient
+difference 0.001548% and restored-update difference 0.000829%, with cosines
+above 0.9999999999. Calibration is underway; no scale or training outcome is
+yet available. The source is now on the task branch with the same scientific
+files as the immutable job; preserve the separate v6/v7 run identities.
