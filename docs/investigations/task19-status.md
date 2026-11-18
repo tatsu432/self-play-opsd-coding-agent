@@ -319,3 +319,5 @@ was submitted once as job `33801734` / run `eec3440e2c5b56338c30b555`, from
 run `662c76b708905dfc47d55b2f`. Inspect this existing job, never duplicate it,
 and include both base allocations in final accounting. At submission the shared
 ledger held 16.613889 charged plus the new six-hour reservation.
+The replacement started on the previously affected node, loaded the pinned
+model from cache, and reached health `running`; task evaluation is in progress.
