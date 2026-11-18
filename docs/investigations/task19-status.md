@@ -103,3 +103,10 @@ The final report should record results conditional on seed 2026, paired family
 intervals, compute and failure taxonomy. The previously inspected external
 benchmark is exploratory. Historical Task 15–18 evidence remains in its own
 results records.
+
+Task 19 v2 extended qualification job `33730057` / controller run
+`4297c7d19ed430ce68361596` started from immutable commit
+`2d58885daf00f6eb747f8e75bd67f536f7fb4d9a`. The original nine groups are
+checksum-bound, and the job can add at most 20 training tasks. Its four-hour
+reservation and the earlier 4,364 H200-seconds share the 80-hour ledger.
+Inspect this job before taking action and never duplicate it.
