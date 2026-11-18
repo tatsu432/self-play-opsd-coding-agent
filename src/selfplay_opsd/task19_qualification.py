@@ -71,13 +71,25 @@ def qualify(study: Study, should_stop=lambda: False) -> Task19Control:
         if progress["identity"] != study.identity or progress["snapshot"] != study.snapshot:
             raise ValueError("Qualification progress identity differs")
         groups = [[Proposal.model_validate(row) for row in group] for group in progress["groups"]]
+        roll_order = progress["roll_order"]
+        task_order = progress["task_order"]
+        if (
+            len(roll_order) != len(progress["repairs"])
+            or set(roll_order) != set(progress["repairs"])
+            or len(task_order) != len(progress["tasks"])
+            or set(task_order) != set(progress["tasks"])
+        ):
+            raise ValueError("Qualification progress task ordering differs")
         rolls = {
-            key: [Repair.model_validate(row) for row in rows]
-            for key, rows in progress["repairs"].items()
+            key: [Repair.model_validate(row) for row in progress["repairs"][key]]
+            for key in roll_order
         }
         pending_tasks = {
-            key: (TaskSpec.model_validate(row["task"]), OracleSpec.model_validate(row["oracle"]))
-            for key, row in progress["tasks"].items()
+            key: (
+                TaskSpec.model_validate(progress["tasks"][key]["task"]),
+                OracleSpec.model_validate(progress["tasks"][key]["oracle"]),
+            )
+            for key in task_order
         }
         study.seen = set(progress["seen"])
         study.proposal_groups = progress["proposal_groups"]
@@ -109,6 +121,8 @@ def qualify(study: Study, should_stop=lambda: False) -> Task19Control:
                 "identity": study.identity,
                 "snapshot": study.snapshot,
                 "groups": [[row.model_dump(mode="json") for row in group] for group in groups],
+                "roll_order": list(rolls),
+                "task_order": list(pending_tasks),
                 "repairs": {
                     key: [row.model_dump(mode="json") for row in rows]
                     for key, rows in rolls.items()

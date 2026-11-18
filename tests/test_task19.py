@@ -227,13 +227,15 @@ def test_qualification_resumes_saved_episodes_without_resampling(tmp_path, monke
         hidden_cases=[],
         provenance={},
     )
+    other_task = task.model_copy(update={"task_id": "a"})
+    other_oracle = oracle.model_copy(update={"task_id": "a"})
     calls = []
 
     def fake_repair(policy, sandbox, cfg, task, oracle, seed):
-        calls.append(seed)
+        calls.append((task.task_id, seed))
         success = len(calls) == 1
         return Repair(
-            task_id="t",
+            task_id=task.task_id,
             parent_id="p",
             seed=seed,
             turns=[],
@@ -273,7 +275,7 @@ def test_qualification_resumes_saved_episodes_without_resampling(tmp_path, monke
 
         def collect(_):
             obj.proposal_groups += 1
-            return [], {"t": (task, oracle)}, {}
+            return [], {"t": (task, oracle), "a": (other_task, other_oracle)}, {}
 
         obj.collect = collect
         return obj
@@ -285,8 +287,9 @@ def test_qualification_resumes_saved_episodes_without_resampling(tmp_path, monke
         qualify(study({"id": "different"}))
     with pytest.raises(RuntimeError, match="reached numerical"):
         qualify(study({"id": "same"}))
-    assert len(calls) == 4
-    assert len(set(calls)) == 4
+    assert len(calls) == 8
+    assert len(set(calls)) == 8
+    assert [task_id for task_id, _ in calls] == ["t"] * 4 + ["a"] * 4
     diagnostics = []
 
     def passed_numerical(*args):
