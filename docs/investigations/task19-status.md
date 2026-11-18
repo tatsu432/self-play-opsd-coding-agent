@@ -442,3 +442,12 @@ metrics. The W&B API subsequently returned four rows at steps 0–3. The replay
 script and SDK logs are private under `runs/task19/`; do not replay those rows
 again. Remaining pilot and continuation telemetry still requires reconciliation
 and independent verification. W&B history can become visible after a delay.
+The same guarded replay was performed once for each A–D pilot, preserving the
+original timestamps and runtimes as metrics and the offline source files.
+Cloud API verification returned four rows each for B, C and D; A's upload
+reported success but returned zero rows at the first check and needs later
+verification. Do not repeat these uploads without checking the cloud history;
+visibility can lag delivery. Continuation telemetry has not yet been replayed.
+A later API check confirmed A's four pilot rows as well. Thus all five pilot
+histories are independently visible, four rows per arm. These are the replayed
+aggregate records; original offline files remain the source of record.
