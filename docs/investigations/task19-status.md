@@ -246,5 +246,9 @@ remain preserved. Total reconciled Task 19 charge is 52,669 H200-seconds
 (14.630278 hours). The v6 recovery now binds that batch and its numerical
 evidence to the original identities, repeats qualification under the new code,
 and checkpoints calibration between student turns. The integrated local suite
-passed 469 tests (20 skipped, 18 deselected), Ruff and mypy. V6 has not yet
-been submitted; check Slurm and the shared ledger before any submission.
+passed 469 tests (20 skipped, 18 deselected), Ruff and mypy. After live
+reconciliation and a passing preview, v6 was submitted once as job
+`33796439`, controller run `408501bbc06f8e6327990c7e`, from immutable commit
+`6a41e5f3b18793c9b5cfd04db47712d29e2f4ff1`. Inspect this run and its ledger;
+never duplicate it. Monitor the private calibration progress summary and use
+actual throughput to assess the remaining budget for all five arms.
