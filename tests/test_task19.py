@@ -305,3 +305,48 @@ def test_qualification_resumes_saved_episodes_without_resampling(tmp_path, monke
     (tmp_path / "numerical.json").write_text('{"passed": true, "tampered": true}')
     with pytest.raises(ValueError, match="numerical evidence identity differs"):
         qualify(study({"id": "same"}))
+
+
+def test_calibration_group_checkpoint_restores_rng_and_avoids_repeating_work(tmp_path):
+    from selfplay_opsd.task19_qualification import calibration_measurements
+    from selfplay_opsd.task19_train import SegmentStop
+
+    students = [[SimpleNamespace(task_id="t", seed=i)] for i in range(2)]
+    proposers = [[SimpleNamespace(group=0, seed=10, reward=0.5)]]
+    binding = {"identity": "same", "batch_sha256": "batch"}
+    calls = []
+
+    def study(path):
+        def student(*args, **kwargs):
+            calls.append("student")
+            return [torch.rand(1)], [torch.rand(1)], {}
+
+        def proposer(*args, **kwargs):
+            calls.append("proposer")
+            return [torch.rand(1)], {}
+
+        return SimpleNamespace(output=path, student_gradient=student, proposer_gradient=proposer)
+
+    uninterrupted = tmp_path / "full"
+    resumed = tmp_path / "resumed"
+    uninterrupted.mkdir()
+    resumed.mkdir()
+    torch.manual_seed(123)
+    expected = calibration_measurements(
+        study(uninterrupted), students, proposers, binding, lambda: False
+    )
+    calls.clear()
+    torch.manual_seed(123)
+    with pytest.raises(SegmentStop):
+        calibration_measurements(
+            study(resumed), students, proposers, binding, lambda: len(calls) >= 1
+        )
+    assert calls == ["student"]
+    with pytest.raises(ValueError, match="identity differs"):
+        calibration_measurements(
+            study(resumed), students, proposers, {"identity": "different"}, lambda: False
+        )
+    torch.manual_seed(999)
+    actual = calibration_measurements(study(resumed), students, proposers, binding, lambda: False)
+    assert actual == expected
+    assert calls == ["student", "student", "proposer"]

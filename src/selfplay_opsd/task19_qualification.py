@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import copy
 import math
+import os
 import statistics
+import uuid
 from pathlib import Path
 
 import torch
@@ -225,25 +227,17 @@ def qualify(study: Study, should_stop=lambda: False) -> Task19Control:
 
     if should_stop():
         raise SegmentStop("Qualification stopped before calibration")
-    ratios, rl_norms = [], []
     calibration_rolls = sorted(
         rolls.values(), key=lambda rows: not (0 < sum(row.success for row in rows) < GROUP)
     )[:4]
-    for rows in calibration_rolls:
-        rl, sd, _ = study.student_gradient(rows, gated=False, use_sd=True)
-        rl_norm, sd_norm = norm(rl), norm(sd)
-        rl_norms.append(rl_norm)
-        if min(rl_norm, sd_norm) > 1e-12:
-            ratios.append(0.3 * rl_norm / sd_norm)
-    proposer_norms = []
     for group in groups:
         for row in group:
             if row.task is not None:
                 row.reward = difficulty(float(item.success) for item in rolls[row.task])
     informative = [group for group in groups if len({row.reward for row in group}) > 1][:4]
-    for group in informative:
-        gradient, _ = study.proposer_gradient([group])
-        proposer_norms.append(norm(gradient))
+    rl_norms, ratios, proposer_norms = calibration_measurements(
+        study, calibration_rolls, informative, binding, should_stop
+    )
     proposer_norms = [value for value in proposer_norms if value > 1e-12]
     rl_nonzero = [value for value in rl_norms if value > 1e-12]
     if not ratios or not proposer_norms or not rl_nonzero:
@@ -286,6 +280,62 @@ def qualify(study: Study, should_stop=lambda: False) -> Task19Control:
     )
     atomic_json(output / "calibrated-control.json", result.model_dump(mode="json"))
     return result
+
+
+def calibration_measurements(study, student_groups, proposer_groups, binding, should_stop):
+    """Persist complete group measurements and RNG state at transactional boundaries."""
+    path = study.output / "calibration-progress.pt"
+    identity = {
+        "binding": binding,
+        "student_groups": [[(row.task_id, row.seed) for row in group] for group in student_groups],
+        "proposer_groups": [
+            [(row.group, row.seed, row.reward) for row in group] for group in proposer_groups
+        ],
+    }
+    if path.is_file():
+        state = torch.load(path, map_location="cpu", weights_only=False)
+        if state["identity"] != identity:
+            raise ValueError("Calibration progress identity differs")
+        if len(state["students"]) > len(student_groups) or len(state["proposers"]) > len(
+            proposer_groups
+        ):
+            raise ValueError("Calibration progress contains too many groups")
+        restore_rng(state["rng"])
+    else:
+        state = {"identity": identity, "students": [], "proposers": [], "rng": rng_state()}
+
+    def save() -> None:
+        state["rng"] = rng_state()
+        temp = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
+        with temp.open("xb") as stream:
+            torch.save(state, stream)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temp, path)
+
+    if not path.is_file():
+        save()
+    for rows in student_groups[len(state["students"]) :]:
+        if should_stop():
+            raise SegmentStop("Calibration stopped between student groups")
+        rl, sd, _ = study.student_gradient(rows, gated=False, use_sd=True)
+        rl_norm, sd_norm = norm(rl), norm(sd)
+        if not math.isfinite(rl_norm) or not math.isfinite(sd_norm):
+            raise FloatingPointError("Nonfinite calibration gradient norm")
+        state["students"].append((rl_norm, sd_norm))
+        save()
+    for group in proposer_groups[len(state["proposers"]) :]:
+        if should_stop():
+            raise SegmentStop("Calibration stopped between proposer groups")
+        gradient, _ = study.proposer_gradient([group])
+        value = norm(gradient)
+        if not math.isfinite(value):
+            raise FloatingPointError("Nonfinite proposer calibration gradient norm")
+        state["proposers"].append(value)
+        save()
+    rl_norms = [rl for rl, _ in state["students"]]
+    ratios = [0.3 * rl / sd for rl, sd in state["students"] if min(rl, sd) > 1e-12]
+    return rl_norms, ratios, state["proposers"]
 
 
 def numerical(study: Study, rolls: dict) -> dict:
