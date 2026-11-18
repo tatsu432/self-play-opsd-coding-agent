@@ -37,8 +37,8 @@ one shared LoRA, and Dr. GRPO. The planned seed-2026 arms are a Dr. GRPO
 control and four OPSD/proposer-reward variants. BF16 cached execution failed
 the numerical threshold; uncached BF16 and cached FP32 passed their checks.
 FP32 calibration completed; proposer reward discrimination remains a concern
-to test in the five arms. The FP32 base repaired 31/41 monitoring tasks;
-ID and external baseline evaluation is underway. See the
+to test in the five arms. The FP32 base repaired 31/41 monitoring and 88/115
+ID tasks; external baseline evaluation is underway. See the
 [Task 19 plan](docs/plan/19-fix-plan.md) and
 [execution status](docs/investigations/task19-status.md).
 
