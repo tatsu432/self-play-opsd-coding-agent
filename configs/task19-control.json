@@ -1,12 +1,13 @@
 {
-  "study": "repair-selfplay-2026-task19-v6",
+  "study": "repair-selfplay-2026-task19-v7",
   "seed": 2026,
   "endpoint": null,
   "calibration_hash": null,
   "qualification_hash": null,
   "sd_scale": null,
   "proposer_scale": null,
-  "cached_rollout": false,
+  "precision": "float32",
+  "cached_rollout": true,
   "episode": {
     "edit_protocol": "replace_text",
     "max_generated_tokens": 12288,

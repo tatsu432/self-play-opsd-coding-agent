@@ -990,7 +990,11 @@ def run_payload(
             payload["iterations"] = payload["target_iterations"] = cfg.iterations
 
     if task19:
+        from selfplay_opsd.task19 import Task19Control
+
         control = ROOT / relative_settings.parent / "task19-control.json"
+        if Task19Control.read(control).precision != cfg.model.dtype:
+            raise HpcError("Task 19 model precision differs from the scientific control")
         suffix = {
             "task19-qualify": "qualification",
             "task19-qualify-uncached": "qualification-uncached",

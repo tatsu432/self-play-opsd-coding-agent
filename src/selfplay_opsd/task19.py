@@ -37,6 +37,7 @@ class Task19Control(Strict):
     )
     proposer_thinking: bool = False
     proposal_tokens: int = Field(default=1024, gt=0)
+    precision: Literal["bfloat16", "float32"] = "bfloat16"
     cached_rollout: bool = True
     sd_scale: float | None = Field(default=None, gt=0)
     proposer_scale: float | None = Field(default=None, gt=0)

@@ -99,7 +99,7 @@ class SharedPolicy:
         base, loading = qwen_model.from_pretrained(
             MODEL,
             revision=REVISION,
-            dtype=torch.bfloat16,
+            dtype=torch.float32 if control.precision == "float32" else torch.bfloat16,
             attn_implementation="sdpa",
             output_loading_info=True,
         )
