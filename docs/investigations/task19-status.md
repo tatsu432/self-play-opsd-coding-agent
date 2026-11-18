@@ -363,6 +363,11 @@ the second had a zero student RL gradient. A's first update was finite and
 nonzero and likewise lacked distinct valid proposer rewards. These are training
 diagnostics, not independent evaluation outcomes. Inspect the existing jobs
 and ledger before continuing; W&B is captured offline pending local sync.
+B, C and D subsequently committed finite, nonzero first updates at 16 attempted
+episodes. B had no distinct valid proposer-reward groups. C had one of two such
+groups and four near-zero candidate alignments; D had two of two and no
+near-zero candidate alignments. All used the matched first rollout batch. These
+are early training-signal observations, not independent endpoint performance.
 After the offline, recovery and reuse safeguards, the full local suite passed 476
 tests (20 skipped, 18 deselected), Ruff lint/format and mypy (61 source files).
 After the complete baseline is reconciled, `uv run selfplay hpc
