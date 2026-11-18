@@ -273,3 +273,7 @@ mypy; this does not establish GPU correctness. After a passing preview, job
 diagnostic, not a duplicate of v6. Both jobs share the 80-hour ledger. Inspect
 their live states and never duplicate either; choose a training path only after
 identity-bound numerical results and measured cost justify it.
+V7 was pending due to H200 capacity at the first check. V6 continued and saved
+three student turns; a simple token-rate extrapolation suggests calibration
+alone could take over 20 hours, but this is only an early estimate and does not
+account for changing context lengths or processing costs.
