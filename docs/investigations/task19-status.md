@@ -338,4 +338,5 @@ the existing scientific runner's `telemetry.json` has a hardcoded `online`
 mode label and must not be treated as proof of cloud delivery. Fetch the W&B
 files with full artifacts, synchronize from the authenticated local workspace,
 and verify cloud history before claiming delivery. Offline SDK capture was
-exercised locally; cloud synchronization of Task 19 has not yet occurred.
+exercised locally, and the local W&B API authenticated successfully; cloud
+synchronization of Task 19 has not yet occurred.
