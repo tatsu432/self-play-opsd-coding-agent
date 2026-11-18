@@ -368,9 +368,21 @@ def calibration_measurements(study, student_groups, proposer_groups, binding, sh
             proposer_groups
         ):
             raise ValueError("Calibration progress contains too many groups")
+        if state["proposers"] and (
+            len(state["students"]) != len(student_groups) or state["partial_student"] is not None
+        ):
+            raise ValueError("Calibration progress stage ordering differs")
+        if len(state["students"]) == len(student_groups) and state["partial_student"] is not None:
+            raise ValueError("Calibration progress has an unexpected partial group")
         restore_rng(state["rng"])
     else:
-        state = {"identity": identity, "students": [], "proposers": [], "rng": rng_state()}
+        state = {
+            "identity": identity,
+            "students": [],
+            "proposers": [],
+            "partial_student": None,
+            "rng": rng_state(),
+        }
 
     def save() -> None:
         state["rng"] = rng_state()
@@ -384,13 +396,46 @@ def calibration_measurements(study, student_groups, proposer_groups, binding, sh
     if not path.is_file():
         save()
     for rows in student_groups[len(state["students"]) :]:
-        if should_stop():
-            raise SegmentStop("Calibration stopped between student groups")
-        rl, sd, _ = study.student_gradient(rows, gated=False, use_sd=True)
+        turns = [(i, turn) for i, row in enumerate(rows) for turn in row.turns if turn.ids]
+        partial = state["partial_student"]
+        if partial is None:
+            rl, sd, start_position = study.zeros(), study.zeros(), 0
+        else:
+            rl, sd = study.zeros(), study.zeros()
+            start_position = partial["position"]
+            if not 0 <= start_position <= len(turns):
+                raise ValueError("Calibration progress turn position differs")
+            for target, saved in zip((rl, sd), (partial["rl"], partial["sd"]), strict=True):
+                if len(target) != len(saved):
+                    raise ValueError("Calibration gradient coordinate count differs")
+                for dst, src in zip(target, saved, strict=True):
+                    if dst.shape != src.shape or dst.dtype != src.dtype:
+                        raise ValueError("Calibration gradient coordinate differs")
+                    dst.copy_(src.to(dst.device))
+        for position in range(start_position, len(turns)):
+            if should_stop():
+                raise SegmentStop("Calibration stopped between student turns")
+            selected, turn = turns[position]
+            isolated = [
+                row.model_copy(update={"turns": [turn] if i == selected else []})
+                for i, row in enumerate(rows)
+            ]
+            turn_rl, turn_sd, _ = study.student_gradient(isolated, gated=False, use_sd=True)
+            for dst, value in zip(rl, turn_rl, strict=True):
+                dst.add_(value)
+            for dst, value in zip(sd, turn_sd, strict=True):
+                dst.add_(value)
+            state["partial_student"] = {
+                "position": position + 1,
+                "rl": [value.detach().cpu().clone() for value in rl],
+                "sd": [value.detach().cpu().clone() for value in sd],
+            }
+            save()
         rl_norm, sd_norm = norm(rl), norm(sd)
         if not math.isfinite(rl_norm) or not math.isfinite(sd_norm):
             raise FloatingPointError("Nonfinite calibration gradient norm")
         state["students"].append((rl_norm, sd_norm))
+        state["partial_student"] = None
         save()
     for group in proposer_groups[len(state["proposers"]) :]:
         if should_stop():

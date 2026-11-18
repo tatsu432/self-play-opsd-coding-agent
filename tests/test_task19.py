@@ -311,7 +311,15 @@ def test_calibration_group_checkpoint_restores_rng_and_avoids_repeating_work(tmp
     from selfplay_opsd.task19_qualification import calibration_measurements
     from selfplay_opsd.task19_train import SegmentStop
 
-    students = [[SimpleNamespace(task_id="t", seed=i)] for i in range(2)]
+    class Row:
+        def __init__(self, seed):
+            self.task_id, self.seed = "t", seed
+            self.turns = [SimpleNamespace(ids=[1])]
+
+        def model_copy(self, *, update):
+            return SimpleNamespace(task_id=self.task_id, seed=self.seed, **update)
+
+    students = [[Row(i)] for i in range(2)]
     proposers = [[SimpleNamespace(group=0, seed=10, reward=0.5)]]
     binding = {"identity": "same", "batch_sha256": "batch"}
     calls = []
@@ -325,7 +333,12 @@ def test_calibration_group_checkpoint_restores_rng_and_avoids_repeating_work(tmp
             calls.append("proposer")
             return [torch.rand(1)], {}
 
-        return SimpleNamespace(output=path, student_gradient=student, proposer_gradient=proposer)
+        return SimpleNamespace(
+            output=path,
+            student_gradient=student,
+            proposer_gradient=proposer,
+            zeros=lambda: [torch.zeros(1)],
+        )
 
     uninterrupted = tmp_path / "full"
     resumed = tmp_path / "resumed"
@@ -402,3 +415,73 @@ def test_v5_batch_reuse_requires_matching_control_execution_and_checksums(tmp_pa
     atomic_json(source / "numerical.json", {"passed": False, "cached_rollout": False})
     with pytest.raises(ValueError, match="execution identity"):
         load_v5_batch(study, expected=batch_hash)
+
+
+def test_calibration_turn_slices_match_full_group_gradients(tmp_path):
+    from selfplay_opsd.task19_qualification import calibration_measurements
+    from selfplay_opsd.task19_rollout import Repair, Turn
+    from selfplay_opsd.task19_train import norm
+
+    parameter = torch.nn.Parameter(torch.tensor([0.25]))
+
+    def score(prompt, ids, sampling, **kwargs):
+        values = parameter * torch.tensor([float(i + 1) for i in ids])
+        return values, values * 0.7
+
+    study = Study.__new__(Study)
+    study.cfg = Task19Control(cached_rollout=False)
+    study.policy = SimpleNamespace(parameters=[parameter], score=score)
+    study.output = tmp_path
+    turns = [
+        Turn(
+            prompt=[1],
+            ids=[1, 2],
+            logps=[-1.0, -1.0],
+            text="",
+            token_kinds=["reasoning", "tool"],
+            stopped=True,
+            history=[],
+            result="accepted",
+            teacher_prompt=[1],
+            teacher_logps=[-0.2, -0.3],
+            frozen_student_logps=[-0.4, -0.6],
+        )
+        for _ in range(2)
+    ]
+    rows = [
+        Repair(
+            task_id="task",
+            parent_id="p",
+            seed=i,
+            turns=turns,
+            success=i < 2,
+            public_pass=i < 2,
+            hidden_pass=i < 2,
+            termination="finish",
+            failure="",
+            verifier_status="ok",
+            final_source_hash="h",
+            test_calls=0,
+            timings={},
+        )
+        for i in range(4)
+    ]
+    full_rl, full_sd, _ = study.student_gradient(rows, gated=False, use_sd=True)
+    expected_rl, expected_sd = norm(full_rl), norm(full_sd)
+    sliced_rl, sliced_sd = study.zeros(), study.zeros()
+    for selected, row in enumerate(rows):
+        for turn in row.turns:
+            isolated = [
+                candidate.model_copy(update={"turns": [turn] if i == selected else []})
+                for i, candidate in enumerate(rows)
+            ]
+            part_rl, part_sd, _ = study.student_gradient(isolated, gated=False, use_sd=True)
+            for dst, value in zip(sliced_rl, part_rl, strict=True):
+                dst.add_(value)
+            for dst, value in zip(sliced_sd, part_sd, strict=True):
+                dst.add_(value)
+    assert all(torch.equal(a, b) for a, b in zip(full_rl, sliced_rl, strict=True))
+    assert all(torch.equal(a, b) for a, b in zip(full_sd, sliced_sd, strict=True))
+    result = calibration_measurements(study, [rows], [], {"id": "fixture"}, lambda: False)
+    assert result[0] == pytest.approx([expected_rl], rel=1e-7)
+    assert result[1] == pytest.approx([0.3 * expected_rl / expected_sd], rel=1e-7)
