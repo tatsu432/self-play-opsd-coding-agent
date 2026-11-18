@@ -221,3 +221,7 @@ complete calibration group measurements and random state; a focused CPU test
 checks equality with uninterrupted computation. It has not been applied to
 the live job and requires further review, evidence migration and qualification
 before any potential use. Inspect the current allocation first.
+The related draft `7492261` checks the v5 batch and numerical checksums,
+scientific settings, model, worker, dataset, adapter and unchanged rollout,
+policy and objective files before reusing the batch in a future v6 namespace.
+These drafts remain isolated and have not been submitted.
