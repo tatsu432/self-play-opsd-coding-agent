@@ -234,3 +234,8 @@ all four rewards, fixed normalization, accumulated gradients and random state.
 A CPU test matched the original group gradients exactly; the draft's broader
 checks passed 469 tests, with 20 skipped and 18 deselected, plus Ruff and mypy.
 GPU numerical qualification remains required before use.
+The frozen v5 batch contains 16 episodes, 107 turns and 28,943 sampled tokens.
+Training checkpoints are currently committed between updates, which can contain
+up to 16 episodes; the measured uncached rollout and calibration times make a
+four-hour allocation a material interruption risk. Assess the safe allocation
+or finer-grained recovery before submitting pilots, and retain the shared ledger.
