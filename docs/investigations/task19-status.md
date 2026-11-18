@@ -203,3 +203,10 @@ The same controller run `c8d4d093e75060f335f28078` was continued once as job
 `33783098` with a new four-hour reservation. Inspect that job and the ledger;
 do not submit a duplicate. If another continuation is necessary, repeat the
 terminal-state and ordering audit before acting.
+
+Continuation `33783098` started and preserved the fourteen earlier episodes
+unchanged, then completed all sixteen training-only episodes. The four group
+success counts are 4/4, 4/4, 4/4 and 3/4. The frozen batch SHA-256 is
+`c3d885680074b9566d279c440729e048200997808cbb07e6afd369fbae3611d7`.
+The numerical and calibration results are not yet known. Inspect this
+existing allocation and its evidence rather than submitting another run.
