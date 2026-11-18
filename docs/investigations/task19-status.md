@@ -152,10 +152,11 @@ any retry or submission.
 The v4 worker was still running after 2 hours 54 minutes without a complete
 wave checkpoint. Slurm reported active GPU use; progress within the wave is
 unknown. Its immutable code cannot save the individual episodes already in
-progress. An isolated, unmerged recovery draft is at commit `797b35e`, branch
+progress. An isolated, unmerged recovery draft is at commit `989a028`, branch
 `wip/task19-qualification-recovery` in `/private/tmp/selfplay-task19-recovery`.
 It saves fully scored episodes with their scientific identity and adds a
-guarded same-run continuation; it cannot recover unsaved v4 episodes. In that
+guarded same-run continuation and a separate v5 configuration; it cannot
+recover unsaved v4 episodes. In that
 checkout, 464 tests passed, 20 skipped and 18 deselected, and focused recovery
 tests, Ruff and mypy passed. Review its controller, budget and execution
 identity handling before using it in any new study namespace. Never launch a
