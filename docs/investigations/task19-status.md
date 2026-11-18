@@ -368,6 +368,12 @@ episodes. B had no distinct valid proposer-reward groups. C had one of two such
 groups and four near-zero candidate alignments; D had two of two and no
 near-zero candidate alignments. All used the matched first rollout batch. These
 are early training-signal observations, not independent endpoint performance.
+All five subsequently committed 32 attempted episodes with finite, nonzero
+shared updates. In their second updates, the common difficulty-based arms had
+no distinct valid proposer-reward groups; C had none in three groups and six
+near-zero alignments, while D had one distinct group of three and no near-zero
+alignments. Endpoint monitoring evaluations are in progress. These counts are
+training diagnostics and do not establish downstream improvement.
 After the offline, recovery and reuse safeguards, the full local suite passed 476
 tests (20 skipped, 18 deselected), Ruff lint/format and mypy (61 source files).
 After the complete baseline is reconciled, `uv run selfplay hpc
