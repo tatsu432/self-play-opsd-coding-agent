@@ -424,3 +424,21 @@ W&B transport is offline; retrieve and synchronize saved segments locally,
 then verify cloud history before claiming delivery. Do not merge as complete
 until the five endpoints, final accounting, analysis, and documentation are
 complete.
+
+Control and A subsequently started, followed by B and C; D remained pending.
+The five pilot artifact sets were fetched locally. The W&B CLI reported a
+successful control-pilot offline sync, but API verification found no run. A
+subsequent online initialization created the matching control run as an empty
+placeholder; retrying the CLI append still left zero cloud history rows. The
+pilot `.wandb` file contains four local history records. Treat cloud delivery
+as unverified, retain the original files and local sync records, and reconcile
+the placeholder before any replay to avoid duplicate history. Main segments
+continue recording offline independently.
+All five main jobs subsequently started. For control-pilot telemetry only, a
+guarded local replay checked that the cloud placeholder had no history, read
+four numeric history records from the preserved `.wandb` file, and logged them
+to the matching run with original timestamps and runtimes retained as explicit
+metrics. The W&B API subsequently returned four rows at steps 0–3. The replay
+script and SDK logs are private under `runs/task19/`; do not replay those rows
+again. Remaining pilot and continuation telemetry still requires reconciliation
+and independent verification. W&B history can become visible after a delay.
