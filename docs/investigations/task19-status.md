@@ -349,6 +349,12 @@ Inspect each existing job and its ledger before any action; never duplicate.
 W&B runs use offline transport for later synchronization from the authenticated
 local workspace. The total committed reservation after submission is at most
 41.358889 H200-hours, subject to reconciliation of actual charges.
+At the last confirmed observation, control and A were running with matching
+initial snapshots and the reused 31/41 monitoring result; B, C and D were
+pending. The SSH master then disconnected and the Duo refresh timed out. These
+Slurm jobs are independent of the login: after reauthentication, inspect all
+five controller runs and the shared ledger before any action, and never assume
+their current state or submit duplicates.
 After the offline, recovery and reuse safeguards, the full local suite passed 476
 tests (20 skipped, 18 deselected), Ruff lint/format and mypy (61 source files).
 After the complete baseline is reconciled, `uv run selfplay hpc
