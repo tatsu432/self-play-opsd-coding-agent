@@ -110,3 +110,14 @@ Task 19 v2 extended qualification job `33730057` / controller run
 checksum-bound, and the job can add at most 20 training tasks. Its four-hour
 reservation and the earlier 4,364 H200-seconds share the 80-hour ledger.
 Inspect this job before taking action and never duplicate it.
+
+The v2 qualification job `33730057` failed after 4,631 H200-seconds because
+no proposal group contained distinct valid difficulty rewards. Its 29 verified
+task groups comprised 23 all-success groups, five all-failure groups, and one
+mixed group. Some proposer groups contained both valid and invalid proposals.
+The specification requires continuing controlled pilots when proposer
+reward discrimination is weak. Task 19 v3 therefore reuses the exact saved
+batch, records the lack of valid reward variation, and qualifies numerical
+behavior using the mixed group. Loss calibration uses up to four student and
+four informative proposer groups, with invalid-proposal penalties retained.
+The v1 and v2 jobs used 8,995 H200-seconds in total.

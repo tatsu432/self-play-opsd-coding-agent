@@ -26,8 +26,11 @@ def qualify(study: Study) -> Task19Control:
     if not cfg.cached_rollout:
         raise ValueError("Uncached qualification requires newly sampled behavior trajectories")
     previous = output.parent.parent / "repair-selfplay-2026-task19-v1/qualification"
-    source = previous / "frozen-training-batch.json"
-    expected = "71ce6cb6b47a8a9c5ca38f33cf288daac606e7af25fb81e9495fe67897d1d96b"
+    source = (
+        output.parent.parent
+        / "repair-selfplay-2026-task19-v2/qualification/frozen-training-batch.json"
+    )
+    expected = "4cd5991768348988e351bbebf43ed59c58bc14c822a5a20dfdb2c2ea30a3194d"
     if file_hash(source) != expected:
         raise ValueError("Prior frozen training batch checksum differs")
     batch = read_json(source)
@@ -59,18 +62,7 @@ def qualify(study: Study) -> Task19Control:
     before_caps = {"reused_episodes": sum(map(len, rolls.values()))}
     for _ in range(5):
         mixed = any(0 < sum(row.success for row in values) < GROUP for values in rolls.values())
-        distinct = any(
-            len(
-                {
-                    difficulty(float(row.success) for row in rolls[p.task])
-                    for p in group
-                    if p.task in rolls
-                }
-            )
-            > 1
-            for group in groups
-        )
-        if mixed and distinct:
+        if mixed:
             break
         extra_groups, tasks, _ = study.collect(4)
         extra_rolls, _ = study.rollouts(tasks, distill=True)
@@ -89,21 +81,19 @@ def qualify(study: Study) -> Task19Control:
             },
         )
     mixed = any(0 < sum(row.success for row in values) < GROUP for values in rolls.values())
-    distinct = any(
-        len(
-            {
-                difficulty(float(row.success) for row in rolls[p.task])
-                for p in group
-                if p.task in rolls
-            }
-        )
-        > 1
-        for group in groups
+    if not mixed:
+        raise RuntimeError("Bounded training-only extension did not produce mixed student rewards")
+    atomic_json(
+        output / "frozen-training-batch.json",
+        {
+            "snapshot": study.snapshot,
+            "source_sha256": expected,
+            "proposals": [[row.model_dump(mode="json") for row in group] for group in groups],
+            "repairs": {
+                key: [row.model_dump(mode="json") for row in rows] for key, rows in rolls.items()
+            },
+        },
     )
-    if not mixed or not distinct:
-        raise RuntimeError(
-            "Bounded training-only extension did not produce mixed student rewards and distinct proposer rewards"
-        )
 
     diagnostic = numerical(study, rolls)
     atomic_json(output / "numerical.json", diagnostic)
@@ -123,7 +113,10 @@ def qualify(study: Study) -> Task19Control:
         )
 
     ratios, rl_norms = [], []
-    for rows in rolls.values():
+    calibration_rolls = sorted(
+        rolls.values(), key=lambda rows: not (0 < sum(row.success for row in rows) < GROUP)
+    )[:4]
+    for rows in calibration_rolls:
         rl, sd, _ = study.student_gradient(rows, gated=False, use_sd=True)
         rl_norm, sd_norm = norm(rl), norm(sd)
         rl_norms.append(rl_norm)
@@ -134,6 +127,8 @@ def qualify(study: Study) -> Task19Control:
         for row in group:
             if row.task is not None:
                 row.reward = difficulty(float(item.success) for item in rolls[row.task])
+    informative = [group for group in groups if len({row.reward for row in group}) > 1][:4]
+    for group in informative:
         gradient, _ = study.proposer_gradient([group])
         proposer_norms.append(norm(gradient))
     proposer_norms = [value for value in proposer_norms if value > 1e-12]
@@ -146,6 +141,19 @@ def qualify(study: Study) -> Task19Control:
     report = {
         "identity": study.identity,
         "proposer_screen": proposed,
+        "distinct_valid_reward_groups": sum(
+            len(
+                {
+                    difficulty(float(r.success) for r in rolls[p.task])
+                    for p in group
+                    if p.task in rolls
+                }
+            )
+            > 1
+            for group in groups
+        ),
+        "proposer_groups": len(groups),
+        "calibration_group_count": len(calibration_rolls),
         "student_cap_screen": before_caps,
         "final_rollouts": episode_metrics,
         "sd_scale": sd_scale,
