@@ -80,6 +80,7 @@ def test_task19_uses_pinned_cache_without_changing_other_jobs():
         "HF_HUB_OFFLINE": "1",
         "TRANSFORMERS_OFFLINE": "1",
     }
+    assert module.model_cache_overrides("task19-pilot")["WANDB_MODE"] == "offline"
     assert module.model_cache_overrides("task18-native") == {}
 
 

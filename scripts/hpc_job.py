@@ -1158,7 +1158,10 @@ def model_cache_overrides(operation: str) -> dict:
     # the shared cache. Fail clearly if absent instead of hanging on nodes
     # without outbound Hugging Face access.
     if operation.startswith("task19-"):
-        return {"HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1"}
+        result = {"HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1"}
+        if operation in {"task19-pilot", "task19-train"}:
+            result["WANDB_MODE"] = "offline"
+        return result
     return {}
 
 
@@ -1431,6 +1434,14 @@ def execute(env: dict) -> int:
             "SELFPLAY_STOP_AFTER_ITERATION": env.get("SELFPLAY_STOP_AFTER_ITERATION", "0"),
         }
         overrides.update(model_cache_overrides(operation))
+        if operation in {"task19-pilot", "task19-train"}:
+            write(
+                runs
+                / env["SELFPLAY_OUTPUT"].removeprefix("/runs/")
+                / "state"
+                / f"telemetry-transport-{attempt}.json",
+                {"mode": "offline", "allocation": attempt, "sync": "deferred"},
+            )
         if int(env["SELFPLAY_GPU_COUNT"]) == 0:
             # CPU validation/freeze read the target experiment configuration;
             # they do not instantiate a GPU policy. Do not claim that the target

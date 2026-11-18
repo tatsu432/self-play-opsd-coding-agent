@@ -330,3 +330,12 @@ pilot submission. All arms use the same initial adapter, task seeds and data;
 each pilot still verifies every task identity on read. The helper refuses
 incomplete baselines, mismatched evidence, altered copies and existing arm
 slots. This reuses the single initial evaluation, not later milestone results.
+The baseline node and Yale login could not reach `api.wandb.ai`, while the
+local workspace could. Future pilot and training jobs therefore record W&B
+offline files for later local synchronization. A per-allocation
+`state/telemetry-transport-<job>.json` records the true offline transport;
+the existing scientific runner's `telemetry.json` has a hardcoded `online`
+mode label and must not be treated as proof of cloud delivery. Fetch the W&B
+files with full artifacts, synchronize from the authenticated local workspace,
+and verify cloud history before claiming delivery. Offline SDK capture was
+exercised locally; cloud synchronization of Task 19 has not yet occurred.
