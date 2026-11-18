@@ -190,3 +190,16 @@ episodes by 3 hours 2 minutes, forming groups with 4/4, 4/4 and 3/4 verified
 successes. The mixed and uniform groups are training-only diagnostic inputs,
 not benchmark results. The fourth task and numerical qualification remain
 unfinished; inspect the current progress and scheduler before any action.
+
+V5 job `33765671` timed out after 14,411 H200-seconds with fourteen scored
+episodes saved and the first wave unfinished. The shared ledger now totals
+38,262 seconds (10.628333 H200-hours). After confirming terminal state and
+matching identities, the guarded utility archived the original progress bytes
+with SHA-256 `4cc96e212397390587fc8f32680ca5203531515a637dcf9d0fec61ca68ce2581`
+and restored the proposal-derived task order; the reordered file SHA-256 is
+`9fac56112503b4a062863117a61ebc1fdbffb4b22cd180265f7f59ff957aef8e`.
+Parsed checkpoint data and all fourteen episodes were verified unchanged.
+The same controller run `c8d4d093e75060f335f28078` was continued once as job
+`33783098` with a new four-hour reservation. Inspect that job and the ledger;
+do not submit a duplicate. If another continuation is necessary, repeat the
+terminal-state and ordering audit before acting.
