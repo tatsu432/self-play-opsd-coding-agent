@@ -260,3 +260,16 @@ Because a training update can exceed the four-hour checkpoint interval,
 pilot and training submissions now permit an explicit wall time up to twelve
 hours; the default remains four hours. The shared ledger reserves the entire
 requested duration, and no longer allocation has yet been submitted.
+
+The first two v6 calibration turns (154 sampled tokens) took about seven
+minutes; the full frozen batch has 28,943 sampled tokens, so uncached execution
+poses a serious feasibility risk. To investigate precision as the spec requires,
+an isolated FP32 cached candidate was prepared on `wip/task19-fp32`, with
+fresh behavior probabilities and the same numerical acceptance thresholds.
+Its local checks passed 471 tests (20 skipped, 18 deselected), plus Ruff and
+mypy; this does not establish GPU correctness. After a passing preview, job
+`33797457` / run `af5597e8e9526b06b403b9da` was submitted once from commit
+`3722a234c092cd40c49b5f67e8613de5712fc27c`. It is a different precision
+diagnostic, not a duplicate of v6. Both jobs share the 80-hour ledger. Inspect
+their live states and never duplicate either; choose a training path only after
+identity-bound numerical results and measured cost justify it.
