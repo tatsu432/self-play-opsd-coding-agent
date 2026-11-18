@@ -121,3 +121,11 @@ batch, records the lack of valid reward variation, and qualifies numerical
 behavior using the mixed group. Loss calibration uses up to four student and
 four informative proposer groups, with invalid-proposal penalties retained.
 The v1 and v2 jobs used 8,995 H200-seconds in total.
+
+The v3 qualification job `33739684`, controller run
+`556bb9e4c2b309660f082527`, was submitted once from immutable commit
+`5b1eb075c98411b499d15ba91a31dd917de6fe7e` after a passing preview. It is
+pending on priority with a four-hour reservation. Its saved batch source is
+v2 `frozen-training-batch.json` SHA-256
+`4cd5991768348988e351bbebf43ed59c58bc14c822a5a20dfdb2c2ea30a3194d`.
+Inspect this run and the shared ledger before further actions.
