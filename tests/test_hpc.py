@@ -819,6 +819,9 @@ def test_task19_initial_monitoring_reuse_checks_identity_and_refuses_tampering(
     for arm in result["arms"]:
         staged = root / f"{arm}-seed2026/evaluation/0000/dev_monitor/tasks/{task}.json"
         assert staged.read_bytes() == (summary_path.parent / "tasks" / f"{task}.json").read_bytes()
+        provenance = json.loads((staged.parent.parent / "reused-base.json").read_text())
+        assert provenance["base_marker_sha256"] == remote.sha256(base / "complete-base.json")
+        assert provenance["task_sha256"][task] == remote.sha256(staged)
     assert remote.stage_task19_baseline(payload) == result
     staged.write_text("{}")
     with pytest.raises(ValueError, match="staged task differs"):

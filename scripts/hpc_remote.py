@@ -3295,7 +3295,10 @@ def stage_task19_baseline(payload: dict) -> dict:
                 target.parent / "reused-base.json",
                 {
                     "base_run": owner,
+                    "base_marker_sha256": sha256(source / "complete-base.json"),
                     "summary_sha256": sha256(summary_path),
+                    "calibration_sha256": calibrated["calibration_hash"],
+                    "numerical_sha256": calibrated["qualification_hash"],
                     "snapshot": marker["snapshot"],
                     "task_sha256": records,
                 },
