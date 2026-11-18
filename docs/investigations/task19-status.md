@@ -174,7 +174,9 @@ from the v5 checkpoint format. V5 qualification was submitted once from
 commit `c613dc7d8eb4559e815f89354053c37e68b3b570` as Slurm job `33765671`,
 controller run `c8d4d093e75060f335f28078`, with a four-hour reservation after
 a passing preview and worker proof. Inspect that run and the shared ledger;
-never submit a duplicate. After a verified stopped segment, resume the same
-controller run with `hpc resume RUN_ID --continue-stopped`, subject to its
-identity, progress and budget checks. Numerical and calibration phases may
-still exceed one allocation; inspect evidence rather than assuming success.
+never submit a duplicate. While it runs uninterrupted its progress is valid,
+but its continuation code sorts saved task keys and may change calibration
+order. Do not resume it blindly. A tested ordering fix is isolated at
+`d7ded10` on `wip/task19-qualification-recovery`; review an identity-bound
+migration or another safe resolution against its saved evidence before any
+continuation. Numerical and calibration phases may still exceed one allocation.
