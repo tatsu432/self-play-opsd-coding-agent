@@ -321,3 +321,5 @@ and include both base allocations in final accounting. At submission the shared
 ledger held 16.613889 charged plus the new six-hour reservation.
 The replacement started on the previously affected node, loaded the pinned
 model from cache, and reached health `running`; task evaluation is in progress.
+After the offline and recovery safeguards, the full local suite passed 474
+tests (20 skipped, 18 deselected), Ruff lint/format and mypy (61 source files).
