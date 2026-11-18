@@ -363,6 +363,15 @@ def test_calibration_group_checkpoint_restores_rng_and_avoids_repeating_work(tmp
     actual = calibration_measurements(study(resumed), students, proposers, binding, lambda: False)
     assert actual == expected
     assert calls == ["student", "student", "proposer"]
+    from selfplay_opsd.storage import read_json
+
+    assert read_json(resumed / "calibration-progress-summary.json") == {
+        "completed_student_groups": 2,
+        "total_student_groups": 2,
+        "completed_turns_in_current_group": 0,
+        "completed_proposer_groups": 1,
+        "total_proposer_groups": 1,
+    }
 
 
 def test_v5_batch_reuse_requires_matching_control_execution_and_checksums(tmp_path):

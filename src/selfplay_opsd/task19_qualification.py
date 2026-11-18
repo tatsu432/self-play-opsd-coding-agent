@@ -392,6 +392,17 @@ def calibration_measurements(study, student_groups, proposer_groups, binding, sh
             stream.flush()
             os.fsync(stream.fileno())
         os.replace(temp, path)
+        partial = state["partial_student"]
+        atomic_json(
+            study.output / "calibration-progress-summary.json",
+            {
+                "completed_student_groups": len(state["students"]),
+                "total_student_groups": len(student_groups),
+                "completed_turns_in_current_group": partial["position"] if partial else 0,
+                "completed_proposer_groups": len(state["proposers"]),
+                "total_proposer_groups": len(proposer_groups),
+            },
+        )
 
     if not path.is_file():
         save()
