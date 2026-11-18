@@ -239,3 +239,12 @@ Training checkpoints are currently committed between updates, which can contain
 up to 16 episodes; the measured uncached rollout and calibration times make a
 four-hour allocation a material interruption risk. Assess the safe allocation
 or finer-grained recovery before submitting pilots, and retain the shared ledger.
+
+V5 continuation job `33783098` timed out after 14,407 H200-seconds without
+writing calibration. Its 16-episode frozen batch and passing numerical evidence
+remain preserved. Total reconciled Task 19 charge is 52,669 H200-seconds
+(14.630278 hours). The v6 recovery now binds that batch and its numerical
+evidence to the original identities, repeats qualification under the new code,
+and checkpoints calibration between student turns. The integrated local suite
+passed 469 tests (20 skipped, 18 deselected), Ruff and mypy. V6 has not yet
+been submitted; check Slurm and the shared ledger before any submission.
