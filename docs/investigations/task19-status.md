@@ -328,11 +328,12 @@ It completed the 41-task monitoring split with 31 verified repairs and the
 115-task ID split with 88 verified repairs. The 116 external baseline tasks
 are in progress. These results use the new model and interface and are not a
 controlled comparison with the historical base.
-The last confirmed scheduler observation had job `33801734` running with 66
-external records saved. The Yale SSH master became unresponsive; a Duo refresh
-is required. The Slurm job is independent of the login: after reconnecting,
-inspect `eec3440e2c5b56338c30b555` and the shared ledger before any action,
-and never submit a duplicate or assume the job stopped.
+After Yale reauthentication, job `33801734` was verified COMPLETED with exit 0
+in 17,082 H200-seconds. The external baseline is 93/116 on previously inspected
+families. Monitoring, ID and external summaries share the verified initial
+snapshot. Total reconciled Task 19 allocation is 21.358889 H200-hours.
+The 41 verified initial monitoring records were staged for all five arms using
+the guarded reuse procedure. Never duplicate this completed baseline.
 After the offline, recovery and reuse safeguards, the full local suite passed 476
 tests (20 skipped, 18 deselected), Ruff lint/format and mypy (61 source files).
 After the complete baseline is reconciled, `uv run selfplay hpc

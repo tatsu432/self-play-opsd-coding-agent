@@ -38,7 +38,7 @@ control and four OPSD/proposer-reward variants. BF16 cached execution failed
 the numerical threshold; uncached BF16 and cached FP32 passed their checks.
 FP32 calibration completed; proposer reward discrimination remains a concern
 to test in the five arms. The FP32 base repaired 31/41 monitoring and 88/115
-ID tasks; external baseline evaluation is underway. See the
+ID tasks and 93/116 previously inspected external tasks. See the
 [Task 19 plan](docs/plan/19-fix-plan.md) and
 [execution status](docs/investigations/task19-status.md).
 
