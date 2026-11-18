@@ -161,3 +161,13 @@ checkout, 464 tests passed, 20 skipped and 18 deselected, and focused recovery
 tests, Ruff and mypy passed. Review its controller, budget and execution
 identity handling before using it in any new study namespace. Never launch a
 replacement while v4 remains active or its terminal accounting is uncertain.
+
+Job `33740964` subsequently timed out after 14,409 H200-seconds without a
+complete wave or numerical result. Its original immutable execution and
+artifacts remain preserved; do not repeat it. The shared Task 19 ledger now
+records 23,851 H200-seconds (6.625278 hours) of actual allocation. The
+reviewed recovery changes and v5 configuration have been incorporated into
+the Task 19 branch. V5 saves scored episodes and identity-bound numerical
+results, and supports guarded continuation of the same controller run. The
+older v4 execution did not save individual episodes and cannot be resumed
+from the v5 checkpoint format. V5 has not yet been submitted.
