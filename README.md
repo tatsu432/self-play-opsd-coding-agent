@@ -36,7 +36,8 @@ Task 19 implements the next study with Qwen3.5-4B, native student thinking,
 one shared LoRA, and Dr. GRPO. The planned seed-2026 arms are a Dr. GRPO
 control and four OPSD/proposer-reward variants. BF16 cached execution failed
 the numerical threshold; uncached BF16 and cached FP32 passed their checks.
-FP32 calibration is running before the five arms. See the
+FP32 calibration completed; proposer reward discrimination remains a concern
+to test in the five arms. See the
 [Task 19 plan](docs/plan/19-fix-plan.md) and
 [execution status](docs/investigations/task19-status.md).
 

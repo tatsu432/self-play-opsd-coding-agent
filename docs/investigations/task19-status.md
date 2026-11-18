@@ -289,3 +289,14 @@ difference 0.001548% and restored-update difference 0.000829%, with cosines
 above 0.9999999999. Calibration is underway; no scale or training outcome is
 yet available. The source is now on the task branch with the same scientific
 files as the immutable job; preserve the separate v6/v7 run identities.
+V7 qualification job `33797457` completed exit 0 in 1,521 H200-seconds.
+Calibration selected OPSD scale `0.09882062828499757` and proposer scale
+`0.062588360570449`; calibration SHA-256 is
+`84ddf061e553ed86f2cf686e0aa8b1cd4da3b67f1ea0bd29fae545ddd281b1b7`.
+The two proposal groups contained two distinct valid tasks each, but valid
+tasks within each group had equal measured solve rates. The nonzero proposer
+calibration gradient therefore includes valid-versus-invalid discrimination;
+it does not establish meaningful discrimination among valid tasks. Preserve
+this limitation and assess proposer rewards in the bounded C/D pilots, as the
+specification requires. V6's requested safe stop remains pending until its
+current turn completes.
