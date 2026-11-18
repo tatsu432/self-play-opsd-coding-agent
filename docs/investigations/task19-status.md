@@ -300,3 +300,8 @@ it does not establish meaningful discrimination among valid tasks. Preserve
 this limitation and assess proposer rewards in the bounded C/D pilots, as the
 specification requires. V6's requested safe stop remains pending until its
 current turn completes.
+The FP32 base evaluation was submitted once after a passing preview as job
+`33799453` / controller run `662c76b708905dfc47d55b2f` from immutable commit
+`4376159e6ee92d734ce4ea11833c9514bf415e48`, with a six-hour reservation.
+Inspect its scheduler and ledger, never duplicate it, and use checkpointed
+evaluation records on continuation if needed. The five matched pilots follow.
