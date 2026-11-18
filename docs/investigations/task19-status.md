@@ -142,3 +142,9 @@ Task 19 v4 begins the planned single-backend uncached qualification with newly
 sampled behavior trajectories. It keeps the previously selected token limits.
 Its execution cost remains to be measured. The v1–v3 batches, controls,
 accounting and failed job identities remain intact.
+
+The uncached v4 qualification job `33740964`, controller run
+`464255f66a34a218d763e9e0`, was submitted once from commit
+`a0b78624a286c1eead3ef86389fa5a98f4fd5d7f` after a passing preview. It has a
+four-hour reservation in the shared ledger. Inspect this existing job before
+any retry or submission.
