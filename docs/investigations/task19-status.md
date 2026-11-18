@@ -208,5 +208,9 @@ Continuation `33783098` started and preserved the fourteen earlier episodes
 unchanged, then completed all sixteen training-only episodes. The four group
 success counts are 4/4, 4/4, 4/4 and 3/4. The frozen batch SHA-256 is
 `c3d885680074b9566d279c440729e048200997808cbb07e6afd369fbae3611d7`.
-The numerical and calibration results are not yet known. Inspect this
-existing allocation and its evidence rather than submitting another run.
+The uncached numerical diagnostic passed: across 64 compared sampled tokens,
+replay error, support exits, clipping changes and same-operation repeat
+variation were zero. Relative gradient and restored AdamW update differences
+were 1.355887% and 1.938686%, with cosines 0.999908 and 0.999812. Calibration
+is running and has not yet produced evidence. Inspect this existing allocation
+rather than submitting another run.
