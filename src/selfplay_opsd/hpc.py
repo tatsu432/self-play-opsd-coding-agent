@@ -145,6 +145,7 @@ class YaleSSH:
             "reuse_study",
             "publish_resource_plan",
             "task19_budget_status",
+            "stage_task19_baseline",
             "publish_task19_endpoint",
             "logs",
         }:
@@ -1653,6 +1654,23 @@ def task19_budget_command(settings: Path = Path("configs/task19-yale.yaml")):
     output(
         remote.call(
             "task19_budget_status",
+            {
+                "storage_root": context["storage_root"],
+                "study_id": load_config(settings).study_id,
+            },
+        )
+    )
+
+
+@app.command("task19-stage-baseline")
+def task19_stage_baseline_command(settings: Path = Path("configs/task19-yale.yaml")):
+    """Reuse verified initial monitoring records for identical starting policies."""
+    remote = YaleSSH()
+    remote.call("inspect")
+    context = remote_context(remote, remote.alias)
+    output(
+        remote.call(
+            "stage_task19_baseline",
             {
                 "storage_root": context["storage_root"],
                 "study_id": load_config(settings).study_id,

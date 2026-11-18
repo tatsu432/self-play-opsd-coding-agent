@@ -3182,6 +3182,120 @@ def task19_budget_status(payload: dict) -> dict:
         return refreshed_budget(payload)
 
 
+def stage_task19_baseline(payload: dict) -> dict:
+    """Reuse the verified initial monitoring tasks for the five identical initial policies."""
+    base = workspace(payload)
+    study = payload["study_id"]
+    if not re.fullmatch(r"repair-selfplay-2026-task19-[A-Za-z0-9_-]+", study):
+        raise ValueError("Invalid Task 19 study")
+    root = base / "runs" / study
+    source = root / "base"
+    with locked(base / "state/.submit.lock"):
+        slot = hashlib.sha256(f"{source}:task19-base".encode()).hexdigest()
+        owner = json.loads((base / "state/slots" / f"{slot}.json").read_text())["run_id"]
+        state = status(payload | {"run_id": owner})
+        if (
+            state["ledger"].get("pending_intent")
+            or not state["attempts"]
+            or state["attempts"][-1]["scheduler"]["state"] != "COMPLETED"
+        ):
+            raise ValueError("Initial monitoring reuse requires a completed baseline")
+        marker = json.loads((source / "complete-base.json").read_text())
+        summary_path = source / "evaluation/0000/dev_monitor/summary.json"
+        summary = json.loads(summary_path.read_text())
+        choices = [
+            root / name
+            for name in ("qualification", "qualification-uncached")
+            if (root / name / "calibrated-control.json").is_file()
+        ]
+        if len(choices) != 1:
+            raise ValueError("Initial monitoring requires one qualified control")
+        qualified = choices[0]
+        qualification = json.loads((qualified / "calibration.json").read_text())
+        calibrated = json.loads((qualified / "calibrated-control.json").read_text())
+        identity = marker["identity"]
+        if (
+            any(
+                identity.get(key) != qualification["identity"].get(key)
+                for key in ("study", "arm", "data", "execution", "initial", "worker")
+            )
+            or calibrated.get("calibration_hash") != sha256(qualified / "calibration.json")
+            or calibrated.get("qualification_hash") != sha256(qualified / "numerical.json")
+            or identity.get("study") != study
+            or identity.get("arm") != "control"
+            or marker["snapshot"] != identity.get("initial")
+            or summary.get("identity") != identity
+            or summary.get("snapshot") != marker["snapshot"]
+            or summary.get("episodes") != 0
+            or summary.get("split") != "dev_monitor"
+        ):
+            raise ValueError("Initial monitoring identity differs from qualification")
+        task_ids = [row["task_id"] for row in summary["tasks"]]
+        if (
+            not task_ids
+            or len(task_ids) != summary["count"]
+            or len(set(task_ids)) != len(task_ids)
+            or any(not DIGEST.fullmatch(task) for task in task_ids)
+        ):
+            raise ValueError("Initial monitoring task coverage differs")
+        source_tasks = summary_path.parent / "tasks"
+        records = {}
+        for task in task_ids:
+            path = source_tasks / f"{task}.json"
+            if path.is_symlink() or not path.is_file():
+                raise ValueError("Initial monitoring task record missing")
+            row = json.loads(path.read_text())
+            row_identity = row["identity"]
+            if (
+                row_identity.get("task") != task
+                or row_identity.get("data") != identity["data"]
+                or row_identity.get("science") != identity["science"]
+                or row_identity.get("snapshot") != marker["snapshot"]
+            ):
+                raise ValueError("Initial monitoring task identity differs")
+            records[task] = sha256(path)
+        if {p.stem for p in source_tasks.glob("*.json")} != set(task_ids):
+            raise ValueError("Initial monitoring task files do not match summary")
+        arms = ("control", "A", "B", "C", "D")
+        for arm in arms:
+            target = root / f"{arm}-seed2026"
+            for operation in ("task19-pilot", "task19-train"):
+                key = hashlib.sha256(f"{target}:{operation}".encode()).hexdigest()
+                if (base / "state/slots" / f"{key}.json").exists():
+                    raise ValueError("Cannot stage baseline after an arm has been submitted")
+        for arm in arms:
+            target = root / f"{arm}-seed2026/evaluation/0000/dev_monitor/tasks"
+            target.mkdir(parents=True, exist_ok=True, mode=0o700)
+            for task, expected in records.items():
+                destination = target / f"{task}.json"
+                if destination.exists():
+                    if destination.is_symlink() or sha256(destination) != expected:
+                        raise ValueError("Existing staged task differs from baseline")
+                    continue
+                temp = target / f".{task}.{uuid.uuid4().hex}.tmp"
+                try:
+                    with (source_tasks / f"{task}.json").open("rb") as src, temp.open("xb") as dst:
+                        os.chmod(temp, 0o600)
+                        shutil.copyfileobj(src, dst)
+                        dst.flush()
+                        os.fsync(dst.fileno())
+                    if sha256(temp) != expected:
+                        raise ValueError("Staged task checksum differs")
+                    os.replace(temp, destination)
+                finally:
+                    temp.unlink(missing_ok=True)
+            write_json(
+                target.parent / "reused-base.json",
+                {
+                    "base_run": owner,
+                    "summary_sha256": sha256(summary_path),
+                    "snapshot": marker["snapshot"],
+                    "task_sha256": records,
+                },
+            )
+        return {"base_run": owner, "tasks": len(records), "arms": list(arms)}
+
+
 def publish_task19_endpoint(payload: dict) -> dict:
     base = workspace(payload)
     study = payload["study_id"]
@@ -3313,6 +3427,7 @@ COMMANDS = {
     "publish_resource_plan": publish_resource_plan,
     "task19_budget_status": task19_budget_status,
     "publish_task19_endpoint": publish_task19_endpoint,
+    "stage_task19_baseline": stage_task19_baseline,
 }
 
 

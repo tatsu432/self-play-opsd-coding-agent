@@ -739,6 +739,89 @@ def test_task19_remote_enforces_the_same_training_wall_limit(tmp_path, monkeypat
         remote.check_task19(payload | {"time": "12:01:00"})
 
 
+def test_task19_initial_monitoring_reuse_checks_identity_and_refuses_tampering(
+    tmp_path, monkeypatch
+):
+    remote = remote_module()
+    monkeypatch.setattr(remote, "workspace", lambda _: tmp_path)
+    study = "repair-selfplay-2026-task19-v7"
+    root = tmp_path / "runs" / study
+    base = root / "base"
+    identity = {
+        "study": study,
+        "arm": "control",
+        "data": "data",
+        "execution": {"code": "same"},
+        "initial": "snapshot",
+        "worker": "worker",
+        "science": "calibrated-science",
+    }
+    task = "a" * 64
+    marker = {"identity": identity, "snapshot": "snapshot"}
+    remote.write_json(base / "complete-base.json", marker)
+    summary_path = base / "evaluation/0000/dev_monitor/summary.json"
+    remote.write_json(
+        summary_path,
+        {
+            "identity": identity,
+            "snapshot": "snapshot",
+            "episodes": 0,
+            "split": "dev_monitor",
+            "count": 1,
+            "tasks": [{"task_id": task}],
+        },
+    )
+    row = {
+        "identity": {
+            "task": task,
+            "data": "data",
+            "science": "calibrated-science",
+            "snapshot": "snapshot",
+            "seed": 123,
+        },
+        "metrics": {},
+        "repair": {},
+    }
+    remote.write_json(summary_path.parent / "tasks" / f"{task}.json", row)
+    qualification = root / "qualification"
+    remote.write_json(
+        qualification / "calibration.json", {"identity": identity | {"science": "initial"}}
+    )
+    remote.write_json(qualification / "numerical.json", {"passed": True})
+    remote.write_json(
+        qualification / "calibrated-control.json",
+        {
+            "calibration_hash": remote.sha256(qualification / "calibration.json"),
+            "qualification_hash": remote.sha256(qualification / "numerical.json"),
+        },
+    )
+    slot = remote.hashlib.sha256(f"{base}:task19-base".encode()).hexdigest()
+    remote.write_json(tmp_path / "state/slots" / f"{slot}.json", {"run_id": "base-run"})
+    monkeypatch.setattr(
+        remote,
+        "status",
+        lambda _: {
+            "ledger": {},
+            "attempts": [{"scheduler": {"state": "COMPLETED"}}],
+        },
+    )
+    payload = {"study_id": study}
+    result = remote.stage_task19_baseline(payload)
+    assert result == {"base_run": "base-run", "tasks": 1, "arms": ["control", "A", "B", "C", "D"]}
+    for arm in result["arms"]:
+        staged = root / f"{arm}-seed2026/evaluation/0000/dev_monitor/tasks/{task}.json"
+        assert staged.read_bytes() == (summary_path.parent / "tasks" / f"{task}.json").read_bytes()
+    assert remote.stage_task19_baseline(payload) == result
+    staged.write_text("{}")
+    with pytest.raises(ValueError, match="staged task differs"):
+        remote.stage_task19_baseline(payload)
+    staged.write_bytes((summary_path.parent / "tasks" / f"{task}.json").read_bytes())
+    arm_slot = remote.hashlib.sha256(f"{root / 'A-seed2026'}:task19-pilot".encode()).hexdigest()
+    remote.write_json(tmp_path / "state/slots" / f"{arm_slot}.json", {"run_id": "existing"})
+    with pytest.raises(ValueError, match="after an arm has been submitted"):
+        remote.stage_task19_baseline(payload)
+
+
 def test_empty_base_replacement_requires_terminal_empty_and_identical_science(
     tmp_path, monkeypatch
 ):
