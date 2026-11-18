@@ -229,3 +229,8 @@ The optional v6 configuration is prepared at `fbcdff0`; the broader draft
 checks passed 468 tests with 20 skipped and 18 deselected, plus Ruff and mypy.
 Reusing the frozen batch still requires the draft's runtime identity checks
 and a fresh numerical qualification under its changed execution code.
+Draft `f1d9ad9` adds calibration checkpoints between student turns, preserving
+all four rewards, fixed normalization, accumulated gradients and random state.
+A CPU test matched the original group gradients exactly; the draft's broader
+checks passed 469 tests, with 20 skipped and 18 deselected, plus Ruff and mypy.
+GPU numerical qualification remains required before use.
