@@ -695,6 +695,7 @@ def test_task19_qualification_continue_requires_saved_progress_and_is_single_use
     submitted = []
     monkeypatch.setattr(remote, "submit", lambda p: submitted.append(p) or {"submitted": True})
     run = tmp_path / "runs/qualification"
+    monkeypatch.setattr(remote, "artifact_dir", lambda _: run)
     (run / "state").mkdir(parents=True)
     (run / "state/health.json").write_text(json.dumps({"phase": "stopped", "allocation": "123"}))
     ledger = tmp_path / "state/run1.json"

@@ -541,7 +541,16 @@ def recover(payload: dict) -> dict:
                     "state": state,
                     "reason": "qualification_requires_review",
                 }
-            progress = Path(ledger.get("run_dir", "")) / "qualification-progress.json"
+            if (
+                not ledger.get("run_dir")
+                or Path(ledger["run_dir"]).resolve() != artifact_dir(payload).resolve()
+            ):
+                return {
+                    "submitted": False,
+                    "state": state,
+                    "reason": "qualification_directory_mismatch",
+                }
+            progress = Path(ledger["run_dir"]) / "qualification-progress.json"
             health_path = progress.parent / "state/health.json"
             if not progress.is_file() or not health_path.is_file():
                 return {
