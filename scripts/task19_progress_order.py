@@ -1,4 +1,4 @@
-"""Restore first-wave Task 19 checkpoint key order without changing data.
+"""Restore unambiguous Task 19 checkpoint key order without changing data.
 
 Run only after independently confirming the owning allocation is terminal.
 """
@@ -15,21 +15,24 @@ from pathlib import Path
 
 
 def reordered(data: dict) -> dict:
-    if data["completed_waves"] != 0:
-        raise ValueError("Only the first wave has unambiguous task ordering")
+    if data["identity"].get("study") != "repair-selfplay-2026-task19-v5":
+        raise ValueError("Only the fresh uncached v5 checkpoint is supported")
     tasks, repairs = data["tasks"], data["repairs"]
+    if data["completed_waves"] != 0 and tasks:
+        raise ValueError("A later partial wave has ambiguous task ordering")
+    keys = tasks if tasks else repairs
     order = list(
         dict.fromkeys(
-            row["task"] for group in data["groups"] for row in group if row.get("task") in tasks
+            row["task"] for group in data["groups"] for row in group if row.get("task") in keys
         )
     )
-    if len(order) != len(tasks) or set(order) != set(tasks):
-        raise ValueError("Proposal records do not identify every pending task")
+    if len(order) != len(keys) or set(order) != set(keys):
+        raise ValueError("Proposal records do not identify every task")
     repair_order = [key for key in order if key in repairs]
-    if set(repair_order) != set(repairs) or repair_order != order[: len(repair_order)]:
+    if set(repair_order) != set(repairs) or (tasks and repair_order != order[: len(repair_order)]):
         raise ValueError("Saved repair groups do not form the expected prefix")
     result = dict(data)
-    result["tasks"] = {key: tasks[key] for key in order}
+    result["tasks"] = {key: tasks[key] for key in order} if tasks else {}
     result["repairs"] = {key: repairs[key] for key in repair_order}
     if result != data:
         raise ValueError("Task reordering changed checkpoint data")

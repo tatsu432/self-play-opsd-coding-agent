@@ -21,7 +21,7 @@ def fixture():
         "groups": [[{"task": "z"}, {"task": "a"}]],
         "tasks": {"a": {"task": 2}, "z": {"task": 1}},
         "repairs": {"z": [1, 2, 3, 4]},
-        "identity": {"id": "bound"},
+        "identity": {"id": "bound", "study": "repair-selfplay-2026-task19-v5"},
     }
 
 
@@ -32,8 +32,11 @@ def test_reconstructs_task_order_without_changing_data():
     assert list(result["tasks"]) == ["z", "a"]
     assert list(result["repairs"]) == ["z"]
     original["completed_waves"] = 1
-    with pytest.raises(ValueError, match="first wave"):
+    with pytest.raises(ValueError, match="later partial wave"):
         order.reordered(original)
+    original["tasks"] = {}
+    original["repairs"] = {"a": [1, 2, 3, 4], "z": [1, 2, 3, 4]}
+    assert list(order.reordered(original)["repairs"]) == ["z", "a"]
 
 
 def test_rewrite_requires_terminal_matching_job_and_archives_original(tmp_path, monkeypatch):
@@ -46,7 +49,7 @@ def test_rewrite_requires_terminal_matching_job_and_archives_original(tmp_path, 
     ledger = tmp_path / "ledger.json"
     ledger.write_text(json.dumps({"run_dir": str(run), "attempts": [{"job_id": "123"}]}))
     (run / "state/health.json").write_text(
-        json.dumps({"allocation": "123", "phase": "stopped", "identity": {"id": "bound"}})
+        json.dumps({"allocation": "123", "phase": "stopped", "identity": fixture()["identity"]})
     )
     args = argparse.Namespace(
         progress=progress, ledger=ledger, job_id="123", expected_sha256=checksum
