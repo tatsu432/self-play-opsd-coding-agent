@@ -72,6 +72,17 @@ def test_resume_cli_passes_bounded_stop_to_recovery(monkeypatch):
     ]
 
 
+def test_task19_uses_pinned_cache_without_changing_other_jobs():
+    spec = importlib.util.spec_from_file_location("job", Path("scripts/hpc_job.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert module.model_cache_overrides("task19-base") == {
+        "HF_HUB_OFFLINE": "1",
+        "TRANSFORMERS_OFFLINE": "1",
+    }
+    assert module.model_cache_overrides("task18-native") == {}
+
+
 def test_method_smoke_launch_honors_independent_selection_and_keeps_scientific_args():
     spec = importlib.util.spec_from_file_location("job", Path("scripts/hpc_job.py"))
     module = importlib.util.module_from_spec(spec)

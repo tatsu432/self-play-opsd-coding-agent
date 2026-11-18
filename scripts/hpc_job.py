@@ -1153,6 +1153,15 @@ def task13_command_args(env: dict) -> list[str]:
     raise ValueError("Unknown Task 13 allocation operation")
 
 
+def model_cache_overrides(operation: str) -> dict:
+    # Task 19's pinned model and tokenizer have already been qualified from
+    # the shared cache. Fail clearly if absent instead of hanging on nodes
+    # without outbound Hugging Face access.
+    if operation.startswith("task19-"):
+        return {"HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1"}
+    return {}
+
+
 def execute(env: dict) -> int:
     operation = env["SELFPLAY_OPERATION"]
     if not operation.startswith("task19-") and operation not in {
@@ -1421,6 +1430,7 @@ def execute(env: dict) -> int:
             "SELFPLAY_ALLOCATED_GPU_COUNT": env["SELFPLAY_GPU_COUNT"],
             "SELFPLAY_STOP_AFTER_ITERATION": env.get("SELFPLAY_STOP_AFTER_ITERATION", "0"),
         }
+        overrides.update(model_cache_overrides(operation))
         if int(env["SELFPLAY_GPU_COUNT"]) == 0:
             # CPU validation/freeze read the target experiment configuration;
             # they do not instantiate a GPU policy. Do not claim that the target

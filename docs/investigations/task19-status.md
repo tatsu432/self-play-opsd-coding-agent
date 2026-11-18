@@ -305,3 +305,9 @@ The FP32 base evaluation was submitted once after a passing preview as job
 `4376159e6ee92d734ce4ea11833c9514bf415e48`, with a six-hour reservation.
 Inspect its scheduler and ledger, never duplicate it, and use checkpointed
 evaluation records on continuation if needed. The five matched pilots follow.
+On its allocated node the base trainer waited in an outbound HTTPS connection
+before model initialization; a bounded connectivity check timed out. Future
+Task 19 allocations are configured to load the already-qualified pinned model
+and tokenizer from the shared cache offline, failing explicitly if unavailable.
+The existing base job retains its original immutable code and must be inspected;
+this change does not alter or duplicate that active allocation.
