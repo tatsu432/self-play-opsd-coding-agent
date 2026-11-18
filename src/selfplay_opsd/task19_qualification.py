@@ -9,11 +9,12 @@ from pathlib import Path
 
 import torch
 
-from selfplay_opsd.core import keyed_seed
+from selfplay_opsd.core import digest, keyed_seed, read_json
 from selfplay_opsd.objectives import alignment, difficulty
 from selfplay_opsd.storage import atomic_json, file_hash, restore_rng, rng_state
 from selfplay_opsd.task19 import GROUP, Task19Control, centered_rewards, clipped_sum
 from selfplay_opsd.task19_policy import STUDENT_SAMPLING
+from selfplay_opsd.task19_rollout import Proposal, Repair
 from selfplay_opsd.task19_train import Study, joint_step, norm
 
 
@@ -22,87 +23,95 @@ def qualify(study: Study) -> Task19Control:
     cfg = study.cfg
     references = study.references()
     study.reference_gradient(references)
-
-    def proposals():
-        return study.collect(32)
-
-    groups, tasks, _ = proposals()
-    attempts = [row for group in groups for row in group]
-    screen = {
-        "thinking": cfg.proposer_thinking,
-        "attempts": len(attempts),
-        "valid": sum(row.task is not None for row in attempts),
-        "unique": len(tasks),
+    if not cfg.cached_rollout:
+        raise ValueError("Uncached qualification requires newly sampled behavior trajectories")
+    previous = output.parent.parent / "repair-selfplay-2026-task19-v1/qualification"
+    source = previous / "frozen-training-batch.json"
+    expected = "71ce6cb6b47a8a9c5ca38f33cf288daac606e7af25fb81e9495fe67897d1d96b"
+    if file_hash(source) != expected:
+        raise ValueError("Prior frozen training batch checksum differs")
+    batch = read_json(source)
+    if batch["snapshot"] != study.snapshot:
+        raise ValueError("Prior batch policy snapshot differs")
+    old_control = Task19Control.read(previous / "uncached-control.json")
+    cfg = cfg.model_copy(
+        update={
+            "episode": old_control.episode,
+            "proposer_thinking": old_control.proposer_thinking,
+            "proposal_tokens": old_control.proposal_tokens,
+            "cached_rollout": True,
+        }
+    )
+    study.cfg = cfg
+    groups = [[Proposal.model_validate(row) for row in group] for group in batch["proposals"]]
+    rolls = {
+        key: [Repair.model_validate(row) for row in values]
+        for key, values in batch["repairs"].items()
     }
-    proposed = [screen]
-    if not cfg.proposer_thinking and (
-        screen["valid"] < 0.25 * screen["attempts"] or screen["unique"] < 4
-    ):
-        thinking = cfg.model_copy(update={"proposer_thinking": True, "proposal_tokens": 2048})
-        study.cfg = thinking
-        study.proposal_groups, study.seen = 0, set()
-        other_groups, other_tasks, _ = proposals()
-        other_rows = [row for group in other_groups for row in group]
-        valid = sum(row.task is not None for row in other_rows)
-        proposed.append(
-            {
-                "thinking": True,
-                "attempts": len(other_rows),
-                "valid": valid,
-                "unique": len(other_tasks),
-            }
+    study.proposal_groups = max(row.group for group in groups for row in group) + 1
+    study.seen = {
+        digest([row.parent, row.mutation_key])
+        for group in groups
+        for row in group
+        if row.mutation_key and row.task
+    }
+    proposed = [{"source": str(source), "sha256": expected, "reused_groups": len(rolls)}]
+    before_caps = {"reused_episodes": sum(map(len, rolls.values()))}
+    for _ in range(5):
+        mixed = any(0 < sum(row.success for row in values) < GROUP for values in rolls.values())
+        distinct = any(
+            len(
+                {
+                    difficulty(float(row.success) for row in rolls[p.task])
+                    for p in group
+                    if p.task in rolls
+                }
+            )
+            > 1
+            for group in groups
         )
-        if (len(other_tasks), valid / len(other_rows)) > (
-            len(tasks),
-            screen["valid"] / screen["attempts"],
-        ):
-            cfg, groups, tasks = thinking, other_groups, other_tasks
-        study.cfg = cfg
-    extra_groups, extra_tasks, _ = proposals()
-    groups.extend(extra_groups)
-    tasks.update(extra_tasks)
-    if not tasks:
-        raise RuntimeError("Bounded proposer calibration yielded no verified tasks")
-    rolls, _ = study.rollouts(tasks, distill=True)
-    episodes = [row for rows in rolls.values() for row in rows]
-    capped = sum(
-        row.termination in {"turn_tokens", "episode_tokens", "context_limit", "turn_limit"}
-        for row in episodes
-    )
-    before_caps = {"episodes": len(episodes), "capped": capped}
-    if capped > 0.1 * len(episodes):
-        episode = cfg.episode.model_copy(
-            update={
-                "max_turn_generated_tokens": 4096,
-                "max_generated_tokens": 12288,
-                "max_student_sequence_tokens": 20480,
-                "max_teacher_sequence_tokens": 24576,
-            }
-        )
-        cfg = cfg.model_copy(update={"episode": episode})
-        study.cfg = cfg
-        # A different limit changes the prompt. Collect fresh samples at the final setting.
-        study.proposal_groups, study.seen = 0, set()
-        groups, tasks, _ = proposals()
-        extra_groups, extra_tasks, _ = proposals()
+        if mixed and distinct:
+            break
+        extra_groups, tasks, _ = study.collect(4)
+        extra_rolls, _ = study.rollouts(tasks, distill=True)
         groups.extend(extra_groups)
-        tasks.update(extra_tasks)
-        rolls, _ = study.rollouts(tasks, distill=True)
-    atomic_json(
-        output / "frozen-training-batch.json",
-        {
-            "snapshot": study.snapshot,
-            "proposals": [[row.model_dump(mode="json") for row in group] for group in groups],
-            "repairs": {
-                key: [row.model_dump(mode="json") for row in values]
-                for key, values in rolls.items()
+        rolls.update(extra_rolls)
+        atomic_json(
+            output / "frozen-training-batch.json",
+            {
+                "snapshot": study.snapshot,
+                "source_sha256": expected,
+                "proposals": [[row.model_dump(mode="json") for row in group] for group in groups],
+                "repairs": {
+                    key: [row.model_dump(mode="json") for row in rows]
+                    for key, rows in rolls.items()
+                },
             },
-        },
+        )
+    mixed = any(0 < sum(row.success for row in values) < GROUP for values in rolls.values())
+    distinct = any(
+        len(
+            {
+                difficulty(float(row.success) for row in rolls[p.task])
+                for p in group
+                if p.task in rolls
+            }
+        )
+        > 1
+        for group in groups
     )
+    if not mixed or not distinct:
+        raise RuntimeError(
+            "Bounded training-only extension did not produce mixed student rewards and distinct proposer rewards"
+        )
 
     diagnostic = numerical(study, rolls)
     atomic_json(output / "numerical.json", diagnostic)
     if not diagnostic["passed"]:
+        if diagnostic.get("reason") == "No informative replay gradients":
+            raise RuntimeError(
+                "Qualification lacked an informative gradient; cached execution remains unassessed"
+            )
         if not cfg.cached_rollout:
             raise RuntimeError("Task 19 uncached execution failed numerical qualification")
         atomic_json(

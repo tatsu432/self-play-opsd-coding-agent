@@ -26,8 +26,13 @@ Replacement qualification job `33720283`, controller run
 `01a3a1ca9cbf435ad60584db`, was submitted once from
 `2436cedded42bbdd4b224d6272f057cf234906e3` after a passing preview. It is
 pending on priority with a four-H200-hour reservation. Inspect this existing
-job and its ledger before any submission. No Task 19
-benchmark or training result is available.
+job and its ledger before any submission. The replacement failed after 4,362 H200-seconds because its nine student
+groups had eight all-success groups and one all-failure group. Its numerical
+check therefore had no informative RL gradient, and did not establish a
+cached-scoring mismatch. The revision `task19-v2` reuses the checksum-bound
+frozen batch and extends it with up to 20 additional training tasks before
+retrying the numerical check. No Task 19 benchmark or training result is
+available.
 
 ## Yale execution
 
