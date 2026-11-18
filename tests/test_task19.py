@@ -299,3 +299,6 @@ def test_qualification_resumes_saved_episodes_without_resampling(tmp_path, monke
     with pytest.raises(SegmentStop, match="before calibration"):
         qualify(study({"id": "same"}), lambda: True)
     assert len(diagnostics) == 1
+    (tmp_path / "numerical.json").write_text('{"passed": true, "tampered": true}')
+    with pytest.raises(ValueError, match="numerical evidence identity differs"):
+        qualify(study({"id": "same"}))
