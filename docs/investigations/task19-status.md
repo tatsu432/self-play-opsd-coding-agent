@@ -252,6 +252,10 @@ reconciliation and a passing preview, v6 was submitted once as job
 `6a41e5f3b18793c9b5cfd04db47712d29e2f4ff1`. Inspect this run and its ledger;
 never duplicate it. Monitor the private calibration progress summary and use
 actual throughput to assess the remaining budget for all five arms.
+The v6 batch identity checks passed and its fresh uncached numerical diagnostic
+passed: replay maximum and clip changes were zero; relative gradient and
+restored-update differences were 1.2853% and 1.8991%, respectively. Calibration
+has started with its first checkpoint; no scale or training outcome is yet known.
 Because a training update can exceed the four-hour checkpoint interval,
 pilot and training submissions now permit an explicit wall time up to twelve
 hours; the default remains four hours. The shared ledger reserves the entire
