@@ -321,6 +321,8 @@ and include both base allocations in final accounting. At submission the shared
 ledger held 16.613889 charged plus the new six-hour reservation.
 The replacement started on the previously affected node, loaded the pinned
 model from cache, and reached health `running`; task evaluation is in progress.
+It completed the 41-task monitoring split with 31 verified repairs. This is a
+development result; the 115 ID and 116 external baseline tasks remain pending.
 After the offline, recovery and reuse safeguards, the full local suite passed 476
 tests (20 skipped, 18 deselected), Ruff lint/format and mypy (61 source files).
 After the complete baseline is reconciled, `uv run selfplay hpc
