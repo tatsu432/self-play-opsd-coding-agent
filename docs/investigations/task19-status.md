@@ -451,3 +451,8 @@ visibility can lag delivery. Continuation telemetry has not yet been replayed.
 A later API check confirmed A's four pilot rows as well. Thus all five pilot
 histories are independently visible, four rows per arm. These are the replayed
 aggregate records; original offline files remain the source of record.
+All five main jobs subsequently committed iteration 3 at 48 attempted
+episodes and began their 41-task monitoring evaluations. They were still
+RUNNING at the last check; these milestones are development monitoring, not
+final ID or external outcomes. Inspect the existing jobs and ledger before
+continuing, particularly if their four-hour segments reach the safe stop.
