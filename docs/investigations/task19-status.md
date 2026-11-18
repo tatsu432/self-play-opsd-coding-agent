@@ -170,4 +170,11 @@ reviewed recovery changes and v5 configuration have been incorporated into
 the Task 19 branch. V5 saves scored episodes and identity-bound numerical
 results, and supports guarded continuation of the same controller run. The
 older v4 execution did not save individual episodes and cannot be resumed
-from the v5 checkpoint format. V5 has not yet been submitted.
+from the v5 checkpoint format. V5 qualification was submitted once from
+commit `c613dc7d8eb4559e815f89354053c37e68b3b570` as Slurm job `33765671`,
+controller run `c8d4d093e75060f335f28078`, with a four-hour reservation after
+a passing preview and worker proof. Inspect that run and the shared ledger;
+never submit a duplicate. After a verified stopped segment, resume the same
+controller run with `hpc resume RUN_ID --continue-stopped`, subject to its
+identity, progress and budget checks. Numerical and calibration phases may
+still exceed one allocation; inspect evidence rather than assuming success.
