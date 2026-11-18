@@ -282,3 +282,6 @@ job `33796439` to preserve the remaining budget while the FP32 comparison is
 running. The stop request file exists; the current turn must finish before the
 job can exit and save its next checkpoint. Do not assume it is already terminal
 or submit a continuation while it remains active.
+V7 started and saved its first 16 training-only episodes in approximately
+19 minutes of allocation. It reached numerical qualification; no acceptance
+result or calibrated scale is yet available.
