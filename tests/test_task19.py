@@ -59,6 +59,45 @@ def test_precision_is_part_of_frozen_task19_science():
     assert high.model_dump()["precision"] == "float32"
 
 
+def test_evaluation_reuses_only_the_matching_initial_task_record(tmp_path, monkeypatch):
+    from selfplay_opsd.core import keyed_seed
+    from selfplay_opsd.storage import atomic_json
+
+    cfg = Task19Control(precision="float32")
+    task = SimpleNamespace(task_id="task")
+    study = SimpleNamespace(
+        output=tmp_path,
+        episodes=0,
+        cfg=cfg,
+        snapshot="initial",
+        repository=SimpleNamespace(hash="dataset", tasks=lambda _: [(task, object())]),
+        identity={"arm": "A"},
+    )
+    path = tmp_path / "evaluation/0000/dev_monitor/tasks/task.json"
+    atomic_json(
+        path,
+        {
+            "identity": {
+                "task": "task",
+                "data": "dataset",
+                "snapshot": "initial",
+                "seed": keyed_seed(cfg.seed, "evaluation", "dev_monitor", "task"),
+                "science": cfg.science,
+            },
+            "metrics": {"success": True},
+            "repair": {"parent_id": "parent"},
+        },
+    )
+    monkeypatch.setattr(
+        "selfplay_opsd.task19_train.repair", lambda *args: pytest.fail("reran task")
+    )
+    summary = Study.evaluate(study, "dev_monitor")
+    assert summary["count"] == summary["verified"] == 1
+    study.snapshot = "different"
+    with pytest.raises(ValueError, match="different frozen identity"):
+        Study.evaluate(study, "dev_monitor")
+
+
 def test_opsd_detaches_gap_and_gating_preserves_sign():
     gap = torch.tensor([-10.0, 2.0], requires_grad=True)
     logps = torch.tensor([-1.0, -0.5], requires_grad=True)
