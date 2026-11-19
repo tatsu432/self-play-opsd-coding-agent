@@ -473,3 +473,8 @@ its 72-episode monitoring set and committed the frozen 96-episode training
 checkpoint; its endpoint monitoring was in progress. A–D remained in their
 72-episode monitoring evaluations. All five original main jobs were RUNNING
 at this observation; final ID/external evaluation is still outstanding.
+All five main arms subsequently committed the common 96-episode training
+checkpoint. Control completed endpoint monitoring and began the 115-task final
+ID split; A–D were beginning endpoint monitoring. All original jobs remained
+RUNNING. These are not completed endpoint evaluations; preserve their IDs and
+resume only after terminal scheduler and ledger reconciliation if needed.
