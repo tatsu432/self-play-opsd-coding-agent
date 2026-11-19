@@ -508,3 +508,14 @@ metrics. API checks confirmed 12 history rows for each arm. The recovery
 scripts, source hashes and logs remain private under `runs/task19/`. Do not
 replay these segments again. The active continuation's telemetry is separate
 and still requires reconciliation after it stops.
+
+After a fresh login on November 19, continuation jobs `33864243`, `33864251`,
+`33864328`, and `33864330` completed exit 0 with full final ID and external
+splits and completion markers for control, B, C, and D. Never duplicate.
+A continuation `33864248` stopped cleanly after 102/116 external tasks; its
+96-episode checkpoint and completed ID split remain intact. The reconciled
+charge for all terminal allocations was 64.568889 H200-hours. A's existing
+controller run `ad1f59aa48704da5e8887dcd` was resumed once from checkpoint
+`000007` as Slurm job `33902234`. Inspect this existing job and the shared
+ledger; never duplicate. Completion requires its remaining 14 external tasks,
+checkpoint verification, final accounting and full analysis/documentation.
