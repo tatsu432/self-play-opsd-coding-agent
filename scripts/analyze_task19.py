@@ -19,7 +19,13 @@ from matplotlib.ticker import PercentFormatter
 from selfplay_opsd.core import read_json
 from selfplay_opsd.data import TaskRepository
 from selfplay_opsd.storage import CheckpointManager, atomic_json, file_hash
-from selfplay_opsd.task19 import ARMS, Task19Control
+from selfplay_opsd.task19 import ARMS, PILOT, Task19Control
+
+
+def evaluated_milestones(control: Task19Control) -> list[int]:
+    """Exclude milestones skipped when the completed pilot reached 32 episodes."""
+    return [count for count in control.milestones() if count == 0 or count >= PILOT]
+
 
 SPLITS = ("final_id", "external")
 LABELS = {"final_id": "MBPP+ ID", "external": "HumanEval+ external"}
@@ -364,7 +370,7 @@ def main():
             row["episodes"]: row["metrics"].get("student_tokens", 0) for row in committed
         }
         curves[arm] = []
-        for count in cfg.milestones():
+        for count in evaluated_milestones(cfg):
             summary = read_json(root / "evaluation" / f"{count:04d}" / "dev_monitor/summary.json")
             curves[arm].append(
                 {

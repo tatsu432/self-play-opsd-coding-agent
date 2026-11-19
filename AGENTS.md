@@ -6,7 +6,25 @@ After completing each task, update `README.md` to concisely describe the researc
 problem, approaches, current progress and results. Link detailed evidence and
 procedures to the relevant Markdown documents; keep the README short and current.
 
-## CURRENT — Task 18 bounded phase complete (2026-11-16)
+## CURRENT — Task 19 completed (2026-11-19)
+
+The Qwen3.5 shared-LoRA, FP32 Dr. GRPO/OPSD study completed all five
+seed-2026 arms at the frozen 96-episode endpoint, with verified final ID and
+previously inspected external evaluations. Base ID/external was 88/115 and
+93/116; control/A/B/C/D were 87/88/90/88/85 ID and 92/92/92/88/92 external.
+Family intervals conditional on one run do not establish an objective or
+proposer-reward winner. Total allocation, including all failed and resumed
+jobs, was 233,565 H200-seconds (64.879167 hours); no account jobs were active
+at reconciliation. All endpoint checkpoints and W&B aggregate histories were
+verified. Never duplicate completed jobs. See `docs/investigations/task19-results.md`,
+`docs/investigations/task19-status.md`, and
+`docs/task_completion/19-implemented-qwen35-shared-selfplay.md`. Private data,
+checkpoints and `runs/task19/` artifacts remain ignored. No additional run is
+authorized by this completed bounded study. The following Task 18 restrictions
+and decisions are historical for that study; Task 19 used a new qualified FP32
+execution path and preserved actual behavior denominators.
+
+## Historical — Task 18 bounded phase complete (2026-11-16)
 
 Task 18 is complete: native exact-text calling scored 27/40 base and 31/40
 trained, versus plain JSON 19/40 and 21/40. Normalized scored 6/40 and 28/40.

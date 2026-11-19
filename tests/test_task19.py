@@ -216,12 +216,23 @@ def test_joint_update_and_verified_resume(tmp_path):
 
 
 def test_frozen_endpoint_does_not_change_scientific_identity():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("task19_analysis", "scripts/analyze_task19.py")
+    assert spec is not None and spec.loader is not None
+    analysis = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(analysis)
+
     cfg = Task19Control(
         sd_scale=0.1, proposer_scale=0.4, qualification_hash="q", calibration_hash="c"
     )
     main = Task19Control.model_validate(cfg.model_dump() | {"endpoint": 672})
     assert cfg.science == main.science
     assert main.milestones() == [0, 32, 168, 336, 504, 672]
+    assert analysis.evaluated_milestones(main) == [0, 32, 168, 336, 504, 672]
+    short = Task19Control.model_validate(cfg.model_dump() | {"endpoint": 96})
+    assert short.milestones() == [0, 24, 32, 48, 72, 96]
+    assert analysis.evaluated_milestones(short) == [0, 32, 48, 72, 96]
     with pytest.raises(ValueError):
         Task19Control(endpoint=512)
 

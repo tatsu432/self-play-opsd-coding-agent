@@ -527,3 +527,20 @@ external families were previously inspected. W&B cloud API verified 14 rows
 for each completed arm (pilot, main, final ID and external) and 13 for A
 through final ID, from guarded offline-history replay. A's pending final
 continuation reserves four hours, making total committed 68.568889/80 hours.
+
+## Completed study (2026-11-19)
+
+Final A job `33902234` completed exit 0 in 1,117 H200-seconds, with all 116
+external tasks and the completion marker. Never duplicate. All five endpoint
+checkpoint `000007` files passed local checksums and matched their markers and
+96-episode identity. The final reconciled ledger charges 233,565 H200-seconds
+(64.879167 hours) across all 27 reservations; no account jobs were active.
+The private manifest, ledger and generated report are
+`runs/task19/analysis-manifest.json`, `runs/task19/budget-final.json` and
+`runs/task19/analysis/`. [Results and decision](task19-results.md) report all
+five outcomes, conditional paired family intervals, proposer diagnostics,
+figures and limitations. W&B API checks confirmed 14 aggregate rows for each
+arm after guarded replay; A's repeated final ID record was not duplicated.
+The final analysis explicitly excludes the unreachable 24-episode nominal
+milestone, since the original pilot advanced directly from 0 to 32. No new
+training or evaluation remains authorized by this completed bounded study.
