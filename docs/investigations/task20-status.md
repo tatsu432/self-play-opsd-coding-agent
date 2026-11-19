@@ -18,8 +18,9 @@ available GPUs without a numeric study cap. Task 20 accounting starts at zero,
 and the accepted Task 19 worker was reused. The verified dataset is staged.
 
 Screen job 33943325 / run `1f524c611789ad34141d09dc` was submitted once from
-commit `6830d7a8744c04dd8389b37cc38b9cc3ea5207f9`. It is pending on H200
-capacity with a 12-hour reservation. Inspect the existing job and never
+commit `6830d7a8744c04dd8389b37cc38b9cc3ea5207f9`. It started on H200 and was last observed RUNNING with 33 saved rollout
+records. The SSH master disconnected; subsequent Duo pushes timed out. Its
+12-hour reservation remains in the ledger and its terminal state is unknown. Inspect the existing job and never
 duplicate it. The ledger has no numeric cap and will reconcile actual usage.
 After completion, fetch the screen, select the curriculum and run the solver
 positive control using the documented gates. December 2 remains
