@@ -1,5 +1,10 @@
 # Project and operating instructions
 
+## GPU authorization
+
+The user authorizes use of available GPUs for their work without requesting a
+numeric study cap. Record actual allocations and use bounded, cost-aware jobs.
+
 ## README maintenance
 
 After completing each task, update `README.md` to concisely describe the research

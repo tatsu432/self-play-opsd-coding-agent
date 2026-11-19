@@ -12,8 +12,7 @@ proposer rewards. See [methods](docs/methods.md).
 Task 20 audited the Task 19 training batches and found just two to four
 iterations with nonzero solver RL gradients per arm. It prepared 205
 oracle-verified harder EvalPlus tasks and added a solver-only Dr. GRPO
-control. The base difficulty screen and model-learning experiments await
-Yale access and an authorized allocation. See the
+control. Yale access is restored and the base difficulty screen is being prepared. See the
 [Task 20 status](docs/investigations/task20-status.md),
 [root-cause audit](docs/investigations/task20-root-cause.md), and
 [benchmark decision](docs/investigations/task20-benchmark-decision.md).

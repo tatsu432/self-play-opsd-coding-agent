@@ -13,13 +13,10 @@ paths. Task 20 has no measured model-learning result or GPU allocation.
 | D · Matched Control/A/B | Pending shared evidence and measured cost | Freeze and analysis tools available |
 | E · C/D | Deferred | Requires useful alignment evidence and remaining allocation |
 
-Yale resource and SSH inspection returned `Permission denied
-(keyboard-interactive)`. Restore Yale SSH with Duo, check live account
-availability, and record the authorized Task 20 study allocation. Zero H200
-seconds have been allocated by this implementation. Task 20 remaining hours
-are unconfirmed. Task 19's ledger is historical.
+Yale authentication and the H200 resource check succeeded. The user authorized
+available GPUs without a numeric study cap. Task 20 accounting starts at zero,
+and the accepted Task 19 worker was reused. The verified dataset is staged.
 
-The first live action is a read-only resource check, followed by staging the
-fallback and previewing one difficulty-screen allocation. December 2 remains
+The first live action is a difficulty-screen allocation. December 2 remains
 the reporting deadline. The feasibility of completing the GPU comparison
 depends on restored access, GPU time, and the learning gates.

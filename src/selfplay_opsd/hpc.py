@@ -569,15 +569,14 @@ def run_payload(
             or account != "cpsc4880"
             or chosen_gpu != "h200"
             or profile != "single_gpu_80gb"
-            or task20_budget_hours is None
-            or not math.isfinite(task20_budget_hours)
-            or task20_budget_hours <= 0
+            or (
+                task20_budget_hours is not None
+                and (not math.isfinite(task20_budget_hours) or task20_budget_hours <= 0)
+            )
             or task20_wall_minutes is None
             or not 30 <= task20_wall_minutes <= 720
         ):
-            raise HpcError(
-                "Task 20 requires an authorized budget and a bounded one-H200 allocation"
-            )
+            raise HpcError("Task 20 requires a bounded one-H200 allocation")
         if (operation == "task20-evaluate") != (checkpoint_iteration is not None):
             raise HpcError("Task 20 evaluation requires an explicit checkpoint")
         if operation not in {"task20-main", "task20-evaluate"} and method != "control":

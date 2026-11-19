@@ -208,7 +208,7 @@ def test_screen_payload_uses_prepared_data_and_explicit_budget(monkeypatch):
         "image_sha256": "",
         "settings": Path("configs/task20-yale.yaml"),
     }
-    with pytest.raises(hpc.HpcError, match="authorized budget"):
+    with pytest.raises(hpc.HpcError, match="bounded one-H200"):
         hpc.run_payload(Remote(), "yale-hpc-cpsc4880", **inputs)
     plan = hpc.run_payload(
         Remote(), "yale-hpc-cpsc4880", **inputs, task20_budget_hours=5, task20_wall_minutes=90

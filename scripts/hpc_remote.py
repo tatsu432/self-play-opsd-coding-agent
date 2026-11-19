@@ -1612,18 +1612,21 @@ def refreshed_budget(payload: dict) -> dict:
 
 def reserve_budget(payload: dict, token: str):
     with locked(workspace(payload) / "state" / ".budget.lock"):
-        if not payload.get("readiness_budget") or not payload["gpu_count"]:
+        if not payload["gpu_count"] or (
+            not payload.get("readiness_budget") and not task20_budget(payload)
+        ):
             return
-        limit = float(payload["readiness_budget"])
+        raw_limit = payload.get("readiness_budget")
+        limit = float(raw_limit) if raw_limit is not None else None
         if task18_budget(payload) and limit != 12:
             raise ValueError("Task 18 has a hard 12 GPU-hour ceiling")
         if task19_budget(payload):
             if limit != 80:
                 raise ValueError("Task 19 uses its shared 80 H200-hour ceiling")
         elif task20_budget(payload):
-            if not math.isfinite(limit) or limit <= 0:
-                raise ValueError("Task 20 needs a separately authorized positive budget")
-        elif not 0 < limit <= 24:
+            if limit is not None and (not math.isfinite(limit) or limit <= 0):
+                raise ValueError("Task 20 budget must be positive when supplied")
+        elif limit is None or not 0 < limit <= 24:
             raise ValueError("Readiness budget must be positive and at most 24 GPU-hours")
         budget = refreshed_budget(payload)
         if budget["reservations"] and budget["limit"] != limit:
@@ -1635,7 +1638,7 @@ def reserve_budget(payload: dict, token: str):
             control = workspace(payload) / "runs" / payload["study_id"] / "main-plan.json"
             if control.is_file():
                 spend_cap = min(limit, json.loads(control.read_text())["cap"])
-        if budget["committed_gpu_hours"] + reserved > spend_cap + 1e-9:
+        if spend_cap is not None and budget["committed_gpu_hours"] + reserved > spend_cap + 1e-9:
             raise ValueError("Readiness GPU-hour budget exhausted; no job submitted")
         if payload["operation"] == "pilot":
             spent = sum(
@@ -2139,9 +2142,14 @@ def check_task20(payload: dict) -> None:
         or payload.get("gpu_type") != "h200"
         or payload.get("profile") != "single_gpu_80gb"
         or payload.get("method") not in {"control", "A", "B", "C", "D"}
-        or not isinstance(limit, (int, float))
-        or not math.isfinite(limit)
-        or minutes / 60 > limit
+        or (
+            limit is not None
+            and (
+                not isinstance(limit, (int, float))
+                or not math.isfinite(limit)
+                or minutes / 60 > limit
+            )
+        )
         or not 30 <= minutes <= 720
         or payload.get("output") != f"/runs/{payload['study_id']}/{path.name}"
         or sha256(control) != payload.get("task20_control_sha256")
