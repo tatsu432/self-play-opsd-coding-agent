@@ -17,12 +17,17 @@ Yale authentication and the H200 resource check succeeded. The user authorized
 available GPUs without a numeric study cap. Task 20 accounting starts at zero,
 and the accepted Task 19 worker was reused. The verified dataset is staged.
 
-Screen job 33943325 / run `1f524c611789ad34141d09dc` was submitted once from
-commit `6830d7a8744c04dd8389b37cc38b9cc3ea5207f9`. It started on H200 and was last observed RUNNING with 33 saved rollout
-records. The SSH master disconnected; subsequent Duo pushes timed out. Its
-12-hour reservation remains in the ledger and its terminal state is unknown. Inspect the existing job and never
-duplicate it. The ledger has no numeric cap and will reconcile actual usage.
-After completion, fetch the screen, select the curriculum and run the solver
-positive control using the documented gates. December 2 remains
+Screen job 33943325 / run `1f524c611789ad34141d09dc` completed exit 0
+in 9,240 H200-seconds. Its checkpoint was verified. Its four-rollout
+histogram was 2/1/2/2/25 for 0/1/2/3/4 successes. The 5/32 mixed rate is
+below the 20–30% screening target. On the paired eight-task subset, groups
+of four and eight yielded 1 and 3 mixed groups, with 1,907 and 3,836 seconds
+respectively. Use groups of eight for the bounded positive control. The
+five parent-distinct mixed tasks form the frozen solver curriculum under
+`data/task20/evalplus-solver-v1`. The fallback needs further difficulty
+calibration before a main self-play claim. Never duplicate the screen.
+The current ledger charges 2.566667 H200-hours.
+
+December 2 remains
 the reporting deadline. The feasibility of completing the GPU comparison
 depends on restored access, GPU time, and the learning gates.

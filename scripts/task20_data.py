@@ -110,9 +110,11 @@ def freeze(
     anchor = source.root / "private" / "anchors-reference.json"
     anchor_hashes = {}
     if anchor.is_file():
-        source.anchors()
+        expected = source.manifest.get("anchor_hashes", {})
+        if file_hash(anchor) != expected.get("reference", expected.get(anchor.name)):
+            raise ValueError("Source reference anchor checksum differs")
         atomic_json(private / anchor.name, read_json(anchor))
-        anchor_hashes[anchor.name] = file_hash(private / anchor.name)
+        anchor_hashes["reference"] = file_hash(private / anchor.name)
     result = {
         "schema_version": 1,
         "benchmark": "task20-evalplus-harder-v1",
