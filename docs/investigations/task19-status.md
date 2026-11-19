@@ -478,3 +478,25 @@ checkpoint. Control completed endpoint monitoring and began the 115-task final
 ID split; A–D were beginning endpoint monitoring. All original jobs remained
 RUNNING. These are not completed endpoint evaluations; preserve their IDs and
 resume only after terminal scheduler and ledger reconciliation if needed.
+
+After reconnecting, the original five main allocations were terminal with clean
+`stopped` health at 96 episodes. All endpoint monitoring sets were complete;
+final ID task records for control/A/B/C/D numbered 86/9/37/28/24. Their actual
+charges brought the shared ledger to 47.598611 H200-hours. After confirming
+no original jobs remained active, the supported continuation was submitted
+once for each existing logical run from checkpoint `000007`:
+
+| Arm | Continuation Slurm job | Existing controller run |
+|---|---:|---|
+| Control | 33864243 | `562da119c0ee91f60ff3c932` |
+| A | 33864248 | `ad1f59aa48704da5e8887dcd` |
+| B | 33864251 | `51f3b27715d01a0b843ec36f` |
+| C | 33864328 | `ae25de421c2c804155ac8bec` |
+| D | 33864330 | `4ce3511806b176d79c16a3a3` |
+
+All were initially pending. Including their original four-hour reservations,
+committed budget was 67.598611 of 80 H200-hours. Inspect these jobs and their
+ledgers before any action; never duplicate. The final ID and external splits
+remain incomplete. Reconcile actual charges after terminal state, verify
+checkpoints and completion markers, fetch required records without deleting
+unique local files, synchronize continuation telemetry, analyze and document.
