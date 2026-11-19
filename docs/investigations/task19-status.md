@@ -463,3 +463,8 @@ Yale copies against their SHA-256 manifests. Their metadata and all local
 be unique. Re-fetch protected binaries before any analysis that requires full
 local checkpoints. A reproducible local Hugging Face Xet chunk cache was also
 cleared; the local model hub snapshots and remote run data were not removed.
+After the Mac reboot and a fresh Yale login, all five original main jobs were
+verified RUNNING. Their 48-episode monitoring sets were complete; control had
+reached 72 episodes and B 64, while A, C and D remained at 48. The shared
+ledger showed 48.018056 H200-hours committed, including all five original
+four-hour reservations. Continue inspecting these exact jobs; do not duplicate.
