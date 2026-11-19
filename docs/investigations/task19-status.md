@@ -500,3 +500,11 @@ ledgers before any action; never duplicate. The final ID and external splits
 remain incomplete. Reconcile actual charges after terminal state, verify
 checkpoints and completion markers, fetch required records without deleting
 unique local files, synchronize continuation telemetry, analyze and document.
+All five evaluation continuations subsequently started. The terminal main
+segment's eight numeric W&B history rows per arm were recovered from its
+preserved offline files with guarded append after the four verified pilot rows;
+original segment timestamps, runtimes and steps were retained as explicit
+metrics. API checks confirmed 12 history rows for each arm. The recovery
+scripts, source hashes and logs remain private under `runs/task19/`. Do not
+replay these segments again. The active continuation's telemetry is separate
+and still requires reconciliation after it stops.
