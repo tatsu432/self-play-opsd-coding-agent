@@ -110,6 +110,8 @@ def exact_reference(source: str, correct: str) -> tuple[str, str]:
 
 
 class Study:
+    student_group_size = GROUP
+
     def __init__(
         self,
         cfg: Task19Control,
@@ -237,7 +239,7 @@ class Study:
         rolls, teacher_seconds = {}, 0.0
         for task_id, (task, oracle) in tasks.items():
             rows = []
-            for slot in range(GROUP):
+            for slot in range(self.student_group_size):
                 seed = keyed_seed(self.cfg.seed, "student", self.iteration, task_id, slot)
                 row = repair(self.policy, self.sandbox, self.cfg, task, oracle, seed)
                 if distill:
@@ -251,11 +253,11 @@ class Study:
     def student_gradient(
         self, rolls: list[Repair], *, gated: bool, use_sd: bool
     ) -> tuple[Grads, Grads, dict]:
-        if len(rolls) != GROUP:
+        if len(rolls) != self.student_group_size:
             raise ValueError("Incomplete student reward group")
         advantages = centered_rewards([float(row.success) for row in rolls]).tolist()
         rl, sd = self.zeros(), self.zeros()
-        token_scale = 1 / (GROUP * self.cfg.episode.max_generated_tokens)
+        token_scale = 1 / (self.student_group_size * self.cfg.episode.max_generated_tokens)
         metrics: dict = {
             "rl_loss": 0.0,
             "sd_loss": 0.0,
@@ -393,6 +395,17 @@ class Study:
             raise ValueError("Training-reference gradient is undefined")
         return out
 
+    def loss_scales(self) -> tuple[float, float]:
+        lambda_sd, alpha = self.cfg.sd_scale, self.cfg.proposer_scale
+        if lambda_sd is None or alpha is None:
+            raise RuntimeError("Main optimization requires executed calibration")
+        return lambda_sd, alpha
+
+    def update_diagnostics(
+        self, rl: Grads, sd: Grads, proposer: Grads, rolls: dict[str, list[Repair]], signals: list
+    ) -> dict:
+        return {}
+
     def update(self, maximum_tasks: int, references: list) -> dict:
         started = time.monotonic()
         groups, tasks, timing = self.collect(maximum_tasks)
@@ -403,9 +416,7 @@ class Study:
         reference = self.reference_gradient(references) if alignment_arm and tasks else None
         timing["reference_gradient"] = time.monotonic() - started_gradient
         rl, sd = self.zeros(), self.zeros()
-        lambda_sd, alpha = self.cfg.sd_scale, self.cfg.proposer_scale
-        if lambda_sd is None or alpha is None:
-            raise RuntimeError("Main optimization requires executed calibration")
+        lambda_sd, alpha = self.loss_scales()
         rewards: dict[str, tuple[float, dict | None]] = {}
         task_metrics = []
         alignment_seconds = 0.0
@@ -484,9 +495,9 @@ class Study:
                 "verified": sum(row["success"] for row in samples),
                 "public_pass": sum(row["public_pass"] for row in samples),
                 "hidden_pass": sum(row["hidden_pass"] for row in samples),
-                "mixed_groups": sum(outcomes[n] for n in range(1, GROUP)),
+                "mixed_groups": sum(outcomes[n] for n in range(1, self.student_group_size)),
                 "all_fail_groups": outcomes[0],
-                "all_pass_groups": outcomes[GROUP],
+                "all_pass_groups": outcomes[self.student_group_size],
                 **{
                     field: sum(row[field] for row in samples)
                     for field in (
@@ -570,6 +581,7 @@ class Study:
             "gpu_peak_bytes": torch.cuda.max_memory_allocated(),
             "worker_retries": self.sandbox.infrastructure_retries,
         }
+        metrics.update(self.update_diagnostics(rl, sd, proposer, rolls, task_metrics))
         self.commit(metrics, batch)
         return metrics
 

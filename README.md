@@ -9,6 +9,15 @@ proposer rewards. See [methods](docs/methods.md).
 
 ## Progress and results
 
+Task 20 audited the Task 19 training batches and found just two to four
+iterations with nonzero solver RL gradients per arm. It prepared 205
+oracle-verified harder EvalPlus tasks and added a solver-only Dr. GRPO
+control. The base difficulty screen and model-learning experiments await
+Yale access and an authorized allocation. See the
+[Task 20 status](docs/investigations/task20-status.md),
+[root-cause audit](docs/investigations/task20-root-cause.md), and
+[benchmark decision](docs/investigations/task20-benchmark-decision.md).
+
 The completed Task 19 study uses Qwen3.5-4B, a shared proposer/student LoRA,
 Dr. GRPO, and native thinking/tool calls. All five seed-2026 arms reached 96
 attempted training episodes. The base solved 88/115 ID and 93/116 external

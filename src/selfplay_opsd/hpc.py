@@ -49,6 +49,14 @@ TASK19_OPERATIONS = {
     "task19-pilot",
     "task19-train",
 }
+TASK20_OPERATIONS = {
+    "task20-screen",
+    "task20-solver",
+    "task20-calibrate",
+    "task20-shared-pilot",
+    "task20-main",
+    "task20-evaluate",
+}
 ACTIVE = {"PENDING", "CONFIGURING", "RUNNING", "COMPLETING", "SUSPENDED", "REQUEUED"}
 TRANSIENT = {"PREEMPTED", "NODE_FAIL", "BOOT_FAIL"}
 
@@ -145,6 +153,7 @@ class YaleSSH:
             "reuse_study",
             "publish_resource_plan",
             "task19_budget_status",
+            "task20_budget_status",
             "stage_task19_baseline",
             "publish_task19_endpoint",
             "logs",
@@ -417,8 +426,11 @@ def run_payload(
     afterok_run: str | None = None,
     task19_wall_minutes: int | None = None,
     supersede_empty_base: str | None = None,
+    task20_budget_hours: float | None = None,
+    task20_wall_minutes: int | None = None,
 ) -> dict:
-    if operation not in TASK19_OPERATIONS and operation not in {
+    task20 = operation in TASK20_OPERATIONS
+    if operation not in TASK19_OPERATIONS | TASK20_OPERATIONS and operation not in {
         "backend-check",
         "rollout-parity",
         "numerical-audit",
@@ -473,7 +485,7 @@ def run_payload(
     }:
         raise HpcError("Unsupported submission operation")
     if method not in {"A", "B", "C", "D"} and not (
-        operation in TASK19_OPERATIONS and method == "control"
+        operation in TASK19_OPERATIONS | TASK20_OPERATIONS and method == "control"
     ):
         raise HpcError("Method must be A, B, C, D, or the Task 19 control")
     if profile not in PROFILES or profile == "cpu_debug":
@@ -527,6 +539,8 @@ def run_payload(
         raise HpcError("Node exclusions require trusted diagnostics and explicit node names")
     partition = partition or GPU_PARTITIONS[chosen_gpu]
     task19 = operation in TASK19_OPERATIONS
+    if not task20 and (task20_budget_hours is not None or task20_wall_minutes is not None):
+        raise HpcError("Task 20 allocation options apply only to Task 20 operations")
     if task19_wall_minutes is not None and not task19:
         raise HpcError("Task 19 wall minutes apply only to its scientific allocations")
     if supersede_empty_base is not None and (
@@ -549,9 +563,29 @@ def run_payload(
         ):
             raise HpcError("Task 19 qualification and base use the shared control initialization")
         remote.call("inspect")  # Current Slurm/account snapshot before preview or submission.
+    if task20:
+        if (
+            alias != ALIASES[0]
+            or account != "cpsc4880"
+            or chosen_gpu != "h200"
+            or profile != "single_gpu_80gb"
+            or task20_budget_hours is None
+            or not math.isfinite(task20_budget_hours)
+            or task20_budget_hours <= 0
+            or task20_wall_minutes is None
+            or not 30 <= task20_wall_minutes <= 720
+        ):
+            raise HpcError(
+                "Task 20 requires an authorized budget and a bounded one-H200 allocation"
+            )
+        if (operation == "task20-evaluate") != (checkpoint_iteration is not None):
+            raise HpcError("Task 20 evaluation requires an explicit checkpoint")
+        if operation not in {"task20-main", "task20-evaluate"} and method != "control":
+            raise HpcError("Task 20 diagnostic stages use the control arm")
+        remote.call("inspect")
     cfg = load_config(
         settings,
-        method="B" if task19 and method == "control" else method,
+        method="B" if (task19 or task20) and method == "control" else method,
         hardware_profile=profile,
         seed=seed,
     )
@@ -592,7 +626,11 @@ def run_payload(
         pinned_commit = state["reports"]["freeze"].get("execution_commit")
         if pinned_commit:
             snap["commit"] = pinned_commit
-    trainer = state["images"].get("task19-trainer", {}) if task19 else state["images"]["trainer"]
+    trainer = (
+        state["images"].get("task19-trainer", {})
+        if task19 or task20
+        else state["images"]["trainer"]
+    )
     worker = state["images"]["worker"]
     worker_setup_id = worker_setup_id or state["reports"]["worker"].get("worker_setup_id", "")
     image = image or trainer.get("path", "")
@@ -639,7 +677,7 @@ def run_payload(
         raise HpcError("Checkpoint iteration is outside the study budget")
     if cfg.hardware.min_vram_gib > GPU_VRAM[chosen_gpu]:
         raise HpcError("GPU VRAM is below the selected hardware profile")
-    gpu_operation = task19 or operation in {
+    gpu_operation = operation in TASK19_OPERATIONS | TASK20_OPERATIONS | {
         "backend-check",
         "rollout-parity",
         "numerical-audit",
@@ -1022,6 +1060,38 @@ def run_payload(
             time=f"{hours:02d}:{minutes:02d}:00",
             max_continuations=16,
             target_iterations=cfg.iterations,
+            cpus=cfg.hardware.cpu_workers + cfg.sandbox.cpus,
+            memory_gib=cfg.hardware.host_ram_gib + math.ceil(cfg.sandbox.memory_mib / 1024),
+        )
+    if task20:
+        from selfplay_opsd.task20 import Task20Control
+
+        control = settings.with_suffix(".json")
+        study_control = Task20Control.read(control)
+        if (study_control.study, study_control.seed, study_control.precision) != (
+            cfg.study_id,
+            cfg.seed,
+            cfg.model.dtype,
+        ):
+            raise HpcError("Task 20 settings differ from the scientific control")
+        if operation in {"task20-main", "task20-evaluate"} and study_control.endpoint is None:
+            raise HpcError(
+                "Task 20 main and evaluation require a frozen endpoint and gate evidence"
+            )
+        suffix = (
+            f"{method}-seed{cfg.seed}"
+            if operation in {"task20-main", "task20-evaluate"}
+            else f"{operation.removeprefix('task20-')}-seed{cfg.seed}"
+        )
+        hours, minutes = divmod(task20_wall_minutes or 0, 60)
+        payload.update(
+            readiness_budget=task20_budget_hours,
+            output=f"/runs/{cfg.study_id}/{suffix}",
+            task20_control_sha256=sha256(control),
+            scientific_hash=study_control.science,
+            task20_checkpoint_iteration=checkpoint_iteration,
+            time=f"{hours:02d}:{minutes:02d}:00",
+            max_continuations=16,
             cpus=cfg.hardware.cpu_workers + cfg.sandbox.cpus,
             memory_gib=cfg.hardware.host_ram_gib + math.ceil(cfg.sandbox.memory_mib / 1024),
         )
@@ -1662,6 +1732,22 @@ def task19_budget_command(settings: Path = Path("configs/task19-yale.yaml")):
     )
 
 
+@app.command("task20-budget")
+def task20_budget_command(settings: Path = Path("configs/task20-yale.yaml")):
+    """Reconcile Task 20 reservations and actual H200 allocation."""
+    remote = YaleSSH(ALIASES[0])
+    context = remote_context(remote, ALIASES[0])
+    output(
+        remote.call(
+            "task20_budget_status",
+            {
+                "storage_root": context["storage_root"],
+                "study_id": load_config(settings).study_id,
+            },
+        )
+    )
+
+
 @app.command("task19-stage-baseline")
 def task19_stage_baseline_command(settings: Path = Path("configs/task19-yale.yaml")):
     """Reuse verified initial monitoring records for identical starting policies."""
@@ -1737,6 +1823,8 @@ def submit_command(
     afterok_run: str | None = None,
     task19_wall_minutes: int | None = None,
     supersede_empty_base: str | None = None,
+    task20_budget_hours: float | None = None,
+    task20_wall_minutes: int | None = None,
     dry_run: bool = False,
     alias: str = ALIASES[0],
 ):
@@ -1764,6 +1852,8 @@ def submit_command(
         afterok_run=afterok_run,
         task19_wall_minutes=task19_wall_minutes,
         supersede_empty_base=supersede_empty_base,
+        task20_budget_hours=task20_budget_hours,
+        task20_wall_minutes=task20_wall_minutes,
     )
     output(remote.call("preview" if dry_run else "submit", payload))
 

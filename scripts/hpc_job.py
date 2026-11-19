@@ -935,6 +935,15 @@ def task13_command_args(env: dict) -> list[str]:
             + ["--operation", operation.removeprefix("task19-"), "--arm", method]
             + (["--resume", env["SELFPLAY_RESUME"]] if env.get("SELFPLAY_RESUME") else [])
         )
+    if operation.startswith("task20-"):
+        checkpoint = env.get("SELFPLAY_TASK20_CHECKPOINT_ITERATION")
+        return (
+            ["python", "/workspace/scripts/task20_experiment.py"]
+            + common
+            + ["--operation", operation.removeprefix("task20-"), "--arm", method]
+            + (["--resume", env["SELFPLAY_RESUME"]] if env.get("SELFPLAY_RESUME") else [])
+            + (["--checkpoint-iteration", checkpoint] if checkpoint else [])
+        )
     if operation.startswith("task18-"):
         return (
             prefix
@@ -1157,9 +1166,9 @@ def model_cache_overrides(operation: str) -> dict:
     # Task 19's pinned model and tokenizer have already been qualified from
     # the shared cache. Fail clearly if absent instead of hanging on nodes
     # without outbound Hugging Face access.
-    if operation.startswith("task19-"):
+    if operation.startswith(("task19-", "task20-")):
         result = {"HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1"}
-        if operation in {"task19-pilot", "task19-train"}:
+        if operation.startswith("task20-") or operation in {"task19-pilot", "task19-train"}:
             result["WANDB_MODE"] = "offline"
         return result
     return {}
@@ -1167,7 +1176,7 @@ def model_cache_overrides(operation: str) -> dict:
 
 def execute(env: dict) -> int:
     operation = env["SELFPLAY_OPERATION"]
-    if not operation.startswith("task19-") and operation not in {
+    if not operation.startswith(("task19-", "task20-")) and operation not in {
         "backend-check",
         "rollout-parity",
         "numerical-audit",
@@ -1219,7 +1228,7 @@ def execute(env: dict) -> int:
         "readiness-check",
     }:
         raise ValueError("Unsupported allocation operation")
-    uses_worker = operation.startswith("task19-") or operation in {
+    uses_worker = operation.startswith(("task19-", "task20-")) or operation in {
         "worker-check",
         "runtime-check",
         "train",
@@ -1434,7 +1443,7 @@ def execute(env: dict) -> int:
             "SELFPLAY_STOP_AFTER_ITERATION": env.get("SELFPLAY_STOP_AFTER_ITERATION", "0"),
         }
         overrides.update(model_cache_overrides(operation))
-        if operation in {"task19-pilot", "task19-train"}:
+        if operation.startswith("task20-") or operation in {"task19-pilot", "task19-train"}:
             write(
                 runs
                 / env["SELFPLAY_OUTPUT"].removeprefix("/runs/")
@@ -1488,7 +1497,7 @@ def execute(env: dict) -> int:
             "--settings",
             "/workspace/" + env["SELFPLAY_SETTINGS"],
         ]
-        if operation.startswith("task19-") or operation in {
+        if operation.startswith(("task19-", "task20-")) or operation in {
             "task13-probe",
             "task14-probe",
             "task14-student",
