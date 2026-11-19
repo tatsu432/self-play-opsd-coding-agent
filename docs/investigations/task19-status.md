@@ -519,3 +519,11 @@ controller run `ad1f59aa48704da5e8887dcd` was resumed once from checkpoint
 `000007` as Slurm job `33902234`. Inspect this existing job and the shared
 ledger; never duplicate. Completion requires its remaining 14 external tasks,
 checkpoint verification, final accounting and full analysis/documentation.
+The four completed arms' endpoint monitoring/final ID/external verified counts
+are control 28/41, 87/115, 92/116; B 29/41, 90/115, 92/116; C 31/41,
+88/115, 88/116; and D 28/41, 85/115, 92/116. Base was 31/41, 88/115,
+93/116. These are provisional descriptive counts, not a final paired analysis;
+external families were previously inspected. W&B cloud API verified 14 rows
+for each completed arm (pilot, main, final ID and external) and 13 for A
+through final ID, from guarded offline-history replay. A's pending final
+continuation reserves four hours, making total committed 68.568889/80 hours.
