@@ -468,3 +468,8 @@ verified RUNNING. Their 48-episode monitoring sets were complete; control had
 reached 72 episodes and B 64, while A, C and D remained at 48. The shared
 ledger showed 48.018056 H200-hours committed, including all five original
 four-hour reservations. Continue inspecting these exact jobs; do not duplicate.
+All five arms later committed the 72-episode milestone. Control completed
+its 72-episode monitoring set and committed the frozen 96-episode training
+checkpoint; its endpoint monitoring was in progress. A–D remained in their
+72-episode monitoring evaluations. All five original main jobs were RUNNING
+at this observation; final ID/external evaluation is still outstanding.
