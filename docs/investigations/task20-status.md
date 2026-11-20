@@ -28,7 +28,11 @@ five parent-distinct mixed tasks form the frozen solver curriculum under
 calibration before a main self-play claim. Never duplicate the screen.
 Solver-only job `33964224` / run `4b2f395e3a71886c44948db5` was submitted
 once from `47f9fda212288ac1be35f2a3f37395a9c5a8c8e8` with a 12-hour
-reservation. Inspect the existing job and never duplicate it.
+reservation. It completed 104 baseline rollouts and the one-step diagnostic,
+then began the 41-task development baseline. The mixed-group diagnostic
+recorded an adapter displacement of 0.05898 and 29 combined pre/post scoring
+support exits. Their separate counts and causal effect are unresolved. Inspect
+the existing job and never duplicate it.
 The current ledger charges 2.566667 H200-hours.
 
 December 2 remains
