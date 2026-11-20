@@ -266,7 +266,7 @@ def finalize(payload: dict) -> dict:
             )
             run(
                 ["git", "-C", str(staged), "checkout", "--quiet", "--detach", payload["commit"]],
-                timeout=120,
+                timeout=600,
             )
             os.replace(staged, p["checkout"])
         finally:

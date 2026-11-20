@@ -165,7 +165,7 @@ class YaleSSH:
             input=REMOTE_SCRIPT.read_text(),
             capture_output=True,
             text=True,
-            timeout=45 if command == "inspect" else 180,
+            timeout=45 if command == "inspect" else 900 if command == "finalize" else 180,
             check=False,
         )
         try:
