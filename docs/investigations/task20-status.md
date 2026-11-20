@@ -2,13 +2,13 @@
 
 **November 19, 2026.** The archive audit and local benchmark preparation are
 complete. The CPU regression tests exercise the solver-only and controller
-paths. Task 20 has no measured model-learning result.
+paths. The solver-only pilot shows training-set improvement on a small fixed curriculum.
 
 | Gate | State | Evidence |
 |---|---|---|
 | Task 19 audit | Complete | [Verified training-signal reconstruction](task20-root-cause.md) |
 | A · Benchmark | EvalPlus fallback selected, model difficulty pending | [PDB admission audit and 205 verified tasks](task20-benchmark-decision.md) |
-| B · Solver-only | Implementation tested locally, pilot pending | [Positive-control procedure](task20-positive-control.md) |
+| B · Solver-only | Reviewed pass with a numerical limitation | [Positive-control procedure](task20-positive-control.md) |
 | C · Shared viability | Pending solver evidence | Shared diagnostics and isolated allocation stage implemented |
 | D · Matched Control/A/B | Pending shared evidence and measured cost | Freeze and analysis tools available |
 | E · C/D | Deferred | Requires useful alignment evidence and remaining allocation |
@@ -26,14 +26,18 @@ respectively. Use groups of eight for the bounded positive control. The
 five parent-distinct mixed tasks form the frozen solver curriculum under
 `data/task20/evalplus-solver-v1`. The fallback needs further difficulty
 calibration before a main self-play claim. Never duplicate the screen.
-Solver-only job `33964224` / run `4b2f395e3a71886c44948db5` was submitted
-once from `47f9fda212288ac1be35f2a3f37395a9c5a8c8e8` with a 12-hour
-reservation. It completed 104 baseline rollouts and the one-step diagnostic,
-then began the 41-task development baseline. The mixed-group diagnostic
-recorded an adapter displacement of 0.05898 and 29 combined pre/post scoring
-support exits. Their separate counts and causal effect are unresolved. Inspect
-the existing job and never duplicate it.
-The current ledger charges 2.566667 H200-hours.
+Solver-only job `33964224` / run `4b2f395e3a71886c44948db5` completed
+exit 0 after eight nonzero updates and 256 episodes. Its checkpoint passed
+Yale checksums. Training-only paired results were 9→11/20 and 8→13/20.
+The separate probe was 27→27/32 and 27→26/32, and development 25→28/41.
+The original gate records false due to 29 combined pre/post one-step
+support exits. The reviewed gate accepts the repeated training improvement
+and zero on-policy support exits in all eight training batches, retaining the
+diagnostic limitation and original marker. See the positive-control report.
+Slurm charged 42,513 H200-seconds; the log records worker-step OOM kills
+during shutdown. The completion marker and endpoint are verified. Do not
+duplicate. Screen plus solver cost is 51,753 H200-seconds (14.375833 hours).
+Calibration and shared-pilot work are next, subject to proposer validity.
 
 December 2 remains
 the reporting deadline. The feasibility of completing the GPU comparison

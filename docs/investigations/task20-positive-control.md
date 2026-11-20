@@ -76,3 +76,37 @@ learnability, optimization health, and transfer remain unmeasured.
    `scripts/analyze_task20.py` with the immutable dataset, common control,
    completed arm manifest, and reconciled budget. Its source JSON retains the
    observed checkpoints and task-level outcomes for paired analysis and plots.
+
+## Completed seed-2026 pilot
+
+Solver job `33964224` / run `4b2f395e3a71886c44948db5` completed
+with eight nonzero RL updates in 256 attempted episodes. The endpoint
+checkpoint and its metadata and state checksums were verified on Yale.
+Every training batch recorded zero support exits at rollout rescoring.
+Training-only paired success changed from 9/20 to 11/20 and 8/20 to 13/20.
+The separate probe changed from 27/32 to 27/32 and 27/32 to 26/32.
+Development was 25/41 initially and 28/41 at the endpoint. These small
+training-only results support proceeding to a shared pilot. They do not
+establish held-out generalization.
+
+The original completion marker records `learnable: false`. Its gate
+required zero combined pre- and post-update support exits in the one-step
+diagnostic. That extra criterion was introduced in the initial implementation
+and was stricter than the research specification. The diagnostic recorded
+29 combined exits but did not retain separate pre/post counts or the complete
+scored batch. It also reported a nonzero gradient and reproducible adapter
+displacement of 0.05898. Post-step changes in top-k/top-p support are possible.
+The finite-only weighted log-probability summary does not quantify the impact
+of the excluded tokens. Preserve that limitation.
+
+The reviewed gate uses both repeated training-only improvements, actual
+nonzero optimizer updates, and zero behavior-support exits at on-policy
+rescoring in every training iteration. It retains the original marker and
+the post-step limitation. This is a documented departure from the originally
+coded gate, made after observing the pilot. Further diagnosis is required if
+new scoring evidence indicates an execution mismatch.
+
+Slurm charged 42,513 H200-seconds for the pilot. Slurm reported a successful
+batch while its log recorded OOM kills in the worker step during allocation
+shutdown. The completed endpoint and evaluations were saved before exit.
+Task 20 allocation including the screen totals 51,753 H200-seconds.

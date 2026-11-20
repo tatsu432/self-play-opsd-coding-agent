@@ -219,3 +219,43 @@ def test_screen_payload_uses_prepared_data_and_explicit_budget(monkeypatch):
     assert plan["output"].endswith("/screen-seed2026")
     assert plan["image"] == "/pinned-trainer.sif"
     assert plan["scientific_hash"] == Task20Control.read(Path("configs/task20-yale.json")).science
+
+
+def test_reviewed_solver_gate_requires_training_improvement_and_rescoring_support(tmp_path):
+    import json
+
+    remote = runpy.run_path("scripts/hpc_remote.py")
+    (tmp_path / "iterations").mkdir()
+    (tmp_path / "one-step.json").write_text(
+        json.dumps(
+            {
+                "step": {
+                    "optimizer_step": True,
+                    "update_norm": 0.1,
+                    "weighted_logprob_change": 2,
+                    "support_exits": 29,
+                }
+            }
+        )
+    )
+    for iteration in (1, 2):
+        (tmp_path / "iterations" / f"{iteration:06}.json").write_text(
+            json.dumps(
+                {
+                    "metrics": {
+                        "shared": {"optimizer_step": True},
+                        "rl": {"norm": 0.1, "support_exits": 0},
+                    }
+                }
+            )
+        )
+    marker = {
+        "effective_rl_updates": 2,
+        "result": {
+            "gate": {"learnable": False},
+            "solver_train": {"a": {"before": 8, "after": 11}, "b": {"before": 9, "after": 13}},
+        },
+    }
+    assert remote["task20_solver_evidence"](marker, tmp_path)
+    marker["result"]["solver_train"]["b"]["after"] = 9
+    assert not remote["task20_solver_evidence"](marker, tmp_path)

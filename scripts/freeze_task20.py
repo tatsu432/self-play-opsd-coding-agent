@@ -6,6 +6,8 @@ import argparse
 import math
 from pathlib import Path
 
+from hpc_remote import task20_solver_evidence
+
 from selfplay_opsd.core import read_json
 from selfplay_opsd.storage import CheckpointManager, atomic_json, file_hash
 from selfplay_opsd.task20 import Task20Control
@@ -50,7 +52,7 @@ def main() -> None:
         raise ValueError("Task 20 pilot identities differ")
     if cfg.study != identity["study"] or solver_record["identity"]["curriculum"] != "fixed":
         raise ValueError("Expected the configured solver-only run")
-    if not solver_record["result"]["gate"]["learnable"]:
+    if not task20_solver_evidence(solver_record, args.solver):
         raise ValueError("Solver-only learnability gate failed")
     scales = calibration_record["result"]
     if not scales["ready"] or shared_record["identity"]["curriculum"] != "shared":

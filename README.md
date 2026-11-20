@@ -13,7 +13,9 @@ Task 20 audited the Task 19 training batches and found just two to four
 iterations with nonzero solver RL gradients per arm. It prepared 205
 oracle-verified harder EvalPlus tasks and added a solver-only Dr. GRPO
 control. Its base screen found mixed rewards in 5/32 tasks. The solver
-positive control is being prepared. See the
+positive control completed eight updates and improved its small training set.
+Its separate probe was flat. See the
+[positive-control results](docs/investigations/task20-positive-control.md). See the
 [Task 20 status](docs/investigations/task20-status.md),
 [root-cause audit](docs/investigations/task20-root-cause.md), and
 [benchmark decision](docs/investigations/task20-benchmark-decision.md).

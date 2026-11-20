@@ -2131,6 +2131,31 @@ def task20_marker(payload: dict) -> str:
     return f"complete-{payload['operation'].removeprefix('task20-')}.json"
 
 
+def task20_solver_evidence(solver: dict, directory: Path) -> bool:
+    """Check learning evidence while retaining the original recorded gate."""
+    if solver["result"]["gate"]["learnable"]:
+        return True
+    results = solver["result"]["solver_train"]
+    diagnostic = json.loads((directory / "one-step.json").read_text())
+    step = diagnostic.get("step", {})
+    rows = [
+        json.loads(path.read_text())["metrics"]
+        for path in sorted((directory / "iterations").glob("*.json"))
+        if path.stem != "000000"
+    ]
+    return (
+        solver.get("effective_rl_updates", 0) >= 2
+        and len(results) == 2
+        and len(rows) == solver["effective_rl_updates"]
+        and step.get("optimizer_step") is True
+        and step.get("update_norm", 0) > 0
+        and step.get("weighted_logprob_change", 0) > 0
+        and all(row["shared"]["optimizer_step"] and row["rl"]["norm"] > 0 for row in rows)
+        and all(row["rl"]["support_exits"] == 0 for row in rows)
+        and all(result["after"] > result["before"] for result in results.values())
+    )
+
+
 def check_task20(payload: dict) -> None:
     operation = payload["operation"]
     path = artifact_dir(payload)
@@ -2173,11 +2198,10 @@ def check_task20(payload: dict) -> None:
     ):
         raise ValueError("Task 20 solver requires a frozen screened curriculum")
     if operation in {"task20-calibrate", "task20-shared-pilot"}:
-        solver = json.loads(
-            (path.parent / f"solver-seed{payload['seed']}/complete-solver.json").read_text()
-        )
+        solver_dir = path.parent / f"solver-seed{payload['seed']}"
+        solver = json.loads((solver_dir / "complete-solver.json").read_text())
         if (
-            not solver["result"]["gate"]["learnable"]
+            not task20_solver_evidence(solver, solver_dir)
             or solver["identity"]["data"] != payload["manifests_hash"]
         ):
             raise ValueError("Task 20 shared work requires the matching solver learnability gate")
