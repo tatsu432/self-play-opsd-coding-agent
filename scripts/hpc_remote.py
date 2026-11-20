@@ -264,7 +264,10 @@ def finalize(payload: dict) -> dict:
                 ["git", "clone", "--quiet", "--no-checkout", str(p["bundle"]), str(staged)],
                 timeout=120,
             )
-            run(["git", "-C", str(staged), "checkout", "--quiet", "--detach", payload["commit"]])
+            run(
+                ["git", "-C", str(staged), "checkout", "--quiet", "--detach", payload["commit"]],
+                timeout=120,
+            )
             os.replace(staged, p["checkout"])
         finally:
             if staged.exists():
