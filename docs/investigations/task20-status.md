@@ -44,6 +44,9 @@ RL/OPSD/proposer norms were 0.0088883/0.0584771/0.1536654. Frozen OPSD and
 proposer scales are 0.04559882929803436 and 0.028920942507191107. This
 calibration does not establish valid-only reward discrimination. Never
 duplicate it. Total allocated time is 54,469 H200-seconds (15.130278 hours).
+Shared-control pilot `34027247` / run `da000a22f79187e0dc7fc87e` was
+submitted once from `2cfe4c9e11404846c63aa0ddfb912ac8d6874f78`. Its
+six-hour reservation is additional. Inspect this job and never duplicate.
 
 December 2 remains
 the reporting deadline. The feasibility of completing the GPU comparison
