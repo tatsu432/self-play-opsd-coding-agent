@@ -9,7 +9,7 @@ paths. The solver-only pilot shows training-set improvement on a small fixed cur
 | Task 19 audit | Complete | [Verified training-signal reconstruction](task20-root-cause.md) |
 | A · Benchmark | EvalPlus fallback selected and difficulty screened | [PDB admission audit and 205 verified tasks](task20-benchmark-decision.md) |
 | B · Solver-only | Reviewed pass with a numerical limitation | [Positive-control procedure](task20-positive-control.md) |
-| C · Shared viability | Pilot running | Shared diagnostics and isolated allocation stage implemented |
+| C · Shared viability | Failed; pilot completed | [Gradient and proposer diagnosis](task20-shared-diagnosis.md) |
 | D · Matched Control/A/B | Pending shared evidence and measured cost | Freeze and analysis tools available |
 | E · C/D | Deferred | Requires useful alignment evidence and remaining allocation |
 
@@ -45,16 +45,28 @@ proposer scales are 0.04559882929803436 and 0.028920942507191107. This
 calibration does not establish valid-only reward discrimination. Never
 duplicate it. Total allocated time is 54,469 H200-seconds (15.130278 hours).
 Shared-control pilot `34027247` / run `da000a22f79187e0dc7fc87e` was
-submitted once from `2cfe4c9e11404846c63aa0ddfb912ac8d6874f78`. Its
-six-hour reservation is additional. Inspect this job and never duplicate.
+submitted once from `2cfe4c9e11404846c63aa0ddfb912ac8d6874f78`. It
+completed exit 0 in 8,749 H200-seconds. Never duplicate it.
 Its initial development evaluation verified 25/41, with all 41 task outcomes
 matching the solver pilot's initial evaluation. Its first 32-episode update
 had two mixed groups of four, a nonzero solver gradient and adapter update,
 and zero behavior support exits. Seven of eight proposals were valid, but no
-group had distinct rewards among valid proposals; the viability gate remains
-pending the second batch.
-Local regression on the current task branch passed 483 tests, with 38 skipped.
+group had distinct rewards among valid proposals. The second update contained
+no mixed groups and no
+valid-only reward diversity, leaving only one effective solver update across
+64 episodes. Both proposer gradients distinguish invalid from valid proposals;
+they provide no within-group ranking of valid tasks. The first update's
+solver–proposer cosine was 0.0026; the second is undefined because the solver
+gradient is zero. These observations do not establish harmful interference.
+The prespecified shared gate fails. Endpoint development was 26/41, with two
+gains and one loss relative to the 25/41 baseline; do not launch the main triad
+on this evidence. Total Task 20 allocation is 63,218 H200-seconds (17.560556
+hours). The endpoint checkpoint and batch checksums verified locally; both
+aggregate training rows were verified in the [W&B history](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/64112872d3b8d79c595ae0c2).
+Local regression on the current task branch passed 483 tests, with 38 skipped;
+Ruff lint/format and mypy (62 source files) passed. At reconciliation no jobs
+were active on the account.
 
-December 2 remains the reporting deadline. The matched comparison depends on
-the shared pilot demonstrating stable updates and reward discrimination, and on
-the available time for training and evaluation.
+The bounded study ends with the failed shared gate and the
+[research decision](task20-final-decision.md). Any new intervention requires a
+separate scientific identity and viability qualification.

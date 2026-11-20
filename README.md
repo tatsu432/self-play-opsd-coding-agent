@@ -13,12 +13,19 @@ Task 20 audited the Task 19 training batches and found just two to four
 iterations with nonzero solver RL gradients per arm. It prepared 205
 oracle-verified harder EvalPlus tasks and added a solver-only Dr. GRPO
 control. Its base screen found mixed rewards in 5/32 tasks. The solver
-positive control completed eight updates and improved its small training set.
-Its separate probe was flat. See the
-[positive-control results](docs/investigations/task20-positive-control.md). See the
+positive control completed eight updates and improved its small training set;
+its separate probe was flat. A 64-episode shared pilot produced one effective
+solver update and no within-group reward diversity among valid proposals, so
+the matched method comparison is gated pending a viable intervention. Its
+development score changed from 25/41 to 26/41. See the
+[positive-control results](docs/investigations/task20-positive-control.md),
+[shared-pilot diagnosis](docs/investigations/task20-shared-diagnosis.md),
+[research decision](docs/investigations/task20-final-decision.md),
 [Task 20 status](docs/investigations/task20-status.md),
 [root-cause audit](docs/investigations/task20-root-cause.md), and
-[benchmark decision](docs/investigations/task20-benchmark-decision.md).
+[benchmark decision](docs/investigations/task20-benchmark-decision.md). Its
+[completion record](docs/task_completion/20-implemented-diff-benchmark.md)
+describes the deferred comparisons and next steps.
 
 The completed Task 19 study uses Qwen3.5-4B, a shared proposer/student LoRA,
 Dr. GRPO, and native thinking/tool calls. All five seed-2026 arms reached 96
