@@ -259,3 +259,26 @@ def test_reviewed_solver_gate_requires_training_improvement_and_rescoring_suppor
     assert remote["task20_solver_evidence"](marker, tmp_path)
     marker["result"]["solver_train"]["b"]["after"] = 9
     assert not remote["task20_solver_evidence"](marker, tmp_path)
+
+
+def test_yale_controller_compresses_and_recovers_large_payload(monkeypatch):
+    import base64
+    import json
+    import subprocess
+    import zlib
+
+    from selfplay_opsd.hpc import YaleSSH
+
+    calls = []
+
+    def run(args, **kwargs):
+        calls.append(args)
+        return subprocess.CompletedProcess(args, 0, stdout='{"ready": true}\n', stderr="")
+
+    monkeypatch.setattr(subprocess, "run", run)
+    request = {"items": ["abcdef0123456789" * 100] * 20}
+    assert YaleSSH().call("preview", request) == {"ready": True}
+    encoded = calls[0][-1]
+    assert encoded.startswith("z:")
+    assert len(encoded) < 2048
+    assert json.loads(zlib.decompress(base64.b64decode(encoded[2:]))) == request
