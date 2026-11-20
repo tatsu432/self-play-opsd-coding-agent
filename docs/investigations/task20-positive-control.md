@@ -84,7 +84,8 @@ with eight nonzero RL updates in 256 attempted episodes. The endpoint
 checkpoint and its metadata and state checksums were verified on Yale.
 Every training batch recorded zero support exits at rollout rescoring.
 Training-only paired success changed from 9/20 to 11/20 and 8/20 to 13/20.
-The separate probe changed from 27/32 to 27/32 and 27/32 to 26/32.
+The [solver pilot figure](../figures/task20/solver-positive-control.png) shows
+the paired checks and update signals. The separate probe changed from 27/32 to 27/32 and 27/32 to 26/32.
 Development was 25/41 initially and 28/41 at the endpoint. These small
 training-only results support proceeding to a shared pilot. They do not
 establish held-out generalization.
