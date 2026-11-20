@@ -110,3 +110,9 @@ Slurm charged 42,513 H200-seconds for the pilot. Slurm reported a successful
 batch while its log recorded OOM kills in the worker step during allocation
 shutdown. The completed endpoint and evaluations were saved before exit.
 Task 20 allocation including the screen totals 51,753 H200-seconds.
+
+The Yale job did not receive W&B credentials, so its telemetry stayed local.
+The checkpoint-backed aggregate history was replayed from the verified
+iteration artifacts. The W&B API confirmed nine rows, including the eight
+training updates and the evaluation summary. The replay receipt is retained
+privately to prevent duplicate uploads. [Solver W&B history](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/b16b95a99028b81934a7da4c)
