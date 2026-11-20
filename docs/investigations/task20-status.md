@@ -26,6 +26,9 @@ respectively. Use groups of eight for the bounded positive control. The
 five parent-distinct mixed tasks form the frozen solver curriculum under
 `data/task20/evalplus-solver-v1`. The fallback needs further difficulty
 calibration before a main self-play claim. Never duplicate the screen.
+Solver-only job `33964224` / run `4b2f395e3a71886c44948db5` was submitted
+once from `47f9fda212288ac1be35f2a3f37395a9c5a8c8e8` with a 12-hour
+reservation. Inspect the existing job and never duplicate it.
 The current ledger charges 2.566667 H200-hours.
 
 December 2 remains
