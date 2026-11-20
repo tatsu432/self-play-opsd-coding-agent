@@ -18,6 +18,7 @@ import shutil
 import subprocess
 import sys
 import uuid
+import zlib
 from collections import deque
 from contextlib import contextmanager
 from datetime import datetime
@@ -3643,7 +3644,12 @@ COMMANDS = {
 
 def main() -> None:
     command = sys.argv[1]
-    payload = json.loads(base64.b64decode(sys.argv[2])) if len(sys.argv) > 2 else {}
+    if len(sys.argv) > 2:
+        argument = sys.argv[2]
+        raw = base64.b64decode(argument[2:] if argument.startswith("z:") else argument)
+        payload = json.loads(zlib.decompress(raw) if argument.startswith("z:") else raw)
+    else:
+        payload = {}
     try:
         print(json.dumps(COMMANDS[command](payload), sort_keys=True))
     except (

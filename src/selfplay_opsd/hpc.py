@@ -16,6 +16,7 @@ import re
 import subprocess
 import tempfile
 import time
+import zlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated, Any, Protocol
@@ -159,7 +160,8 @@ class YaleSSH:
             "logs",
         }:
             raise HpcError("Unsupported remote operation")
-        encoded = base64.b64encode(json.dumps(payload or {}, sort_keys=True).encode()).decode()
+        raw = json.dumps(payload or {}, sort_keys=True).encode()
+        encoded = "z:" + base64.b64encode(zlib.compress(raw)).decode()
         result = subprocess.run(
             [*self.ssh, "python3", "-", command, encoded],
             input=REMOTE_SCRIPT.read_text(),
