@@ -1,0 +1,11 @@
+{
+  "study": "repair-selfplay-2026-task20-v1",
+  "seed": 2026,
+  "precision": "float32",
+  "cached_rollout": true,
+  "qualification_hash": "0a456eeb63df5dffaae19ae9d6bb4fe690430b64499a7d4debedcb20e733c37a",
+  "group_size": 8,
+  "sd_scale": 0.04559882929803436,
+  "proposer_scale": 0.028920942507191107,
+  "calibration_hash": "922a0bfb605ad21a9c262dd4ecc6aa4f1749381c0e675f039b7a6b3fb01728ac"
+}

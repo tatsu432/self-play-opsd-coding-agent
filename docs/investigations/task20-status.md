@@ -37,10 +37,13 @@ diagnostic limitation and original marker. See the positive-control report.
 Slurm charged 42,513 H200-seconds; the log records worker-step OOM kills
 during shutdown. The completion marker and endpoint are verified. Do not
 duplicate. Screen plus solver cost is 51,753 H200-seconds (14.375833 hours).
-Calibration job `34022431` / run `f67c877fe83f197929e5adab` was submitted
-once from `d3ae88c51e2116562d69b74f0f50543df33e8879` with a six-hour
-reservation. Inspect it and never duplicate. The shared pilot follows only
-if calibration produces valid proposer and student gradients.
+Calibration job `34022431` / run `f67c877fe83f197929e5adab` completed
+exit 0 in 2,716 H200-seconds. Initial adapter, data, execution and worker
+identities match the solver and checkpoint hashes verified. The measured
+RL/OPSD/proposer norms were 0.0088883/0.0584771/0.1536654. Frozen OPSD and
+proposer scales are 0.04559882929803436 and 0.028920942507191107. This
+calibration does not establish valid-only reward discrimination. Never
+duplicate it. Total allocated time is 54,469 H200-seconds (15.130278 hours).
 
 December 2 remains
 the reporting deadline. The feasibility of completing the GPU comparison
