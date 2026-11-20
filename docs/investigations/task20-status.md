@@ -1,15 +1,15 @@
 # Task 20 status
 
-**November 19, 2026.** The archive audit and local benchmark preparation are
+**November 20, 2026.** The archive audit and local benchmark preparation are
 complete. The CPU regression tests exercise the solver-only and controller
 paths. The solver-only pilot shows training-set improvement on a small fixed curriculum.
 
 | Gate | State | Evidence |
 |---|---|---|
 | Task 19 audit | Complete | [Verified training-signal reconstruction](task20-root-cause.md) |
-| A · Benchmark | EvalPlus fallback selected, model difficulty pending | [PDB admission audit and 205 verified tasks](task20-benchmark-decision.md) |
+| A · Benchmark | EvalPlus fallback selected and difficulty screened | [PDB admission audit and 205 verified tasks](task20-benchmark-decision.md) |
 | B · Solver-only | Reviewed pass with a numerical limitation | [Positive-control procedure](task20-positive-control.md) |
-| C · Shared viability | Pending solver evidence | Shared diagnostics and isolated allocation stage implemented |
+| C · Shared viability | Pilot running | Shared diagnostics and isolated allocation stage implemented |
 | D · Matched Control/A/B | Pending shared evidence and measured cost | Freeze and analysis tools available |
 | E · C/D | Deferred | Requires useful alignment evidence and remaining allocation |
 
@@ -48,6 +48,6 @@ Shared-control pilot `34027247` / run `da000a22f79187e0dc7fc87e` was
 submitted once from `2cfe4c9e11404846c63aa0ddfb912ac8d6874f78`. Its
 six-hour reservation is additional. Inspect this job and never duplicate.
 
-December 2 remains
-the reporting deadline. The feasibility of completing the GPU comparison
-depends on restored access, GPU time, and the learning gates.
+December 2 remains the reporting deadline. The matched comparison depends on
+the shared pilot demonstrating stable updates and reward discrimination, and on
+the available time for training and evaluation.
