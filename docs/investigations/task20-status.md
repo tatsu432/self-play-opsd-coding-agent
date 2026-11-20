@@ -47,6 +47,13 @@ duplicate it. Total allocated time is 54,469 H200-seconds (15.130278 hours).
 Shared-control pilot `34027247` / run `da000a22f79187e0dc7fc87e` was
 submitted once from `2cfe4c9e11404846c63aa0ddfb912ac8d6874f78`. Its
 six-hour reservation is additional. Inspect this job and never duplicate.
+Its initial development evaluation verified 25/41, with all 41 task outcomes
+matching the solver pilot's initial evaluation. Its first 32-episode update
+had two mixed groups of four, a nonzero solver gradient and adapter update,
+and zero behavior support exits. Seven of eight proposals were valid, but no
+group had distinct rewards among valid proposals; the viability gate remains
+pending the second batch.
+Local regression on the current task branch passed 483 tests, with 38 skipped.
 
 December 2 remains the reporting deadline. The matched comparison depends on
 the shared pilot demonstrating stable updates and reward discrimination, and on
