@@ -41,7 +41,9 @@ OPSD and Dr. GRPO. The first execution identity is
   inactive historical method-smoke runs held 6,343,435,272 bytes of
   regenerable `state/rollout_adapters` inference exports. Those exports were
   removed after checking that no account jobs were active. Their checkpoints
-  and run records remain. Project storage then reported 5.7 GiB available.
+  and run records remain. Seven more inactive backend-check and method-smoke
+  export directories totaling 2,907,407,833 bytes were removed while the
+  solver job was pending. Project storage then reported 8.2 GiB available.
   The controller verified checkpoint `000000` and submitted continuation
   `34150626` for this same logical run. It is pending. The original failure,
   checkpoint and allocation remain in the ledger. Never duplicate either job.
