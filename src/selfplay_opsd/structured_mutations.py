@@ -58,6 +58,11 @@ def sites(source: str) -> list[dict[str, Any]]:
 
 def mutation(source: str, path: list[str | int], operation: str) -> Mutation:
     """Apply only an enumerated operation and use the existing validator."""
+    return validate_mutation(source, make_patch(source, mutate_source(source, path, operation)))
+
+
+def mutate_source(source: str, path: list[str | int], operation: str) -> str:
+    """Apply the enumerated AST operation before task-specific admission."""
     allowed = {tuple(item["path"]): item["operations"] for item in sites(source)}
     if tuple(path) not in allowed or operation not in allowed[tuple(path)]:
         raise ValueError("Unknown structured mutation site or transformation")
@@ -73,5 +78,4 @@ def mutation(source: str, path: list[str | int], operation: str) -> Mutation:
         target[last] = OPERATORS[operation]()
     else:
         setattr(target, last, OPERATORS[operation]())
-    modified = ast.unparse(ast.fix_missing_locations(tree)) + "\n"
-    return validate_mutation(source, make_patch(source, modified))
+    return ast.unparse(ast.fix_missing_locations(tree)) + "\n"

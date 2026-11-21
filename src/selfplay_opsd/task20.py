@@ -112,6 +112,7 @@ class Task20Control(Task19Control):
 
 class Task20Study(Study):
     cfg: Task20Control
+    allow_fixed_auxiliary = False
 
     def __init__(
         self,
@@ -125,7 +126,7 @@ class Task20Study(Study):
         *,
         mode: Mode,
     ):
-        if mode == "fixed" and arm != "control":
+        if mode == "fixed" and arm != "control" and not self.allow_fixed_auxiliary:
             raise ValueError("The fixed curriculum is reserved for solver-only Dr. GRPO")
         super().__init__(cfg, arm, policy, sandbox, repository, output, execution)
         self.mode = mode
@@ -202,6 +203,9 @@ class Task20Study(Study):
             record["metrics"].get("learning", {}).get("effective_rl_updates", 0)
         )
 
+    def sampled_record(self, episode: Repair) -> dict:
+        return {"metrics": episode.metrics()}
+
     def sample(
         self,
         split: str,
@@ -230,7 +234,7 @@ class Task20Study(Study):
                         raise ValueError("Sample cache identity differs")
                 else:
                     episode = self.repair_episode(task, oracle, seed)
-                    row = {"identity": identity, "metrics": episode.metrics()}
+                    row = {"identity": identity, **self.sampled_record(episode)}
                     atomic_json(path, row)
                 rows.append(
                     row["metrics"]
@@ -437,7 +441,7 @@ class Task20Study(Study):
         self.finish(marker, result)
 
     def shared(self, operation: str, marker: Path, publish, should_stop) -> None:
-        if self.mode == "fixed":
+        if self.mode == "fixed" and (operation != "main" or not self.allow_fixed_auxiliary):
             raise ValueError("Shared training requires a proposer mode")
         limit = self.cfg.endpoint if operation == "main" else self.cfg.shared_pilot_episodes
         if limit is None or self.episodes > limit:

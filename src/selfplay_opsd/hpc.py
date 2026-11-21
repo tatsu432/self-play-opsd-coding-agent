@@ -160,6 +160,8 @@ class YaleSSH:
             "publish_resource_plan",
             "task19_budget_status",
             "task20_budget_status",
+            "task21_budget_status",
+            "task21_verify_endpoint",
             "stage_task19_baseline",
             "publish_task19_endpoint",
             "logs",
@@ -1759,6 +1761,31 @@ def task20_budget_command(settings: Path = Path("configs/task20-yale.yaml")):
                 "storage_root": context["storage_root"],
                 "study_id": load_config(settings).study_id,
             },
+        )
+    )
+
+
+@app.command("task21-budget")
+def task21_budget_command(settings: Path = Path("configs/task21-yale.yaml")):
+    """Reconcile Task 21 reservations and actual H200 allocation."""
+    remote = YaleSSH(ALIASES[0])
+    context = remote_context(remote, ALIASES[0])
+    output(
+        remote.call(
+            "task21_budget_status",
+            {"storage_root": context["storage_root"], "study_id": load_config(settings).study_id},
+        )
+    )
+
+
+@app.command("task21-verify")
+def task21_verify_command(run_id: str):
+    """Verify the finished Slurm attempt, study marker and remote checkpoint."""
+    remote = YaleSSH()
+    context = remote_context(remote, remote.alias)
+    output(
+        remote.call(
+            "task21_verify_endpoint", {"storage_root": context["storage_root"], "run_id": run_id}
         )
     )
 

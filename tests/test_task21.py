@@ -96,6 +96,9 @@ def test_lcb_wire_and_stdio_comparisons():
     payload = [{"input": "2", "output": "3", "testtype": "functional"}]
     packed = base64.b64encode(zlib.compress(pickle.dumps(json.dumps(payload), protocol=4)))
     assert private_lcb(packed.decode()) == payload
+    large = [payload[0] | {"input": "1" * 70000}]
+    unframed = base64.b64encode(zlib.compress(pickle.dumps(json.dumps(large), protocol=4)))
+    assert private_lcb(unframed.decode()) == large
     forbidden = base64.b64encode(zlib.compress(pickle.dumps({"not": "text"})))
     with pytest.raises(ValueError, match="pickled JSON string"):
         private_lcb(forbidden.decode())

@@ -45,6 +45,9 @@ def run_sample_stage(study: Task21Study, stage: str, publish, should_stop) -> No
         for row in result["rows"]:
             by_task[row["task_id"]].append(row)
         summary: dict = {"count": result["count"], "verified": result["verified"]}
+        if stage == "screen" and study.repository.tasks("feasibility_multi"):
+            multi = study.sample("feasibility_multi", 1, should_stop, block="difficulty")
+            summary["multi"] = {key: multi[key] for key in ("count", "verified")}
         for size in (4, 8) if stage == "screen" else ():
             groups = [sorted(rows, key=lambda row: row["slot"])[:size] for rows in by_task.values()]
             histogram = Counter(sum(row["success"] for row in group) for group in groups)
@@ -147,6 +150,7 @@ def main() -> None:
             for name in (
                 "task21.py",
                 "task20.py",
+                "pdb_proposer.py",
                 "pdb_verifier.py",
                 "pdb_data.py",
                 "environment.py",
@@ -155,7 +159,12 @@ def main() -> None:
         ),
     ]
     execution["task21_code"] = digest({path.name: file_hash(path) for path in files})
-    mode = "fixed" if args.operation in {"feasibility", "screen", "solver"} else "shared"
+    mode = (
+        "fixed"
+        if args.operation in {"feasibility", "screen", "solver"}
+        or (args.operation in {"calibrate", "main", "evaluate"} and cfg.main_mode == "fixed")
+        else "shared"
+    )
     study = Task21Study(
         cfg, args.arm, SharedPolicy(cfg), worker, repository, args.output, execution, mode=mode
     )

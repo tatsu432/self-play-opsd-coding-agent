@@ -29,6 +29,7 @@ from selfplay_opsd.pdb_verifier import (
 from selfplay_opsd.storage import atomic_json, file_hash
 
 SCORER = "fbfa901eeae5b5f6944daea479a4ce31fad0e4a6"
+BCB_TRANSFER = "BigCodeBench-PDB-style-mutants"
 LCB_REVISION = "0fe84c3912ea0c4d4a78037083943e8f0c4dd505"
 RELEASES = {
     "PDB-Single-Full": (
@@ -89,17 +90,18 @@ def private_lcb(value: str) -> list[dict]:
         or decoder.unconsumed_tail
     ):
         raise ValueError("Invalid or oversized compressed LCB fixture")
-    operations = list(pickletools.genops(raw))
+    operations = [record for record in pickletools.genops(raw) if record[0].name != "FRAME"]
     names = [op.name for op, _, _ in operations]
     if (
-        len(names) != 5
-        or names[:2] != ["PROTO", "FRAME"]
-        or names[2] not in {"BINUNICODE", "SHORT_BINUNICODE", "BINUNICODE8"}
-        or names[3:] != ["MEMOIZE", "STOP"]
+        len(names) != 4
+        or names[0] != "PROTO"
+        or operations[0][1] not in {4, 5}
+        or names[1] not in {"BINUNICODE", "SHORT_BINUNICODE", "BINUNICODE8"}
+        or names[2:] != ["MEMOIZE", "STOP"]
         or operations[-1][2] != len(raw) - 1
     ):
         raise ValueError("Expected an LCB pickled JSON string")
-    payload = operations[2][1]
+    payload = operations[1][1]
     if not isinstance(payload, str):
         raise ValueError("Expected an LCB JSON string")
     cases = json.loads(payload)
@@ -384,7 +386,7 @@ def build_task(
         handler=handler,
         provenance={
             "release": release,
-            "revision": RELEASES[release][0],
+            "revision": SCORER if release == BCB_TRANSFER else RELEASES[release][0],
             "pdb_id": row["task_id"],
             "family_id": family,
             "source_dataset": row["source_dataset"],
@@ -399,9 +401,10 @@ def build_task(
 
 
 def families(releases: dict[str, list[dict]]) -> dict[str, str]:
-    """Union upstream parent IDs across duplicate canonical AST families."""
+    """Union upstream parent IDs across exact and similar canonical AST families."""
     roots: dict[str, str] = {}
     normalized: dict[str, str] = {}
+    fingerprints: list[tuple[str, set[tuple[str, ...]]]] = []
 
     def root(parent: str) -> str:
         roots.setdefault(parent, parent)
@@ -410,17 +413,36 @@ def families(releases: dict[str, list[dict]]) -> dict[str, str]:
             parent = roots[parent]
         return parent
 
-    for release in ("PDB-Single-Full", "PDB-Multi"):
-        for row in releases[release]:
-            parent = parent_key(row)
-            root(parent)
-            try:
-                key = normalized_family(row["gt_solution"])
-            except (SyntaxError, ValueError):
-                key = digest(row["gt_solution"])
-            owner = normalized.setdefault(key, parent)
-            left, right = sorted((root(parent), root(owner)))
-            roots[right] = left
+    sources = {
+        (parent_key(row), row["gt_solution"])
+        for release in ("PDB-Single-Full", "PDB-Multi")
+        for row in releases[release]
+    }
+    for parent, source in sorted(sources):
+        root(parent)
+        try:
+            key = normalized_family(source)
+        except (SyntaxError, ValueError):
+            key = digest(source)
+        owner = normalized.setdefault(key, parent)
+        left, right = sorted((root(parent), root(owner)))
+        roots[right] = left
+        if parent != owner:
+            continue
+        tokens = re.findall(r"[A-Za-z_0-9]+|[^\s\w]", key)
+        shingles = set(zip(*(tokens[start:] for start in range(6)), strict=False))
+        if len(shingles) < 24:
+            continue
+        for other, prior in fingerprints:
+            if root(parent) == root(other) or min(len(prior), len(shingles)) < 0.90 * max(
+                len(prior), len(shingles)
+            ):
+                continue
+            overlap = len(prior & shingles)
+            if overlap >= 0.90 * (len(prior) + len(shingles) - overlap):
+                left, right = sorted((root(parent), root(other)))
+                roots[right] = left
+        fingerprints.append((parent, shingles))
     return {parent: root(parent) for parent in roots}
 
 
@@ -432,6 +454,7 @@ def eligible(
     releases: dict[str, list[dict]],
     lcb: dict[str, dict],
     bcb: dict,
+    observations: dict | None = None,
 ) -> tuple[dict[str, list[tuple[TaskSpec, PdbOracle]]], Counter[str]]:
     ids = {
         (row["source_dataset"], row["task_id"], digest(row["buggy_code"]))
@@ -441,6 +464,7 @@ def eligible(
     prepared: dict[str, list[tuple[TaskSpec, PdbOracle]]] = defaultdict(list)
     outcomes: Counter[str] = Counter()
     fixtures: dict[str, tuple[Handler, str, list[Case], list[Case]] | str] = {}
+    observations = observations or {}
     for release in ("PDB-Single-Full", "PDB-Multi"):
         tried: Counter[str] = Counter()
         for row in sorted(releases[release], key=variant_order):
@@ -451,11 +475,14 @@ def eligible(
             try:
                 if parent not in fixtures:
                     try:
-                        fixtures[parent] = (
-                            lcb_cases(lcb[key])
-                            if source == "livecodebench"
-                            else bcb_cases(bcb[key])
-                        )
+                        if source == "livecodebench":
+                            fixtures[parent] = lcb_cases(lcb[key])
+                        elif key in observations:
+                            saved = observations[key]
+                            suite = [Case.model_validate(case) for case in saved["cases"]]
+                            fixtures[parent] = ("bcb_call", saved["entry"], suite[:1], suite[1:])
+                        else:
+                            fixtures[parent] = bcb_cases(bcb[key])
                     except (ArithmeticError, KeyError, SyntaxError, TypeError, ValueError) as exc:
                         fixtures[parent] = (
                             str(exc)[:95] if not isinstance(exc, KeyError) else "missing fixture"
@@ -468,6 +495,20 @@ def eligible(
                     "PDB-Single" if membership in ids and release == "PDB-Single-Full" else release
                 )
                 item = build_task(row, info, family[parent], selected_release, "unassigned")
+                if source == "bigcodebench" and key in observations:
+                    task, oracle = item
+                    item = (
+                        task,
+                        oracle.model_copy(
+                            update={
+                                "provenance": oracle.provenance
+                                | {
+                                    "verification": "adapted-canonical-outputs-on-upstream-inputs",
+                                    "upstream_observed_calls": observations[key]["case_count"],
+                                }
+                            }
+                        ),
+                    )
             except (ArithmeticError, KeyError, SyntaxError, TypeError, ValueError) as exc:
                 outcomes[
                     f"{source}:{str(exc)[:95] if not isinstance(exc, KeyError) else 'missing fixture'}"

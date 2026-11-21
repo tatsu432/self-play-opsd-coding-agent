@@ -2210,6 +2210,24 @@ def check_task21(payload: dict) -> None:
     needed = {"screen": "screen", "solver": "solver_train", "main": "dev_monitor"}.get(stage)
     if needed and not manifest["counts"].get(needed):
         raise ValueError(f"Task 21 stage requires the {needed} partition")
+    if stage == "screen":
+        root = path.parent / f"feasibility-seed{payload['seed']}"
+        marker = root / "complete-feasibility.json"
+        if not marker.is_file():
+            raise ValueError("Task 21 screen requires a completed model feasibility pilot")
+        feasibility = json.loads(marker.read_text())
+        prior_data = json.loads((paths(payload)["dataset"] / "pdb.json").read_text())["provenance"]
+        accepted = {payload["manifests_hash"], prior_data.get("feasibility_manifest")}
+        if (
+            feasibility["identity"]["data"] not in accepted
+            or feasibility["identity"]["execution"]["image"] != payload["image_sha256"]
+            or not feasibility["result"]["count"]
+            or feasibility["checkpoint_sha256"]
+            != sha256(root / "checkpoints" / feasibility["checkpoint"] / "complete.json")
+        ):
+            raise ValueError("Task 21 feasibility marker or checkpoint differs")
+    if payload["method"] in {"C", "D"} and not config.get("alignment_gate_hash"):
+        raise ValueError("Task 21 C/D requires separately verified alignment evidence")
     if stage in {"main", "evaluate"}:
         if not isinstance(config.get("endpoint"), int) or not config.get("shared_gate_hash"):
             raise ValueError("Task 21 main comparison requires frozen scientific evidence")
@@ -3448,6 +3466,42 @@ def task20_budget_status(payload: dict) -> dict:
         return refreshed_budget(payload)
 
 
+def task21_budget_status(payload: dict) -> dict:
+    if not task21_budget(payload):
+        raise ValueError("Task 21 budget status requires a Task 21 study")
+    with locked(workspace(payload) / "state/.budget.lock"):
+        return refreshed_budget(payload)
+
+
+def task21_verify_endpoint(payload: dict) -> dict:
+    report = status(payload)
+    spec = report["ledger"]["specification"]
+    if spec.get("operation") not in TASK21_OPERATIONS or not report["attempts"]:
+        raise ValueError("Endpoint verification requires a Task 21 allocation")
+    attempt = report["attempts"][-1]
+    if attempt["scheduler"]["state"] != "COMPLETED":
+        raise ValueError("Task 21 allocation is not terminal and successful")
+    root = artifact_dir(spec)
+    marker = json.loads((root / stage_marker(spec)).read_text())
+    if not re.fullmatch(r"\d{6}", marker["checkpoint"]):
+        raise ValueError("Invalid committed checkpoint ID")
+    checkpoint = root / "checkpoints" / marker["checkpoint"]
+    record = check_checkpoint(checkpoint, spec)
+    if (
+        marker["checkpoint_sha256"] != sha256(checkpoint / "complete.json")
+        or marker["identity"] != record["identity"]
+        or marker["episodes"] != record["episodes"]
+        or marker["snapshot"] != record["snapshot"]
+    ):
+        raise ValueError("Task 21 committed marker and checkpoint disagree")
+    return {
+        **marker,
+        "run_id": report["run_id"],
+        "job_id": attempt["job_id"],
+        "scheduler": attempt["scheduler"],
+    }
+
+
 def stage_task19_baseline(payload: dict) -> dict:
     """Reuse the verified initial monitoring tasks for the five identical initial policies."""
     base = workspace(payload)
@@ -3703,6 +3757,8 @@ COMMANDS = {
     "publish_resource_plan": publish_resource_plan,
     "task19_budget_status": task19_budget_status,
     "task20_budget_status": task20_budget_status,
+    "task21_budget_status": task21_budget_status,
+    "task21_verify_endpoint": task21_verify_endpoint,
     "publish_task19_endpoint": publish_task19_endpoint,
     "stage_task19_baseline": stage_task19_baseline,
 }

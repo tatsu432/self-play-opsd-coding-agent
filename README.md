@@ -9,6 +9,12 @@ proposer rewards. See [methods](docs/methods.md).
 
 ## Progress and results
 
+Task 21 adds an isolated adapter for the Precise Debugging Benchmark (PDB)
+while retaining Qwen-native exact-text repair. The first CPU pilot verified
+11 tasks from BigCodeBench and LiveCodeBench, with 22/22 original and
+canonical verdicts matching the pinned scorers. The first Qwen3.5-4B
+model pilot is running. [Task 21 status and reproduction](docs/investigations/task21-status.md)
+
 Task 20 audited the Task 19 training batches and found just two to four
 iterations with nonzero solver RL gradients per arm. It prepared 205
 oracle-verified harder EvalPlus tasks and added a solver-only Dr. GRPO

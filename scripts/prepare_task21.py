@@ -17,6 +17,7 @@ from selfplay_opsd.pdb_data import (
     RELEASES,
     SCORER,
     eligible,
+    families,
     lcb_rows,
     parent_key,
     release_rows,
@@ -25,6 +26,7 @@ from selfplay_opsd.pdb_data import (
 from selfplay_opsd.pdb_verifier import PdbOracle, verify_pdb
 from selfplay_opsd.sandbox import SandboxBackend
 from selfplay_opsd.storage import atomic_json, file_hash
+from selfplay_opsd.task21 import PdbRepository
 
 LCB_FILES = ("test.jsonl", *(f"test{i}.jsonl" for i in range(2, 7)))
 BCB_SHA = "6079ff7a9f41fb928b3b0750c9e1e160ac36c8cc7c58124efbf86138549131d6"
@@ -65,22 +67,47 @@ def collect_lcb(root: Path, releases: dict, fetch: bool) -> tuple[dict, list[str
 
 
 def prepare(args) -> None:
+    if (args.output / "manifest.json").exists():
+        raise ValueError("PDB bundles are immutable. Use a new output directory.")
     releases = release_rows(args.pdb)
     lcb, used = collect_lcb(args.upstream, releases, args.fetch_lcb)
     bcb_path = args.upstream / "bigcodebench.json"
     if file_hash(bcb_path) != BCB_SHA:
         raise ValueError("BigCodeBench data checksum differs from the pinned PDB scorer")
     bcb = json.loads(bcb_path.read_text())
-    prepared, excluded = eligible(releases, lcb, bcb)
+    observations = json.loads(args.bcb_observations.read_text()) if args.bcb_observations else {}
+    if observations and observations.get("bcb_sha256") != BCB_SHA:
+        raise ValueError("Adapted BigCodeBench observations use another fixture identity")
+    prepared, excluded = eligible(releases, lcb, bcb, observations.get("parents"))
     sandbox = SandboxBackend(SandboxConfig(image=args.worker))
     proof = sandbox.preflight()
     log: list[dict] = []
     groups: dict[str, list[tuple[TaskSpec, PdbOracle]]] = {}
     used_families: set[str] = set()
     used_parents: set[str] = set()
-    multi_families = {
-        oracle.provenance["family_id"] for _, oracle in prepared.get("PDB-Multi", [])
-    } | {parent_key(row) for row in releases["PDB-Multi"]}
+    family_map = families(releases)
+    multi_families = {family_map[parent_key(row)] for row in releases["PDB-Multi"]}
+    pilot = PdbRepository(args.from_pilot) if args.from_pilot else None
+    feasibility_ref = (
+        PdbRepository(args.feasibility_reference) if args.feasibility_reference else None
+    )
+    if pilot:
+        for split in pilot.partition_names():
+            for task, oracle in pilot.tasks(split):
+                if not isinstance(oracle, PdbOracle):
+                    raise ValueError("Pilot contains an incompatible oracle")
+                family = family_map[task.parent_id]
+                if family not in used_families:
+                    groups.setdefault(split, []).append(
+                        (
+                            task,
+                            oracle.model_copy(
+                                update={"provenance": oracle.provenance | {"family_id": family}}
+                            ),
+                        )
+                    )
+                    used_parents.add(task.parent_id)
+                    used_families.add(family)
 
     def pick(
         split: str,
@@ -143,22 +170,56 @@ def prepare(args) -> None:
         prepared.get("PDB-Multi", []),
         key=lambda item: digest([21, item[0].task_id]),
     )
-    pick("feasibility", multis, 2, multi=True)
-    pick("feasibility", singles, 8, source="livecodebench")
-    pick("feasibility", singles, 4, source="bigcodebench")
-    if len(groups["feasibility"]) >= 12:
-        groups["feasibility"] = groups["feasibility"][:12]
-    pick("screen", singles, args.screen, source="livecodebench")
+    if pilot:
+        if not groups.get("feasibility_multi") and not any(
+            o.provenance["release"] == "PDB-Multi" for _, o in groups["feasibility"]
+        ):
+            pick("feasibility_multi", multis, 2, multi=True)
+    else:
+        pick("feasibility", multis, 2, multi=True)
+        pick("feasibility", singles, 4, source="bigcodebench")
+        pick("feasibility", singles, 12 - len(groups["feasibility"]), source="livecodebench")
+        pick("screen", singles, args.screen, source="livecodebench")
     if args.extended:
-        pick("solver_probe", singles, 8, source="livecodebench")
-        pick("dev_monitor", singles, 24, source="livecodebench", held=True)
-        pick("primary_final", singles, 64, source="livecodebench", held=True)
-        pick("cross_source", singles, 64, source="bigcodebench", held=True)
-        pick("harder_transfer", multis, 24, held=True, multi=True)
+        pick(
+            "solver_probe", singles, 8 - len(groups.get("solver_probe", [])), source="livecodebench"
+        )
+        pick(
+            "dev_monitor",
+            singles,
+            24 - len(groups.get("dev_monitor", [])),
+            source="livecodebench",
+            held=True,
+        )
+        pick(
+            "primary_final",
+            singles,
+            64 - len(groups.get("primary_final", [])),
+            source="livecodebench",
+            held=True,
+        )
+        pick(
+            "cross_source",
+            singles,
+            64 - len(groups.get("cross_source", [])),
+            source="bigcodebench",
+            held=True,
+        )
+        pick(
+            "harder_transfer",
+            multis,
+            24 - len(groups.get("harder_transfer", [])),
+            held=True,
+            multi=True,
+        )
 
     counts = {split: len(rows) for split, rows in groups.items()}
     if not groups["feasibility"]:
         raise RuntimeError("No verified PDB feasibility tasks")
+    if feasibility_ref and {task.task_id for task, _ in feasibility_ref.tasks("feasibility")} != {
+        task.task_id for task, _ in groups["feasibility"]
+    }:
+        raise ValueError("Benchmark feasibility tasks differ from the original measured pilot")
     write_bundle(
         args.output,
         {split: rows for split, rows in groups.items() if rows},
@@ -169,6 +230,19 @@ def prepare(args) -> None:
             "lcb_files": used,
             "bcb_sha256": BCB_SHA,
             "worker": proof["image_digest"],
+            "pilot_manifest": pilot.hash if pilot else None,
+            "feasibility_manifest": (
+                feasibility_ref.hash
+                if feasibility_ref
+                else (
+                    pilot.provenance.get("feasibility_manifest")
+                    or pilot.provenance.get("pilot_manifest")
+                    or pilot.hash
+                    if pilot
+                    else None
+                )
+            ),
+            "bcb_observations": file_hash(args.bcb_observations) if args.bcb_observations else None,
         },
     )
     report = {
@@ -197,6 +271,9 @@ def main() -> None:
     parser.add_argument("--worker", default="selfplay-worker:local")
     parser.add_argument("--screen", type=int, default=0, choices=(0, 24))
     parser.add_argument("--extended", action="store_true")
+    parser.add_argument("--from-pilot", type=Path)
+    parser.add_argument("--feasibility-reference", type=Path)
+    parser.add_argument("--bcb-observations", type=Path)
     parser.add_argument("--fetch-lcb", action="store_true")
     args = parser.parse_args()
     os.umask(0o077)
