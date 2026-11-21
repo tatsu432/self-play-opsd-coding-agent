@@ -37,10 +37,14 @@ OPSD and Dr. GRPO. The first execution identity is
   saved and no completion marker. No Python failure was captured and its
   health record remained `running`, so its immediate cause is unconfirmed.
   The shared project filesystem subsequently reported zero available space
-  and rejected the recovery ledger write with `Disk quota exceeded`. No
-  continuation was submitted. Once project space is restored, inspect the
-  ledger and checkpoint and resume this same run after reviewing the failure.
-  Preserve the existing records and do not submit a duplicate screen.
+  and rejected the recovery ledger write with `Disk quota exceeded`. Four
+  inactive historical method-smoke runs held 6,343,435,272 bytes of
+  regenerable `state/rollout_adapters` inference exports. Those exports were
+  removed after checking that no account jobs were active. Their checkpoints
+  and run records remain. Project storage then reported 5.7 GiB available.
+  The controller verified checkpoint `000000` and submitted continuation
+  `34150626` for this same logical run. It is pending. The original failure,
+  checkpoint and allocation remain in the ledger. Never duplicate either job.
 - The incomplete screen contains 12 mixed groups among 23 complete groups
   of four and 17 mixed groups among 22 complete groups of eight. These are
   interim counts. The curriculum and solver-only pilot remain unfrozen.

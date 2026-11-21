@@ -555,7 +555,15 @@ def recover(payload: dict) -> dict:
     state = job_state(ledger["attempts"][-1]["job_id"])["state"]
     if state in ACTIVE or state == "UNKNOWN":
         return {"submitted": False, "state": state}
-    planned = bool(payload.get("explicit_continue")) and state in {"COMPLETED", "TIMEOUT"}
+    reviewed_screen_failure = (
+        bool(payload.get("explicit_continue"))
+        and state == "FAILED"
+        and payload.get("operation") == "task21-screen"
+        and ledger["attempts"][-1]["job_id"] == "34123330"
+    )
+    planned = bool(payload.get("explicit_continue")) and (
+        state in {"COMPLETED", "TIMEOUT"} or reviewed_screen_failure
+    )
     if payload.get("operation") in STAGED_OPERATIONS and completed_job_is_final(payload):
         return {"submitted": False, "state": state, "reason": "scientifically_complete"}
     if payload.get("operation") in TASK19_OPERATIONS:
@@ -640,6 +648,10 @@ def recover(payload: dict) -> dict:
     if not planned and ledger.get("retries", 0) >= 2:
         return {"submitted": False, "state": state, "reason": "retry_limit"}
     health_path = Path(ledger.get("run_dir", "")) / "state/health.json"
+    if reviewed_screen_failure:
+        health = json.loads(health_path.read_text())
+        if health.get("allocation") != "34123330" or health.get("phase") != "running":
+            return {"submitted": False, "state": state, "reason": "screen_failure_requires_review"}
     timeout_evidence = None
     if health_path.is_file():
         health = json.loads(health_path.read_text())
@@ -673,6 +685,7 @@ def recover(payload: dict) -> dict:
     if (
         planned
         and not checkpointed_timeout
+        and not reviewed_screen_failure
         and (
             not health_path.is_file()
             or json.loads(health_path.read_text()).get("phase") != "stopped"
@@ -713,6 +726,10 @@ def recover(payload: dict) -> dict:
         if timeout_evidence is not None:
             current.setdefault("timeout_disconnect_recoveries", []).append(
                 {**timeout_evidence, "checkpoint": checkpoint}
+            )
+        if reviewed_screen_failure:
+            current.setdefault("reviewed_screen_recoveries", []).append(
+                {"job_id": previous_job, "checkpoint": checkpoint, "reason": "storage_quota_full"}
             )
         current["active_stop_after_iteration"] = next_stop
         write_json(path, current)
