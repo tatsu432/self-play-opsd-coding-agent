@@ -67,14 +67,23 @@ class RepairEnvironment:
     def __post_init__(self):
         self.source = self.task.initial_source
 
+    def verify_source(self, *, public: bool) -> Verification:
+        return verify_with_retry(self.sandbox, self.source, self.task, self.oracle, public=public)
+
+    def replace_source(self, old_text: str, new_text: str) -> str:
+        replacement = replace_text(self.source, old_text, new_text)
+        if signature(validate_source(replacement)) != signature(
+            validate_source(self.task.initial_source)
+        ):
+            raise ValueError("Repair must preserve function APIs")
+        return replacement
+
     def verify(self, *, public: bool = False) -> Verification:
         result = None
         error = None
         if self.policy.is_coordinator:
             try:
-                result = verify_with_retry(
-                    self.sandbox, self.source, self.task, self.oracle, public=public
-                )
+                result = self.verify_source(public=public)
             except ExperimentError as exc:
                 error = (str(exc), exc.status.value)
         result, error = self.policy.broadcast((result, error))
@@ -117,11 +126,7 @@ class RepairEnvironment:
         if name == "replace_text":
             if action["path"] != "src/solution.py":
                 raise ValueError("File path is not allowlisted")
-            replacement = replace_text(self.source, action["old_text"], action["new_text"])
-            if signature(validate_source(replacement)) != signature(
-                validate_source(self.task.initial_source)
-            ):
-                raise ValueError("Repair must preserve function APIs")
+            replacement = self.replace_source(action["old_text"], action["new_text"])
             self.source = replacement
             return {"ok": True, "source_hash": digest(replacement)}
         if name == "replace_function_body":

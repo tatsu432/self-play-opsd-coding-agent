@@ -43,6 +43,12 @@ TASK20_OPERATIONS = {
     "task20-main",
     "task20-evaluate",
 }
+
+TASK21_OPERATIONS = {
+    "task21-feasibility",
+    *(f"task21-{stage.removeprefix('task20-')}" for stage in TASK20_OPERATIONS),
+}
+STAGED_OPERATIONS = TASK20_OPERATIONS | TASK21_OPERATIONS
 ACTIVE = {"PENDING", "CONFIGURING", "RUNNING", "COMPLETING", "SUSPENDED", "REQUEUED"}
 
 
@@ -430,7 +436,7 @@ def verified_checkpoint(payload: dict) -> str:
     run_dir = (
         artifact_dir(payload)
         if payload["operation"]
-        in TASK19_OPERATIONS | TASK20_OPERATIONS | {"task17-student", "task18-student"}
+        in TASK19_OPERATIONS | STAGED_OPERATIONS | {"task17-student", "task18-student"}
         else p["runs"] / study / f"{payload['method']}-seed{payload['seed']}"
     )
     latest = json.loads((run_dir / "checkpoints/latest.json").read_text())
@@ -450,7 +456,7 @@ def check_checkpoint(checkpoint: Path, payload: dict) -> dict:
         if Path(filename).name != filename or sha256(checkpoint / filename) != expected:
             raise ValueError("Latest checkpoint verification failed")
     metadata = json.loads((checkpoint / "metadata.json").read_text())
-    if payload.get("operation") in TASK19_OPERATIONS | TASK20_OPERATIONS:
+    if payload.get("operation") in TASK19_OPERATIONS | STAGED_OPERATIONS:
         identity = metadata.get("identity", {})
         if (
             identity.get("study") != payload["study_id"]
@@ -460,10 +466,10 @@ def check_checkpoint(checkpoint: Path, payload: dict) -> dict:
         ):
             raise ValueError("Shared-policy checkpoint study, dataset or image differs")
         if (
-            payload["operation"] in TASK20_OPERATIONS
+            payload["operation"] in STAGED_OPERATIONS
             and metadata.get("scientific_hash") != payload["scientific_hash"]
         ):
-            raise ValueError("Task 20 checkpoint scientific control differs")
+            raise ValueError("Staged checkpoint scientific control differs")
         return metadata
     if (
         payload.get("runtime_identity")
@@ -550,7 +556,7 @@ def recover(payload: dict) -> dict:
     if state in ACTIVE or state == "UNKNOWN":
         return {"submitted": False, "state": state}
     planned = bool(payload.get("explicit_continue")) and state in {"COMPLETED", "TIMEOUT"}
-    if payload.get("operation") in TASK20_OPERATIONS and completed_job_is_final(payload):
+    if payload.get("operation") in STAGED_OPERATIONS and completed_job_is_final(payload):
         return {"submitted": False, "state": state, "reason": "scientifically_complete"}
     if payload.get("operation") in TASK19_OPERATIONS:
         if completed_job_is_final(payload):
@@ -660,7 +666,7 @@ def recover(payload: dict) -> dict:
         return {"submitted": False, "state": state, "reason": "scientifically_complete"}
     checkpointed_timeout = state == "TIMEOUT" and payload[
         "operation"
-    ] in TASK19_OPERATIONS | TASK20_OPERATIONS | {
+    ] in TASK19_OPERATIONS | STAGED_OPERATIONS | {
         "task15-online",
         "task15-stabilize",
     }
@@ -897,8 +903,8 @@ def can_supersede_empty_task19_base(
 def completed_job_is_final(payload: dict) -> bool:
     """Task 15 training may continue only with an explicitly verified checkpoint."""
     operation = payload["operation"]
-    if operation in TASK20_OPERATIONS:
-        return (artifact_dir(payload) / task20_marker(payload)).is_file()
+    if operation in STAGED_OPERATIONS:
+        return (artifact_dir(payload) / stage_marker(payload)).is_file()
     if operation in TASK19_OPERATIONS:
         directory = artifact_dir(payload)
         if operation.startswith("task19-qualify"):
@@ -1081,8 +1087,8 @@ def submit(payload: dict) -> dict:
                         else str(artifact)
                         + ":"
                         + (
-                            task20_marker(payload)
-                            if payload["operation"] in TASK20_OPERATIONS
+                            stage_marker(payload)
+                            if payload["operation"] in STAGED_OPERATIONS
                             else payload["operation"]
                         )
                     ).encode()
@@ -1182,7 +1188,7 @@ def submit(payload: dict) -> dict:
                         ledger["supersedes_preflight_only_run"] = owner["run_id"]
                         continue
                     raise ValueError("Task 19 stage already has an immutable controller run")
-                if payload["operation"] in TASK20_OPERATIONS and candidate_slot == slot:
+                if payload["operation"] in STAGED_OPERATIONS and candidate_slot == slot:
                     raise ValueError("Task 20 stage already has an immutable controller run")
                 if payload["operation"] in {"train", "pilot", "task15-online", "task15-stabilize"}:
                     if can_supersede_empty_pilot(payload, prior, owner, artifact):
@@ -1403,8 +1409,8 @@ def artifact_dir(payload: dict) -> Path:
             "task19-train": f"{payload['method']}-seed2026",
         }[operation]
         return runs / study / suffix
-    if operation in TASK20_OPERATIONS:
-        stage = operation.removeprefix("task20-")
+    if operation in STAGED_OPERATIONS:
+        stage = operation.split("-", 1)[1]
         name = payload["method"] if stage in {"main", "evaluate"} else stage
         return runs / study / f"{name}-seed{payload['seed']}"
     if operation.startswith("task18-"):
@@ -1477,6 +1483,14 @@ def task20_budget(payload: dict) -> bool:
     return payload.get("study_id", "").startswith("repair-selfplay-2026-task20-")
 
 
+def task21_budget(payload: dict) -> bool:
+    return payload.get("study_id", "").startswith("repair-selfplay-2026-task21-")
+
+
+def staged_budget(payload: dict) -> bool:
+    return task20_budget(payload) or task21_budget(payload)
+
+
 def readiness_limit(payload: dict) -> int:
     if task19_budget(payload):
         return 80
@@ -1499,6 +1513,8 @@ def budget_path(payload: dict) -> Path:
     # scientific identity create a fresh allowance.
     if task19_budget(payload):
         return workspace(payload) / "state" / "task19-budget.json"
+    if task21_budget(payload):
+        return workspace(payload) / "state" / "task21-budget.json"
     if task20_budget(payload):
         return workspace(payload) / "state" / "task20-budget.json"
     if task18_budget(payload):
@@ -1512,10 +1528,12 @@ def budget_path(payload: dict) -> Path:
 def refreshed_budget(payload: dict) -> dict:
     path = budget_path(payload)
     task17 = task17_budget(payload)
-    limit = payload.get("readiness_budget") if task20_budget(payload) else readiness_limit(payload)
+    limit = payload.get("readiness_budget") if staged_budget(payload) else readiness_limit(payload)
     budget = json.loads(path.read_text()) if path.exists() else {"limit": limit, "reservations": {}}
     authorization = (
-        "cpsc4880-task20-v1"
+        "cpsc4880-task21-v1"
+        if task21_budget(payload)
+        else "cpsc4880-task20-v1"
         if task20_budget(payload)
         else "cpsc4880-task19-80h-v1"
         if task19_budget(payload)
@@ -1533,7 +1551,7 @@ def refreshed_budget(payload: dict) -> dict:
     imported = budget.setdefault("legacy_sources", {})
     for legacy in (
         []
-        if task17 or task18_budget(payload) or task19_budget(payload) or task20_budget(payload)
+        if task17 or task18_budget(payload) or task19_budget(payload) or staged_budget(payload)
         else sorted(path.parent.glob("budget-*.json"))
     ):
         if legacy == path:
@@ -1594,7 +1612,7 @@ def refreshed_budget(payload: dict) -> dict:
             # Keep the reservation unless the actual allocation can be verified.
             if gpu:
                 item["charged"] = int(parts[2]) * int(gpu[1]) / 3600
-                if (task19_budget(payload) or task20_budget(payload)) and len(parts) >= 5:
+                if (task19_budget(payload) or staged_budget(payload)) and len(parts) >= 5:
                     item["allocation_start"] = parts[4]
                     item["allocated_gpu_seconds"] = int(parts[2]) * int(gpu[1])
             elif (
@@ -1617,7 +1635,7 @@ def refreshed_budget(payload: dict) -> dict:
 def reserve_budget(payload: dict, token: str):
     with locked(workspace(payload) / "state" / ".budget.lock"):
         if not payload["gpu_count"] or (
-            not payload.get("readiness_budget") and not task20_budget(payload)
+            not payload.get("readiness_budget") and not staged_budget(payload)
         ):
             return
         raw_limit = payload.get("readiness_budget")
@@ -1627,9 +1645,9 @@ def reserve_budget(payload: dict, token: str):
         if task19_budget(payload):
             if limit != 80:
                 raise ValueError("Task 19 uses its shared 80 H200-hour ceiling")
-        elif task20_budget(payload):
+        elif staged_budget(payload):
             if limit is not None and (not math.isfinite(limit) or limit <= 0):
-                raise ValueError("Task 20 budget must be positive when supplied")
+                raise ValueError("Staged budget must be positive when supplied")
         elif limit is None or not 0 < limit <= 24:
             raise ValueError("Readiness budget must be positive and at most 24 GPU-hours")
         budget = refreshed_budget(payload)
@@ -2126,10 +2144,10 @@ def study_state(payload: dict) -> dict:
     }
 
 
-def task20_marker(payload: dict) -> str:
-    if payload["operation"] == "task20-evaluate":
+def stage_marker(payload: dict) -> str:
+    if payload["operation"] in {"task20-evaluate", "task21-evaluate"}:
         return f"complete-evaluate-{payload['task20_checkpoint_iteration']:06d}.json"
-    return f"complete-{payload['operation'].removeprefix('task20-')}.json"
+    return f"complete-{payload['operation'].split('-', 1)[1]}.json"
 
 
 def task20_solver_evidence(solver: dict, directory: Path) -> bool:
@@ -2155,6 +2173,51 @@ def task20_solver_evidence(solver: dict, directory: Path) -> bool:
         and all(row["rl"]["support_exits"] == 0 for row in rows)
         and all(result["after"] > result["before"] for result in results.values())
     )
+
+
+def check_task21(payload: dict) -> None:
+    operation = payload["operation"]
+    stage = operation.removeprefix("task21-")
+    path = artifact_dir(payload)
+    control = (paths(payload)["checkout"] / payload["settings"]).with_suffix(".json")
+    wall = re.fullmatch(r"([0-9]{2}):([0-5][0-9]):00", payload.get("time", ""))
+    minutes = int(wall[1]) * 60 + int(wall[2]) if wall else 0
+    if (
+        not task21_budget(payload)
+        or payload.get("account") != "cpsc4880"
+        or payload.get("gpu_count") != 1
+        or payload.get("gpu_type") != "h200"
+        or payload.get("profile") != "single_gpu_80gb"
+        or not 30 <= minutes <= 720
+        or payload.get("output") != f"/runs/{payload['study_id']}/{path.name}"
+        or sha256(control) != payload.get("task20_control_sha256")
+    ):
+        raise ValueError("Task 21 requires a bounded H200 allocation and frozen control")
+    config = json.loads(control.read_text())
+    if config.get("study") != payload["study_id"] or config.get("seed") != payload["seed"]:
+        raise ValueError("Task 21 control identity is inconsistent")
+    if not study_state(payload)["gates"]["worker"]:
+        raise ValueError("Task 21 requires the accepted isolated worker")
+    if stage not in {"main", "evaluate"} and payload["method"] != "control":
+        raise ValueError("Task 21 diagnostic stages require the control arm")
+    manifest = json.loads((paths(payload)["dataset"] / "manifest.json").read_text())
+    if (
+        manifest.get("benchmark") != "pdb-native-v1"
+        or manifest.get("bundle_sha256") != sha256(paths(payload)["dataset"] / "pdb.json")
+        or not manifest.get("counts", {}).get("feasibility")
+    ):
+        raise ValueError("Task 21 requires its verified PDB task bundle")
+    needed = {"screen": "screen", "solver": "solver_train", "main": "dev_monitor"}.get(stage)
+    if needed and not manifest["counts"].get(needed):
+        raise ValueError(f"Task 21 stage requires the {needed} partition")
+    if stage in {"main", "evaluate"}:
+        if not isinstance(config.get("endpoint"), int) or not config.get("shared_gate_hash"):
+            raise ValueError("Task 21 main comparison requires frozen scientific evidence")
+        if stage == "evaluate":
+            checkpoint = payload.get("task20_checkpoint_iteration")
+            if not isinstance(checkpoint, int) or checkpoint < 0:
+                raise ValueError("Task 21 evaluation requires a verified checkpoint")
+            check_checkpoint(path / "checkpoints" / f"{checkpoint:06d}", payload)
 
 
 def check_task20(payload: dict) -> None:
@@ -2377,7 +2440,7 @@ def precheck(payload: dict):
         "backend-check",
     }:
         raise ValueError("scavenge_gpu is enabled only for trusted stateless diagnostics")
-    if operation not in TASK19_OPERATIONS | TASK20_OPERATIONS and operation not in {
+    if operation not in TASK19_OPERATIONS | STAGED_OPERATIONS and operation not in {
         "image-convert",
         "image-build",
         "method-smoke",
@@ -2493,7 +2556,7 @@ def precheck(payload: dict):
         ):
             raise ValueError("Rollout parity requires accepted one-H200 backend and bounded budget")
         return
-    uses_worker = operation in TASK19_OPERATIONS | TASK20_OPERATIONS or operation in {
+    uses_worker = operation in TASK19_OPERATIONS | STAGED_OPERATIONS or operation in {
         "worker-check",
         "runtime-check",
         "train",
@@ -2543,6 +2606,9 @@ def precheck(payload: dict):
             raise ValueError("Pinned worker SIF missing")
     if operation in TASK19_OPERATIONS:
         check_task19(payload)
+        return
+    if operation in TASK21_OPERATIONS:
+        check_task21(payload)
         return
     if operation in TASK20_OPERATIONS:
         check_task20(payload)

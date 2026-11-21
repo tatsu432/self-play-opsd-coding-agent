@@ -158,7 +158,7 @@ def test_allocation_dispatch_and_budget_namespace(tmp_path, monkeypatch):
     with pytest.raises(ValueError, match="Cannot change"):
         remote["reserve_budget"](payload | {"readiness_budget": 6}, "trial-2")
     assert (
-        remote["task20_marker"]({"operation": "task20-evaluate", "task20_checkpoint_iteration": 0})
+        remote["stage_marker"]({"operation": "task20-evaluate", "task20_checkpoint_iteration": 0})
         == "complete-evaluate-000000.json"
     )
 

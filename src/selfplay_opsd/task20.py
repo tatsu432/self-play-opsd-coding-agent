@@ -21,7 +21,7 @@ from selfplay_opsd.sandbox import SandboxBackend
 from selfplay_opsd.storage import atomic_json, file_hash, restore_rng, rng_state
 from selfplay_opsd.task19 import Arm, Task19Control
 from selfplay_opsd.task19_policy import STUDENT_SAMPLING, SharedPolicy
-from selfplay_opsd.task19_rollout import Proposal, Repair, repair
+from selfplay_opsd.task19_rollout import Proposal, Repair
 from selfplay_opsd.task19_train import Grads, SegmentStop, Study, add_gradient, joint_step, norm
 
 Mode = Literal["fixed", "shared", "proposer_frozen"]
@@ -229,7 +229,7 @@ class Task20Study(Study):
                     if row["identity"] != identity:
                         raise ValueError("Sample cache identity differs")
                 else:
-                    episode = repair(self.policy, self.sandbox, self.cfg, task, oracle, seed)
+                    episode = self.repair_episode(task, oracle, seed)
                     row = {"identity": identity, "metrics": episode.metrics()}
                     atomic_json(path, row)
                 rows.append(

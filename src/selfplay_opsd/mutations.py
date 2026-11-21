@@ -155,8 +155,8 @@ def replace_function_body(source: str, function: str, body: str) -> str:
     return result
 
 
-def replace_text(source: str, old_text: str, new_text: str) -> str:
-    """Apply one exact, unique span atomically; never normalize or infer intent."""
+def replace_span(source: str, old_text: str, new_text: str) -> str:
+    """Apply the bounded exact-text operation before task-specific admission."""
     if not isinstance(old_text, str) or not isinstance(new_text, str) or not old_text:
         raise ValueError("Replacement strings required; old_text must be nonempty")
     if len(old_text.encode()) + len(new_text.encode()) > 65536:
@@ -169,6 +169,12 @@ def replace_text(source: str, old_text: str, new_text: str) -> str:
     result = source[:start] + new_text + source[start + len(old_text) :]
     if len(result.encode()) > 65536:
         raise ValueError("Replacement source exceeds size limit")
+    return result
+
+
+def replace_text(source: str, old_text: str, new_text: str) -> str:
+    """Apply one exact, unique span atomically; never normalize or infer intent."""
+    result = replace_span(source, old_text, new_text)
     try:
         before, after = validate_source(source), validate_source(result)
     except SyntaxError as exc:

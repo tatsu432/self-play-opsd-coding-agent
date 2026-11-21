@@ -95,8 +95,10 @@ def repair(
     task: TaskSpec,
     oracle: OracleSpec,
     seed: int,
+    *,
+    environment: type[RepairEnvironment] = RepairEnvironment,
 ) -> Repair:
-    env = RepairEnvironment(task, oracle, sandbox, cast(HFPolicy, policy))
+    env = environment(task, oracle, sandbox, cast(HFPolicy, policy))
     limits = cfg.episode
     history = student_history(task, limits)
     turns: list[Turn] = []

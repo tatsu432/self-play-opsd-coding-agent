@@ -58,6 +58,11 @@ TASK20_OPERATIONS = {
     "task20-main",
     "task20-evaluate",
 }
+TASK21_OPERATIONS = {
+    "task21-feasibility",
+    *(f"task21-{stage.removeprefix('task20-')}" for stage in TASK20_OPERATIONS),
+}
+STAGED_OPERATIONS = TASK20_OPERATIONS | TASK21_OPERATIONS
 ACTIVE = {"PENDING", "CONFIGURING", "RUNNING", "COMPLETING", "SUSPENDED", "REQUEUED"}
 TRANSIENT = {"PREEMPTED", "NODE_FAIL", "BOOT_FAIL"}
 
@@ -431,8 +436,11 @@ def run_payload(
     task20_budget_hours: float | None = None,
     task20_wall_minutes: int | None = None,
 ) -> dict:
-    task20 = operation in TASK20_OPERATIONS
-    if operation not in TASK19_OPERATIONS | TASK20_OPERATIONS and operation not in {
+    staged = operation in STAGED_OPERATIONS
+    task21 = operation in TASK21_OPERATIONS
+    prefix = "task21-" if task21 else "task20-"
+    stage = operation.removeprefix(prefix)
+    if operation not in TASK19_OPERATIONS | STAGED_OPERATIONS and operation not in {
         "backend-check",
         "rollout-parity",
         "numerical-audit",
@@ -487,7 +495,7 @@ def run_payload(
     }:
         raise HpcError("Unsupported submission operation")
     if method not in {"A", "B", "C", "D"} and not (
-        operation in TASK19_OPERATIONS | TASK20_OPERATIONS and method == "control"
+        operation in TASK19_OPERATIONS | STAGED_OPERATIONS and method == "control"
     ):
         raise HpcError("Method must be A, B, C, D, or the Task 19 control")
     if profile not in PROFILES or profile == "cpu_debug":
@@ -541,8 +549,8 @@ def run_payload(
         raise HpcError("Node exclusions require trusted diagnostics and explicit node names")
     partition = partition or GPU_PARTITIONS[chosen_gpu]
     task19 = operation in TASK19_OPERATIONS
-    if not task20 and (task20_budget_hours is not None or task20_wall_minutes is not None):
-        raise HpcError("Task 20 allocation options apply only to Task 20 operations")
+    if not staged and (task20_budget_hours is not None or task20_wall_minutes is not None):
+        raise HpcError("Staged allocation options apply only to Task 20 and 21 operations")
     if task19_wall_minutes is not None and not task19:
         raise HpcError("Task 19 wall minutes apply only to its scientific allocations")
     if supersede_empty_base is not None and (
@@ -565,7 +573,7 @@ def run_payload(
         ):
             raise HpcError("Task 19 qualification and base use the shared control initialization")
         remote.call("inspect")  # Current Slurm/account snapshot before preview or submission.
-    if task20:
+    if staged:
         if (
             alias != ALIASES[0]
             or account != "cpsc4880"
@@ -578,15 +586,15 @@ def run_payload(
             or task20_wall_minutes is None
             or not 30 <= task20_wall_minutes <= 720
         ):
-            raise HpcError("Task 20 requires a bounded one-H200 allocation")
-        if (operation == "task20-evaluate") != (checkpoint_iteration is not None):
-            raise HpcError("Task 20 evaluation requires an explicit checkpoint")
-        if operation not in {"task20-main", "task20-evaluate"} and method != "control":
-            raise HpcError("Task 20 diagnostic stages use the control arm")
+            raise HpcError("The study requires a bounded one-H200 allocation")
+        if (stage == "evaluate") != (checkpoint_iteration is not None):
+            raise HpcError("Final evaluation requires an explicit checkpoint")
+        if stage not in {"main", "evaluate"} and method != "control":
+            raise HpcError("Diagnostic stages use the control arm")
         remote.call("inspect")
     cfg = load_config(
         settings,
-        method="B" if (task19 or task20) and method == "control" else method,
+        method="B" if (task19 or staged) and method == "control" else method,
         hardware_profile=profile,
         seed=seed,
     )
@@ -629,7 +637,7 @@ def run_payload(
             snap["commit"] = pinned_commit
     trainer = (
         state["images"].get("task19-trainer", {})
-        if task19 or task20
+        if task19 or staged
         else state["images"]["trainer"]
     )
     worker = state["images"]["worker"]
@@ -643,6 +651,11 @@ def run_payload(
     from selfplay_opsd.readiness import backend_identity, execution_identity
 
     backend_expected = backend_identity(cfg) | {"trainer_sha256": image_sha256 or None}
+    repository = None
+    if task21:
+        from selfplay_opsd.task21 import PdbRepository
+
+        repository = PdbRepository(cfg.data_root)
     runtime_identity = (
         None
         if operation
@@ -654,7 +667,7 @@ def run_payload(
             "numerical-audit",
             "proposer-audit",
         }
-        else execution_identity(cfg)
+        else (execution_identity(cfg, repository=repository) if task21 else execution_identity(cfg))
         | {
             "trainer_sha256": image_sha256 or None,
             "worker_sha256": worker.get("sha256"),
@@ -678,7 +691,7 @@ def run_payload(
         raise HpcError("Checkpoint iteration is outside the study budget")
     if cfg.hardware.min_vram_gib > GPU_VRAM[chosen_gpu]:
         raise HpcError("GPU VRAM is below the selected hardware profile")
-    gpu_operation = operation in TASK19_OPERATIONS | TASK20_OPERATIONS | {
+    gpu_operation = operation in TASK19_OPERATIONS | STAGED_OPERATIONS | {
         "backend-check",
         "rollout-parity",
         "numerical-audit",
@@ -1064,25 +1077,26 @@ def run_payload(
             cpus=cfg.hardware.cpu_workers + cfg.sandbox.cpus,
             memory_gib=cfg.hardware.host_ram_gib + math.ceil(cfg.sandbox.memory_mib / 1024),
         )
-    if task20:
+    if staged:
         from selfplay_opsd.task20 import Task20Control
+        from selfplay_opsd.task21 import Task21Control
 
         control = settings.with_suffix(".json")
-        study_control = Task20Control.read(control)
+        study_control = (Task21Control if task21 else Task20Control).model_validate_json(
+            control.read_text()
+        )
         if (study_control.study, study_control.seed, study_control.precision) != (
             cfg.study_id,
             cfg.seed,
             cfg.model.dtype,
         ):
-            raise HpcError("Task 20 settings differ from the scientific control")
-        if operation in {"task20-main", "task20-evaluate"} and study_control.endpoint is None:
-            raise HpcError(
-                "Task 20 main and evaluation require a frozen endpoint and gate evidence"
-            )
+            raise HpcError("Settings differ from the staged scientific control")
+        if stage in {"main", "evaluate"} and study_control.endpoint is None:
+            raise HpcError("Main and evaluation require a frozen endpoint and gate evidence")
         suffix = (
             f"{method}-seed{cfg.seed}"
-            if operation in {"task20-main", "task20-evaluate"}
-            else f"{operation.removeprefix('task20-')}-seed{cfg.seed}"
+            if stage in {"main", "evaluate"}
+            else f"{stage}-seed{cfg.seed}"
         )
         hours, minutes = divmod(task20_wall_minutes or 0, 60)
         payload.update(
@@ -1825,7 +1839,9 @@ def submit_command(
     task19_wall_minutes: int | None = None,
     supersede_empty_base: str | None = None,
     task20_budget_hours: float | None = None,
-    task20_wall_minutes: int | None = None,
+    task20_wall_minutes: Annotated[
+        int | None, typer.Option("--stage-wall-minutes", "--task20-wall-minutes")
+    ] = None,
     dry_run: bool = False,
     alias: str = ALIASES[0],
 ):

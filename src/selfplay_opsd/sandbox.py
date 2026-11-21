@@ -71,10 +71,20 @@ class SandboxBackend:
         return self._local_runtime.command(name)
 
     def execute(
-        self, source: str, entry_point: str, inputs: list, seconds: float, *, probe: bool = False
+        self,
+        source: str,
+        entry_point: str,
+        inputs: list,
+        seconds: float,
+        *,
+        probe: bool = False,
+        isolated_harness: bool = False,
     ) -> Execution:
+        """Run a prepared harness without applying legacy task admission to it."""
         for attempt in range(self.config.retries + 1):
-            result = self._execute_once(source, entry_point, inputs, seconds, probe=probe)
+            result = self._execute_once(
+                source, entry_point, inputs, seconds, probe=probe, isolated_harness=isolated_harness
+            )
             if result.status != Status.INFRA or attempt == self.config.retries:
                 return result
             self.infrastructure_retries += 1
@@ -82,9 +92,16 @@ class SandboxBackend:
         raise AssertionError("Unreachable retry state")
 
     def _execute_once(
-        self, source: str, entry_point: str, inputs: list, seconds: float, *, probe: bool = False
+        self,
+        source: str,
+        entry_point: str,
+        inputs: list,
+        seconds: float,
+        *,
+        probe: bool,
+        isolated_harness: bool,
     ) -> Execution:
-        if not probe:
+        if not (probe or isolated_harness):
             validate_source(source)
         payload = {"source": source, "entry_point": entry_point, "inputs": inputs}
         raw = canonical(payload).encode()

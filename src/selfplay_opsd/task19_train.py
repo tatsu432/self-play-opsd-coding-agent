@@ -112,6 +112,9 @@ def exact_reference(source: str, correct: str) -> tuple[str, str]:
 class Study:
     student_group_size = GROUP
 
+    def repair_episode(self, task: TaskSpec, oracle: OracleSpec, seed: int) -> Repair:
+        return repair(self.policy, self.sandbox, self.cfg, task, oracle, seed)
+
     def __init__(
         self,
         cfg: Task19Control,
@@ -241,7 +244,7 @@ class Study:
             rows = []
             for slot in range(self.student_group_size):
                 seed = keyed_seed(self.cfg.seed, "student", self.iteration, task_id, slot)
-                row = repair(self.policy, self.sandbox, self.cfg, task, oracle, seed)
+                row = self.repair_episode(task, oracle, seed)
                 if distill:
                     started = time.monotonic()
                     privilege(self.policy, self.cfg, oracle, row)
@@ -657,7 +660,7 @@ class Study:
                 if row["identity"] != identity:
                     raise ValueError("Existing evaluation has a different frozen identity")
             else:
-                roll = repair(self.policy, self.sandbox, self.cfg, task, oracle, seed)
+                roll = self.repair_episode(task, oracle, seed)
                 row = {
                     "identity": identity,
                     "metrics": roll.metrics()
