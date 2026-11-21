@@ -48,7 +48,7 @@ OPSD and Dr. GRPO. The first execution identity is
   storage reported 8.2 GiB available after the second cleanup; shared usage
   can change independently.
   The controller verified checkpoint `000000` and submitted continuation
-  `34150626` for this same logical run. It is pending. The original failure,
+  `34150626` for this same logical run. The original failure,
   checkpoint and allocation remain in the ledger. Never duplicate either job.
 - The incomplete screen contains 12 mixed groups among 23 complete groups
   of four and 17 mixed groups among 22 complete groups of eight. These are
@@ -59,8 +59,9 @@ OPSD and Dr. GRPO. The first execution identity is
   versus 2.62 for eight, including both screen allocations. A four-rollout
   curriculum was frozen in `data/task21/pdb-solver-v1`. Solver-only job
   `34151943` / controller run `c8e9914126d585fb4685fa27` was submitted once
-  from `755174d` and is pending. Never duplicate it. Monitor project free
-  space and preserve its checkpoint and scientific identity.
+  from `755174d` and is running. Never duplicate it. On November 21, project
+  storage had about 157 GiB available; shared usage can change independently.
+  Monitor free space and preserve its checkpoint and scientific identity.
 
 | Training-only feasibility source | Verified | Public pass | Hidden pass | Accepted edits | Rejected edits |
 |---|---:|---:|---:|---:|---:|
