@@ -5,6 +5,12 @@
 The user authorizes use of available GPUs for their work without requesting a
 numeric study cap. Record actual allocations and use bounded, cost-aware jobs.
 
+## Shared storage
+We are responsible for our share of Yale project storage. Periodically remove
+our unneeded temporary files and regenerable exports, especially after jobs
+finish. Preserve scientific records and needed checkpoints, and verify any
+retained copies before removing originals. Monitor shared quota before launches.
+
 ## README maintenance
 
 After completing each task, update `README.md` to concisely describe the research
