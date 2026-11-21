@@ -47,7 +47,15 @@ OPSD and Dr. GRPO. The first execution identity is
   checkpoint and allocation remain in the ledger. Never duplicate either job.
 - The incomplete screen contains 12 mixed groups among 23 complete groups
   of four and 17 mixed groups among 22 complete groups of eight. These are
-  interim counts. The curriculum and solver-only pilot remain unfrozen.
+  interim counts from before recovery.
+- Continuation `34150626` completed exit 0 in 1,180 H200-seconds. The final
+  24-parent screen had 12 mixed groups of four and 17 groups of eight. Its
+  measured four-rollout efficiency was 3.70 mixed groups per H200-hour,
+  versus 2.62 for eight, including both screen allocations. A four-rollout
+  curriculum was frozen in `data/task21/pdb-solver-v1`. Solver-only job
+  `34151943` / controller run `c8e9914126d585fb4685fa27` was submitted once
+  from `755174d` and is pending. Never duplicate it. Monitor project free
+  space and preserve its checkpoint and scientific identity.
 
 | Training-only feasibility source | Verified | Public pass | Hidden pass | Accepted edits | Rejected edits |
 |---|---:|---:|---:|---:|---:|
