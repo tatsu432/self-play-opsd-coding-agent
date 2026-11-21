@@ -37,6 +37,9 @@ OPSD and Dr. GRPO. The first execution identity is
   Its one-H200 allocation reserves ten hours for 192 screening rollouts and
   two supplemental Multi episodes. Actual cost is pending terminal Slurm
   accounting. The solver-only pilot is contingent on the measured group signal.
+  The local continuation watches this controller run, verifies the endpoint,
+  then freezes the curriculum and submits the solver-only control if the
+  screen yields mixed groups. Retain its submission receipt before any retry.
 
 | Training-only feasibility source | Verified | Public pass | Hidden pass | Accepted edits | Rejected edits |
 |---|---:|---:|---:|---:|---:|
