@@ -43,7 +43,10 @@ OPSD and Dr. GRPO. The first execution identity is
   removed after checking that no account jobs were active. Their checkpoints
   and run records remain. Seven more inactive backend-check and method-smoke
   export directories totaling 2,907,407,833 bytes were removed while the
-  solver job was pending. Project storage then reported 8.2 GiB available.
+  solver job was pending. Five older inactive pilot export directories
+  totaling 2,378,788,227 bytes were removed after the solver started. Project
+  storage reported 8.2 GiB available after the second cleanup; shared usage
+  can change independently.
   The controller verified checkpoint `000000` and submitted continuation
   `34150626` for this same logical run. It is pending. The original failure,
   checkpoint and allocation remain in the ledger. Never duplicate either job.

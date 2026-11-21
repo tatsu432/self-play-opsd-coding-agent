@@ -16,7 +16,7 @@ canonical verdicts matching the pinned scorers. Qwen3.5-4B repaired 5/11 in
 the training-only feasibility pilot. The completed difficulty screen found
 mixed rewards on 12/24 four-rollout groups and 17/24 eight-rollout groups.
 Four rollouts gave more mixed groups per H200-hour. The solver-only control
-is queued after clearing 9.25 GB of regenerable inference exports.
+is running after clearing 11.6 GB of regenerable inference exports.
 [Task 21 status and reproduction](docs/investigations/task21-status.md)
 
 Task 20 audited the Task 19 training batches and found just two to four
