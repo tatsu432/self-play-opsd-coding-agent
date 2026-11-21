@@ -20,11 +20,33 @@ OPSD and Dr. GRPO. The first execution identity is
   The local verifier uses the full public and private fixtures of each
   admitted LiveCodeBench task. BigCodeBench tasks enter when the full suite
   can be translated or the adapted evaluation is explicitly identified.
-- Slurm job `34122424`, controller run `aefab0ada76973689cac5bdf`, was
-  submitted once from `9ba11127648a1a51c8cfc387a2eeaedb60c6efae` using one H200
-  and a 45-minute reservation. It started and is generating feasibility
-  episodes. Reconcile its terminal record and checkpoint before using results
-  or sending a follow-up allocation.
+- Slurm job `34122424`, controller run `aefab0ada76973689cac5bdf`, completed
+  exit 0 from `9ba11127648a1a51c8cfc387a2eeaedb60c6efae`. Checkpoint `000000`
+  and its file checksums verified. It used **1,246 H200-seconds** and solved
+  **5/11** training-only tasks. Five episodes ended on a token or turn
+  limit and one passed its public tests but failed hidden verification.
+  [W&B feasibility aggregate](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/46c174d34df0113c661be084)
+- The screening bundle contains 24 training parents, two supplemental
+  Multi feasibility parents, eight training-only probe parents, 24 development
+  parents, and 64 held-out single-bug ID parents. Transfer comprises eight
+  PDB-Multi parents, one adapted BigCodeBench-derived PDB parent, and nine
+  separately generated BigCodeBench mutants on additional parent-disjoint
+  problems. Keep the two BigCodeBench results distinct.
+- Slurm job `34123330`, controller run `f694b7c181e4dc10dde279dd`, was
+  submitted once from `080e33da0760553817346993a723072dfde4d639` and started.
+  Its one-H200 allocation reserves ten hours for 192 screening rollouts and
+  two supplemental Multi episodes. Actual cost is pending terminal Slurm
+  accounting. The solver-only pilot is contingent on the measured group signal.
+
+| Training-only feasibility source | Verified | Public pass | Hidden pass | Accepted edits | Rejected edits |
+|---|---:|---:|---:|---:|---:|
+| LiveCodeBench | 3/8 | 3/8 | 3/8 | 3 | 0 |
+| BigCodeBench | 2/3 | 3/3 | 2/3 | 3 | 0 |
+
+The 11 episodes generated 40,180 tokens. Median measured episode time was
+83 seconds and the maximum was 200 seconds. The sample supports executable
+native repair on these tasks. An estimate of mixed reward frequency requires
+repeated sampling. No transfer or training improvement is claimed here.
 
 ## Reproduction
 
@@ -45,6 +67,8 @@ uv run --frozen python scripts/prepare_task21.py \
   --output data/task21/pdb-pilot-reproduction --report runs/task21/local-reproduction.json \
   --screen 24
 uv run --frozen selfplay hpc status aefab0ada76973689cac5bdf
+uv run --frozen selfplay hpc task21-verify aefab0ada76973689cac5bdf
+uv run --frozen selfplay hpc status f694b7c181e4dc10dde279dd
 uv run --frozen selfplay hpc task21-budget
 ```
 
