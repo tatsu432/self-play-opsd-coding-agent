@@ -32,14 +32,18 @@ OPSD and Dr. GRPO. The first execution identity is
   PDB-Multi parents, one adapted BigCodeBench-derived PDB parent, and nine
   separately generated BigCodeBench mutants on additional parent-disjoint
   problems. Keep the two BigCodeBench results distinct.
-- Slurm job `34123330`, controller run `f694b7c181e4dc10dde279dd`, was
-  submitted once from `080e33da0760553817346993a723072dfde4d639` and started.
-  Its one-H200 allocation reserves ten hours for 192 screening rollouts and
-  two supplemental Multi episodes. Actual cost is pending terminal Slurm
-  accounting. The solver-only pilot is contingent on the measured group signal.
-  The local continuation watches this controller run, verifies the endpoint,
-  then freezes the curriculum and submits the solver-only control if the
-  screen yields mixed groups. Retain its submission receipt before any retry.
+- Slurm job `34123330`, controller run `f694b7c181e4dc10dde279dd`, failed
+  with exit 1 after **22,188 H200-seconds**, with 182 screen episode records
+  saved and no completion marker. No Python failure was captured and its
+  health record remained `running`, so its immediate cause is unconfirmed.
+  The shared project filesystem subsequently reported zero available space
+  and rejected the recovery ledger write with `Disk quota exceeded`. No
+  continuation was submitted. Once project space is restored, inspect the
+  ledger and checkpoint and resume this same run after reviewing the failure.
+  Preserve the existing records and do not submit a duplicate screen.
+- The incomplete screen contains 12 mixed groups among 23 complete groups
+  of four and 17 mixed groups among 22 complete groups of eight. These are
+  interim counts. The curriculum and solver-only pilot remain unfrozen.
 
 | Training-only feasibility source | Verified | Public pass | Hidden pass | Accepted edits | Rejected edits |
 |---|---:|---:|---:|---:|---:|

@@ -13,8 +13,9 @@ Task 21 adds an isolated adapter for the Precise Debugging Benchmark (PDB)
 while retaining Qwen-native exact-text repair. The first CPU pilot verified
 11 tasks from BigCodeBench and LiveCodeBench, with 22/22 original and
 canonical verdicts matching the pinned scorers. Qwen3.5-4B repaired 5/11 in
-the training-only feasibility pilot. A paired four-versus-eight-rollout screen
-is running to measure how often tasks produce informative RL rewards.
+the training-only feasibility pilot. The difficulty screen stopped after 182
+episodes with the shared project storage full. Its incomplete groups show
+reward variation.
 [Task 21 status and reproduction](docs/investigations/task21-status.md)
 
 Task 20 audited the Task 19 training batches and found just two to four
