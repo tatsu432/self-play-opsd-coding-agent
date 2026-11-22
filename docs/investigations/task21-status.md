@@ -118,7 +118,7 @@ OPSD and Dr. GRPO. The first execution identity is
   duplicates and neither of the two parent groups had differing valid rewards.
   Across all four batches, seven of 16 solver groups were mixed and zero
   proposer groups had valid-only reward differences. Endpoint development
-  changed from 7/24 to 6/24. Its verified result records 24 valid proposals,
+  changed from 7/24 to 6/24, with three task gains and four losses. Its verified result records 24 valid proposals,
   including two left unscored by the cap, and zero parents with differing
   valid rewards; its prespecified viability check was false. Across the four batch
   timing records, student generation took 7,977 of 8,756 seconds (91.1%);
