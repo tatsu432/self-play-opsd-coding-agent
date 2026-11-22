@@ -148,7 +148,8 @@ OPSD and Dr. GRPO. The first execution identity is
   `7346c5d4dca7dbd9240637e1` was submitted once from `f07d078` and is
   running; inspect its ledger and never duplicate it. Both the explicit prompt
   and cap change are bundled, so a change in outcome cannot be attributed to
-  either one alone.
+  either one alone. Its 7/24 initial development result matches all 24 original
+  pilot baseline outcomes task by task.
   The regenerable 4,596,578-byte transport bundle for `ef3e76a` was removed
   after verifying its deployed checkout; the checkout and data are preserved.
   The same check allowed removal of the 4,565,084-byte `f07d078` transport
