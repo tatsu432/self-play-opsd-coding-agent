@@ -15,8 +15,10 @@ while retaining Qwen-native exact-text repair. The first CPU pilot verified
 canonical verdicts matching the pinned scorers. Qwen3.5-4B repaired 5/11 in
 the training-only feasibility pilot. The completed difficulty screen found
 mixed rewards on 12/24 four-rollout groups and 17/24 eight-rollout groups.
-Four rollouts gave more mixed groups per H200-hour. The solver-only control
-is running after clearing 11.6 GB of regenerable inference exports.
+Four rollouts gave more mixed groups per H200-hour. The solver-only pilot
+completed eight effective RL updates; paired training samples improved from
+24/48 to 30/48 and development from 7/24 to 8/24. These small, single-run
+results do not establish generalization.
 [Task 21 status and reproduction](docs/investigations/task21-status.md)
 
 Task 20 audited the Task 19 training batches and found just two to four

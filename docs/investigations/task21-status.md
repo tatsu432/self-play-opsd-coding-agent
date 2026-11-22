@@ -59,9 +59,16 @@ OPSD and Dr. GRPO. The first execution identity is
   versus 2.62 for eight, including both screen allocations. A four-rollout
   curriculum was frozen in `data/task21/pdb-solver-v1`. Solver-only job
   `34151943` / controller run `c8e9914126d585fb4685fa27` was submitted once
-  from `755174d` and is running. Never duplicate it. On November 21, project
-  storage had about 157 GiB available; shared usage can change independently.
-  Monitor free space and preserve its checkpoint and scientific identity.
+  from `755174d` and continued once as job `34205327` from checkpoint
+  `000008`. Both allocations completed exit 0; the endpoint and checkpoint
+  were verified. Never duplicate them. The pilot used 51,056 H200-seconds,
+  made eight effective RL updates in 128 training episodes, and produced
+  paired training results of 24/48 before and 30/48 after (12 gains, six
+  losses). Its independent probe changed from 8/32 to 10/32 (five gains,
+  three losses); development changed from 7/24 to 8/24. These are small,
+  single-run observations, not evidence of generalization. On November 22,
+  shared project storage had about 174 GiB available; usage can change
+  independently. Preserve its checkpoint and scientific identity.
 
 | Training-only feasibility source | Verified | Public pass | Hidden pass | Accepted edits | Rejected edits |
 |---|---:|---:|---:|---:|---:|
