@@ -88,6 +88,12 @@ OPSD and Dr. GRPO. The first execution identity is
   duplicate it. Its initial adapter and dataset hashes match the solver pilot;
   its calibrated shared-policy control has a new scientific identity. Its
   7/24 initial development evaluation matches the solver baseline task by task.
+  Its first committed batch had two mixed solver groups out of four, a finite
+  nonzero RL gradient and an optimizer step. Five of 16 proposals were valid;
+  no group had distinct rewards among valid proposals. These are interim
+  observations, and the first-batch gradient norms match the earlier calibration
+  because they replay the same seeded initial-policy candidates; do not count
+  them as independent confirmation.
   The nine checkpoint-backed
   solver aggregate rows are reconciled in [W&B](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/03df50eeb5bed38a3395292c),
   as is the [screen aggregate](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/fb6a2b44ccbcc1b06d31443c).
