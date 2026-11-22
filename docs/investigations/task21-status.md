@@ -150,6 +150,13 @@ OPSD and Dr. GRPO. The first execution identity is
   and cap change are bundled, so a change in outcome cannot be attributed to
   either one alone. Its 7/24 initial development result matches all 24 original
   pilot baseline outcomes task by task.
+  The first revised batch scored six distinct tasks: four of six solver groups
+  were mixed and produced an RL update. One parent group contained two distinct
+  valid candidates with different rewards; seven of 16 proposal attempts were
+  scored as valid, seven lacked verifier-confirmed semantic failures, and two
+  exceeded the four-line edit limit. This batch replays the same seeded
+  candidates used for revised calibration and is not an independent repeat.
+  Its recorded training time was 3,226 seconds for 24 attempted episodes.
   The regenerable 4,596,578-byte transport bundle for `ef3e76a` was removed
   after verifying its deployed checkout; the checkout and data are preserved.
   The same check allowed removal of the 4,565,084-byte `f07d078` transport
