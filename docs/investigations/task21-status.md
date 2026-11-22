@@ -125,6 +125,20 @@ The 11 episodes generated 40,180 tokens. Median measured episode time was
 native repair on these tasks. An estimate of mixed reward frequency requires
 repeated sampling. No transfer or training improvement is claimed here.
 
+## PreciseCoder protocol and scope
+
+The [PreciseCoder paper](https://arxiv.org/html/2610.18755v1) trained on
+5,274 PDB-Single-Full tasks and evaluated on 1,205 PDB-Single tasks with
+disjoint base problems. Its main single-turn method combines a unit-test
+reward with an edit-fidelity F1 reward, normalizing the terms separately;
+its reported Qwen3.5-4B PDB test pass rate was 55.3% versus 36.5% for base
+and 55.1% for unit-test-only GRPO. The paper reports three 4B seeds and a
+group size of six. It also evaluates a separate five-turn agent and reports
+agentic RL for its 9B model. Our study uses an eight-turn native tool agent,
+four-rollout groups and verifier-driven RL/OPSD on a much smaller adapted
+subset; its results are not a direct replication or comparison of that paper's
+single-turn or 9B agentic results.
+
 ## Reproduction
 
 Reuse the pinned Task 20 release files under `runs/task20/pdb/`. The adapter
