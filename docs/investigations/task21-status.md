@@ -69,6 +69,11 @@ OPSD and Dr. GRPO. The first execution identity is
   single-run observations, not evidence of generalization. On November 22,
   shared project storage had about 174 GiB available; usage can change
   independently. Preserve its checkpoint and scientific identity.
+- Shared-policy calibration job `34225453` / controller run
+  `e75f67bcc64df23c764807cb` was submitted once from `755174d`, with a
+  four-hour H200 limit. It is pending; inspect its ledger and never duplicate
+  it. The solver aggregate was uploaded to W&B, but history reconciliation
+  had not yet completed; the checkpoint-backed records remain authoritative.
 
 | Training-only feasibility source | Verified | Public pass | Hidden pass | Accepted edits | Rejected edits |
 |---|---:|---:|---:|---:|---:|
