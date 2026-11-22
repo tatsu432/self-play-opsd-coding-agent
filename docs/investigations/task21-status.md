@@ -125,9 +125,11 @@ OPSD and Dr. GRPO. The first execution identity is
   unscored by the cap, `ef3e76a` also raises the candidate cap from four to
   eight. The new study reuses the dependency-checked worker evidence and
   retains the old study unchanged. Its bounded calibration job `34248044` /
-  `89ba014f6f4b9115086dbbd0` was submitted once and is pending; inspect its
+  `89ba014f6f4b9115086dbbd0` was submitted once and is running; inspect its
   ledger and never duplicate it. Both the explicit prompt and cap change are
   bundled, so a change in outcome cannot be attributed to either one alone.
+  The regenerable 4,596,578-byte transport bundle for `ef3e76a` was removed
+  after verifying its deployed checkout; the checkout and data are preserved.
   The nine checkpoint-backed
   solver aggregate rows are reconciled in [W&B](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/03df50eeb5bed38a3395292c),
   as is the [screen aggregate](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/fb6a2b44ccbcc1b06d31443c).
