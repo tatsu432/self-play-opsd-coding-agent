@@ -88,6 +88,10 @@ def propose_pdb(
     flexible: bool,
 ) -> tuple[Proposal, str | None]:
     history = proposer_history(parent)
+    history[0]["content"] += (
+        " Each exact-text replacement must use an old span and a new span that are "
+        "each at most four lines and 1024 UTF-8 bytes."
+    )
     if flexible:
         history[0]["content"] += (
             " Use mutate_pair for two localized changes on disjoint original spans. "
