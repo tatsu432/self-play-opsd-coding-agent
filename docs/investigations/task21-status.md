@@ -74,7 +74,10 @@ OPSD and Dr. GRPO. The first execution identity is
   four-hour H200 limit. It is running; inspect its ledger and never duplicate
   it. A continuation watches the verified calibration and submits the shared
   pilot only if the measured gradients are usable. The nine checkpoint-backed
-  solver aggregate rows are reconciled in [W&B](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/03df50eeb5bed38a3395292c).
+  solver aggregate rows are reconciled in [W&B](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/03df50eeb5bed38a3395292c),
+  as is the [screen aggregate](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/fb6a2b44ccbcc1b06d31443c).
+  Preliminary checkpoint-backed plots and analysis are in the ignored local
+  directory `runs/task21/solver-analysis/`.
 
 | Training-only feasibility source | Verified | Public pass | Hidden pass | Accepted edits | Rejected edits |
 |---|---:|---:|---:|---:|---:|
