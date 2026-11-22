@@ -71,9 +71,10 @@ OPSD and Dr. GRPO. The first execution identity is
   independently. Preserve its checkpoint and scientific identity.
 - Shared-policy calibration job `34225453` / controller run
   `e75f67bcc64df23c764807cb` was submitted once from `755174d`, with a
-  four-hour H200 limit. It is pending; inspect its ledger and never duplicate
-  it. The solver aggregate was uploaded to W&B, but history reconciliation
-  had not yet completed; the checkpoint-backed records remain authoritative.
+  four-hour H200 limit. It is running; inspect its ledger and never duplicate
+  it. A continuation watches the verified calibration and submits the shared
+  pilot only if the measured gradients are usable. The nine checkpoint-backed
+  solver aggregate rows are reconciled in [W&B](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/03df50eeb5bed38a3395292c).
 
 | Training-only feasibility source | Verified | Public pass | Hidden pass | Accepted edits | Rejected edits |
 |---|---:|---:|---:|---:|---:|
