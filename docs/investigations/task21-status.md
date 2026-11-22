@@ -116,7 +116,11 @@ OPSD and Dr. GRPO. The first execution identity is
   duplicates and neither of the two parent groups had differing valid rewards.
   Across all four batches, seven of 16 solver groups were mixed and zero
   proposer groups had valid-only reward differences. The original pilot's
-  endpoint development evaluation is still running.
+  endpoint development evaluation is still running. Across the four batch
+  timing records, student generation took 7,977 of 8,756 seconds (91.1%);
+  this excludes the separate baseline and endpoint evaluations. The revised
+  eight-candidate cap can increase generation cost and must be judged against
+  its measured signal, not only its number of valid proposals.
   An isolated candidate prompt correction is prepared on
   `feat/21-pdb-proposer-limit` at `d1c43ec` and passed the six Task 21 tests
   and Ruff. Commit `e0c902e` prepares its separate `pdb-prompt-v2` study
