@@ -83,9 +83,9 @@ OPSD and Dr. GRPO. The first execution identity is
   0.15128449959390794 and gated OPSD scale is 0.19849138589186444. This
   measurement does not establish that proposer rewards remain diverse during
   training. The [calibration aggregate](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/cd05b24447acd87178bd106a)
-  was reconciled. Shared pilot `34229678` / `5a71bfd3b213e7beaf4e3c02` was
-  submitted once from `02ca483` and is running; inspect its ledger and never
-  duplicate it. Its initial adapter and dataset hashes match the solver pilot;
+  was reconciled. Shared pilot `34229678` / `5a71bfd3b213e7beaf4e3c02` from
+  `02ca483` completed exit 0 in 15,045 H200-seconds; its endpoint and
+  checkpoint were verified. Never duplicate it. Its initial adapter and dataset hashes match the solver pilot;
   its calibrated shared-policy control has a new scientific identity. Its
   7/24 initial development evaluation matches the solver baseline task by task.
   Its first committed batch had two mixed solver groups out of four, a finite
@@ -115,8 +115,10 @@ OPSD and Dr. GRPO. The first execution identity is
   a zero proposer gradient. All eight attempts were valid, but four were
   duplicates and neither of the two parent groups had differing valid rewards.
   Across all four batches, seven of 16 solver groups were mixed and zero
-  proposer groups had valid-only reward differences. The original pilot's
-  endpoint development evaluation is still running. Across the four batch
+  proposer groups had valid-only reward differences. Endpoint development
+  changed from 7/24 to 6/24. Its verified result records 24 valid proposals,
+  including two left unscored by the cap, and zero parents with differing
+  valid rewards; its prespecified viability check was false. Across the four batch
   timing records, student generation took 7,977 of 8,756 seconds (91.1%);
   this excludes the separate baseline and endpoint evaluations. The revised
   eight-candidate cap can increase generation cost and must be judged against
