@@ -88,6 +88,8 @@ OPSD and Dr. GRPO. The first execution identity is
   checkpoint were verified. Never duplicate it. Its initial adapter and dataset hashes match the solver pilot;
   its calibrated shared-policy control has a new scientific identity. Its
   7/24 initial development evaluation matches the solver baseline task by task.
+  The [shared pilot aggregate](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/ec66c45e9ea4983516cb602e)
+  has been independently reconciled with the checkpoint-backed history.
   Its first committed batch had two mixed solver groups out of four, a finite
   nonzero RL gradient and an optimizer step. Five of 16 proposals were valid;
   no group had distinct rewards among valid proposals. These are interim
