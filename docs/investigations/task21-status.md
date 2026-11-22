@@ -138,9 +138,16 @@ OPSD and Dr. GRPO. The first execution identity is
   unscored by the cap, `ef3e76a` also raises the candidate cap from four to
   eight. The new study reuses the dependency-checked worker evidence and
   retains the old study unchanged. Its bounded calibration job `34248044` /
-  `89ba014f6f4b9115086dbbd0` was submitted once and is running; inspect its
-  ledger and never duplicate it. Both the explicit prompt and cap change are
-  bundled, so a change in outcome cannot be attributed to either one alone.
+  `89ba014f6f4b9115086dbbd0` completed exit 0 in 4,171 H200-seconds; its
+  checkpoint and result were verified. It scored six distinct tasks and found
+  nonzero RL, ungated, gated and proposer gradients (norms 0.01874, 0.11913,
+  0.03275 and 0.03088); the calibrated proposer and gated scales are
+  0.30352814071666645 and 0.1717172194518303. This alone does not establish
+  valid-only reward diversity. Revised shared pilot `34254191` /
+  `7346c5d4dca7dbd9240637e1` was submitted once from `f07d078` and is
+  pending; inspect its ledger and never duplicate it. Both the explicit prompt
+  and cap change are bundled, so a change in outcome cannot be attributed to
+  either one alone.
   The regenerable 4,596,578-byte transport bundle for `ef3e76a` was removed
   after verifying its deployed checkout; the checkout and data are preserved.
   The nine checkpoint-backed
