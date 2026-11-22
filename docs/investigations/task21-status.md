@@ -93,7 +93,9 @@ OPSD and Dr. GRPO. The first execution identity is
   no group had distinct rewards among valid proposals. These are interim
   observations, and the first-batch gradient norms match the earlier calibration
   because they replay the same seeded initial-policy candidates; do not count
-  them as independent confirmation.
+  them as independent confirmation. Six attempts failed to produce a
+  verifier-confirmed semantic failure, four exceeded the four-line edit limit,
+  and one valid candidate was left unscored by the batch's task cap.
   The nine checkpoint-backed
   solver aggregate rows are reconciled in [W&B](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/03df50eeb5bed38a3395292c),
   as is the [screen aggregate](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/fb6a2b44ccbcc1b06d31443c).
