@@ -86,7 +86,8 @@ OPSD and Dr. GRPO. The first execution identity is
   was reconciled. Shared pilot `34229678` / `5a71bfd3b213e7beaf4e3c02` was
   submitted once from `02ca483` and is running; inspect its ledger and never
   duplicate it. Its initial adapter and dataset hashes match the solver pilot;
-  its calibrated shared-policy control has a new scientific identity.
+  its calibrated shared-policy control has a new scientific identity. Its
+  7/24 initial development evaluation matches the solver baseline task by task.
   The nine checkpoint-backed
   solver aggregate rows are reconciled in [W&B](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/03df50eeb5bed38a3395292c),
   as is the [screen aggregate](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/fb6a2b44ccbcc1b06d31443c).
