@@ -105,6 +105,12 @@ OPSD and Dr. GRPO. The first execution identity is
   the same reward. Three proposals lacked a verified semantic failure and one
   exceeded the four-line limit. Across these first two batches no valid-only
   proposer group had differing rewards; the pilot is not yet complete.
+  In batch three, one of four solver groups was mixed and the third nonzero
+  RL update occurred. Five scored proposals were valid, one additional valid
+  candidate exceeded the scoring cap, and neither parent group showed
+  valid-only reward differences. Across three batches the totals are five
+  mixed solver groups out of 12 and zero proposer groups with valid-only
+  reward differences.
   An isolated candidate prompt correction is prepared on
   `feat/21-pdb-proposer-limit` at `d1c43ec` and passed the six Task 21 tests
   and Ruff. It has not been used in the active pilot; any subsequent use needs
