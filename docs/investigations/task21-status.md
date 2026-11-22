@@ -143,7 +143,8 @@ OPSD and Dr. GRPO. The first execution identity is
   nonzero RL, ungated, gated and proposer gradients (norms 0.01874, 0.11913,
   0.03275 and 0.03088); the calibrated proposer and gated scales are
   0.30352814071666645 and 0.1717172194518303. This alone does not establish
-  valid-only reward diversity. Revised shared pilot `34254191` /
+  valid-only reward diversity. The [calibration aggregate](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/afa9d0c0552ada381ad9a3c3)
+  was reconciled. Revised shared pilot `34254191` /
   `7346c5d4dca7dbd9240637e1` was submitted once from `f07d078` and is
   running; inspect its ledger and never duplicate it. Both the explicit prompt
   and cap change are bundled, so a change in outcome cannot be attributed to
