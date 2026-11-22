@@ -69,6 +69,12 @@ OPSD and Dr. GRPO. The first execution identity is
   single-run observations, not evidence of generalization. On November 22,
   shared project storage had about 174 GiB available; usage can change
   independently. Preserve its checkpoint and scientific identity.
+  Resampling tasks as clusters (20,000 paired bootstrap draws, seed 21), the
+  95% interval for the change in four-sample repair rate is 0 to +27.1
+  percentage points on the 12 training tasks and −9.4 to +28.1 points on the
+  eight probe tasks. These intervals are conditional on this single trained
+  model and small observed task sets; they do not measure training-seed
+  uncertainty or establish an effect on unseen task populations.
 - Shared-policy calibration job `34225453` / controller run
   `e75f67bcc64df23c764807cb` completed exit 0 in 2,751 H200-seconds from
   `755174d`; its checkpoint and result were verified. On four proposed tasks,
