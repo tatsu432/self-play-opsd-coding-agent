@@ -167,6 +167,11 @@ OPSD and Dr. GRPO. The first execution identity is
   among valid candidates. The three-batch interim totals meet the numerical
   update and parent counts used by the pilot's prespecified check; the fourth
   batch, endpoint development evaluation and full verification remain.
+  The fourth batch added three mixed solver groups out of eight, a fourth
+  nonzero RL update and differing valid rewards for two more parent groups.
+  Across all four committed batches, 17/28 solver groups were mixed and five
+  distinct parents had valid-only reward differences. The 112-episode pilot's
+  endpoint evaluation and scheduler/checkpoint verification remain pending.
   Those first two revised batches used about 140 recorded seconds per
   attempted episode. A tentative 512-episode three-arm run would therefore
   take about 60 H200-hours of training alone at that rate. This extrapolation
