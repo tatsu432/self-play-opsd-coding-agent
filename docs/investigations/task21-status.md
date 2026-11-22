@@ -162,6 +162,12 @@ OPSD and Dr. GRPO. The first execution identity is
   distinct valid candidates with different rewards. Across both batches,
   three distinct parents have shown valid-only reward differences. This second
   batch took 4,603 seconds for 32 attempted episodes; the pilot continues.
+  Those first two revised batches used about 140 recorded seconds per
+  attempted episode. A tentative 512-episode three-arm run would therefore
+  take about 60 H200-hours of training alone at that rate. This extrapolation
+  is conditional on the pilot and excludes all development and held-out
+  evaluation; finalize the endpoint and evaluation reserve only after the
+  complete pilot and allocation accounting are available.
   The regenerable 4,596,578-byte transport bundle for `ef3e76a` was removed
   after verifying its deployed checkout; the checkout and data are preserved.
   The same check allowed removal of the 4,565,084-byte `f07d078` transport
