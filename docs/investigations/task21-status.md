@@ -113,8 +113,10 @@ OPSD and Dr. GRPO. The first execution identity is
   reward differences.
   An isolated candidate prompt correction is prepared on
   `feat/21-pdb-proposer-limit` at `d1c43ec` and passed the six Task 21 tests
-  and Ruff. It has not been used in the active pilot; any subsequent use needs
-  a separately identified experiment and measured calibration.
+  and Ruff. Commit `e0c902e` prepares its separate `pdb-prompt-v2` study
+  configuration with the same frozen data. It has not been used in the active
+  pilot; any subsequent use needs accepted worker evidence and a measured
+  calibration before training.
   The nine checkpoint-backed
   solver aggregate rows are reconciled in [W&B](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/03df50eeb5bed38a3395292c),
   as is the [screen aggregate](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/fb6a2b44ccbcc1b06d31443c).
