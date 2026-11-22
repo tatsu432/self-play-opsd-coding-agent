@@ -99,6 +99,12 @@ OPSD and Dr. GRPO. The first execution identity is
   proposer prompt requests local edits but does not state the enforced
   four-line limit; this is a candidate cause of those four rejections, to be
   assessed against the completed pilot before changing its scientific code.
+  The second committed batch also had two mixed solver groups of four and a
+  nonzero RL update. Four of eight proposals were valid, with two distinct
+  candidates in each of two parent groups; both candidates in each group had
+  the same reward. Three proposals lacked a verified semantic failure and one
+  exceeded the four-line limit. Across these first two batches no valid-only
+  proposer group had differing rewards; the pilot is not yet complete.
   The nine checkpoint-backed
   solver aggregate rows are reconciled in [W&B](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/03df50eeb5bed38a3395292c),
   as is the [screen aggregate](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/fb6a2b44ccbcc1b06d31443c).
