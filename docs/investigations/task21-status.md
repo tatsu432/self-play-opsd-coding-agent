@@ -71,12 +71,10 @@ OPSD and Dr. GRPO. The first execution identity is
   independently. Preserve its checkpoint and scientific identity.
 - Shared-policy calibration job `34225453` / controller run
   `e75f67bcc64df23c764807cb` was submitted once from `755174d`, with a
-  four-hour H200 limit. It was last observed running on November 22 before
-  Yale VPN/DNS disconnected and stopped the local watcher. The Slurm job is
-  independent of that watcher; do not assume it stopped or submit a duplicate.
-  After Yale reconnects and authenticates, inspect its ledger and restart
-  `runs/task21/continue_after_calibration.py`. The continuation verifies the
-  calibration and submits the shared pilot only if its gradients are usable.
+  four-hour H200 limit. Yale VPN/DNS briefly disconnected, but the session
+  was reauthenticated and the original job and watcher were confirmed
+  running. Do not submit a duplicate. The continuation verifies the calibration
+  and submits the shared pilot only if its gradients are usable.
   The nine checkpoint-backed
   solver aggregate rows are reconciled in [W&B](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/03df50eeb5bed38a3395292c),
   as is the [screen aggregate](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/fb6a2b44ccbcc1b06d31443c).
