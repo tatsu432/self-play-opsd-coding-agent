@@ -111,12 +111,23 @@ OPSD and Dr. GRPO. The first execution identity is
   valid-only reward differences. Across three batches the totals are five
   mixed solver groups out of 12 and zero proposer groups with valid-only
   reward differences.
+  Batch four produced two mixed solver groups, a fourth nonzero RL update and
+  a zero proposer gradient. All eight attempts were valid, but four were
+  duplicates and neither of the two parent groups had differing valid rewards.
+  Across all four batches, seven of 16 solver groups were mixed and zero
+  proposer groups had valid-only reward differences. The original pilot's
+  endpoint development evaluation is still running.
   An isolated candidate prompt correction is prepared on
   `feat/21-pdb-proposer-limit` at `d1c43ec` and passed the six Task 21 tests
   and Ruff. Commit `e0c902e` prepares its separate `pdb-prompt-v2` study
-  configuration with the same frozen data. It has not been used in the active
-  pilot; any subsequent use needs accepted worker evidence and a measured
-  calibration before training.
+  configuration with the same frozen data. With the four pilot batches now
+  showing no valid-only reward differences and two valid candidates left
+  unscored by the cap, `ef3e76a` also raises the candidate cap from four to
+  eight. The new study reuses the dependency-checked worker evidence and
+  retains the old study unchanged. Its bounded calibration job `34248044` /
+  `89ba014f6f4b9115086dbbd0` was submitted once and is pending; inspect its
+  ledger and never duplicate it. Both the explicit prompt and cap change are
+  bundled, so a change in outcome cannot be attributed to either one alone.
   The nine checkpoint-backed
   solver aggregate rows are reconciled in [W&B](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/03df50eeb5bed38a3395292c),
   as is the [screen aggregate](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/fb6a2b44ccbcc1b06d31443c).
