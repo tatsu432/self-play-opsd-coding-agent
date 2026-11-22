@@ -125,6 +125,11 @@ OPSD and Dr. GRPO. The first execution identity is
   this excludes the separate baseline and endpoint evaluations. The revised
   eight-candidate cap can increase generation cost and must be judged against
   its measured signal, not only its number of valid proposals.
+  As a rough planning reference, 8,756 seconds for 64 attempted episodes is
+  about 137 seconds per training episode; at that observed rate, three arms of
+  512 episodes would require roughly 58 H200-hours for training alone, before
+  development and final evaluations. This is not a reservation or a forecast
+  for the revised eight-candidate design.
   An isolated candidate prompt correction is prepared on
   `feat/21-pdb-proposer-limit` at `d1c43ec` and passed the six Task 21 tests
   and Ruff. Commit `e0c902e` prepares its separate `pdb-prompt-v2` study
