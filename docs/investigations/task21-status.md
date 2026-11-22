@@ -145,11 +145,13 @@ OPSD and Dr. GRPO. The first execution identity is
   0.30352814071666645 and 0.1717172194518303. This alone does not establish
   valid-only reward diversity. Revised shared pilot `34254191` /
   `7346c5d4dca7dbd9240637e1` was submitted once from `f07d078` and is
-  pending; inspect its ledger and never duplicate it. Both the explicit prompt
+  running; inspect its ledger and never duplicate it. Both the explicit prompt
   and cap change are bundled, so a change in outcome cannot be attributed to
   either one alone.
   The regenerable 4,596,578-byte transport bundle for `ef3e76a` was removed
   after verifying its deployed checkout; the checkout and data are preserved.
+  The same check allowed removal of the 4,565,084-byte `f07d078` transport
+  bundle after its pilot checkout was deployed.
   The nine checkpoint-backed
   solver aggregate rows are reconciled in [W&B](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/03df50eeb5bed38a3395292c),
   as is the [screen aggregate](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/fb6a2b44ccbcc1b06d31443c).
