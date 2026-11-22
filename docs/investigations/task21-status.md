@@ -157,6 +157,11 @@ OPSD and Dr. GRPO. The first execution identity is
   exceeded the four-line edit limit. This batch replays the same seeded
   candidates used for revised calibration and is not an independent repeat.
   Its recorded training time was 3,226 seconds for 24 attempted episodes.
+  The second batch scored eight distinct tasks: five of eight solver groups
+  were mixed and a second RL update occurred. Two parent groups contained
+  distinct valid candidates with different rewards. Across both batches,
+  three distinct parents have shown valid-only reward differences. This second
+  batch took 4,603 seconds for 32 attempted episodes; the pilot continues.
   The regenerable 4,596,578-byte transport bundle for `ef3e76a` was removed
   after verifying its deployed checkout; the checkout and data are preserved.
   The same check allowed removal of the 4,565,084-byte `f07d078` transport
