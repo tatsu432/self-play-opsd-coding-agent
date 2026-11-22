@@ -162,6 +162,11 @@ OPSD and Dr. GRPO. The first execution identity is
   distinct valid candidates with different rewards. Across both batches,
   three distinct parents have shown valid-only reward differences. This second
   batch took 4,603 seconds for 32 attempted episodes; the pilot continues.
+  The third batch added five mixed solver groups out of six and a third
+  nonzero RL update, but no additional parent group with differing rewards
+  among valid candidates. The three-batch interim totals meet the numerical
+  update and parent counts used by the pilot's prespecified check; the fourth
+  batch, endpoint development evaluation and full verification remain.
   Those first two revised batches used about 140 recorded seconds per
   attempted episode. A tentative 512-episode three-arm run would therefore
   take about 60 H200-hours of training alone at that rate. This extrapolation
