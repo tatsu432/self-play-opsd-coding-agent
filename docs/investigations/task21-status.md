@@ -187,7 +187,8 @@ OPSD and Dr. GRPO. The first execution identity is
   `237fb774dc01bcce763e228c`, A `34298923` / `e1278a8956cde4249f8c9497`,
   and B `34298926` / `bd6538a8448ad6423b69bead` were each submitted once;
   all are running. Their initial adapter, data and shared scientific hashes
-  match. Inspect their ledgers, never duplicate them, and reconcile actual
+  match, and all three initial development evaluations were 7/24 with
+  task-by-task identical outcomes. Inspect their ledgers, never duplicate them, and reconcile actual
   allocations, checkpoints and final evaluations before conclusions. The
   4,560,362-byte `b44d858` transport bundle was removed after verifying its
   deployed checkout; the checkout and records are preserved.
