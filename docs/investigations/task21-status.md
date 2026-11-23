@@ -253,7 +253,12 @@ OPSD and Dr. GRPO. The first execution identity is
   copies were likewise hard-linked to those verified files (about 5.9 GiB),
   preserving every Task 15 checkpoint path and checksum. Shared free space was about 64 GiB before
   that deduplication, and the six active Task 21 run directories totaled about
-  19 GiB.
+  19 GiB. Four identical historical compatibility reference-gradient files
+  were also verified by SHA-256 and deduplicated with hard links, saving about
+  5.2 GiB while retaining each path and its contents. At a subsequent check,
+  shared free space was approximately 66 GiB and all six continuations were
+  running; the latest committed episode counts were 288/384/288 for seed
+  2026 and 288/352/288 for seed 2027 (Control/A/B).
   The six provisional live W&B streams have cloud-verified first-batch
   aggregate records: seed 2026 [Control](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/67d411470c7ef39ebbbb1d80),
   [A](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/79ebcab572c04279426fc069),
