@@ -510,6 +510,45 @@ def timeout_disconnect_evidence(job_id: str, health: dict) -> dict | None:
     return None
 
 
+def reviewed_task21_timeout_disconnect(payload: dict, job_id: str, health: dict) -> dict | None:
+    """Recognize the reviewed worker shutdown in the 2026 Control allocation."""
+    if (
+        job_id != "34298915"
+        or payload.get("operation") != "task21-main"
+        or payload.get("run_id") != "237fb774dc01bcce763e228c"
+        or health.get("allocation") != job_id
+        or health.get("phase") != "failed"
+        or health.get("error_type") != "ExperimentError"
+    ):
+        return None
+    log = ledger_path(payload).parent / f"{payload['run_id']}-{job_id}.out"
+    try:
+        text = log.read_text()
+    except OSError:
+        return None
+    if "selfplay_opsd.core.ExperimentError: [Errno 111] Connection refused" not in text:
+        return None
+    result = capture(["sacct", "-n", "-P", "-j", job_id, "--format", "JobIDRaw,State,End"])
+    if result["exit_code"] != 0:
+        return None
+    rows = {
+        fields[0]: fields
+        for line in result["stdout"].splitlines()
+        if len(fields := line.split("|")) >= 3
+    }
+    job, worker = rows.get(job_id), rows.get(f"{job_id}.0")
+    if not job or not worker or job[1].split()[0].rstrip("+") != "TIMEOUT" or job[2] != worker[2]:
+        return None
+    return {
+        "job_id": job_id,
+        "scheduler_end": job[2],
+        "worker_end": worker[2],
+        "log_sha256": sha256(log),
+        "health": health,
+        "reason": "reviewed verifier disconnect when scheduler ended worker",
+    }
+
+
 def reconcile_rejected_specification(ledger: dict, specification: dict) -> None:
     if ledger.get("last_rejection") and not ledger.get("attempts") and ledger.get("specification"):
         previous = ledger["specification"]
@@ -659,6 +698,10 @@ def recover(payload: dict) -> dict:
             if planned and state == "TIMEOUT" and payload["operation"] == "task15-online":
                 timeout_evidence = timeout_disconnect_evidence(
                     ledger["attempts"][-1]["job_id"], health
+                )
+            if planned and state == "TIMEOUT" and payload["operation"] == "task21-main":
+                timeout_evidence = reviewed_task21_timeout_disconnect(
+                    payload, ledger["attempts"][-1]["job_id"], health
                 )
             if timeout_evidence is None:
                 return {"submitted": False, "state": state, "reason": "training_reported_failure"}
