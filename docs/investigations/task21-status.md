@@ -259,6 +259,9 @@ OPSD and Dr. GRPO. The first execution identity is
   shared free space was approximately 66 GiB and all six continuations were
   running; the latest committed episode counts were 288/384/288 for seed
   2026 and 288/352/288 for seed 2027 (Control/A/B).
+  A subsequent full local validation passed 506 tests with 22 skipped; Ruff
+  lint and formatting and mypy on 66 source files also passed. These checks
+  establish implementation health, not the outcome of the ongoing study.
   The six provisional live W&B streams have cloud-verified first-batch
   aggregate records: seed 2026 [Control](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/67d411470c7ef39ebbbb1d80),
   [A](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/79ebcab572c04279426fc069),
