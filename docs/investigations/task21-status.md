@@ -198,7 +198,9 @@ OPSD and Dr. GRPO. The first execution identity is
   were submitted once and are pending. The two-seed planning envelope is
   about 240.4 H200-hours including evaluation reserves; it is an estimate,
   not a cap or guaranteed availability. Held-out evaluations wait until all
-  six training endpoints are verified. Never duplicate these jobs.
+  six training endpoints are verified. Never duplicate these jobs. The
+  4,569,076-byte transport bundle for `6a3d3f4` was removed after checking the
+  deployed checkout; the checkout and scientific records remain.
   Those first two revised batches used about 140 recorded seconds per
   attempted episode. A tentative 512-episode three-arm run would therefore
   take about 60 H200-hours of training alone at that rate. This extrapolation
