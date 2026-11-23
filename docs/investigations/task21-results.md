@@ -74,5 +74,6 @@ independent endpoint estimates or evidence that a method wins.
 | 2026 | 7/24 | 7/24 | 8/24 | 11/24 |
 | 2027 | 8/24 | 11/24 | 7/24 | 14/24 |
 
-Seed-2026 A subsequently completed 512 episodes and scored 12/24 on this
-same monitor; its held-out evaluation and all other endpoints remain pending.
+Both A arms subsequently completed 512 episodes and scored 12/24 and 10/24
+for seeds 2026 and 2027, respectively, on this same monitor. Their held-out
+evaluations and the remaining training endpoints are pending.
