@@ -226,7 +226,8 @@ OPSD and Dr. GRPO. The first execution identity is
   14.4 GiB in total. We removed 24 regenerable rollout-adapter caches from
   completed Task 17 runs (about 6 GiB) and 10 from completed syntax-fix runs
   (about 2.5 GiB), plus three from an older diagnostic (about 0.7 GiB),
-  retaining checkpoints and study records. All six Task 21
+  and four from completed Task 14 online runs (about 1 GiB), retaining
+  checkpoints and study records. All six Task 21
   jobs were still running. Shared free space remains subject to other users.
   The six provisional live W&B streams have cloud-verified first-batch
   aggregate records: seed 2026 [Control](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/67d411470c7ef39ebbbb1d80),
