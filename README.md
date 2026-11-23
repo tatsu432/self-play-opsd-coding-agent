@@ -25,7 +25,8 @@ proposals had no within-parent reward differences; development changed from
 reward differences on five parents; development changed from 7/24 to 8/24.
 Matched 512-episode Control, A and B runs are underway for seeds 2026 and
 2027. Objective results are not yet available.
-[Task 21 status and reproduction](docs/investigations/task21-status.md)
+[Preliminary Task 21 findings](docs/investigations/task21-results.md) ·
+[status and reproduction](docs/investigations/task21-status.md)
 
 Task 20 audited the Task 19 training batches and found just two to four
 iterations with nonzero solver RL gradients per arm. It prepared 205
