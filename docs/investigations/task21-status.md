@@ -262,6 +262,8 @@ OPSD and Dr. GRPO. The first execution identity is
   Later committed counts reached 320/384/320 for seed 2026 and 344/384/320
   for seed 2027, with all six continuations still running and approximately
   63 GiB free on the shared filesystem.
+  Seed-2026 A's 384-episode development-monitor result was 8/24, after
+  12/24 at 256; this is the same reused 24-task set, not a final result.
   A subsequent full local validation passed 506 tests with 22 skipped; Ruff
   lint and formatting and mypy on 66 source files also passed. These checks
   establish implementation health, not the outcome of the ongoing study.
