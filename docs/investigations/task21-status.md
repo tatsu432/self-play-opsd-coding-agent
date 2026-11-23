@@ -225,8 +225,14 @@ OPSD and Dr. GRPO. The first execution identity is
   recovery; after checking scheduler and worker end times and the error log,
   a narrowly scoped, tested controller recovery recorded that evidence and
   resumed the same immutable run as `34361248`. Never resubmit any of these
-  attempts. Partial in-flight work was not counted. Seed 2027's original
-  allocations were still running at this check.
+  attempts. Partial in-flight work was not counted. Seed-2027 Control/B
+  stopped cleanly and resumed as `34362516`/`34362518`. Seed-2027 A
+  `34300641` hit the same verifier-disconnect-at-timeout condition; its
+  individually reviewed, checksum-verified checkpoint resumed as `34362808`.
+  All six continuations were running at the latest check. Committed counts at
+  the transition were 220/256/224 for seed-2026 Control/A/B and 236/248/208
+  for seed 2027. Partial in-flight work is excluded, and the original failed
+  and timed-out allocations remain in the accounting.
   On November 22, shared free space fell to approximately 142 GiB. To reduce
   our footprint, 18 regenerable rollout-adapter cache directories (about
   4.4 GiB) were removed from nine completed Task 14 static diagnostic runs;
