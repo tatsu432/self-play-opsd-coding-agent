@@ -276,6 +276,10 @@ OPSD and Dr. GRPO. The first execution identity is
   differing valid rewards were 12/21/16 and 19/22/20. These are repeated
   training groups, not independent parents or held-out performance; all
   inspected iterations reported zero support exits.
+  Subsequently, seed-2026 A committed 512 episodes while its job continued
+  endpoint work; it was not yet scheduler-complete or checksum-verified.
+  The latest Control/A/B counts were 408/512/384 for seed 2026 and
+  416/444/384 for seed 2027, with all six jobs still running.
   A subsequent full local validation passed 506 tests with 22 skipped; Ruff
   lint and formatting and mypy on 66 source files also passed. These checks
   establish implementation health, not the outcome of the ongoing study.
