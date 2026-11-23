@@ -283,6 +283,9 @@ OPSD and Dr. GRPO. The first execution identity is
   duplicate this completed logical run. Its 512-episode development-monitor
   score was 12/24 versus 7/24 at baseline on the reused set; independent
   final evaluation remains pending.
+  Both seed-specific worktrees' `runs/hpc` paths are linked to this
+  workspace's `runs/hpc`, so fetched records reach the telemetry and analysis
+  processes. The first endpoint's 19 fetched batch records were checked.
   The latest Control/A/B counts were 408/512/384 for seed 2026 and
   416/444/384 for seed 2027 when the continuation was running.
   A subsequent full local validation passed 506 tests with 22 skipped; Ruff
