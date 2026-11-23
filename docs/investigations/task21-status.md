@@ -265,6 +265,14 @@ OPSD and Dr. GRPO. The first execution identity is
   At 384 episodes, A's development-monitor result was 8/24 for seed 2026
   and 7/24 for seed 2027, after 12/24 for each at 256; this is the same
   reused 24-task set, not a final result.
+  A later inspection of committed training records found, in Control/A/B
+  order, 14/17/13 effective RL updates and 42/96, 49/112, 47/86 mixed
+  solver groups for seed 2026, at 384/448/344 episodes. For seed 2027 it
+  found 15/15/15 updates and 47/96, 48/104, 44/96 mixed groups at
+  384/416/384 episodes. The corresponding counts of proposer groups with
+  differing valid rewards were 12/21/16 and 19/22/20. These are repeated
+  training groups, not independent parents or held-out performance; all
+  inspected iterations reported zero support exits.
   A subsequent full local validation passed 506 tests with 22 skipped; Ruff
   lint and formatting and mypy on 66 source files also passed. These checks
   establish implementation health, not the outcome of the ongoing study.
