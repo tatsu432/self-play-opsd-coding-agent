@@ -771,6 +771,36 @@ def test_timeout_disconnect_requires_matching_slurm_end(monkeypatch):
     assert remote.timeout_disconnect_evidence("123", health) is None
 
 
+def test_reviewed_task21_timeout_requires_exact_worker_shutdown(tmp_path, monkeypatch):
+    remote = script("hpc_remote")
+    run_id, job_id = "237fb774dc01bcce763e228c", "34298915"
+    payload = {"run_id": run_id, "operation": "task21-main"}
+    health = {"allocation": job_id, "phase": "failed", "error_type": "ExperimentError"}
+    log = tmp_path / f"{run_id}-{job_id}.out"
+    log.write_text("selfplay_opsd.core.ExperimentError: [Errno 111] Connection refused\n")
+    monkeypatch.setattr(remote, "ledger_path", lambda _: tmp_path / "ledger.json")
+    monkeypatch.setattr(
+        remote,
+        "capture",
+        lambda _: {"exit_code": 0, "stdout": f"{job_id}|TIMEOUT|end\n{job_id}.0|COMPLETED|end\n"},
+    )
+    assert remote.reviewed_task21_timeout_disconnect(payload, job_id, health)["job_id"] == job_id
+    assert remote.reviewed_task21_timeout_disconnect(payload, "other", health) is None
+    assert (
+        remote.reviewed_task21_timeout_disconnect(payload, job_id, health | {"phase": "running"})
+        is None
+    )
+    monkeypatch.setattr(
+        remote,
+        "capture",
+        lambda _: {
+            "exit_code": 0,
+            "stdout": f"{job_id}|TIMEOUT|end\n{job_id}.0|COMPLETED|earlier\n",
+        },
+    )
+    assert remote.reviewed_task21_timeout_disconnect(payload, job_id, health) is None
+
+
 def test_rejected_submission_allows_only_cpu_reduction():
     remote = script("hpc_remote")
     previous = {"cpus": 8, "identity": "frozen", "checkpoint": "endpoint"}
