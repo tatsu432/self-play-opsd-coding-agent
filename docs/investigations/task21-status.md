@@ -205,14 +205,16 @@ OPSD and Dr. GRPO. The first execution identity is
   their RL norm is 0.01442 with zero reported support exits, and A/B have
   ungated/gated distillation norms of 0.05982/0.01675, respectively. These
   remain preliminary training diagnostics, not endpoint comparisons.
-  At the latest check all six jobs were running: seed-2026 Control/A/B had
-  committed 92/88/88 episodes, and all three seed-2027 arms had committed 96.
+  At the latest check all six jobs were running and all had committed 128
+  episodes.
   Every inspected update reported finite gradients and zero support exits.
   Both seed-2027 A and B had zero RL gradient in their small third batch,
   where their two reward groups were unanimous, while OPSD remained nonzero.
   The 64-episode development-monitor scores were Control/A/B 8/9/6 out of 24
   for seed 2026 (baseline 7) and 6/8/6 for seed 2027 (baseline 8). These are
   preliminary observations on a reused monitoring set, not final comparisons.
+  Seed-2026 Control's 128-episode development score was 10/24; the other
+  128-episode evaluations were still pending at this check.
   On November 22, shared free space fell to approximately 142 GiB. To reduce
   our footprint, 18 regenerable rollout-adapter cache directories (about
   4.4 GiB) were removed from nine completed Task 14 static diagnostic runs;
