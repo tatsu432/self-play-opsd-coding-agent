@@ -205,6 +205,9 @@ OPSD and Dr. GRPO. The first execution identity is
   their RL norm is 0.01442 with zero reported support exits, and A/B have
   ungated/gated distillation norms of 0.05982/0.01675, respectively. These
   remain preliminary training diagnostics, not endpoint comparisons.
+  At the latest check all six jobs were running: all three seed-2026 arms
+  and seed-2027 Control had committed 64 episodes; seed-2027 A/B had committed
+  56. Every inspected update reported finite gradients and zero support exits.
   The six provisional live W&B streams have cloud-verified first-batch
   aggregate records: seed 2026 [Control](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/67d411470c7ef39ebbbb1d80),
   [A](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/79ebcab572c04279426fc069),
