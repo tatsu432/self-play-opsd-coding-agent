@@ -201,6 +201,10 @@ OPSD and Dr. GRPO. The first execution identity is
   versus about 0.00562 for the gated norm measured in calibration. Thus a
   later nominal A/B difference could reflect different effective strength as
   well as gating; do not interpret it as an isolated gating effect.
+  All three seed-2027 arms have also committed their first 24-episode batch:
+  their RL norm is 0.01442 with zero reported support exits, and A/B have
+  ungated/gated distillation norms of 0.05982/0.01675, respectively. These
+  remain preliminary training diagnostics, not endpoint comparisons.
   A second matched seed was frozen at `6a3d3f4`, with seed 2027 the only
   configuration difference and the same calibration coefficients. Its
   Control `34300635` / `09c37760aad43848c1591a61`, A `34300641` /
