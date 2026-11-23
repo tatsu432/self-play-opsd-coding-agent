@@ -198,7 +198,8 @@ OPSD and Dr. GRPO. The first execution identity is
   `09e87387be4df8df15ec5f17`, and B `34300654` / `f66fd05309d2ffa381c24ace`
   were submitted once and all are running. Their seed-2027 initial adapter,
   data and scientific hashes match within the seed; its initial adapter differs
-  from seed 2026 as expected. The two-seed planning envelope is
+  from seed 2026 as expected. All three initial development evaluations were
+  8/24 with identical task-by-task outcomes. The two-seed planning envelope is
   about 240.4 H200-hours including evaluation reserves; it is an estimate,
   not a cap or guaranteed availability. Held-out evaluations wait until all
   six training endpoints are verified. Never duplicate these jobs. The
