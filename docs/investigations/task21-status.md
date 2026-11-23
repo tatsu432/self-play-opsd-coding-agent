@@ -213,8 +213,9 @@ OPSD and Dr. GRPO. The first execution identity is
   The 64-episode development-monitor scores were Control/A/B 8/9/6 out of 24
   for seed 2026 (baseline 7) and 6/8/6 for seed 2027 (baseline 8). These are
   preliminary observations on a reused monitoring set, not final comparisons.
-  Seed-2026 Control's 128-episode development score was 10/24; the other
-  128-episode evaluations were still pending at this check.
+  At 128 episodes, seed-2026 Control/A scored 10/9 out of 24 and seed-2027
+  Control/A scored 5/10; B evaluations were pending. These intermediate scores
+  use the same monitoring set and are not endpoint comparisons.
   On November 22, shared free space fell to approximately 142 GiB. To reduce
   our footprint, 18 regenerable rollout-adapter cache directories (about
   4.4 GiB) were removed from nine completed Task 14 static diagnostic runs;
