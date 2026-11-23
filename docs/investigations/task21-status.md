@@ -245,6 +245,11 @@ OPSD and Dr. GRPO. The first execution identity is
   and four from completed Task 14 online runs (about 1 GiB), retaining
   checkpoints and study records. All six Task 21
   jobs were still running. Shared free space remains subject to other users.
+  We also deduplicated nine checksum-identical Task 17 initial inference
+  adapters using hard links (about 4.4 GiB); every checkpoint path and its
+  verified contents remain present. Shared free space was about 64 GiB before
+  that deduplication, and the six active Task 21 run directories totaled about
+  19 GiB.
   The six provisional live W&B streams have cloud-verified first-batch
   aggregate records: seed 2026 [Control](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/67d411470c7ef39ebbbb1d80),
   [A](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/79ebcab572c04279426fc069),
