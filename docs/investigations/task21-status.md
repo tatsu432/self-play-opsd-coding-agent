@@ -208,6 +208,11 @@ OPSD and Dr. GRPO. The first execution identity is
   At the latest check all six jobs were running: all three seed-2026 arms
   and seed-2027 Control had committed 64 episodes; seed-2027 A/B had committed
   56. Every inspected update reported finite gradients and zero support exits.
+  On November 22, shared free space fell to approximately 142 GiB. To reduce
+  our footprint, 18 regenerable rollout-adapter cache directories (about
+  4.4 GiB) were removed from nine completed Task 14 static diagnostic runs;
+  their source checkpoints and diagnostic records were retained. The six
+  active Task 21 run directories together occupied about 10 GiB at that check.
   The six provisional live W&B streams have cloud-verified first-batch
   aggregate records: seed 2026 [Control](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/67d411470c7ef39ebbbb1d80),
   [A](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/79ebcab572c04279426fc069),
