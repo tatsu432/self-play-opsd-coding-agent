@@ -195,7 +195,7 @@ OPSD and Dr. GRPO. The first execution identity is
   configuration difference and the same calibration coefficients. Its
   Control `34300635` / `09c37760aad43848c1591a61`, A `34300641` /
   `09e87387be4df8df15ec5f17`, and B `34300654` / `f66fd05309d2ffa381c24ace`
-  were submitted once and are pending. The two-seed planning envelope is
+  were submitted once; Control is running and A/B are pending. The two-seed planning envelope is
   about 240.4 H200-hours including evaluation reserves; it is an estimate,
   not a cap or guaranteed availability. Held-out evaluations wait until all
   six training endpoints are verified. Never duplicate these jobs. The
