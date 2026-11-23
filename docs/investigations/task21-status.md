@@ -266,6 +266,8 @@ OPSD and Dr. GRPO. The first execution identity is
   and 7/24 for seed 2027, after 12/24 for each at 256; this is the same
   reused 24-task set, not a final result. Control scored 7/24 for seed 2026
   and 11/24 for seed 2027 at 384, compared with 7/24 and 8/24 at baseline.
+  Seed-2027 B scored 14/24 at 384, compared with 8/24 at baseline and
+  11/24 at 256 on this same monitoring set.
   A later inspection of committed training records found, in Control/A/B
   order, 14/17/13 effective RL updates and 42/96, 49/112, 47/86 mixed
   solver groups for seed 2026, at 384/448/344 episodes. For seed 2027 it
