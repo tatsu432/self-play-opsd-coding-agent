@@ -217,6 +217,16 @@ OPSD and Dr. GRPO. The first execution identity is
   At 128 episodes, seed-2026 Control/A/B scored 10/9/12 out of 24 and seed-2027
   Control/A/B scored 5/10/8. These intermediate scores
   use the same monitoring set and are not endpoint comparisons.
+  The first seed's original 12-hour allocations ended: A `34298923` stopped
+  cleanly at 256 episodes and resumed as `34360563`; B `34298926` timed out
+  and resumed from its verified checkpoint as `34360808`. Control `34298915`
+  timed out when Slurm stopped its verifier, leaving a connection-refused
+  failure and the 220-episode checkpoint. The controller initially blocked
+  recovery; after checking scheduler and worker end times and the error log,
+  a narrowly scoped, tested controller recovery recorded that evidence and
+  resumed the same immutable run as `34361248`. Never resubmit any of these
+  attempts. Partial in-flight work was not counted. Seed 2027's original
+  allocations were still running at this check.
   On November 22, shared free space fell to approximately 142 GiB. To reduce
   our footprint, 18 regenerable rollout-adapter cache directories (about
   4.4 GiB) were removed from nine completed Task 14 static diagnostic runs;
