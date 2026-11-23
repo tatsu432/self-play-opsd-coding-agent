@@ -259,6 +259,9 @@ OPSD and Dr. GRPO. The first execution identity is
   shared free space was approximately 66 GiB and all six continuations were
   running; the latest committed episode counts were 288/384/288 for seed
   2026 and 288/352/288 for seed 2027 (Control/A/B).
+  Later committed counts reached 320/384/320 for seed 2026 and 344/384/320
+  for seed 2027, with all six continuations still running and approximately
+  63 GiB free on the shared filesystem.
   A subsequent full local validation passed 506 tests with 22 skipped; Ruff
   lint and formatting and mypy on 66 source files also passed. These checks
   establish implementation health, not the outcome of the ongoing study.
