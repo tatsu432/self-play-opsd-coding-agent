@@ -288,6 +288,9 @@ OPSD and Dr. GRPO. The first execution identity is
   processes. The first endpoint's 19 fetched batch records were checked.
   The latest Control/A/B counts were 408/512/384 for seed 2026 and
   416/444/384 for seed 2027 when the continuation was running.
+  At a later check, seed-2027 A also committed 512 episodes but was still
+  running its endpoint work and had not yet been verified. The remaining
+  Control/B counts were 440/412 for seed 2026 and 444/448 for seed 2027.
   A subsequent full local validation passed 506 tests with 22 skipped; Ruff
   lint and formatting and mypy on 66 source files also passed. These checks
   establish implementation health, not the outcome of the ongoing study.
