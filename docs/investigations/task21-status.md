@@ -277,9 +277,12 @@ OPSD and Dr. GRPO. The first execution identity is
   training groups, not independent parents or held-out performance; all
   inspected iterations reported zero support exits.
   Subsequently, seed-2026 A committed 512 episodes while its job continued
-  endpoint work; it was not yet scheduler-complete or checksum-verified.
+  endpoint work. Continuation `34360563` then completed exit 0 after 32,523
+  H200-seconds, and checkpoint `000019` and its checksum were verified.
+  Its original allocation remains part of the final accounting; never
+  duplicate this completed logical run.
   The latest Control/A/B counts were 408/512/384 for seed 2026 and
-  416/444/384 for seed 2027, with all six jobs still running.
+  416/444/384 for seed 2027 when the continuation was running.
   A subsequent full local validation passed 506 tests with 22 skipped; Ruff
   lint and formatting and mypy on 66 source files also passed. These checks
   establish implementation health, not the outcome of the ongoing study.
