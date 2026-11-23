@@ -64,3 +64,15 @@ the finite test sets also limit the precision of any comparison. The final
 report will add verified endpoint scores, paired uncertainty, training-signal
 and efficiency curves, actual allocations, and the supported research
 decision after the evaluations finish.
+
+The 384-episode development-monitor scores below reuse the same 24 tasks at
+each milestone. They are shown to document the observed trajectory, not as
+independent endpoint estimates or evidence that a method wins.
+
+| Seed | Baseline | Control | A | B |
+|---|---:|---:|---:|---:|
+| 2026 | 7/24 | 7/24 | 8/24 | 11/24 |
+| 2027 | 8/24 | 11/24 | 7/24 | 14/24 |
+
+Seed-2026 A subsequently completed 512 episodes and scored 12/24 on this
+same monitor; its held-out evaluation and all other endpoints remain pending.
