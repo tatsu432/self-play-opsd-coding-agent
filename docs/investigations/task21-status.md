@@ -280,7 +280,9 @@ OPSD and Dr. GRPO. The first execution identity is
   endpoint work. Continuation `34360563` then completed exit 0 after 32,523
   H200-seconds, and checkpoint `000019` and its checksum were verified.
   Its original allocation remains part of the final accounting; never
-  duplicate this completed logical run.
+  duplicate this completed logical run. Its 512-episode development-monitor
+  score was 12/24 versus 7/24 at baseline on the reused set; independent
+  final evaluation remains pending.
   The latest Control/A/B counts were 408/512/384 for seed 2026 and
   416/444/384 for seed 2027 when the continuation was running.
   A subsequent full local validation passed 506 tests with 22 skipped; Ruff
