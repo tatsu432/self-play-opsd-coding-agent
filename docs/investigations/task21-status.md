@@ -205,6 +205,15 @@ OPSD and Dr. GRPO. The first execution identity is
   their RL norm is 0.01442 with zero reported support exits, and A/B have
   ungated/gated distillation norms of 0.05982/0.01675, respectively. These
   remain preliminary training diagnostics, not endpoint comparisons.
+  The six provisional live W&B streams have cloud-verified first-batch
+  aggregate records: seed 2026 [Control](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/67d411470c7ef39ebbbb1d80),
+  [A](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/79ebcab572c04279426fc069),
+  [B](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/fa5a47b44dc10b858cd4dccc);
+  seed 2027 [Control](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/089fbfe754eb425715293cd2),
+  [A](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/c1080134a28b3f922105d00c),
+  [B](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/1497fdab7a3d3e7d1875615f).
+  Checkpoint-backed endpoint verification and aggregate reconciliation remain
+  authoritative; the streams contain no repair trajectories.
   A second matched seed was frozen at `6a3d3f4`, with seed 2027 the only
   configuration difference and the same calibration coefficients. Its
   Control `34300635` / `09c37760aad43848c1591a61`, A `34300641` /
