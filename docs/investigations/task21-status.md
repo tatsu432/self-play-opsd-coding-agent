@@ -264,8 +264,8 @@ OPSD and Dr. GRPO. The first execution identity is
   63 GiB free on the shared filesystem.
   At 384 episodes, A's development-monitor result was 8/24 for seed 2026
   and 7/24 for seed 2027, after 12/24 for each at 256; this is the same
-  reused 24-task set, not a final result. Seed-2027 Control scored 11/24
-  at 384, compared with 8/24 at both baseline and 256 episodes.
+  reused 24-task set, not a final result. Control scored 7/24 for seed 2026
+  and 11/24 for seed 2027 at 384, compared with 7/24 and 8/24 at baseline.
   A later inspection of committed training records found, in Control/A/B
   order, 14/17/13 effective RL updates and 42/96, 49/112, 47/86 mixed
   solver groups for seed 2026, at 384/448/344 episodes. For seed 2027 it
