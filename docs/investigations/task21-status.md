@@ -217,8 +217,8 @@ OPSD and Dr. GRPO. The first execution identity is
   At 128 episodes, seed-2026 Control/A/B scored 10/9/12 out of 24 and seed-2027
   Control/A/B scored 5/10/8. These intermediate scores
   use the same monitoring set and are not endpoint comparisons.
-  At 256 episodes, A scored 12/24 and Control 8/24 for each seed; B's
-  256-episode checks were not yet complete.
+  At 256 episodes, Control/A/B scored 8/12/7 out of 24 for seed 2026 and
+  8/12/11 for seed 2027, on the same reused monitoring set.
   The first seed's original 12-hour allocations ended: A `34298923` stopped
   cleanly at 256 episodes and resumed as `34360563`; B `34298926` timed out
   and resumed from its verified checkpoint as `34360808`. Control `34298915`
