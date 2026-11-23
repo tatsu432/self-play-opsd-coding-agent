@@ -145,8 +145,9 @@ OPSD and Dr. GRPO. The first execution identity is
   0.30352814071666645 and 0.1717172194518303. This alone does not establish
   valid-only reward diversity. The [calibration aggregate](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/afa9d0c0552ada381ad9a3c3)
   was reconciled. Revised shared pilot `34254191` /
-  `7346c5d4dca7dbd9240637e1` was submitted once from `f07d078` and is
-  running; inspect its ledger and never duplicate it. Both the explicit prompt
+  `7346c5d4dca7dbd9240637e1` completed exit 0 from `f07d078` in 23,676
+  H200-seconds; its endpoint and checkpoint were verified. Never duplicate it.
+  Both the explicit prompt
   and cap change are bundled, so a change in outcome cannot be attributed to
   either one alone. Its 7/24 initial development result matches all 24 original
   pilot baseline outcomes task by task.
@@ -171,7 +172,10 @@ OPSD and Dr. GRPO. The first execution identity is
   nonzero RL update and differing valid rewards for two more parent groups.
   Across all four committed batches, 17/28 solver groups were mixed and five
   distinct parents had valid-only reward differences. The 112-episode pilot's
-  endpoint evaluation and scheduler/checkpoint verification remain pending.
+  endpoint development score was 8/24, versus 7/24 at baseline. The verified
+  result records 38 valid proposals including one unscored due to capacity,
+  five valid-reward parents and `viable: true`. The small development change
+  is not a claim of generalization or a comparison of student objectives.
   Those first two revised batches used about 140 recorded seconds per
   attempted episode. A tentative 512-episode three-arm run would therefore
   take about 60 H200-hours of training alone at that rate. This extrapolation

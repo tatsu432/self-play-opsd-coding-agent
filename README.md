@@ -21,7 +21,9 @@ completed eight effective RL updates; paired training samples improved from
 results do not establish generalization.
 In the completed shared pilot, seven of 16 solver groups were mixed, but valid
 proposals had no within-parent reward differences; development changed from
-7/24 to 6/24. A bounded follow-up to improve proposer signal is underway.
+7/24 to 6/24. A revised follow-up produced four solver updates and valid-only
+reward differences on five parents; development changed from 7/24 to 8/24.
+The matched objective comparison is the next stage.
 [Task 21 status and reproduction](docs/investigations/task21-status.md)
 
 Task 20 audited the Task 19 training batches and found just two to four
