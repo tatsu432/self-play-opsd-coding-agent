@@ -512,10 +512,14 @@ def timeout_disconnect_evidence(job_id: str, health: dict) -> dict | None:
 
 def reviewed_task21_timeout_disconnect(payload: dict, job_id: str, health: dict) -> dict | None:
     """Recognize the reviewed worker shutdown in the 2026 Control allocation."""
+    reviewed = {
+        "34298915": "237fb774dc01bcce763e228c",
+        "34300641": "09e87387be4df8df15ec5f17",
+    }
     if (
-        job_id != "34298915"
+        job_id not in reviewed
         or payload.get("operation") != "task21-main"
-        or payload.get("run_id") != "237fb774dc01bcce763e228c"
+        or payload.get("run_id") != reviewed[job_id]
         or health.get("allocation") != job_id
         or health.get("phase") != "failed"
         or health.get("error_type") != "ExperimentError"
