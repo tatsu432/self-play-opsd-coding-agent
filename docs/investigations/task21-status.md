@@ -195,7 +195,12 @@ OPSD and Dr. GRPO. The first execution identity is
   Seed-2026 Control's first batch committed 24 attempted episodes, four mixed
   solver groups of six, and a nonzero RL update with no support exits; its
   seeded metrics match the revised pilot's first batch, so they are not an
-  independent confirmation.
+  independent confirmation. Seed-2026 A's first batch has the same initial
+  RL norm (0.01874), ungated OPSD norm 0.11913 and no support exits. The
+  common nominal coefficient scales that ungated norm to about 0.02046,
+  versus about 0.00562 for the gated norm measured in calibration. Thus a
+  later nominal A/B difference could reflect different effective strength as
+  well as gating; do not interpret it as an isolated gating effect.
   A second matched seed was frozen at `6a3d3f4`, with seed 2027 the only
   configuration difference and the same calibration coefficients. Its
   Control `34300635` / `09c37760aad43848c1591a61`, A `34300641` /
