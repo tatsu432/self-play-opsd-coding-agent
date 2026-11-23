@@ -205,8 +205,9 @@ OPSD and Dr. GRPO. The first execution identity is
   their RL norm is 0.01442 with zero reported support exits, and A/B have
   ungated/gated distillation norms of 0.05982/0.01675, respectively. These
   remain preliminary training diagnostics, not endpoint comparisons.
-  At the latest check all six jobs were running and all had committed 128
-  episodes.
+  All six jobs passed 128 committed episodes; later inspected checkpoints
+  reached 220/208/192 for seed-2026 Control/A/B and 172/192/176 for
+  seed-2027 Control/A/B. All six first allocations remained running.
   Every inspected update reported finite gradients and zero support exits.
   Both seed-2027 A and B had zero RL gradient in their small third batch,
   where their two reward groups were unanimous, while OPSD remained nonzero.
