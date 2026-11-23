@@ -192,6 +192,10 @@ OPSD and Dr. GRPO. The first execution identity is
   allocations, checkpoints and final evaluations before conclusions. The
   4,560,362-byte `b44d858` transport bundle was removed after verifying its
   deployed checkout; the checkout and records are preserved.
+  Seed-2026 Control's first batch committed 24 attempted episodes, four mixed
+  solver groups of six, and a nonzero RL update with no support exits; its
+  seeded metrics match the revised pilot's first batch, so they are not an
+  independent confirmation.
   A second matched seed was frozen at `6a3d3f4`, with seed 2027 the only
   configuration difference and the same calibration coefficients. Its
   Control `34300635` / `09c37760aad43848c1591a61`, A `34300641` /
