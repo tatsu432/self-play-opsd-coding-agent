@@ -191,12 +191,20 @@ OPSD and Dr. GRPO. The first execution identity is
   allocations, checkpoints and final evaluations before conclusions. The
   4,560,362-byte `b44d858` transport bundle was removed after verifying its
   deployed checkout; the checkout and records are preserved.
+  A second matched seed was frozen at `6a3d3f4`, with seed 2027 the only
+  configuration difference and the same calibration coefficients. Its
+  Control `34300635` / `09c37760aad43848c1591a61`, A `34300641` /
+  `09e87387be4df8df15ec5f17`, and B `34300654` / `f66fd05309d2ffa381c24ace`
+  were submitted once and are pending. The two-seed planning envelope is
+  about 240.4 H200-hours including evaluation reserves; it is an estimate,
+  not a cap or guaranteed availability. Held-out evaluations wait until all
+  six training endpoints are verified. Never duplicate these jobs.
   Those first two revised batches used about 140 recorded seconds per
   attempted episode. A tentative 512-episode three-arm run would therefore
   take about 60 H200-hours of training alone at that rate. This extrapolation
   is conditional on the pilot and excludes all development and held-out
-  evaluation; finalize the endpoint and evaluation reserve only after the
-  complete pilot and allocation accounting are available.
+  evaluation; the subsequently frozen plan above includes an evaluation
+  reserve and a training-time safety margin.
   The regenerable 4,596,578-byte transport bundle for `ef3e76a` was removed
   after verifying its deployed checkout; the checkout and data are preserved.
   The same check allowed removal of the 4,565,084-byte `f07d078` transport
