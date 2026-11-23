@@ -205,9 +205,11 @@ OPSD and Dr. GRPO. The first execution identity is
   their RL norm is 0.01442 with zero reported support exits, and A/B have
   ungated/gated distillation norms of 0.05982/0.01675, respectively. These
   remain preliminary training diagnostics, not endpoint comparisons.
-  At the latest check all six jobs were running: all three seed-2026 arms
-  and seed-2027 Control had committed 64 episodes; seed-2027 A/B had committed
-  56. Every inspected update reported finite gradients and zero support exits.
+  At the latest check all six jobs were running: seed-2026 Control/A/B had
+  committed 92/88/88 episodes, and all three seed-2027 arms had committed 96.
+  Every inspected update reported finite gradients and zero support exits.
+  Both seed-2027 A and B had zero RL gradient in their small third batch,
+  where their two reward groups were unanimous, while OPSD remained nonzero.
   On November 22, shared free space fell to approximately 142 GiB. To reduce
   our footprint, 18 regenerable rollout-adapter cache directories (about
   4.4 GiB) were removed from nine completed Task 14 static diagnostic runs;
