@@ -23,8 +23,9 @@ In the completed shared pilot, seven of 16 solver groups were mixed, but valid
 proposals had no within-parent reward differences; development changed from
 7/24 to 6/24. A revised follow-up produced four solver updates and valid-only
 reward differences on five parents; development changed from 7/24 to 8/24.
-Matched 512-episode Control, A and B runs are underway for seed 2026, with
-seed 2027 queued; objective results are not yet available.
+Matched 512-episode Control, A and B runs are underway for seed 2026; the
+seed 2027 control is running and A/B are queued. Objective results are not
+yet available.
 [Task 21 status and reproduction](docs/investigations/task21-status.md)
 
 Task 20 audited the Task 19 training batches and found just two to four
