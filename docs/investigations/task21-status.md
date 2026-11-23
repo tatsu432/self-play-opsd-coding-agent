@@ -176,6 +176,8 @@ OPSD and Dr. GRPO. The first execution identity is
   result records 38 valid proposals including one unscored due to capacity,
   five valid-reward parents and `viable: true`. The small development change
   is not a claim of generalization or a comparison of student objectives.
+  The [revised pilot aggregate](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/509c7529c8bcb3360249dc5b)
+  is reconciled with its checkpoint-backed history.
   A matched shared-policy comparison was frozen at 512 attempted episodes
   per arm from commit `b44d858`, with common initialization, data, objective
   scales and evaluation milestones. Its planning envelope is 246,988 H200-
