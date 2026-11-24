@@ -39,6 +39,32 @@ def summarize(rows: list[dict]) -> dict:
     }
 
 
+def plot_paired_intervals(comparisons: dict, seed: str, output: Path) -> None:
+    """Show paired task-family intervals conditional on this training seed."""
+    splits = sorted({split for row in comparisons.values() for split in row})
+    if not splits:
+        return
+    figure, axes = plt.subplots(
+        1, len(splits), figsize=(4.8 * len(splits), 4.5), squeeze=False, layout="constrained"
+    )
+    for axis, split in zip(axes[0], splits, strict=True):
+        rows = [(name, row[split]) for name, row in comparisons.items() if split in row]
+        for position, (_, row) in enumerate(rows):
+            low, high = row["ci95_pp"]
+            axis.hlines(position, low, high, color="C0")
+            axis.plot(row["difference_pp"], position, "o", color="C0")
+        axis.axvline(0, color="0.5", linewidth=0.8)
+        axis.set_yticks(
+            range(len(rows)),
+            [f"{name} (n={row['tasks']}, families={row['families']})" for name, row in rows],
+        )
+        axis.set(title=split.replace("_", " "), xlabel="Paired difference (percentage points)")
+        axis.invert_yaxis()
+    figure.suptitle(f"Seed {seed}: family-bootstrap 95% intervals, conditional on this run")
+    figure.savefig(output / "paired-intervals.pdf")
+    plt.close(figure)
+
+
 def stage_evidence(spec: dict, reservations: dict) -> dict:
     path = Path(spec["path"])
     stage = spec["stage"]
@@ -188,6 +214,7 @@ def analyze(args) -> None:
         directory = args.output / f"seed-{seed}"
         directory.mkdir(exist_ok=True)
         figures(directory, {"arms": arms, "final": endpoints[seed]})
+        plot_paired_intervals(contrasts[seed], seed, directory)
     pilots = {
         spec["label"]: records[spec["label"]]
         for spec in manifest["runs"]
