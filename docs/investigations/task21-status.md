@@ -28,6 +28,12 @@ submitted once as jobs `34527405`, `34527409`, `34527411`, `34527413`,
 pending at submission. The original logical run IDs and failed attempts are
 retained; inspect their ledgers before any action and never duplicate them.
 No final held-out scores have been reviewed.
+The three pending 2027 continuations (`34527413`, `34527418`, `34527419`)
+had their scheduler time limits reduced from 12 to four hours. Full baseline
+evaluations took 3h09m–3h16m and the continuations retain completed task
+records. This provides headroom while allowing shorter backfill; the original
+budget reservations remain unchanged. The pending-limit adjustment intents
+and results are recorded in `runs/task21/pending-evaluation-wall-adjustments.jsonl`.
 
 | Seed | Arm | Slurm job | Controller run |
 | --- | --- | --- | --- |
