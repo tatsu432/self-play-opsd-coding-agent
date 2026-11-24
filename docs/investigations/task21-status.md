@@ -276,6 +276,9 @@ OPSD and Dr. GRPO. The first execution identity is
   differing valid rewards were 12/21/16 and 19/22/20. These are repeated
   training groups, not independent parents or held-out performance; all
   inspected iterations reported zero support exits.
+  Seven inactive Task 18 rollout exports were later verified in two identical
+  SHA-256 groups and hard-linked within each group, saving approximately
+  1.23 GiB while retaining every original export path and its contents.
   Subsequently, seed-2026 A committed 512 episodes while its job continued
   endpoint work. Continuation `34360563` then completed exit 0 after 32,523
   H200-seconds, and checkpoint `000019` and its checksum were verified.
