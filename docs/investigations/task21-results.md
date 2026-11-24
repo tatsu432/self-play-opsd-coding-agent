@@ -65,6 +65,27 @@ report will add verified endpoint scores, paired uncertainty, training-signal
 and efficiency curves, actual allocations, and the supported research
 decision after the evaluations finish.
 
+All six runs have committed 512 training attempts. The following aggregate
+diagnostics are from their committed iterations; the seed-2026 B endpoint was
+still awaiting final verification when these counts were inspected. Each
+mixed group contains four attempts with both successes and failures.
+
+| Seed | Method | Verified repairs / 512 | First / last 128 | Mixed groups / 128 | Nonzero RL updates |
+|---|---|---:|---:|---:|---:|
+| 2026 | Control | 300 | 73 / 70 | 58 | 19 |
+| 2026 | A | 351 | 85 / 90 | 60 | 19 |
+| 2026 | B | 328 | 81 / 87 | 74 | 19 |
+| 2027 | Control | 276 | 70 / 73 | 61 | 20 |
+| 2027 | A | 313 | 89 / 71 | 58 | 19 |
+| 2027 | B | 313 | 79 / 71 | 61 | 20 |
+
+These training rewards are on evolving proposer-generated tasks, so early and
+late values are not a controlled learning comparison. Recorded joint gradient
+norms were finite and reported support exits and worker retries were zero.
+However, 137–212 attempts per run failed after reaching a turn, context, or
+token limit, and scheduler timeouts required recorded continuations. Those
+limitations and the held-out scores must be considered in the final decision.
+
 The 384-episode development-monitor scores below reuse the same 24 tasks at
 each milestone. They are shown to document the observed trajectory, not as
 independent endpoint estimates or evidence that a method wins.
