@@ -7,7 +7,11 @@ PDB manifest. The 11 preferred feasibility examples have zero parent and
 family overlap with the training curriculum and evaluation splits. A local
 native-protocol check constructed one exact `replace_text` action per example
 and reconstructed all 11 canonical sources byte for byte. The sidecar retains
-the independently verified training-only reserves in stable order.
+the independently verified training-only reserves in stable order. A local
+check with tokenizer files from the pinned Qwen revision found a maximum
+prompt of 1,267 tokens and a maximum repair target of 104 tokens. All 11 masks
+included repair-action tokens. This check used Transformers 4.57.1. The Yale
+runner will freeze the verified cache with the qualified runtime.
 
 The archived B snapshots available for replay are:
 

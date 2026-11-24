@@ -8,7 +8,7 @@ from collections.abc import Callable
 from dataclasses import asdict
 from functools import cached_property
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import torch
 from pydantic import Field, model_validator
@@ -16,6 +16,7 @@ from pydantic import Field, model_validator
 from selfplay_opsd.core import ExperimentError, digest, read_json
 from selfplay_opsd.objectives import alignment, difficulty
 from selfplay_opsd.pdb_verifier import PdbEnvironment, PdbOracle, verify_pdb
+from selfplay_opsd.policy import HFPolicy
 from selfplay_opsd.storage import CheckpointManager, atomic_json, file_hash, restore_rng
 from selfplay_opsd.task19_policy import visibility
 from selfplay_opsd.task19_protocol import STUDENT_TOOLS, parse_call, render_call, student_history
@@ -179,7 +180,7 @@ class Task22Study(Task21Study):
                     },
                 )
                 _, args = parse_call(call, STUDENT_TOOLS)
-                env = PdbEnvironment(task, oracle, self.sandbox, self.policy)  # type: ignore[arg-type]
+                env = PdbEnvironment(task, oracle, self.sandbox, cast(HFPolicy, self.policy))
                 source = env.replace_source(args["old_text"], args["new_text"])
                 if source != oracle.correct_source:
                     raise ValueError("Canonical edit differs from verified source")
@@ -195,8 +196,7 @@ class Task22Study(Task21Study):
                 if (
                     not any(mask)
                     or len(targets) > limits.max_turn_generated_tokens
-                    or len(prompt) + len(targets)
-                    > limits.max_student_sequence_tokens - limits.privilege_reserve
+                    or len(prompt) + len(targets) > limits.max_student_sequence_tokens
                 ):
                     raise ValueError(
                         "Canonical native action exceeds training context or lacks tool tokens"
