@@ -302,8 +302,10 @@ OPSD and Dr. GRPO. The first execution identity is
   checkpoint as a verified endpoint until its scheduler and checksums pass.
   Control allocation `34362516` then stopped cleanly before completing that
   evaluation, and the watcher submitted `34482792` from checkpoint `000021`;
-  it subsequently started. The training exposure remains 512 and prior
-  allocations remain in the ledger. Do not submit a duplicate.
+  it completed exit 0 in 1,089 H200-seconds, and the 512-episode endpoint
+  and checkpoint checksum verified. Its reused development-monitor score
+  was 8/24, the same as baseline. Prior allocations remain in the ledger;
+  do not submit a duplicate. Independent final evaluation remains pending.
   Seed-2027 B allocation `34362518` stopped cleanly at checkpoint `000020`
   (508 episodes). Its watcher submitted continuation `34483259`, pending at
   the check. It subsequently started and committed 512 episodes; endpoint

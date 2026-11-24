@@ -76,4 +76,6 @@ independent endpoint estimates or evidence that a method wins.
 
 Both A arms subsequently completed 512 episodes and scored 12/24 and 10/24
 for seeds 2026 and 2027, respectively, on this same monitor. Their held-out
-evaluations and the remaining training endpoints are pending.
+evaluations remain pending. The seed-2027 Control endpoint also completed,
+scoring 8/24 versus 8/24 at baseline on the reused monitor. The remaining
+training endpoints and all held-out evaluations are pending.
