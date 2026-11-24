@@ -21,7 +21,7 @@ allocation was 16,846 H200-seconds (4.6794 hours). Preserve the existing
 attempts and task records, inspect the ledgers, and do not launch duplicates
 or resume until shared storage has recovered. The evaluator reuses existing
 task records only after checking the frozen task, snapshot and seed identity;
-the controller still requires a reviewed recovery path for these failures.
+the controller has a narrowly reviewed recovery path for these exact job IDs.
 No final held-out scores have been reviewed.
 
 | Seed | Arm | Slurm job | Controller run |
@@ -36,8 +36,12 @@ No final held-out scores have been reviewed.
 Progress counts without scores are available in [W&B](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/4e507c652d2e258a12289799).
 The private evaluation launcher exited after verification encountered the
 failed jobs; the analysis process still waits for
-`runs/task21/final-evals-complete.json`. The launcher requires at least 20 GiB
-before submitting a job. After storage fell to zero, four duplicate Task 21
+`runs/task21/final-evals-complete.json`. The private
+`runs/task21/recover_after_storage.py` process waits for three consecutive
+checks at or above 20 GiB, then uses the reviewed controller recovery and
+restarts receipt-guarded monitoring. The live recovery guard was verified to
+refuse submission at 2 GiB; do not run another copy of the recovery process.
+After storage fell to zero, four duplicate Task 21
 initial checkpoint states and 18 duplicate historical smoke-test inference
 exports were checksum-verified and hard-linked, preserving every path and
 contents. Roughly 9.8 GiB of duplicate data was removed from our footprint,
