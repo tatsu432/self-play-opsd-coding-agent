@@ -47,6 +47,12 @@ exports were checksum-verified and hard-linked, preserving every path and
 contents. Roughly 9.8 GiB of duplicate data was removed from our footprint,
 but shared free space remained critically low. The full local suite passed
 506 tests with 22 skipped, and Ruff and mypy passed after integration.
+Subsequently, checkpoint markers identified more duplicate historical files;
+their actual SHA-256 values, ownership, modes and sizes were checked before
+hard-linking, and every original checkpoint path was retained. Shared free
+space increased from approximately 2 GiB to 29 GiB; the measured change is
+subject to other users' concurrent activity. Recovery still requires three
+consecutive checks above the 20 GiB guard.
 
 ## Evidence
 
