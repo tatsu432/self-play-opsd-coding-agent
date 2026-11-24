@@ -352,7 +352,9 @@ OPSD and Dr. GRPO. The first execution identity is
   [A](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/c1080134a28b3f922105d00c),
   [B](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/1497fdab7a3d3e7d1875615f).
   Checkpoint-backed endpoint verification and aggregate reconciliation remain
-  authoritative; the streams contain no repair trajectories.
+  authoritative; the streams contain no repair trajectories. All six
+  aggregate replay histories were subsequently independently verified in
+  W&B after delayed cloud visibility.
   A [combined W&B curve run](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/e3684c8e0122b912f97c238a)
   publishes checkpoint-validated training and reused development metrics for
   all six arms against attempted episodes. Its 51 exposure points were
