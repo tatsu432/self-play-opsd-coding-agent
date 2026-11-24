@@ -296,6 +296,10 @@ OPSD and Dr. GRPO. The first execution identity is
   2026 and 444/448 for seed 2027 at the earlier check.
   A subsequent inspection found Control/B at 456/444 episodes for seed
   2026 and 508/476 for seed 2027; all four jobs remained running.
+  Seed-2027 Control later committed 512 episodes but was still completing its
+  endpoint evaluation; the last observed Control/B counts for seed 2026 were
+  488/444 and seed-2027 B was at 476. Do not treat the committed Control
+  checkpoint as a verified endpoint until its scheduler and checksums pass.
   A subsequent full local validation passed 506 tests with 22 skipped; Ruff
   lint and formatting and mypy on 66 source files also passed. These checks
   establish implementation health, not the outcome of the ongoing study.
