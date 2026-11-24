@@ -334,8 +334,13 @@ OPSD and Dr. GRPO. The first execution identity is
   H200-seconds. Its 512-episode checkpoint `000020` and checksum verified.
   Its reused development-monitor score was 13/24 versus 7/24 at baseline;
   do not treat that as a held-out result. All six training endpoints have
-  reached the frozen exposure and verified; independent final evaluations
-  remain pending. Preserve all attempts and never duplicate completed runs.
+  reached the frozen exposure and verified. After a preview-only staging
+  failure on controller-only commits, held-out baseline evaluations were
+  submitted using the original scientific checkouts: seed 2026 Control/A/B
+  jobs `34499995`/`34499996`/`34499997`, and seed 2027 Control/A/B jobs
+  `34499999`/`34499994`/`34499998`. Inspect their receipts and Slurm before
+  acting; never duplicate. Trained-checkpoint evaluations and analysis remain
+  pending. Preserve all attempts and never duplicate completed runs.
   A subsequent full local validation passed 506 tests with 22 skipped; Ruff
   lint and formatting and mypy on 66 source files also passed. These checks
   establish implementation health, not the outcome of the ongoing study.
