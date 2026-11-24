@@ -360,6 +360,9 @@ OPSD and Dr. GRPO. The first execution identity is
   development set is reused, so these curves are not held-out comparisons.
   An overlaid development comparison chart and its table were also published
   and independently observed in the run's cloud history.
+  The separate [held-out progress stream](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/4e507c652d2e258a12289799)
+  reports completed task-record counts out of 82 per evaluation cell, not
+  partial scores or private task contents.
   A second matched seed was frozen at `6a3d3f4`, with seed 2027 the only
   configuration difference and the same calibration coefficients. Its
   Control `34300635` / `09c37760aad43848c1591a61`, A `34300641` /
