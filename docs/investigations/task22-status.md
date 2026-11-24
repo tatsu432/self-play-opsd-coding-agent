@@ -1,0 +1,124 @@
+# Task 22 execution and reproduction
+
+## Local readiness · November 24, 2026
+
+Task 22 adds PDB reference alignment to the existing shared LoRA trainer. Its
+private candidate manifest starts with the 11 verified PDB feasibility
+examples, with zero parent and family overlap with the proposer curriculum,
+development monitor, solver probe, primary evaluation, and transfer splits.
+The manifest includes training-only reserves for deterministic eligibility
+failures. The original PDB bundle and Task 21 checkpoints are unchanged.
+
+Local hashes and policy signatures verified B batches `000001`, `000007`,
+`000011`, and `000016` at the corresponding pre-update snapshots at 0,
+128, 256, and 384 attempted episodes. The controller and trainer check the
+remote checkpoint contents and saved behavior and teacher scores before use.
+The successful qualification must produce the final verified reference actions
+and a controller-verified gate. Task 22 has no allocated GPU time or new
+endpoint results as of this entry. Two Yale Duo login attempts ended without
+an authenticated session, which prevents checking live allocations, storage
+and checkpoint availability. The previously reconciled Task 21 total is
+217.155 H200-hours. See the [qualification record](task22-alignment-qualification.md)
+and [baseline analyses](task22-mechanistic-analysis.md).
+
+Baseline plots are reproducible now. They use only the completed Task 21
+evidence. The alignment figure requires an executed Task 22 qualification.
+
+## Qualification
+
+Run from a clean Task 22 checkout with the original Task 21 dataset available.
+The freeze script stages copies of the original manifest and bundle and a
+content-addressed private reference manifest. It never trains a policy.
+
+```bash
+uv run --frozen python scripts/freeze_task22.py
+uv run --frozen selfplay hpc login
+uv run --frozen selfplay hpc doctor --settings configs/task22-qualification.yaml --gpu-type h200
+uv run --frozen selfplay hpc task21-budget --settings configs/task22-qualification.yaml
+uv run --frozen selfplay hpc sync --settings configs/task22-qualification.yaml
+uv run --frozen selfplay hpc reuse-worker repair-selfplay-2026-task21-pdb-prompt-v2 \
+  --settings configs/task22-qualification.yaml
+```
+
+Check for existing Task 22 reservations and logical runs, confirm the
+`cpsc4880` H200 account and projected capacity, and check both the project
+filesystem and user quota. The controller requires 20 GiB free on shared
+storage. Reserve additional space for the concurrent checkpoints and
+evaluation records. Preserve verified records before reclaiming project space.
+
+Preview the exact qualification specification, then submit it once. Set the
+same incremental limit for every Task 22 operation, no higher than 95 hours.
+Qualify for three hours first. A recoverable stop may use up to two additional
+hours, subject to the shared five-hour qualification limit.
+
+```bash
+uv run --frozen selfplay hpc submit task21-align-qualify \
+  --settings configs/task22-qualification.yaml --method control --profile single_gpu_80gb \
+  --gpu-type h200 --account cpsc4880 --stage-wall-minutes 180 --task20-budget-hours 95 --dry-run
+```
+
+Record the submitted logical run ID and Slurm job ID before monitoring.
+Use `selfplay hpc status RUN_ID` and `selfplay hpc watch RUN_ID --continue-stopped` when continuation fits the forecast. If
+the recorded attempt stopped cleanly before the gate, use
+`selfplay hpc resume RUN_ID --continue-stopped` under the same ledger.
+Verify completed allocations with `selfplay hpc task21-verify RUN_ID` and
+fetch with `selfplay hpc fetch RUN_ID`. The default fetch excludes large
+checkpoint and model exports. Preserve the raw qualification marker and
+controller receipt as ignored files.
+
+## Matched training and evaluation
+
+Freeze the main control with the fetched `complete-align-qualify.json` and
+the controller verification JSON. Stage the new committed configuration
+without changing the qualified code. The controller checks that the
+qualifying source commit is an ancestor and the scientific source hash
+matches the submitted checkout.
+
+```bash
+uv run --frozen python scripts/freeze_task22.py --gate GATE_JSON --verified VERIFIED_JSON
+uv run --frozen selfplay hpc sync --settings configs/task22-main.yaml
+uv run --frozen selfplay hpc submit task21-main --settings configs/task22-main.yaml \
+  --method C --profile single_gpu_80gb --gpu-type h200 --account cpsc4880 \
+  --stage-wall-minutes 720 --task20-budget-hours 95 --dry-run
+```
+
+Repeat the preview and one submission for D. Reconcile Slurm state and
+the budget before every continuation. The wall limit is a reservation
+and can be reduced for backfill when measured time supports it. Evaluate
+the verified endpoint with `task21-evaluate-primary --checkpoint-iteration N`.
+The full `task21-evaluate` stage reuses checkpoint-backed primary task records
+and adds the three transfer splits. Both use the same run settings, arm,
+hardware flags, and budget as training, with an evaluation wall limit based
+on measured Task 21 runtime.
+
+For a frozen 384 or 256 fallback, use `--endpoint 384` or `--endpoint 256`
+on the same evaluation command with a matching numbered checkpoint. Stop
+active training before evaluating an intermediate checkpoint. The protected
+B comparator iterations are 15 and 10, respectively. The controller keeps
+the original completed-endpoint guard for 512.
+
+If the prespecified matched continuation is feasible, use
+`python scripts/freeze_task22.py --extend-to 1024` or `--extend-to 768`.
+Commit and stage the three generated arm controls. Run `task21-main` and
+endpoint evaluation for each with the new namespace, the common Task 22
+ledger, and dependency-checked worker evidence. Each run restores the
+verified original endpoint state before any optimizer step and saves its
+parent marker and checkpoint identities.
+
+## Analysis and release
+
+Baseline regeneration:
+
+```bash
+uv run --frozen python scripts/analyze_task22.py --output runs/task22/baseline-analysis
+```
+
+For the final analysis, pass `--budget` with the reconciled Task 22 ledger,
+`--qualification` with the qualification receipt, and `--manifest` with
+a private JSON mapping arm labels such as `C-2026` to
+`{"training_run_ids":["RUN_ID"],"evaluations":["VERIFIED_RECEIPT.json"]}`.
+Fetch each referenced evaluation directory. Set `--exposure` for a
+shortened comparison. Run `scripts/sync_task22_summary.py` on the aggregate
+summary before using its explicit `--publish` option. Update the results,
+README, completion record and release branch after accounting, evidence,
+and deliverables reconcile.

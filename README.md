@@ -9,6 +9,11 @@ proposer rewards. See [methods](docs/methods.md).
 
 ## Progress and results
 
+Task 22 implements a PDB-compatible reference gradient for matched C/D
+proposer rewards. C uses the RL gradient and D uses RL plus weighted gated
+OPSD. GPU qualification and the matched training runs are pending.
+[Task 22 execution and reproduction](docs/investigations/task22-status.md)
+
 Task 21 adds an isolated adapter for the Precise Debugging Benchmark (PDB)
 while retaining Qwen-native exact-text repair. The first CPU pilot verified
 11 tasks from BigCodeBench and LiveCodeBench, with 22/22 original and
