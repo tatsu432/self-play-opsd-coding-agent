@@ -326,8 +326,10 @@ OPSD and Dr. GRPO. The first execution identity is
   That B continuation subsequently started. Seed-2026 Control continuation
   `34361248` also reached its 12-hour limit (`TIMEOUT`); its watcher resumed
   the same logical run from checkpoint `000020` at 488 episodes as
-  `34481268`, which started. Preserve all prior allocations and do not
-  duplicate either active continuation.
+  `34481268`, which completed exit 0 in 5,956 H200-seconds. Its 512-episode
+  checkpoint `000021` and checksum verified; the reused development-monitor
+  score was 7/24, the same as baseline. Preserve all prior allocations and do
+  not duplicate the completed run. Independent final evaluation is pending.
   A subsequent full local validation passed 506 tests with 22 skipped; Ruff
   lint and formatting and mypy on 66 source files also passed. These checks
   establish implementation health, not the outcome of the ongoing study.

@@ -78,5 +78,6 @@ Both A arms subsequently completed 512 episodes and scored 12/24 and 10/24
 for seeds 2026 and 2027, respectively, on this same monitor. Their held-out
 evaluations remain pending. The seed-2027 Control endpoint also completed,
 scoring 8/24 versus 8/24 at baseline on the reused monitor; seed-2027 B
-scored 11/24 versus the same 8/24 baseline. The remaining training endpoints
-and all held-out evaluations are pending.
+scored 11/24 versus the same 8/24 baseline. Seed-2026 Control completed
+with 7/24 versus 7/24 at baseline. The final training endpoint and all
+held-out evaluations are pending.
