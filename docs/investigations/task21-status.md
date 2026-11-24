@@ -353,6 +353,8 @@ OPSD and Dr. GRPO. The first execution identity is
   all six arms against attempted episodes. Its 51 exposure points were
   independently observed in cloud history. Training tasks evolve and the
   development set is reused, so these curves are not held-out comparisons.
+  An overlaid development comparison chart and its table were also published
+  and independently observed in the run's cloud history.
   A second matched seed was frozen at `6a3d3f4`, with seed 2027 the only
   configuration difference and the same calibration coefficients. Its
   Control `34300635` / `09c37760aad43848c1591a61`, A `34300641` /
