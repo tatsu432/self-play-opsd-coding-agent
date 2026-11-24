@@ -300,6 +300,10 @@ OPSD and Dr. GRPO. The first execution identity is
   endpoint evaluation; the last observed Control/B counts for seed 2026 were
   488/444 and seed-2027 B was at 476. Do not treat the committed Control
   checkpoint as a verified endpoint until its scheduler and checksums pass.
+  Control allocation `34362516` then stopped cleanly before completing that
+  evaluation, and the watcher submitted `34482792` from checkpoint `000021`;
+  it was pending at the check. The training exposure remains 512 and prior
+  allocations remain in the ledger. Do not submit a duplicate.
   Seed-2026 B continuation `34360808` reached its 12-hour limit with Slurm
   state `TIMEOUT`; the watcher reconciled its 444-episode checkpoint
   `000017` and submitted continuation `34480862`, which was pending at the
