@@ -361,7 +361,9 @@ OPSD and Dr. GRPO. The first execution identity is
   independently observed in cloud history. Training tasks evolve and the
   development set is reused, so these curves are not held-out comparisons.
   An overlaid development comparison chart and its table were also published
-  and independently observed in the run's cloud history.
+  and independently observed in the run's cloud history. A training-health
+  table in that run records per-arm repair, mixed-group, proposal, truncation,
+  tool-error, retry and numerical counts from the verified histories.
   The separate [held-out progress stream](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/4e507c652d2e258a12289799)
   reports completed task-record counts out of 82 per evaluation cell, not
   partial scores or private task contents.
