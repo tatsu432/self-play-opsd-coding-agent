@@ -1,6 +1,22 @@
 # Task 22 execution and reproduction
 
-## Qualification running · November 24, 2026
+## Matched C/D running · November 24, 2026
+
+Qualification job `34554246` / run `1a8172783b2dbd834a3332af`
+completed and passed on archived B snapshots at 0 and 128 episodes. The
+first batch had finite reference norm 5.1292 and nonzero proposer gradients
+with valid reward differences for C and D. The controller-verified receipt
+is `runs/task22/qualification-verified.json`. The main configuration
+was frozen from the successful gate in commit `41167aa`.
+
+C job `34557078` / run `b1eee3f0d23d27e43f66f75a` and D job
+`34557117` / run `9474b28f2fceda65627c1cdf` were each submitted once.
+Both are running with twelve-hour reservations and the common 95-H200-hour
+Task 22 ledger. Inspect Slurm and the ledger before any recovery or
+submission. Do not duplicate either run. Monitor checkpoints, reconcile
+actual allocations, evaluate matching endpoints, and complete the analysis.
+
+## Earlier qualification launch · November 24, 2026
 
 Yale login succeeded. Qualification job `34554246` / controller run
 `1a8172783b2dbd834a3332af` was submitted once from commit
