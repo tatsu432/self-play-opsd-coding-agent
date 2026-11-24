@@ -306,7 +306,9 @@ OPSD and Dr. GRPO. The first execution identity is
   allocations remain in the ledger. Do not submit a duplicate.
   Seed-2027 B allocation `34362518` stopped cleanly at checkpoint `000020`
   (508 episodes). Its watcher submitted continuation `34483259`, pending at
-  the check. Preserve its prior allocations and do not submit a duplicate.
+  the check. It subsequently started and committed 512 episodes; endpoint
+  evaluation and verification remained in progress. Preserve its prior
+  allocations and do not submit a duplicate.
   Seed-2026 B continuation `34360808` reached its 12-hour limit with Slurm
   state `TIMEOUT`; the watcher reconciled its 444-episode checkpoint
   `000017` and submitted continuation `34480862`, which was pending at the
