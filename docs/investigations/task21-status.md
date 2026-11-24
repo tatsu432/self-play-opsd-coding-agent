@@ -13,8 +13,8 @@ passed identity verification; each evaluated the same 82 held-out tasks. The
 per-arm baseline executions repeat work because arms within each seed share
 their initial checkpoint. Their allocations are retained in the accounting.
 
-All six trained-checkpoint evaluations have been submitted once. As of the
-latest scheduler check, the first five were running and 2027 B was pending.
+All six trained-checkpoint evaluations have been submitted once and were
+running at the latest scheduler check.
 Inspect the existing jobs and controller ledgers before any recovery; do not
 submit duplicates. No final held-out scores have been reviewed.
 
