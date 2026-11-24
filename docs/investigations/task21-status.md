@@ -5,6 +5,35 @@ useful verifier-driven updates before comparing nominal ungated OPSD, gated
 OPSD and Dr. GRPO. The first execution identity is
 `repair-selfplay-2026-task21-pdb-v1`.
 
+## Held-out evaluation in progress
+
+All six 512-episode training endpoints and their checkpoint checksums have
+been verified. The six held-out baseline evaluations completed exit 0 and
+passed identity verification; each evaluated the same 82 held-out tasks. The
+per-arm baseline executions repeat work because arms within each seed share
+their initial checkpoint. Their allocations are retained in the accounting.
+
+All six trained-checkpoint evaluations have been submitted once. As of the
+latest scheduler check, the first five were running and 2027 B was pending.
+Inspect the existing jobs and controller ledgers before any recovery; do not
+submit duplicates. No final held-out scores have been reviewed.
+
+| Seed | Arm | Slurm job | Controller run |
+| --- | --- | --- | --- |
+| 2026 | Control | 34520327 | `67d7e6a9b020e135da98c893` |
+| 2026 | A | 34520385 | `4605dfc4b20207b32332c25a` |
+| 2026 | B | 34519629 | `d5f96e070b2811ba5c5fe7b0` |
+| 2027 | Control | 34520388 | `df336c7530d75c96f183ca7c` |
+| 2027 | A | 34518622 | `8f744246aa6dd66285b1f9b1` |
+| 2027 | B | 34520679 | `ee1f5b80df8c80b1cc6bc77d` |
+
+Progress counts without scores are available in [W&B](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/4e507c652d2e258a12289799).
+The private launcher and analysis processes monitor these exact runs and
+write `runs/task21/final-evals-complete.json` only after all are verified.
+Shared free space was approximately 56 GiB at the latest check; the launcher
+requires at least 20 GiB before submitting a job. The full local suite passed
+506 tests with 22 skipped, and Ruff and mypy passed after integration.
+
 ## Evidence
 
 - The initial CPU pilot admitted **11 parent-disjoint PDB single-bug tasks**,
