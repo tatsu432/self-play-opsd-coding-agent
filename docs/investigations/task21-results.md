@@ -65,9 +65,8 @@ report will add verified endpoint scores, paired uncertainty, training-signal
 and efficiency curves, actual allocations, and the supported research
 decision after the evaluations finish.
 
-All six runs have committed 512 training attempts. The following aggregate
-diagnostics are from their committed iterations; the seed-2026 B endpoint was
-still awaiting final verification when these counts were inspected. Each
+All six runs have completed and verified 512 training attempts. The following
+aggregate diagnostics are from their committed iterations. Each
 mixed group contains four attempts with both successes and failures.
 
 | Seed | Method | Verified repairs / 512 | First / last 128 | Mixed groups / 128 | Nonzero RL updates |
@@ -100,5 +99,5 @@ for seeds 2026 and 2027, respectively, on this same monitor. Their held-out
 evaluations remain pending. The seed-2027 Control endpoint also completed,
 scoring 8/24 versus 8/24 at baseline on the reused monitor; seed-2027 B
 scored 11/24 versus the same 8/24 baseline. Seed-2026 Control completed
-with 7/24 versus 7/24 at baseline. The final training endpoint and all
-held-out evaluations are pending.
+with 7/24 versus 7/24 at baseline, and seed-2026 B scored 13/24 versus
+7/24. All held-out evaluations remain pending.

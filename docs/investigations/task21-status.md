@@ -330,10 +330,12 @@ OPSD and Dr. GRPO. The first execution identity is
   checkpoint `000021` and checksum verified; the reused development-monitor
   score was 7/24, the same as baseline. Preserve all prior allocations and do
   not duplicate the completed run. Independent final evaluation is pending.
-  Seed-2026 B later committed 512 episodes; continuation `34480862` remained
-  running, with endpoint evaluation and verification still pending. Thus all
-  six arms have reached the frozen exposure, but only five endpoints are
-  verified and independent final evaluations have not yet started.
+  Seed-2026 B continuation `34480862` completed exit 0 in 12,616
+  H200-seconds. Its 512-episode checkpoint `000020` and checksum verified.
+  Its reused development-monitor score was 13/24 versus 7/24 at baseline;
+  do not treat that as a held-out result. All six training endpoints have
+  reached the frozen exposure and verified; independent final evaluations
+  remain pending. Preserve all attempts and never duplicate completed runs.
   A subsequent full local validation passed 506 tests with 22 skipped; Ruff
   lint and formatting and mypy on 66 source files also passed. These checks
   establish implementation health, not the outcome of the ongoing study.
