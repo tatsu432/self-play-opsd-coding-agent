@@ -56,6 +56,11 @@ initialization, data, and frozen study settings; independent endpoint scoring
 and resource accounting remain pending. Development-monitor results reuse
 24 tasks and are not held-out final results.
 
+Reconciled matched-training allocations, including timed-out and resumed
+attempts, total approximately 74.167 H200-hours for seed 2026 and 71.375
+for seed 2027. These are training allocations for the three arms per seed;
+pilot, screening and held-out evaluation allocations are additional.
+
 The A and B arms use the same nominal distillation coefficient, calibrated
 to the gated gradient. At the seeded initial calibration, the ungated and
 gated gradient norms differed substantially. Thus an A/B difference would
