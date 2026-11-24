@@ -13,10 +13,16 @@ passed identity verification; each evaluated the same 82 held-out tasks. The
 per-arm baseline executions repeat work because arms within each seed share
 their initial checkpoint. Their allocations are retained in the accounting.
 
-All six trained-checkpoint evaluations have been submitted once and were
-running at the latest scheduler check.
-Inspect the existing jobs and controller ledgers before any recovery; do not
-submit duplicates. No final held-out scores have been reviewed.
+All six trained-checkpoint evaluations were submitted once and subsequently
+failed on November 24 while shared project storage fell to zero free space.
+The scheduler recorded failure for all six; the exact underlying exception is
+not yet established because the output did not expose it. Their combined
+allocation was 16,846 H200-seconds (4.6794 hours). Preserve the existing
+attempts and task records, inspect the ledgers, and do not launch duplicates
+or resume until shared storage has recovered. The evaluator reuses existing
+task records only after checking the frozen task, snapshot and seed identity;
+the controller still requires a reviewed recovery path for these failures.
+No final held-out scores have been reviewed.
 
 | Seed | Arm | Slurm job | Controller run |
 | --- | --- | --- | --- |
@@ -28,10 +34,14 @@ submit duplicates. No final held-out scores have been reviewed.
 | 2027 | B | 34520679 | `ee1f5b80df8c80b1cc6bc77d` |
 
 Progress counts without scores are available in [W&B](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/4e507c652d2e258a12289799).
-The private launcher and analysis processes monitor these exact runs and
-write `runs/task21/final-evals-complete.json` only after all are verified.
-Shared free space was approximately 56 GiB at the latest check; the launcher
-requires at least 20 GiB before submitting a job. The full local suite passed
+The private evaluation launcher exited after verification encountered the
+failed jobs; the analysis process still waits for
+`runs/task21/final-evals-complete.json`. The launcher requires at least 20 GiB
+before submitting a job. After storage fell to zero, four duplicate Task 21
+initial checkpoint states and 18 duplicate historical smoke-test inference
+exports were checksum-verified and hard-linked, preserving every path and
+contents. Roughly 9.8 GiB of duplicate data was removed from our footprint,
+but shared free space remained critically low. The full local suite passed
 506 tests with 22 skipped, and Ruff and mypy passed after integration.
 
 ## Evidence
