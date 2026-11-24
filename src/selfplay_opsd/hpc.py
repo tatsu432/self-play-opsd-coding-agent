@@ -1494,7 +1494,16 @@ def doctor(
         state = target.call("study", context)
         context["gpu_type"] = gpu_type or state["reports"]["freeze"].get("gpu_type", "h100")
         context["pilot_suffix"] = "-pilot-h200" if context["gpu_type"] == "h200" else "-pilot"
-        identity = execution_identity(cfg) | {
+        repository = None
+        manifest_path = Path(cfg.data_root) / "manifest.json"
+        if (
+            manifest_path.is_file()
+            and json.loads(manifest_path.read_text()).get("benchmark") == "pdb-native-v1"
+        ):
+            from selfplay_opsd.task21 import PdbRepository
+
+            repository = PdbRepository(cfg.data_root)
+        identity = execution_identity(cfg, repository=repository) | {
             "trainer_sha256": state["images"]["trainer"].get("sha256"),
             "worker_sha256": state["images"]["worker"].get("sha256"),
             "worker_setup_id": state["reports"]["worker"].get("worker_setup_id", ""),
