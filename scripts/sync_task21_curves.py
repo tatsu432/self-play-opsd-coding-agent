@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import math
 import os
 from pathlib import Path
 
@@ -74,6 +75,64 @@ def collect(private: Path, artifacts: Path) -> dict[int, dict[str, float]]:
     return points
 
 
+def health_rows(private: Path, artifacts: Path) -> list[list]:
+    """Return per-run training diagnostics; call collect first to validate inputs."""
+    result = []
+    for seed in (2026, 2027):
+        for arm in ("control", "A", "B"):
+            name = (
+                f"matched-{arm}-verified.json"
+                if seed == 2026
+                else f"matched-2027-{arm}-verified.json"
+            )
+            root = artifacts / read_json(private / name)["run_id"]
+            rows = [read_json(path) for path in sorted((root / "iterations").glob("*.json"))]
+            metrics = [row["metrics"] for row in rows if row["batch"] is not None]
+            result.append(
+                [
+                    seed,
+                    arm,
+                    sum(row["batch_episodes"] for row in metrics),
+                    sum(row["student"]["verified"] for row in metrics),
+                    sum(row["student"]["mixed_groups"] for row in metrics),
+                    sum(sum(row["learning"]["reward_histogram"].values()) for row in metrics),
+                    metrics[-1]["learning"]["effective_rl_updates"],
+                    sum(row["proposer"]["valid"] for row in metrics),
+                    sum(row["proposer"]["attempted"] for row in metrics),
+                    sum(row["proposer"]["distinct_reward_groups"] for row in metrics),
+                    sum(
+                        row["student"]["failure_categories"].get("truncation", 0) for row in metrics
+                    ),
+                    sum(row["student"]["invalid_calls"] for row in metrics),
+                    sum(row["student"]["rejected_edits"] for row in metrics),
+                    sum(row["worker_retries"] for row in metrics),
+                    sum(row["rl"]["support_exits"] for row in metrics),
+                    sum(not math.isfinite(row["shared"]["joint_gradient_norm"]) for row in metrics),
+                ]
+            )
+    return result
+
+
+HEALTH_COLUMNS = [
+    "seed",
+    "method",
+    "attempts",
+    "verified_repairs",
+    "mixed_groups",
+    "total_groups",
+    "nonzero_rl_updates",
+    "valid_proposals",
+    "proposal_attempts",
+    "distinct_reward_groups",
+    "limit_terminated_failures",
+    "invalid_tool_calls",
+    "rejected_edits",
+    "worker_retries",
+    "support_exits",
+    "nonfinite_joint_norms",
+]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--private", type=Path, default=Path("runs/task21"))
@@ -122,6 +181,13 @@ def main() -> None:
                 keys=labels,
                 title="Development monitor: 24 reused tasks (not held out)",
                 xname="Attempted training episodes",
+            )
+        }
+    )
+    run.log(
+        {
+            "training_health": wandb.Table(
+                columns=HEALTH_COLUMNS, data=health_rows(args.private, args.artifacts)
             )
         }
     )
