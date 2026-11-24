@@ -83,6 +83,10 @@ mixed group contains four attempts with both successes and failures.
 | 2027 | A | 313 | 89 / 71 | 58 | 19 |
 | 2027 | B | 313 | 79 / 71 | 61 | 20 |
 
+The Control/A/B runs performed 19/19/20 optimizer steps for seed 2026 and
+21/21/21 for seed 2027. Different valid-proposal counts produced different
+batch counts despite identical attempted-episode exposure.
+
 These training rewards are on evolving proposer-generated tasks, so early and
 late values are not a controlled learning comparison. Recorded joint gradient
 norms were finite and reported support exits and worker retries were zero.
