@@ -1,3 +1,75 @@
+# Task 21 final held-out results
+
+The frozen 512-episode study completed Control (Dr. GRPO), A (ungated
+OPSD), and B (gated OPSD), with two matched training seeds. Every endpoint
+checkpoint and all 12 baseline/endpoint evaluations were verified. The same
+held-out tasks are reused for all arms; the seeds are separate training runs,
+not separate test sets. The eight PDB-Multi tasks and the BigCodeBench cells
+are small, so their results are exploratory.
+
+| Seed | Checkpoint | PDB single / 64 | PDB multi / 8 | PDB BigCodeBench / 1 | BigCodeBench mutants / 9 |
+|---|---|---:|---:|---:|---:|
+| 2026 | Initial | 21 | 1 | 1 | 4 |
+| 2026 | Control | 22 | 0 | 1 | 3 |
+| 2026 | A | 26 | 3 | 1 | 6 |
+| 2026 | B | 28 | 0 | 1 | 5 |
+| 2027 | Initial | 20 | 0 | 1 | 2 |
+| 2027 | Control | 21 | 0 | 1 | 4 |
+| 2027 | A | 21 | 1 | 1 | 7 |
+| 2027 | B | 28 | 3 | 1 | 5 |
+
+The initial scores in each seed match task by task across the three arms. On
+PDB single, B minus Control was +6/64 (+9.4 percentage points) for 2026 and
++7/64 (+10.9 points) for 2027. Family bootstrap 95% intervals conditional on
+each training run were [−3.1, +21.9] and [−1.6, +23.4] points. A minus Control
+was +4/64 and 0/64, with intervals [−7.8, +20.3] and [−15.6, +15.6] points.
+These task-based intervals do not quantify training-seed uncertainty. Two
+seeds and the limited training duration are insufficient to establish a robust
+objective winner; a zero-width empirical interval on a tiny cell does not
+establish equivalence. The 1- and 9-example BigCodeBench cells are not a broad
+external benchmark. The PDB-Multi results vary substantially between seeds.
+
+All arms attempted 512 episodes, but generated task distributions differed by
+method, and training required only 19–21 optimizer steps. The study does not
+establish convergence or that this was enough optimization. Each initial
+checkpoint was evaluated separately per arm, which consumed extra compute;
+its repeated initial outcomes should not be counted as independent examples.
+Endpoint training allocations were 25.667/20.984/27.515 H200-hours for
+Control/A/B in 2026 and 24.235/22.439/24.701 in 2027. These include job
+continuations and are not equal-compute endpoints. The full study allocated
+**217.155 H200-hours**, including pilots, evaluations, failed attempts, and
+resumptions; all reservations were reconciled. Six first endpoint evaluation
+attempts failed while the shared project filesystem was full; the precise
+failure cause was not established. Existing partial records were checked and
+resumed, and the failed allocations remain included in accounting.
+
+The 64-task primary endpoint had 29–38 truncations per trained arm. Limits on
+turns, context, or tokens are therefore a major observable failure mode.
+Training rewards use evolving proposer-generated tasks and are not a fixed-set
+learning curve. The 24-task development set was repeatedly inspected; it is a
+monitor, not fresh confirmation. Two seeds offer a limited replication check,
+but a deeper single-seed study could better address the unresolved optimization
+depth question. The checkpoints save the adapter, Adam optimizer and random state, and the
+training loop restores them; the endpoint is excluded from the scientific
+hash. This makes a longer continuation technically plausible. A new endpoint
+still needs a checked controller/ledger workflow and a small resume validation,
+since extending a completed run was not tested. No extra training is implied
+by this result.
+
+Figures: [difficulty screen](../figures/task21/difficulty.pdf),
+[2026 learning/efficiency](../figures/task21/learning-and-efficiency-2026.pdf),
+[2027 learning/efficiency](../figures/task21/learning-and-efficiency-2027.pdf),
+[2026 paired intervals](../figures/task21/paired-intervals-2026.pdf), and
+[2027 paired intervals](../figures/task21/paired-intervals-2027.pdf).
+Aggregate [W&B final results](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/task21-final-aggregates),
+[learning curves](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/e3684c8e0122b912f97c238a),
+and [held-out progress](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/4e507c652d2e258a12289799)
+are available; the latter records counts, not endpoint scores. Raw trajectories,
+private datasets, checkpoints and detailed analysis remain in ignored storage.
+See [status and reproducibility](task21-status.md).
+
+## Earlier pilot and monitoring evidence
+
 # Task 21 research results — preliminary
 
 The matched Control/A/B training and independent final evaluations are still

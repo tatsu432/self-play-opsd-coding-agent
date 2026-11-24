@@ -23,10 +23,14 @@ In the completed shared pilot, seven of 16 solver groups were mixed, but valid
 proposals had no within-parent reward differences; development changed from
 7/24 to 6/24. A revised follow-up produced four solver updates and valid-only
 reward differences on five parents; development changed from 7/24 to 8/24.
-Matched 512-episode Control, A and B training has completed for seeds 2026 and
-2027; independent held-out evaluations are underway, so objective conclusions
-are not yet available.
-[Preliminary Task 21 findings](docs/investigations/task21-results.md) ·
+Matched 512-episode Control, A and B training and held-out evaluations
+completed for seeds 2026 and 2027. On 64 PDB single tasks, gated B solved
+28/64 in each seed, versus 22/64 and 21/64 for Control; paired task intervals
+include zero. The 19–21 optimization steps and two seeds do not establish
+convergence or a reliable winner. Total allocation was 217.155 H200-hours,
+including failed and resumed jobs.
+[Task 21 results](docs/investigations/task21-results.md) ·
+[W&B final table](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/task21-final-aggregates) ·
 [status and reproduction](docs/investigations/task21-status.md)
 
 Task 20 audited the Task 19 training batches and found just two to four

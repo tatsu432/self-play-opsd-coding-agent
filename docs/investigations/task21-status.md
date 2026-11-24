@@ -1,3 +1,23 @@
+# Task 21 completion reconciliation
+
+All six 512-episode matched training endpoints and all 12 frozen baseline and
+endpoint evaluations completed and passed identity/checkpoint verification.
+The paired held-out analysis is `runs/task21/matched-analysis/`, with frozen
+manifest `runs/task21/matched-analysis-manifest.json` and allocation ledger
+`runs/task21/budget-matched-final.json`. The total reconciled allocation is
+217.154722 H200-hours, including failed attempts and all resumptions. Final
+scores, limits, uncertainty, and figures are in [results](task21-results.md).
+The six recovered endpoint jobs were 34527405, 34527409, 34527411, 34527413,
+34527418 and 34527419; do not rerun completed jobs. All were completed exit 0.
+Six earlier failed endpoint jobs were retained in the ledger; they failed
+while shared storage was exhausted, without a proven single failure cause.
+Verified identical own checkpoint files were hard-linked while retaining their
+paths, permissions, and checksums; unique scientific records remain preserved.
+No additional training or seeds are part of this completed study. The private
+run artifacts, datasets and checkpoints remain ignored.
+
+## Execution history
+
 # Task 21 · PDB verification and learning-signal study
 
 Task 21 uses executable PDB repairs to test whether Qwen3.5-4B can receive
