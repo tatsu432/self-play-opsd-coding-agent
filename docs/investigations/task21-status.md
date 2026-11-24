@@ -279,6 +279,9 @@ OPSD and Dr. GRPO. The first execution identity is
   Seven inactive Task 18 rollout exports were later verified in two identical
   SHA-256 groups and hard-linked within each group, saving approximately
   1.23 GiB while retaining every original export path and its contents.
+  Six identical inactive Task 17 interface exports were then verified against
+  those same groups and hard-linked, saving another approximately 1.48 GiB
+  without removing any export path, checkpoint or scientific record.
   Subsequently, seed-2026 A committed 512 episodes while its job continued
   endpoint work. Continuation `34360563` then completed exit 0 after 32,523
   H200-seconds, and checkpoint `000019` and its checksum were verified.
