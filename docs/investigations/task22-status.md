@@ -1,5 +1,16 @@
 # Task 22 execution and reproduction
 
+## Qualification running · November 24, 2026
+
+Yale login succeeded. Qualification job `34554246` / controller run
+`1a8172783b2dbd834a3332af` was submitted once from commit
+`2eb8481b68a54dd8691a7b52cb1302887438f36c`, with a three-hour H200
+reservation under the 95-hour Task 22 ledger. It is running on
+`a1124u19n01`. The initial adapter identity matches Task 21, and the
+reference cache is prepared. Inspect the live scheduler and ledger before
+any action. Never duplicate this run. Group project storage was 98% used,
+with approximately 91 GiB free at launch. Continue monitoring.
+
 ## Local readiness · November 24, 2026
 
 Task 22 adds PDB reference alignment to the existing shared LoRA trainer. Its
@@ -14,10 +25,8 @@ Local hashes and policy signatures verified B batches `000001`, `000007`,
 128, 256, and 384 attempted episodes. The controller and trainer check the
 remote checkpoint contents and saved behavior and teacher scores before use.
 The successful qualification must produce the final verified reference actions
-and a controller-verified gate. Task 22 has no allocated GPU time or new
-endpoint results as of this entry. Two Yale Duo login attempts ended without
-an authenticated session, which prevents checking live allocations, storage
-and checkpoint availability. The previously reconciled Task 21 total is
+and a controller-verified gate. At this earlier local checkpoint, Task 22 had no allocated GPU time or new
+endpoint results. The subsequent qualification is recorded above. The previously reconciled Task 21 total is
 217.155 H200-hours. See the [qualification record](task22-alignment-qualification.md)
 and [baseline analyses](task22-mechanistic-analysis.md).
 
@@ -52,7 +61,7 @@ Qualify for three hours first. A recoverable stop may use up to two additional
 hours, subject to the shared five-hour qualification limit.
 
 ```bash
-uv run --frozen selfplay hpc submit task21-align-qualify \
+uv run --frozen selfplay hpc submit --operation task21-align-qualify \
   --settings configs/task22-qualification.yaml --method control --profile single_gpu_80gb \
   --gpu-type h200 --account cpsc4880 --stage-wall-minutes 180 --task20-budget-hours 95 --dry-run
 ```
@@ -77,7 +86,7 @@ matches the submitted checkout.
 ```bash
 uv run --frozen python scripts/freeze_task22.py --gate GATE_JSON --verified VERIFIED_JSON
 uv run --frozen selfplay hpc sync --settings configs/task22-main.yaml
-uv run --frozen selfplay hpc submit task21-main --settings configs/task22-main.yaml \
+uv run --frozen selfplay hpc submit --operation task21-main --settings configs/task22-main.yaml \
   --method C --profile single_gpu_80gb --gpu-type h200 --account cpsc4880 \
   --stage-wall-minutes 720 --task20-budget-hours 95 --dry-run
 ```
