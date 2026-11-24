@@ -300,6 +300,11 @@ OPSD and Dr. GRPO. The first execution identity is
   endpoint evaluation; the last observed Control/B counts for seed 2026 were
   488/444 and seed-2027 B was at 476. Do not treat the committed Control
   checkpoint as a verified endpoint until its scheduler and checksums pass.
+  Seed-2026 B continuation `34360808` reached its 12-hour limit with Slurm
+  state `TIMEOUT`; the watcher reconciled its 444-episode checkpoint
+  `000017` and submitted continuation `34480862`, which was pending at the
+  check. Both previous allocations remain in the ledger; never duplicate
+  the active continuation.
   A subsequent full local validation passed 506 tests with 22 skipped; Ruff
   lint and formatting and mypy on 66 source files also passed. These checks
   establish implementation health, not the outcome of the ongoing study.
