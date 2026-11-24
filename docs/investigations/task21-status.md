@@ -64,6 +64,8 @@ hard-linking, and every original checkpoint path was retained. Shared free
 space increased from approximately 2 GiB to 29 GiB; the measured change is
 subject to other users' concurrent activity. Recovery still requires three
 consecutive checks above the 20 GiB guard.
+Matching historical rollout adapter exports were also linked after verifying
+their actual hashes, owner, mode and size; all original paths remain present.
 
 ## Evidence
 
