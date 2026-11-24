@@ -84,6 +84,10 @@ norms were finite and reported support exits and worker retries were zero.
 However, 137–212 attempts per run failed after reaching a turn, context, or
 token limit, and scheduler timeouts required recorded continuations. Those
 limitations and the held-out scores must be considered in the final decision.
+The [W&B learning-curves run](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/e3684c8e0122b912f97c238a)
+contains an overlaid development-monitor chart and a per-arm training-health
+table. The separate [evaluation-progress run](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/4e507c652d2e258a12289799)
+tracks task-record counts without exposing partial scores.
 
 The 384-episode development-monitor scores below reuse the same 24 tasks at
 each milestone. They are shown to document the observed trajectory, not as
