@@ -305,6 +305,11 @@ OPSD and Dr. GRPO. The first execution identity is
   `000017` and submitted continuation `34480862`, which was pending at the
   check. Both previous allocations remain in the ledger; never duplicate
   the active continuation.
+  That B continuation subsequently started. Seed-2026 Control continuation
+  `34361248` also reached its 12-hour limit (`TIMEOUT`); its watcher resumed
+  the same logical run from checkpoint `000020` at 488 episodes as
+  `34481268`, which started. Preserve all prior allocations and do not
+  duplicate either active continuation.
   A subsequent full local validation passed 506 tests with 22 skipped; Ruff
   lint and formatting and mypy on 66 source files also passed. These checks
   establish implementation health, not the outcome of the ongoing study.
