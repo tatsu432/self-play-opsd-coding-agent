@@ -107,6 +107,24 @@ def main() -> None:
     run.define_metric("*", step_metric="episodes")
     for episode, metrics in sorted(points.items()):
         run.log({"episodes": episode, **metrics})
+    milestones = (0, 64, 128, 256, 384, 512)
+    labels = [f"{seed} {arm}" for seed in (2026, 2027) for arm in ("control", "A", "B")]
+    keys = [
+        f"seed_{seed}/{arm}/development_accuracy"
+        for seed in (2026, 2027)
+        for arm in ("control", "A", "B")
+    ]
+    run.log(
+        {
+            "development_comparison": wandb.plot.line_series(
+                xs=list(milestones),
+                ys=[[points[step][key] for step in milestones] for key in keys],
+                keys=labels,
+                title="Development monitor: 24 reused tasks (not held out)",
+                xname="Attempted training episodes",
+            )
+        }
+    )
     run.finish()
     atomic_json(receipt, {"run_id": run_id, "status": "sent", "points": len(points)})
     print(
