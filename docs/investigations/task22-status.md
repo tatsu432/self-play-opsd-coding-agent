@@ -12,7 +12,9 @@ was frozen from the successful gate in commit `41167aa`.
 C job `34557078` / run `b1eee3f0d23d27e43f66f75a` and D job
 `34557117` / run `9474b28f2fceda65627c1cdf` were each submitted once.
 Both are running with twelve-hour reservations and the common 95-H200-hour
-Task 22 ledger. Inspect Slurm and the ledger before any recovery or
+Task 22 ledger. At 128 attempted episodes, the reused 24-task development
+monitor scored 9/24 for C and 8/24 for D. All recorded joint gradients were
+finite through that checkpoint. These are development measurements. Inspect Slurm and the ledger before any recovery or
 submission. Do not duplicate either run. Monitor checkpoints, reconcile
 actual allocations, evaluate matching endpoints, and complete the analysis.
 
