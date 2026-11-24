@@ -32,6 +32,50 @@ def test_frozen_parent_exclusions_are_training_only_and_leave_eligible_schedule(
         OnlineSupplyConfig(excluded_parent_ids=["bad", "bad"])
 
 
+def test_reviewed_task21_evaluation_recovery_respects_storage_and_ledger(tmp_path, monkeypatch):
+    import json
+
+    remote = script("hpc_remote")
+    run_id, job_id = "ee1f5b80df8c80b1cc6bc77d", "34520679"
+    ledger = tmp_path / "ledger.json"
+    run = tmp_path / "run"
+    run.mkdir()
+    checkpoint = run / "checkpoints/000021"
+    checkpoint.mkdir(parents=True)
+    ledger.write_text(
+        json.dumps({"identity": "id", "attempts": [{"job_id": job_id}], "run_dir": str(run)})
+    )
+    monkeypatch.setattr(remote, "ledger_path", lambda _: ledger)
+    monkeypatch.setattr(remote, "artifact_dir", lambda _: run)
+    monkeypatch.setattr(remote, "workspace", lambda _: tmp_path)
+    monkeypatch.setattr(remote, "job_state", lambda _: {"state": "FAILED"})
+    monkeypatch.setattr(remote, "completed_job_is_final", lambda _: False)
+    monkeypatch.setattr(remote, "verified_checkpoint", lambda _: str(checkpoint))
+    monkeypatch.setattr(remote, "check_checkpoint", lambda *_: {"iteration": 21})
+    submitted = []
+    monkeypatch.setattr(remote, "submit", lambda p: submitted.append(p) or {"submitted": True})
+    payload = {
+        "run_id": run_id,
+        "identity": "id",
+        "operation": "task21-evaluate",
+        "explicit_continue": True,
+        "task20_checkpoint_iteration": 21,
+        "max_continuations": 16,
+    }
+    monkeypatch.setattr(remote.shutil, "disk_usage", lambda _: SimpleNamespace(free=19 * 1024**3))
+    assert remote.recover(payload)["reason"] == "shared_storage_below_20_gib"
+    assert not submitted
+    monkeypatch.setattr(remote.shutil, "disk_usage", lambda _: SimpleNamespace(free=21 * 1024**3))
+    monkeypatch.setattr(remote, "check_checkpoint", lambda *_: {"iteration": 20})
+    assert remote.recover(payload)["reason"].startswith("checkpoint_unavailable:")
+    assert not submitted
+    monkeypatch.setattr(remote, "check_checkpoint", lambda *_: {"iteration": 21})
+    assert remote.recover(payload)["submitted"]
+    assert submitted[0]["resume"] == str(checkpoint)
+    assert remote.recover(payload)["reason"] == "concurrent_or_limited_recovery"
+    assert len(submitted) == 1
+
+
 def turn():
     return TokenTurn(
         prompt_ids=[1],

@@ -682,6 +682,59 @@ def recover(payload: dict) -> dict:
                 }
             )
             return {**result, "state": state, "resume": str(progress)}
+    # These exact evaluation allocations failed together while the shared
+    # filesystem was full. The evaluator checks each saved task's frozen
+    # identity before reuse; never generalize this review to other failures.
+    reviewed_evaluations = {
+        "8f744246aa6dd66285b1f9b1": "34518622",
+        "d5f96e070b2811ba5c5fe7b0": "34519629",
+        "67d7e6a9b020e135da98c893": "34520327",
+        "4605dfc4b20207b32332c25a": "34520385",
+        "df336c7530d75c96f183ca7c": "34520388",
+        "ee1f5b80df8c80b1cc6bc77d": "34520679",
+    }
+    previous_job = ledger["attempts"][-1]["job_id"]
+    if (
+        payload.get("explicit_continue")
+        and payload.get("operation") == "task21-evaluate"
+        and state == "FAILED"
+        and reviewed_evaluations.get(payload["run_id"]) == previous_job
+    ):
+        if Path(ledger.get("run_dir", "")).resolve() != artifact_dir(payload).resolve():
+            return {"submitted": False, "state": state, "reason": "evaluation_directory_mismatch"}
+        if shutil.disk_usage(workspace(payload)).free < 20 * 1024**3:
+            return {"submitted": False, "state": state, "reason": "shared_storage_below_20_gib"}
+        try:
+            checkpoint = verified_checkpoint(payload)
+            metadata = check_checkpoint(Path(checkpoint), payload)
+            if metadata["iteration"] != payload["task20_checkpoint_iteration"]:
+                raise ValueError("Evaluation checkpoint iteration differs")
+        except (OSError, KeyError, ValueError) as exc:
+            return {"submitted": False, "state": state, "reason": f"checkpoint_unavailable: {exc}"}
+        with locked(path.with_suffix(".lock")):
+            current = read_ledger(path)
+            if (
+                current["attempts"][-1]["job_id"] != previous_job
+                or current.get("recovery_from_job") == previous_job
+                or current.get("continuations", 0) >= payload.get("max_continuations", 0)
+            ):
+                return {
+                    "submitted": False,
+                    "state": state,
+                    "reason": "concurrent_or_limited_recovery",
+                }
+            current["continuations"] = current.get("continuations", 0) + 1
+            current["recovery_from_job"] = previous_job
+            current.setdefault("reviewed_evaluation_recoveries", []).append(
+                {
+                    "job_id": previous_job,
+                    "checkpoint": checkpoint,
+                    "reason": "storage_exhaustion_incident",
+                }
+            )
+            write_json(path, current)
+        result = submit({**payload, "resume": checkpoint})
+        return {**result, "state": state, "resume": checkpoint}
     if requested_stop is not None and not planned:
         return {"submitted": False, "state": state, "reason": "not_a_clean_continuation"}
     if state == "COMPLETED" and not planned:
