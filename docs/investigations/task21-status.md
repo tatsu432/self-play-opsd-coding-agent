@@ -22,6 +22,11 @@ attempts and task records, inspect the ledgers, and do not launch duplicates
 or resume until shared storage has recovered. The evaluator reuses existing
 task records only after checking the frozen task, snapshot and seed identity;
 the controller has a narrowly reviewed recovery path for these exact job IDs.
+After three consecutive checks above 20 GiB, the six continuations were
+submitted once as jobs `34527405`, `34527409`, `34527411`, `34527413`,
+`34527418`, and `34527419`, in the same order as the table below. They were
+pending at submission. The original logical run IDs and failed attempts are
+retained; inspect their ledgers before any action and never duplicate them.
 No final held-out scores have been reviewed.
 
 | Seed | Arm | Slurm job | Controller run |
@@ -37,9 +42,9 @@ Progress counts without scores are available in [W&B](https://wandb.ai/tatsu432s
 The private evaluation launcher exited after verification encountered the
 failed jobs; the analysis process still waits for
 `runs/task21/final-evals-complete.json`. The private
-`runs/task21/recover_after_storage.py` process waits for three consecutive
-checks at or above 20 GiB, then uses the reviewed controller recovery and
-restarts receipt-guarded monitoring. The live recovery guard was verified to
+`runs/task21/recover_after_storage.py` process waited for three consecutive
+checks at or above 20 GiB, used the reviewed controller recovery, and
+restarted receipt-guarded monitoring. The live recovery guard was verified to
 refuse submission at 2 GiB; do not run another copy of the recovery process.
 After storage fell to zero, four duplicate Task 21
 initial checkpoint states and 18 duplicate historical smoke-test inference
