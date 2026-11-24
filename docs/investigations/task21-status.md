@@ -330,6 +330,8 @@ OPSD and Dr. GRPO. The first execution identity is
   checkpoint `000021` and checksum verified; the reused development-monitor
   score was 7/24, the same as baseline. Preserve all prior allocations and do
   not duplicate the completed run. Independent final evaluation is pending.
+  Seed-2026 B later committed 504 episodes; continuation `34480862` remained
+  running, with endpoint evaluation and verification still pending.
   A subsequent full local validation passed 506 tests with 22 skipped; Ruff
   lint and formatting and mypy on 66 source files also passed. These checks
   establish implementation health, not the outcome of the ongoing study.
