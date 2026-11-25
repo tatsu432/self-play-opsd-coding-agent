@@ -8,7 +8,8 @@ set: C job `34617090` used 42,959 H200-seconds and retained 15 of 24 task
 records; D job `34617349` used 42,889 seconds and retained 7 of 24. Neither
 `complete-main.json` existed at the stop. Guarded continuations C `34671026`
 and D `34671002` were submitted once from checkpoints `000019` and `000021`,
-respectively. Both were pending at the last check. Their pending wall limits
+respectively. Both started and reported running health under their new job
+IDs. Their pending wall limits
 were reduced from 12 to 2 hours based on the remaining monitor tasks; the
 original budget reservations remain and the intent/results are recorded in
 `runs/task22/pending-monitor-wall-adjustments.jsonl`. Inspect Slurm and the
