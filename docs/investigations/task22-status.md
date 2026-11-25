@@ -28,9 +28,9 @@ Both subsequently committed 440 episodes (C `000017`, D `000018`), with
 their continuation jobs still active.
 Later checkpoints reached C 480 (`000018`) and D 468 (`000019`); both jobs
 continued toward the 512-episode endpoint.
-C has since committed 512 episodes (`000019`), and D reached 500 (`000020`).
-The final development monitor and completion markers were not yet complete
-at this observation; do not treat either job as complete or duplicate it.
+Both have since committed 512 episodes: C `000019`, D `000021`. Their final
+development monitors and completion markers were not yet complete at this
+observation; do not treat either job as complete or duplicate it.
 
 Qualification job `34554246` / run `1a8172783b2dbd834a3332af`
 completed and passed on archived B snapshots at 0 and 128 episodes. The
