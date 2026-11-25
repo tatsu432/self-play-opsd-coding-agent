@@ -1,5 +1,22 @@
 # Task 22 execution and reproduction
 
+## Seed-2027 replication in progress · November 25, 2026
+
+The user authorized a matched seed-2027 C/D extension at the original
+512-episode endpoint. It uses the separate study
+`repair-selfplay-2026-task22-pdb-alignment-seed2027-v1` and a new 80-H200-hour
+incremental ledger; the completed seed-2026 95-hour ledger is unchanged. The
+new isolated qualification job `34712276` / run `dd8382ad48d0f79b469f9f38`
+was submitted once from `6aefce421e8d886855f88dc4a72b9f5f46519cc5`. Its
+pending wall was reduced from three hours to one based on the prior 1,433-second
+qualification; its three-hour reservation and the local adjustment record are
+retained. Inspect scheduler and ledger before acting, and never duplicate.
+Qualification reuses the accepted worker and the same frozen Task 21 PDB
+data and archived seed-2026 B diagnostic batches; fresh C/D runs use the
+verified Task 21 seed-2027 initial adapter and monitoring baseline. After
+qualification, freeze the 2027 control, run C and D, verify endpoints and
+matched evaluation, analyze both seeds, document actual resources and finish.
+
 ## Completed study · November 25, 2026
 
 The existing primary jobs completed successfully and were verified and fetched:

@@ -9,6 +9,9 @@ proposer rewards based on task difficulty or student-gradient alignment.
 
 ## Current results
 
+The matched seed-2027 C/D replication is in progress; see
+[execution status](docs/investigations/task22-status.md).
+
 On the Precise Debugging Benchmark (PDB), Qwen3.5-4B completed matched
 512-episode self-play runs. On 64 held-out single-bug tasks, the initial model,
 Control, ungated A and gated B verified 21/22/26/28 repairs in seed 2026;
