@@ -23,6 +23,8 @@ C started on `a1126u02n01` and its initial adapter
 and reused 8/24 monitoring baseline match the completed Task 21 seed-2027
 run. D started on `a1122u11n01` and independently matched that same initial
 adapter and reused 8/24 baseline. Both jobs are running.
+Both workers reported missing W&B credentials and record telemetry locally;
+publish the verified aggregate after completion and report delivery accurately.
 Inspect the live scheduler and ledger, never duplicate, and continue from
 verified checkpoints if needed. Both use the Task 21 seed-2027 initial
 adapter and monitoring baseline. Verify their 512-episode endpoints and
