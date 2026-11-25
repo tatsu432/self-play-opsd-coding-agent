@@ -1,8 +1,9 @@
 # Task 22 mechanistic analysis
 
-The figures currently derive from the verified Task 21 checkpoints. Task 22
-will add same-batch C/D rewards and gradient measurements when qualification
-executes. The [aggregate analysis script](../../scripts/analyze_task22.py)
+The figures currently derive from the verified Task 21 checkpoints. The
+[qualification](task22-alignment-qualification.md) records same-batch C/D
+gradient measurements; the final figures will add completed C/D runs. The
+[aggregate analysis script](../../scripts/analyze_task22.py)
 recomputes the table and figures from the frozen evidence.
 
 ## Effective distillation strength

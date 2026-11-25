@@ -29,7 +29,21 @@ Remote checkpoint files, installed runtime, and worker must match before
 these batches can be used.
 
 The local Docker worker failed its containment preflight before reference
-execution. The charged qualification on Yale remains
-pending. After it executes, record the final verifier and tokenized reference
-evidence, runtime, paired reward diagnostics, allocation, and go/no-go here.
-The local native edit check is separate from this gate.
+execution. The separate Yale qualification passed: job `34554246`, run
+`1a8172783b2dbd834a3332af`, completed with exit 0, using 1,433 H200-seconds
+(0.3981 hours). Its controller-verified receipt is retained privately at
+`runs/task22/qualification-verified.json`; the verified tokenized reference
+SHA-256 is `a3876e02743ef1f86fcc5001f966ef4f4d34257abcabe8739d56be1ba11555f5`.
+The gate accepted the reference and authorized the frozen main configuration.
+
+| B snapshot episodes | Scored tasks | Reference norm | C near-zero | D near-zero | C proposer norm | D proposer norm |
+|---:|---:|---:|---:|---:|---:|---:|
+| 0 | 6 | 5.1292 | 2 | 0 | 0.02847 | 0.03690 |
+| 128 | 8 | 4.5527 | 3 | 0 | 0.02289 | 0.00113 |
+
+Both methods produced distinct valid rewards within two parent groups at the
+first snapshot and three at the second. These paired replay diagnostics show
+that D can retain a directional signal where C is near zero; they do not show
+that either reward improves held-out repair performance. The two diagnostic
+batches took approximately 643 and 717 seconds, respectively. The local
+native edit check is separate from the Yale gate.
