@@ -18,6 +18,10 @@ passing two-batch gate; frozen gate SHA-256 is
 Seed-2027 C job `34715487` / run `71d9e0d5d819cc6d06861be9` and D job
 `34715492` / run `b62da8d03c9221f029019a2f` were submitted once from
 `844af3d481b842192404e28474a1e1f7a4e0445d`, each with a 12-hour reservation.
+C started on `a1126u02n01` and its initial adapter
+`1f8ec499a25ebd6ab741410e8b5421cbf32c9ff2a2119330fb08055215fc6845`
+and reused 8/24 monitoring baseline match the completed Task 21 seed-2027
+run. D was last observed pending for priority.
 Inspect the live scheduler and ledger, never duplicate, and continue from
 verified checkpoints if needed. Both use the Task 21 seed-2027 initial
 adapter and monitoring baseline. Verify their 512-episode endpoints and
