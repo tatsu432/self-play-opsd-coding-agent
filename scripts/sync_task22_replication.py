@@ -37,6 +37,11 @@ def main() -> None:
         for name, splits in report["paired_2027"].items()
         for split, val in splits.items()
     ]
+    alignment = [
+        [source, arm, row["tasks"], counts["near_zero"], counts["informative"]]
+        for source, row in report["alignment"].items()
+        for arm, counts in row["counts"].items()
+    ]
     if not args.publish:
         print(f"{len(endpoints)} endpoint rows, {len(comparisons)} comparison rows")
         return
@@ -67,6 +72,10 @@ def main() -> None:
                         "tasks",
                     ],
                     data=comparisons,
+                ),
+                "alignment": wandb.Table(
+                    columns=["source", "reward", "tasks", "near_zero", "informative"],
+                    data=alignment,
                 ),
                 "replication_h200_hours": report["replication_h200_hours"],
             }
