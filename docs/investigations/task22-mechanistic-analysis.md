@@ -23,6 +23,16 @@ strength. These recorded cosines describe geometry along the observed
 trajectories. They do not estimate the effect of an intervention on learned
 repair accuracy.
 
+## C/D training signal
+
+The completed seed-2026 C and D trajectories each attempted 512 training
+episodes and made 19 and 21 optimizer steps, respectively. Their recorded
+near-zero alignment counts were 97 for C and zero for D. These are counts
+from different sampled task trajectories, not a matched estimate of the
+effect of the reward on repair accuracy. The qualification replay above
+provides the paired same-task diagnostic; held-out outcome evaluation is
+still in progress.
+
 ## Endpoint failures
 
 On seed-2026 primary evaluation, Initial, Control, A and B had respectively
