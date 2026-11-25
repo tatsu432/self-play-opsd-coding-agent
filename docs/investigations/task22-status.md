@@ -2,6 +2,16 @@
 
 ## Matched C/D running · November 24, 2026
 
+The initial twelve-hour segments ended in Slurm `TIMEOUT`, with their
+last complete checkpoints preserved: C `000008` at 224 episodes and D
+`000009` at 220. C used 43,225 H200-seconds and D 43,214. Guarded
+continuations were submitted once from those checkpoints: C job `34617090`
+and D job `34617349`, both pending at the last check. Their logical run IDs
+and frozen scientific identities are unchanged. Inspect their scheduler and
+ledger state before acting; never duplicate. The qualification and both
+initial segments together used 87,872 H200-seconds (24.4089 hours), with
+both new twelve-hour reservations additional under the 95-hour limit.
+
 Qualification job `34554246` / run `1a8172783b2dbd834a3332af`
 completed and passed on archived B snapshots at 0 and 128 episodes. The
 first batch had finite reference norm 5.1292 and nonzero proposer gradients
