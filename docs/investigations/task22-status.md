@@ -18,6 +18,14 @@ finite through that checkpoint. These are development measurements. Inspect Slur
 submission. Do not duplicate either run. Monitor checkpoints, reconcile
 actual allocations, evaluate matching endpoints, and complete the analysis.
 
+Both arms subsequently committed 160 attempted episodes (C checkpoint
+`000006`, D checkpoint `000007`) while their original jobs were still running.
+The latest batches had finite optimizer steps and 22/32 and 21/32 verified
+training rollouts respectively; these are not independent evaluation scores.
+The D batch recorded zero near-zero alignment signals. The budget ledger
+committed 24.398 H200-hours, including both 12-hour reservations and the
+completed qualification; actual running-job charges are not yet reconciled.
+
 ## Earlier qualification launch · November 24, 2026
 
 Yale login succeeded. Qualification job `34554246` / controller run
