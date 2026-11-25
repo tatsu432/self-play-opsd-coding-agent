@@ -13,8 +13,9 @@ ledger state before acting; never duplicate. The qualification and both
 initial segments together used 87,872 H200-seconds (24.4089 hours), with
 both new twelve-hour reservations additional under the 95-hour limit.
 Both resumed jobs subsequently committed 256 attempted episodes: C checkpoint
-`000009` and D checkpoint `000011`. The 256-episode development evaluations
-were not yet complete at this observation. Continue toward the primary
+`000009` and D checkpoint `000011`. Their 256-episode development monitors
+both scored 10/24 (at 128, C scored 9/24 and D 8/24). This reused development
+set is not held-out confirmation. Continue toward the primary
 512-episode endpoint; 256 is a prespecified fallback, not the main result.
 
 Qualification job `34554246` / run `1a8172783b2dbd834a3332af`
