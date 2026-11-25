@@ -11,9 +11,10 @@ proposer rewards. See [methods](docs/methods.md).
 
 Task 22 implements a PDB-compatible reference gradient for matched C/D
 proposer rewards. C uses the RL gradient and D uses RL plus weighted gated
-OPSD. GPU qualification passed, and both matched seed-2026 runs have reached
-256 attempted episodes while continuing toward 512. On the reused 24-task
-development monitor, both scored 10/24 at 256; held-out results are pending.
+OPSD. GPU qualification passed, and both matched seed-2026 runs have committed
+512 attempted episodes; endpoint monitoring and held-out evaluations remain
+in progress. On the reused 24-task development monitor, C/D scored 11/10 at
+384 episodes. These are not held-out results.
 [Task 22 execution and reproduction](docs/investigations/task22-status.md)
 
 Task 21 adds an isolated adapter for the Precise Debugging Benchmark (PDB)
