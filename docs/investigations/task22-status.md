@@ -1,5 +1,23 @@
 # Task 22 execution and reproduction
 
+## Primary complete; transfer in progress · November 25, 2026
+
+The existing primary jobs completed successfully and were verified and fetched:
+C `34673660` / `c3bcab0e4d4b3846c90299b2` scored 33/64, and D `34674426` /
+`190d42771d72c3fe86acc77b` scored 25/64. The paired D-minus-C difference is
+−12.5 percentage points, with a task-family bootstrap interval [−25, 0],
+conditional on these single training runs. Do not duplicate either evaluation.
+
+C transfer `34690978` / `c00321c48eb744c98a2e8fb4` completed successfully:
+cross-source 1/1, mutants 5/9 and harder transfer 1/8; its primary result was
+reused. D transfer `34693437` / `cb99c34dfae8e5bd65b7bf87` is pending. Its
+pending wall was reduced from four hours to 90 minutes based on the matched
+C transfer's 34:09 allocation, retaining the original four-hour reservation;
+the change is recorded in `runs/task22/pending-monitor-wall-adjustments.jsonl`.
+Inspect the existing job and ledger; never submit a duplicate. Verify and fetch
+D, reconcile all charges, generate final analysis and figures, complete the
+research and README reports, run checks, then merge and push the finished work.
+
 ## Matched C/D running · November 24, 2026
 
 Both 512-episode logical training runs completed successfully and their
