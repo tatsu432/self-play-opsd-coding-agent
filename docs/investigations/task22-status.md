@@ -2,6 +2,18 @@
 
 ## Matched C/D running · November 24, 2026
 
+Both 512-episode logical training runs completed successfully and their
+controller receipts and checkpoint identities were verified. C ended at
+`000019` (run `b1eee3f0d23d27e43f66f75a`) and D at `000021` (run
+`9474b28f2fceda65627c1cdf`). Their reused 512-episode development monitors
+scored C 11/24 and D 14/24; these are not held-out results. Primary held-out
+evaluations were submitted exactly once: C job `34673660` / run
+`c3bcab0e4d4b3846c90299b2` is running, and D job `34674426` / run
+`190d42771d72c3fe86acc77b` is pending. Inspect live Slurm and the shared
+ledger before acting; never duplicate. Verify, fetch and analyze these
+existing evaluations, then run the prescribed transfer evaluation as budget
+permits. The completion and final conclusions remain pending.
+
 On November 25, both 512-episode checkpoints were committed. The second
 segments stopped cleanly while evaluating the reused endpoint development
 set: C job `34617090` used 42,959 H200-seconds and retained 15 of 24 task
