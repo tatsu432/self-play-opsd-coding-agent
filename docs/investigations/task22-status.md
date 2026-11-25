@@ -6,7 +6,8 @@ The initial twelve-hour segments ended in Slurm `TIMEOUT`, with their
 last complete checkpoints preserved: C `000008` at 224 episodes and D
 `000009` at 220. C used 43,225 H200-seconds and D 43,214. Guarded
 continuations were submitted once from those checkpoints: C job `34617090`
-and D job `34617349`, both pending at the last check. Their logical run IDs
+and D job `34617349`. Both started and reported running health under their
+new allocation IDs. Their logical run IDs
 and frozen scientific identities are unchanged. Inspect their scheduler and
 ledger state before acting; never duplicate. The qualification and both
 initial segments together used 87,872 H200-seconds (24.4089 hours), with
