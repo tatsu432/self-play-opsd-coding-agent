@@ -21,6 +21,7 @@ from selfplay_opsd.task19_protocol import STUDENT_TOOLS, student_history
 from selfplay_opsd.task19_rollout import Proposal, Repair, repair
 from selfplay_opsd.task19_train import Grads, SegmentStop, add_gradient, norm
 from selfplay_opsd.task20 import Task20Control, Task20Study
+from selfplay_opsd.task22_contract import PREFIX
 
 STUDY = "repair-selfplay-2026-task21-pdb-v1"
 
@@ -45,7 +46,7 @@ class Task21Control(Task20Control):
     @model_validator(mode="after")
     def validate_study(self):
         if (
-            not self.study.startswith("repair-selfplay-2026-task21-")
+            not self.study.startswith(("repair-selfplay-2026-task21-", PREFIX))
             or self.seed not in {2026, 2027, 2028}
             or self.precision != "float32"
             or not self.cached_rollout

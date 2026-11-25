@@ -14,6 +14,7 @@ import json
 import math
 import os
 import re
+import runpy
 import shutil
 import subprocess
 import sys
@@ -46,6 +47,8 @@ TASK20_OPERATIONS = {
 
 TASK21_OPERATIONS = {
     "task21-feasibility",
+    "task21-align-qualify",
+    "task21-evaluate-primary",
     *(f"task21-{stage.removeprefix('task20-')}" for stage in TASK20_OPERATIONS),
 }
 STAGED_OPERATIONS = TASK20_OPERATIONS | TASK21_OPERATIONS
@@ -1239,6 +1242,18 @@ def submit(payload: dict) -> dict:
                 / (hashlib.sha256(f"{artifact}:{other}".encode()).hexdigest() + ".json")
             )
             checked_slots.append(other_slot)
+        if task22_budget(payload) and payload["operation"] in {
+            "task21-evaluate",
+            "task21-evaluate-primary",
+        }:
+            peer_stage = (
+                "evaluate-primary" if payload["operation"] == "task21-evaluate" else "evaluate"
+            )
+            peer = f"complete-{peer_stage}-{payload['task20_checkpoint_iteration']:06d}.json"
+            checked_slots.extend(
+                slot.with_name(hashlib.sha256(f"{artifact}:{other}".encode()).hexdigest() + ".json")
+                for other in ("complete-main.json", peer)
+            )
         for candidate_slot in dict.fromkeys(checked_slots):
             if not candidate_slot.exists():
                 continue
@@ -1370,16 +1385,17 @@ def submit(payload: dict) -> dict:
             "SELFPLAY_RESUME": (payload.get("resume") or "").replace(str(p["runs"]), "/runs", 1),
             "SELFPLAY_OUTPUT": payload.get("output") or "",
             "SELFPLAY_TASK19_RUN_ID": payload["run_id"]
-            if payload["operation"] in TASK19_OPERATIONS
+            if payload["operation"] in TASK19_OPERATIONS or task22_budget(payload)
             else "",
             "SELFPLAY_TASK19_COMMIT": payload["commit"]
-            if payload["operation"] in TASK19_OPERATIONS
+            if payload["operation"] in TASK19_OPERATIONS or task22_budget(payload)
             else "",
             "SELFPLAY_TASK20_CHECKPOINT_ITERATION": (
                 str(payload["task20_checkpoint_iteration"])
                 if payload.get("task20_checkpoint_iteration") is not None
                 else ""
             ),
+            "SELFPLAY_TASK22_EXPOSURE": str(payload.get("task22_exposure") or ""),
             "SELFPLAY_TASK15_FREEZE": payload.get("task15_freeze") or "",
             "SELFPLAY_AUDIT_SOURCE": payload.get("audit_source") or "",
             "SELFPLAY_DECISION": payload.get("decision") or "",
@@ -1528,7 +1544,7 @@ def artifact_dir(payload: dict) -> Path:
         return runs / study / suffix
     if operation in STAGED_OPERATIONS:
         stage = operation.split("-", 1)[1]
-        name = payload["method"] if stage in {"main", "evaluate"} else stage
+        name = payload["method"] if stage in {"main", "evaluate", "evaluate-primary"} else stage
         return runs / study / f"{name}-seed{payload['seed']}"
     if operation.startswith("task18-"):
         return runs / study / payload["run_id"]
@@ -1604,8 +1620,12 @@ def task21_budget(payload: dict) -> bool:
     return payload.get("study_id", "").startswith("repair-selfplay-2026-task21-")
 
 
+def task22_budget(payload: dict) -> bool:
+    return payload.get("study_id", "").startswith("repair-selfplay-2026-task22-")
+
+
 def staged_budget(payload: dict) -> bool:
-    return task20_budget(payload) or task21_budget(payload)
+    return task20_budget(payload) or task21_budget(payload) or task22_budget(payload)
 
 
 def readiness_limit(payload: dict) -> int:
@@ -1630,6 +1650,8 @@ def budget_path(payload: dict) -> Path:
     # scientific identity create a fresh allowance.
     if task19_budget(payload):
         return workspace(payload) / "state" / "task19-budget.json"
+    if task22_budget(payload):
+        return workspace(payload) / "state" / "task22-budget.json"
     if task21_budget(payload):
         return workspace(payload) / "state" / "task21-budget.json"
     if task20_budget(payload):
@@ -1648,7 +1670,9 @@ def refreshed_budget(payload: dict) -> dict:
     limit = payload.get("readiness_budget") if staged_budget(payload) else readiness_limit(payload)
     budget = json.loads(path.read_text()) if path.exists() else {"limit": limit, "reservations": {}}
     authorization = (
-        "cpsc4880-task21-v1"
+        "cpsc4880-task22-v1"
+        if task22_budget(payload)
+        else "cpsc4880-task21-v1"
         if task21_budget(payload)
         else "cpsc4880-task20-v1"
         if task20_budget(payload)
@@ -1788,6 +1812,14 @@ def reserve_budget(payload: dict, token: str):
             if spent + reserved > 12 + 1e-9:
                 raise ValueError("Pilot allocation budget exhausted")
         budget["limit"] = limit
+        if task22_budget(payload) and payload["operation"] == "task21-align-qualify":
+            used = sum(
+                item["reserved"] if item["charged"] is None else item["charged"]
+                for item in budget["reservations"].values()
+                if item["operation"] == "task21-align-qualify"
+            )
+            if used + reserved > 5 + 1e-9:
+                raise ValueError("Task 22 qualification allocation exceeds five H200-hours")
         if token in budget["reservations"]:
             raise ValueError("Readiness reservation token already exists")
         budget["reservations"][token] = {
@@ -2262,8 +2294,9 @@ def study_state(payload: dict) -> dict:
 
 
 def stage_marker(payload: dict) -> str:
-    if payload["operation"] in {"task20-evaluate", "task21-evaluate"}:
-        return f"complete-evaluate-{payload['task20_checkpoint_iteration']:06d}.json"
+    if payload["operation"] in {"task20-evaluate", "task21-evaluate", "task21-evaluate-primary"}:
+        stage = payload["operation"].split("-", 1)[1]
+        return f"complete-{stage}-{payload['task20_checkpoint_iteration']:06d}.json"
     return f"complete-{payload['operation'].split('-', 1)[1]}.json"
 
 
@@ -2300,7 +2333,7 @@ def check_task21(payload: dict) -> None:
     wall = re.fullmatch(r"([0-9]{2}):([0-5][0-9]):00", payload.get("time", ""))
     minutes = int(wall[1]) * 60 + int(wall[2]) if wall else 0
     if (
-        not task21_budget(payload)
+        not (task21_budget(payload) or task22_budget(payload))
         or payload.get("account") != "cpsc4880"
         or payload.get("gpu_count") != 1
         or payload.get("gpu_type") != "h200"
@@ -2315,7 +2348,7 @@ def check_task21(payload: dict) -> None:
         raise ValueError("Task 21 control identity is inconsistent")
     if not study_state(payload)["gates"]["worker"]:
         raise ValueError("Task 21 requires the accepted isolated worker")
-    if stage not in {"main", "evaluate"} and payload["method"] != "control":
+    if stage not in {"main", "evaluate", "evaluate-primary"} and payload["method"] != "control":
         raise ValueError("Task 21 diagnostic stages require the control arm")
     manifest = json.loads((paths(payload)["dataset"] / "manifest.json").read_text())
     if (
@@ -2324,6 +2357,11 @@ def check_task21(payload: dict) -> None:
         or not manifest.get("counts", {}).get("feasibility")
     ):
         raise ValueError("Task 21 requires its verified PDB task bundle")
+    if task22_budget(payload):
+        check_task22(payload, config)
+        return
+    if stage in {"align-qualify", "evaluate-primary"}:
+        raise ValueError("Task 22 operation requires the Task 22 study")
     needed = {"screen": "screen", "solver": "solver_train", "main": "dev_monitor"}.get(stage)
     if needed and not manifest["counts"].get(needed):
         raise ValueError(f"Task 21 stage requires the {needed} partition")
@@ -2353,6 +2391,159 @@ def check_task21(payload: dict) -> None:
             if not isinstance(checkpoint, int) or checkpoint < 0:
                 raise ValueError("Task 21 evaluation requires a verified checkpoint")
             check_checkpoint(path / "checkpoints" / f"{checkpoint:06d}", payload)
+
+
+def check_task22(payload: dict, control: dict) -> None:
+    resolved = paths(payload)
+    contract = runpy.run_path(str(resolved["checkout"] / "src/selfplay_opsd/task22_contract.py"))
+    stage = payload["operation"].removeprefix("task21-")
+    method = payload["method"]
+    limit = payload.get("readiness_budget")
+    matched = json.loads((resolved["checkout"] / "configs/task21-main.json").read_text())
+    common = contract["common_control"]
+    if (
+        payload["manifests_hash"] != contract["MATCHED_DATA"]
+        or not isinstance(limit, (int, float))
+        or not 0 < limit <= 95
+    ):
+        raise ValueError("Task 22 requires the matched PDB bundle and bounded ledger")
+    if shutil.disk_usage(resolved["base"]).free < 20 * 1024**3:
+        raise ValueError("Shared project storage has less than 20 GiB free")
+    extension = contract["EXTENSIONS"].get(payload["study_id"])
+    if extension:
+        points = [128, 256, 640] if extension == 768 else [640, 768, 896]
+        if (
+            common(control) != common(matched | {"endpoint": extension, "dev_milestones": points})
+            or method not in {"control", "A", "B"}
+            or stage not in contract["FINAL_STAGES"] | {"main"}
+            or control.get("alignment_gate_hash")
+            or control.get("reference_sha256")
+            or not DIGEST.fullmatch(control.get("parent_marker_sha256") or "")
+        ):
+            raise ValueError("Task 22 continuation must preserve the original scientific settings")
+        source = artifact_dir(payload).parent.parent / contract["BASE_STUDY"] / f"{method}-seed2026"
+        parent = source / "complete-main.json"
+        if sha256(parent) != control["parent_marker_sha256"]:
+            raise ValueError("Task 22 parent completion marker checksum differs")
+        marker = json.loads(parent.read_text())
+        checkpoint = marker["checkpoint"]
+        if not re.fullmatch(r"\d{6}", checkpoint) or marker["episodes"] != 512:
+            raise ValueError("Task 22 continuation requires the completed 512-episode parent")
+        record = task22_parent_checkpoint(payload, source, int(checkpoint), contract, method)
+        if (
+            record["episodes"] != 512
+            or marker["identity"] != record["identity"]
+            or marker["checkpoint_sha256"]
+            != sha256(source / "checkpoints" / checkpoint / "complete.json")
+        ):
+            raise ValueError("Task 22 parent marker and verified checkpoint disagree")
+        if stage in contract["FINAL_STAGES"]:
+            check_task22_evaluation(payload, {extension}, extension)
+        return
+    if payload["study_id"] != contract["STUDY"] or common(control) != common(matched):
+        raise ValueError("Task 22 requires the original matched seed-2026 scientific settings")
+    reference = contract["reference_path"](resolved["dataset"], control.get("reference_sha256", ""))
+    if sha256(reference) != control["reference_sha256"]:
+        raise ValueError("Task 22 reference sidecar checksum differs")
+    if stage == contract["QUALIFY"] and method == "control" and not control["alignment_gate_hash"]:
+        return
+    fallback = contract["B_FALLBACK"].get(payload.get("task22_exposure"))
+    baseline = method == "B" and stage in contract["FINAL_STAGES"] and fallback is not None
+    if not baseline and (
+        stage not in contract["FINAL_STAGES"] | {"main"} or method not in {"C", "D"}
+    ):
+        raise ValueError("Task 22 operation and arm do not match the primary study")
+    gate_root = artifact_dir(payload).parent / "align-qualify-seed2026"
+    gate = gate_root / "complete-align-qualify.json"
+    if sha256(gate) != control["alignment_gate_hash"]:
+        raise ValueError("Task 22 alignment gate checksum differs")
+    marker = json.loads(gate.read_text())
+    identity, report = marker["identity"], marker["result"]
+    execution = identity["execution"]
+    source = report["source_commit"]
+    run_id = report["run_id"]
+    if not SHA.fullmatch(source) or not re.fullmatch(r"[a-f0-9]{24}", run_id):
+        raise ValueError("Task 22 qualification execution identity is invalid")
+    verified = task21_verify_endpoint({"storage_root": payload["storage_root"], "run_id": run_id})
+    if (
+        not report["ready"]
+        or verified["result"] != report
+        or verified["identity"] != identity
+        or report["common_control"] != contract["identity_hash"](common(control))
+        or identity["study"] != payload["study_id"]
+        or identity["arm"] != "control"
+        or identity["reference"] != control["reference_sha256"]
+        or identity["initial"] != contract["INITIAL"]
+        or identity["data"] != payload["manifests_hash"]
+        or execution["task22_code"] != contract["code_identity"](resolved["checkout"])
+        or execution["model"] != "Qwen/Qwen3.5-4B"
+        or execution["model_revision"] != "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a"
+        or execution["tokenizer_revision"] != execution["model_revision"]
+        or execution["image"] != payload["image_sha256"]
+        or execution["worker_image"] != payload["worker_sha256"]
+        or sha256(gate_root / "references.json") != report["tokenized_sha256"]
+        or run(
+            [
+                "git",
+                "-C",
+                str(resolved["checkout"]),
+                "merge-base",
+                "--is-ancestor",
+                source,
+                payload["commit"],
+            ],
+            check=False,
+        ).returncode
+    ):
+        raise ValueError("Task 22 qualification does not match this execution")
+    if baseline:
+        if payload.get("task20_checkpoint_iteration") != fallback:
+            raise ValueError("Task 22 B fallback requires the corresponding protected checkpoint")
+        source = artifact_dir(payload).parent.parent / contract["BASE_STUDY"] / "B-seed2026"
+        record = task22_parent_checkpoint(payload, source, fallback, contract, "B")
+        if record["episodes"] != payload["task22_exposure"]:
+            raise ValueError("Task 22 B fallback checkpoint exposure differs")
+    elif stage in contract["FINAL_STAGES"]:
+        check_task22_evaluation(payload, {256, 384, 512}, 512)
+
+
+def task22_parent_checkpoint(
+    payload: dict, root: Path, iteration: int, contract: dict, arm: str
+) -> dict:
+    metadata = check_checkpoint(
+        root / "checkpoints" / f"{iteration:06d}",
+        payload
+        | {
+            "study_id": contract["BASE_STUDY"],
+            "method": arm,
+            "scientific_hash": contract["BASE_SCIENCE"],
+        },
+    )
+    identity = metadata["identity"]
+    if (
+        identity["initial"] != contract["INITIAL"]
+        or identity["execution"]["worker_image"] != payload["worker_sha256"]
+    ):
+        raise ValueError("Task 22 parent initialization or worker differs")
+    return metadata
+
+
+def check_task22_evaluation(payload: dict, allowed: set[int], endpoint: int) -> None:
+    checkpoint = payload.get("task20_checkpoint_iteration")
+    exposure = payload.get("task22_exposure")
+    if not isinstance(checkpoint, int) or checkpoint < 0 or exposure not in allowed:
+        raise ValueError("Task 22 evaluation requires a numbered checkpoint and declared exposure")
+    root = artifact_dir(payload)
+    path = root / "checkpoints" / f"{checkpoint:06d}"
+    record = check_checkpoint(path, payload)
+    if record["episodes"] != exposure:
+        raise ValueError("Task 22 evaluation checkpoint and declared exposure differ")
+    if exposure == endpoint:
+        complete = json.loads((root / "complete-main.json").read_text())
+        if complete["identity"] != record["identity"] or complete["checkpoint_sha256"] != sha256(
+            path / "complete.json"
+        ):
+            raise ValueError("Task 22 main completion and final checkpoint differ")
 
 
 def check_task20(payload: dict) -> None:
@@ -3584,8 +3775,8 @@ def task20_budget_status(payload: dict) -> dict:
 
 
 def task21_budget_status(payload: dict) -> dict:
-    if not task21_budget(payload):
-        raise ValueError("Task 21 budget status requires a Task 21 study")
+    if not (task21_budget(payload) or task22_budget(payload)):
+        raise ValueError("Task 21 budget status requires a Task 21 or Task 22 study")
     with locked(workspace(payload) / "state/.budget.lock"):
         return refreshed_budget(payload)
 

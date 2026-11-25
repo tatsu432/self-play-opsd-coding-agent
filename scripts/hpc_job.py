@@ -944,6 +944,11 @@ def task13_command_args(env: dict) -> list[str]:
             + ["--operation", stage, "--arm", method]
             + (["--resume", env["SELFPLAY_RESUME"]] if env.get("SELFPLAY_RESUME") else [])
             + (["--checkpoint-iteration", checkpoint] if checkpoint else [])
+            + (
+                ["--evaluation-exposure", env["SELFPLAY_TASK22_EXPOSURE"]]
+                if env.get("SELFPLAY_TASK22_EXPOSURE")
+                else []
+            )
         )
     if operation.startswith("task18-"):
         return (

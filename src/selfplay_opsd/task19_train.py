@@ -409,6 +409,23 @@ class Study:
     ) -> dict:
         return {}
 
+    def candidate_reward(
+        self, rl: Grads, sd: Grads, reference: Grads, scale: float, successes: list[bool]
+    ) -> tuple[float, dict]:
+        candidate = rl
+        if self.arm == "D":
+            candidate = [a.add(b, alpha=scale) for a, b in zip(rl, sd, strict=True)]
+        result = alignment(candidate, reference)
+        return (
+            result.reward if result.cosine is not None else 0.0,
+            {
+                "cosine": result.cosine,
+                "reference_norm": result.reference_norm,
+                "candidate_norm": result.candidate_norm,
+                "near_zero": result.near_zero,
+            },
+        )
+
     def update(self, maximum_tasks: int, references: list) -> dict:
         started = time.monotonic()
         groups, tasks, timing = self.collect(maximum_tasks)
@@ -431,20 +448,8 @@ class Study:
             add_gradient(sd, task_sd, 1 / len(rolls))
             started_alignment = time.monotonic()
             if reference is not None:
-                candidate = task_rl
-                if self.arm == "D":
-                    candidate = [
-                        a.add(b, alpha=lambda_sd) for a, b in zip(task_rl, task_sd, strict=True)
-                    ]
-                result = alignment(candidate, reference)
-                rewards[task_id] = (
-                    result.reward if result.cosine is not None else 0.0,
-                    {
-                        "cosine": result.cosine,
-                        "reference_norm": result.reference_norm,
-                        "candidate_norm": result.candidate_norm,
-                        "near_zero": result.near_zero,
-                    },
+                rewards[task_id] = self.candidate_reward(
+                    task_rl, task_sd, reference, lambda_sd, [roll.success for roll in episodes]
                 )
             else:
                 rewards[task_id] = difficulty(float(roll.success) for roll in episodes), None
@@ -521,6 +526,7 @@ class Study:
             "proposer": {
                 "groups": len(groups),
                 "attempted": sum(map(len, groups)),
+                "generated_tokens": sum(len(row.turn.ids) for group in groups for row in group),
                 "valid": len(valid),
                 "unique": len(rolls),
                 "duplicates": sum(row.duplicate for row in valid),

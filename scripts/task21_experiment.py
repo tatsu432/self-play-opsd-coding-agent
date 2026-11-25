@@ -23,6 +23,17 @@ from selfplay_opsd.task19 import ARMS
 from selfplay_opsd.task19_policy import SharedPolicy
 from selfplay_opsd.task19_train import SegmentStop
 from selfplay_opsd.task21 import PdbRepository, Task21Control, Task21Study
+from selfplay_opsd.task22 import Task22Control, Task22Study, qualify
+from selfplay_opsd.task22_contract import (
+    B_FALLBACK,
+    BASE_STUDY,
+    FINAL_STAGES,
+    MATCHED_DATA,
+    PREFIX,
+    PRIMARY,
+    QUALIFY,
+    code_identity,
+)
 
 
 def run_sample_stage(study: Task21Study, stage: str, publish, should_stop) -> None:
@@ -77,6 +88,8 @@ def main() -> None:
             "shared-pilot",
             "main",
             "evaluate",
+            PRIMARY,
+            QUALIFY,
         ),
     )
     parser.add_argument("--settings", type=Path, required=True)
@@ -84,6 +97,7 @@ def main() -> None:
     parser.add_argument("--arm", choices=ARMS, default="control")
     parser.add_argument("--resume", type=Path)
     parser.add_argument("--checkpoint-iteration", type=int)
+    parser.add_argument("--evaluation-exposure", type=int, default=512)
     args = parser.parse_args()
     required = {
         "SELFPLAY_GPU_TYPE": "h200",
@@ -97,7 +111,48 @@ def main() -> None:
     ):
         raise RuntimeError("Task 21 requires the Yale controller and isolated worker")
     os.umask(0o077)
-    cfg = Task21Control.model_validate_json(args.settings.with_suffix(".json").read_text())
+    control = read_json(args.settings.with_suffix(".json"))
+    study_class: type[Task21Study] = Task21Study
+    cfg: Task21Control
+    if control["study"].startswith(PREFIX):
+        cfg = Task22Control.model_validate(control)
+        study_class = Task22Study
+        extension = (
+            cfg.parent_marker_sha256
+            and args.arm in {"control", "A", "B"}
+            and (
+                args.operation == "main"
+                or args.operation in FINAL_STAGES
+                and args.evaluation_exposure == cfg.endpoint
+            )
+        )
+        baseline_fallback = (
+            args.arm == "B"
+            and args.operation in FINAL_STAGES
+            and B_FALLBACK.get(args.evaluation_exposure) == args.checkpoint_iteration
+            and args.evaluation_exposure in B_FALLBACK
+            and cfg.alignment_gate_hash
+        )
+        if not (
+            extension
+            or baseline_fallback
+            or (
+                args.operation == QUALIFY
+                and args.arm == "control"
+                and not cfg.alignment_gate_hash
+                and not cfg.parent_marker_sha256
+            )
+            or (
+                args.operation in FINAL_STAGES | {"main"}
+                and args.arm in {"C", "D"}
+                and cfg.alignment_gate_hash
+            )
+        ):
+            raise ValueError("Task 22 runner requires the qualified operation and arm")
+    else:
+        cfg = Task21Control.model_validate(control)
+        if args.operation in {PRIMARY, QUALIFY}:
+            raise ValueError("Task 22 operations require the new study identity")
     if cfg.study != args.output.parent.name:
         raise ValueError("Task 21 output is outside its study")
     args.output.mkdir(parents=True, exist_ok=True)
@@ -123,6 +178,8 @@ def main() -> None:
     )
     proof = worker.preflight()
     repository = PdbRepository(Path(os.environ["SELFPLAY_DATA_ROOT"]))
+    if study_class is Task22Study and repository.hash != MATCHED_DATA:
+        raise ValueError("Task 22 PDB bundle does not match Task 21")
     if args.operation in {"feasibility", "screen"} and not repository.tasks(args.operation):
         raise ValueError("Task 21 stage lacks a verified partition")
     canaries = repository.tasks("feasibility")
@@ -165,10 +222,17 @@ def main() -> None:
         or (args.operation in {"calibrate", "main", "evaluate"} and cfg.main_mode == "fixed")
         else "shared"
     )
-    study = Task21Study(
+    if study_class is Task22Study:
+        execution["task22_code"] = code_identity(root)
+    study = study_class(
         cfg, args.arm, SharedPolicy(cfg), worker, repository, args.output, execution, mode=mode
     )
-    if args.resume is not None:
+    if isinstance(study, Task22Study):
+        study.source_commit = os.environ["SELFPLAY_TASK19_COMMIT"]
+        study.run_id = os.environ["SELFPLAY_TASK19_RUN_ID"]
+    if args.resume is not None and not (
+        isinstance(study, Task22Study) and args.operation in FINAL_STAGES
+    ):
         pointer = read_json(study.checkpoints.root / "latest.json")
         if args.resume.resolve() != (study.checkpoints.root / pointer["path"]).resolve():
             raise ValueError("Task 21 resume is outside the verified latest checkpoint")
@@ -183,6 +247,35 @@ def main() -> None:
         with telemetry(study) as publish:
             if args.operation in {"feasibility", "screen"}:
                 run_sample_stage(study, args.operation, publish, should_stop)
+            elif isinstance(study, Task22Study) and args.operation == QUALIFY:
+                qualify(study, should_stop, publish)
+            elif (
+                isinstance(study, Task22Study)
+                and args.operation == "main"
+                and study.cfg.parent_marker_sha256
+            ):
+                if not (study.checkpoints.root / "latest.json").is_file():
+                    with (study.output / ".run.lock").open("a+") as lock:
+                        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                        marker = (
+                            study.output.parent.parent
+                            / BASE_STUDY
+                            / f"{study.arm}-seed2026"
+                            / "complete-main.json"
+                        )
+                        study.import_checkpoint(int(read_json(marker)["checkpoint"]), 512)
+                study.run("main", publish, should_stop)
+            elif isinstance(study, Task22Study) and args.operation in FINAL_STAGES:
+                if args.checkpoint_iteration is None:
+                    raise ValueError("Task 22 evaluation requires a checkpoint")
+                with (study.output / ".run.lock").open("a+") as lock:
+                    fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    study.evaluation(
+                        args.operation,
+                        args.checkpoint_iteration,
+                        args.evaluation_exposure,
+                        should_stop,
+                    )
             else:
                 study.run(
                     args.operation, publish, should_stop, checkpoint=args.checkpoint_iteration

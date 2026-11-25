@@ -1,75 +1,36 @@
 # Self-play OPSD coding-agent experiment
 
-We study whether coding agents improve at repairing Python programs through
-self-play, and whether improvement transfers to other problem families. A
-proposer introduces verified bugs and a student repairs them using tools and
-tests. We compare verifier-driven reinforcement learning with ungated or gated
-on-policy self-distillation, and difficulty-based with gradient-alignment
-proposer rewards. See [methods](docs/methods.md).
+We investigate whether a coding agent can learn to repair Python programs
+through self-play, and how gated on-policy self-distillation (OPSD) interacts
+with a proposer that creates repair tasks. A shared-parameter proposer and
+student compare verifier-driven Dr. GRPO, ungated or gated OPSD, and
+proposer rewards based on task difficulty or student-gradient alignment.
+[Methods](docs/methods.md)
 
-## Progress and results
+## Current results
 
-Task 21 adds an isolated adapter for the Precise Debugging Benchmark (PDB)
-while retaining Qwen-native exact-text repair. The first CPU pilot verified
-11 tasks from BigCodeBench and LiveCodeBench, with 22/22 original and
-canonical verdicts matching the pinned scorers. Qwen3.5-4B repaired 5/11 in
-the training-only feasibility pilot. The completed difficulty screen found
-mixed rewards on 12/24 four-rollout groups and 17/24 eight-rollout groups.
-Four rollouts gave more mixed groups per H200-hour. The solver-only pilot
-completed eight effective RL updates; paired training samples improved from
-24/48 to 30/48 and development from 7/24 to 8/24. These small, single-run
-results do not establish generalization.
-In the completed shared pilot, seven of 16 solver groups were mixed, but valid
-proposals had no within-parent reward differences; development changed from
-7/24 to 6/24. A revised follow-up produced four solver updates and valid-only
-reward differences on five parents; development changed from 7/24 to 8/24.
-Matched 512-episode Control, A and B training and held-out evaluations
-completed for seeds 2026 and 2027. On 64 PDB single tasks, gated B solved
-28/64 in each seed, versus 22/64 and 21/64 for Control; paired task intervals
-include zero. The 19–21 optimization steps and two seeds do not establish
-convergence or a reliable winner. Total allocation was 217.155 H200-hours,
-including failed and resumed jobs.
-[Task 21 results](docs/investigations/task21-results.md) ·
-[W&B final table](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/task21-final-aggregates) ·
-[status and reproduction](docs/investigations/task21-status.md)
+On the Precise Debugging Benchmark (PDB), Qwen3.5-4B completed matched
+512-episode self-play runs. On 64 held-out single-bug tasks, the initial model,
+Control, ungated A and gated B verified 21/22/26/28 repairs in seed 2026;
+the gradient-alignment arms C and D verified 33/25. Control/A/B also have a
+second training seed (21/21/28); C/D are single-seed exploratory results.
+D minus C was −12.5 percentage points, with a task-family bootstrap interval
+of [−25, 0] conditional on those runs. Paired gradient diagnostics show that
+D supplies a non-negligible candidate gradient more often than C, but they do
+not establish an accuracy benefit. The limited seeds, truncation, small transfer
+sets and 19–21 optimizer steps prevent broad generalization or convergence
+claims. Further matched seeds and longer training are needed.
 
-Task 20 audited the Task 19 training batches and found just two to four
-iterations with nonzero solver RL gradients per arm. It prepared 205
-oracle-verified harder EvalPlus tasks and added a solver-only Dr. GRPO
-control. Its base screen found mixed rewards in 5/32 tasks. The solver
-positive control completed eight updates and improved its small training set;
-its separate probe was flat. A 64-episode shared pilot produced one effective
-solver update and no within-group reward diversity among valid proposals, so
-the matched method comparison is gated pending a viable intervention. Its
-development score changed from 25/41 to 26/41. See the
-[positive-control results](docs/investigations/task20-positive-control.md),
-[shared-pilot diagnosis](docs/investigations/task20-shared-diagnosis.md),
-[research decision](docs/investigations/task20-final-decision.md),
-[Task 20 status](docs/investigations/task20-status.md),
-[root-cause audit](docs/investigations/task20-root-cause.md), and
-[benchmark decision](docs/investigations/task20-benchmark-decision.md). Its
-[completion record](docs/task_completion/20-implemented-diff-benchmark.md)
-describes the deferred comparisons and next steps.
-
-The completed Task 19 study uses Qwen3.5-4B, a shared proposer/student LoRA,
-Dr. GRPO, and native thinking/tool calls. All five seed-2026 arms reached 96
-attempted training episodes. The base solved 88/115 ID and 93/116 external
-repairs; control/A/B/C/D solved 87/88/90/88/85 ID and 92/92/92/88/92 external.
-The previously inspected external families are exploratory. Family-clustered
-intervals conditional on this single run do not establish a gating or proposer
-reward winner. Total allocation was **64.879 H200-hours**, including failed
-and resumed jobs. See [results, figures and decision](docs/investigations/task19-results.md),
-[execution and reproduction](docs/investigations/task19-status.md), and the
-[completion record](docs/task_completion/19-implemented-qwen35-shared-selfplay.md).
-
-Earlier Qwen3 studies used a different model and interface. Task 15's three-seed
-A/B runs improved ID repair but left external results near zero; Task 17's
-matched student-objective study did not establish a robust gating advantage.
-Task 18 selected native exact-text calls on inspected tasks and identified
-optimizer sensitivity that motivated Task 19's separate FP32 numerical
-qualification. See [historical A/B](docs/investigations/task15-final-results.md),
-[objective](docs/investigations/task17-objective-results.md), and
-[interface](docs/investigations/task18-results.md) evidence.
+Task 22 used 54.552 incremental H200-hours, including failed allocations,
+continuations and endpoint evaluations. The earlier Task 21 study used
+217.155 H200-hours. See [Task 22 results](docs/investigations/task22-results.md),
+[mechanistic analysis](docs/investigations/task22-mechanistic-analysis.md),
+[execution and reproduction](docs/investigations/task22-status.md), and
+[Task 21 results](docs/investigations/task21-results.md).
+Earlier [Task 20](docs/investigations/task20-final-decision.md),
+[Task 19](docs/investigations/task19-results.md), and
+[interface](docs/investigations/task18-results.md) investigations document
+benchmark and numerical choices.
 
 ## Getting started
 
@@ -81,4 +42,4 @@ uv run selfplay smoke --output runs/local-smoke
 
 See the [operations guide](docs/operations.md) for setup, Yale execution,
 checkpoints and evaluation. Private datasets, trajectories and checkpoints
-remain under ignored local or Yale paths.
+remain in ignored local or Yale paths.

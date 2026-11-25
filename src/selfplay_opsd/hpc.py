@@ -60,6 +60,8 @@ TASK20_OPERATIONS = {
 }
 TASK21_OPERATIONS = {
     "task21-feasibility",
+    "task21-align-qualify",
+    "task21-evaluate-primary",
     *(f"task21-{stage.removeprefix('task20-')}" for stage in TASK20_OPERATIONS),
 }
 STAGED_OPERATIONS = TASK20_OPERATIONS | TASK21_OPERATIONS
@@ -442,6 +444,7 @@ def run_payload(
     task21 = operation in TASK21_OPERATIONS
     prefix = "task21-" if task21 else "task20-"
     stage = operation.removeprefix(prefix)
+    final_stages = {"evaluate", "evaluate-primary"}
     if operation not in TASK19_OPERATIONS | STAGED_OPERATIONS and operation not in {
         "backend-check",
         "rollout-parity",
@@ -589,9 +592,9 @@ def run_payload(
             or not 30 <= task20_wall_minutes <= 720
         ):
             raise HpcError("The study requires a bounded one-H200 allocation")
-        if (stage == "evaluate") != (checkpoint_iteration is not None):
+        if (stage in final_stages) != (checkpoint_iteration is not None):
             raise HpcError("Final evaluation requires an explicit checkpoint")
-        if stage not in {"main", "evaluate"} and method != "control":
+        if stage not in final_stages | {"main"} and method != "control":
             raise HpcError("Diagnostic stages use the control arm")
         remote.call("inspect")
     cfg = load_config(
@@ -769,7 +772,10 @@ def run_payload(
         "base": base,
         "split": split if operation in {"evaluate", "task15-evaluate"} else None,
         "checkpoint_iteration": checkpoint_iteration,
-        "endpoint": endpoint if operation in {"evaluate", "task15-evaluate"} else None,
+        "endpoint": endpoint
+        if operation in {"evaluate", "task15-evaluate"}
+        or (cfg.study_id.startswith("repair-selfplay-2026-task22-") and stage in final_stages)
+        else None,
     }
     if operation == "task13-model-probe":
         name, revision, representation = TASK13_MODELS[method]
@@ -1082,24 +1088,35 @@ def run_payload(
     if staged:
         from selfplay_opsd.task20 import Task20Control
         from selfplay_opsd.task21 import Task21Control
+        from selfplay_opsd.task22 import Task22Control
+        from selfplay_opsd.task22_contract import PREFIX
 
         control = settings.with_suffix(".json")
-        study_control = (Task21Control if task21 else Task20Control).model_validate_json(
-            control.read_text()
-        )
+        task22 = task21 and cfg.study_id.startswith(PREFIX)
+        control_cls = Task22Control if task22 else Task21Control if task21 else Task20Control
+        study_control = control_cls.model_validate_json(control.read_text())
+        if not task22 and stage in {"align-qualify", "evaluate-primary"}:
+            raise HpcError("Task 22 operation requires the Task 22 study")
+        exposure = None
+        if task22 and stage in final_stages:
+            if endpoint not in {"primary", "256", "384", "512", "768", "1024"}:
+                raise HpcError("Task 22 requires a declared evaluation exposure")
+            exposure = study_control.endpoint if endpoint == "primary" else int(endpoint)
         if (study_control.study, study_control.seed, study_control.precision) != (
             cfg.study_id,
             cfg.seed,
             cfg.model.dtype,
         ):
             raise HpcError("Settings differ from the staged scientific control")
-        if stage in {"main", "evaluate"} and study_control.endpoint is None:
+        if stage in final_stages | {"main"} and study_control.endpoint is None:
             raise HpcError("Main and evaluation require a frozen endpoint and gate evidence")
         suffix = (
             f"{method}-seed{cfg.seed}"
-            if stage in {"main", "evaluate"}
+            if stage in final_stages | {"main"}
             else f"{stage}-seed{cfg.seed}"
         )
+        if exposure is not None:
+            payload["task22_exposure"] = exposure
         hours, minutes = divmod(task20_wall_minutes or 0, 60)
         payload.update(
             readiness_budget=task20_budget_hours,
@@ -1112,6 +1129,8 @@ def run_payload(
             cpus=cfg.hardware.cpu_workers + cfg.sandbox.cpus,
             memory_gib=cfg.hardware.host_ram_gib + math.ceil(cfg.sandbox.memory_mib / 1024),
         )
+        if task22 and stage == "align-qualify" and hours == 3 and minutes == 0:
+            payload["continuation_time"] = "02:00:00"
     if operation == "task14-student":
         if (
             method not in {"A", "B", "C", "D"}
@@ -1475,7 +1494,16 @@ def doctor(
         state = target.call("study", context)
         context["gpu_type"] = gpu_type or state["reports"]["freeze"].get("gpu_type", "h100")
         context["pilot_suffix"] = "-pilot-h200" if context["gpu_type"] == "h200" else "-pilot"
-        identity = execution_identity(cfg) | {
+        repository = None
+        manifest_path = Path(cfg.data_root) / "manifest.json"
+        if (
+            manifest_path.is_file()
+            and json.loads(manifest_path.read_text()).get("benchmark") == "pdb-native-v1"
+        ):
+            from selfplay_opsd.task21 import PdbRepository
+
+            repository = PdbRepository(cfg.data_root)
+        identity = execution_identity(cfg, repository=repository) | {
             "trainer_sha256": state["images"]["trainer"].get("sha256"),
             "worker_sha256": state["images"]["worker"].get("sha256"),
             "worker_setup_id": state["reports"]["worker"].get("worker_setup_id", ""),
