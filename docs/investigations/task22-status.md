@@ -24,6 +24,8 @@ Both subsequently committed 384 episodes, C at `000014` and D at `000016`.
 Their reused development monitors scored C 11/24 and D 10/24. Both jobs
 continued toward 512 episodes. The 384 checkpoint is a prespecified fallback.
 Both then reached 408 episodes (C `000015`, D `000017`) and continued.
+Both subsequently committed 440 episodes (C `000017`, D `000018`), with
+their continuation jobs still active.
 
 Qualification job `34554246` / run `1a8172783b2dbd834a3332af`
 completed and passed on archived B snapshots at 0 and 128 episodes. The
