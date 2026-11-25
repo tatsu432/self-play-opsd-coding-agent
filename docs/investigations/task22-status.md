@@ -11,11 +11,17 @@ was submitted once from `6aefce421e8d886855f88dc4a72b9f5f46519cc5`. Its
 pending wall was reduced from three hours to one based on the prior 1,433-second
 qualification; its three-hour reservation and the local adjustment record are
 retained. Inspect scheduler and ledger before acting, and never duplicate.
-Qualification reuses the accepted worker and the same frozen Task 21 PDB
-data and archived seed-2026 B diagnostic batches; fresh C/D runs use the
-verified Task 21 seed-2027 initial adapter and monitoring baseline. After
-qualification, freeze the 2027 control, run C and D, verify endpoints and
-matched evaluation, analyze both seeds, document actual resources and finish.
+Qualification reused the accepted worker and the same frozen Task 21 PDB
+data and archived seed-2026 B diagnostic batches. It completed exit 0 with a
+passing two-batch gate; frozen gate SHA-256 is
+`f91e521d8abcb7e38f25432bb488a590928745156e89390d4cd6a4219d1f2c0c`.
+Seed-2027 C job `34715487` / run `71d9e0d5d819cc6d06861be9` and D job
+`34715492` / run `b62da8d03c9221f029019a2f` were submitted once from
+`844af3d481b842192404e28474a1e1f7a4e0445d`, each with a 12-hour reservation.
+Inspect the live scheduler and ledger, never duplicate, and continue from
+verified checkpoints if needed. Both use the Task 21 seed-2027 initial
+adapter and monitoring baseline. Verify their 512-episode endpoints and
+matched evaluations, analyze both seeds, document actual resources and finish.
 
 ## Completed study · November 25, 2026
 
