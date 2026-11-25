@@ -394,7 +394,7 @@ def alignment_figure(out: Path, report: dict) -> None:
             if row[arm]
         ]
         if values:
-            rewards.plot(*zip(*values, strict=True), "o-", color=COLORS[arm], label=arm)
+            rewards.plot(*zip(*values, strict=True), "o", color=COLORS[arm], label=arm)
     rewards.legend(frameon=False)
     rewards.set(
         xticks=range(5),

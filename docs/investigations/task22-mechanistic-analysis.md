@@ -36,5 +36,6 @@ isolating the effect of extending those limits.
 - [Research framework](../figures/task22/baseline/01-framework.pdf)
 - [Seed-2026 primary accuracy and paired intervals](../figures/task22/baseline/02-primary.pdf)
 - [Two-seed development efficiency](../figures/task22/baseline/03-learning-efficiency.pdf)
+- [Qualification replay alignment diagnostic](../figures/task22/baseline/04-alignment.pdf)
 - [Distillation strength and gradient dynamics](../figures/task22/baseline/05-gradient-dynamics.pdf)
 - [Primary evaluation failure categories](../figures/task22/baseline/06-failure-modes.pdf)
