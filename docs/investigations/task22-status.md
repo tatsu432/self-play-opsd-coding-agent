@@ -26,6 +26,8 @@ continued toward 512 episodes. The 384 checkpoint is a prespecified fallback.
 Both then reached 408 episodes (C `000015`, D `000017`) and continued.
 Both subsequently committed 440 episodes (C `000017`, D `000018`), with
 their continuation jobs still active.
+Later checkpoints reached C 480 (`000018`) and D 468 (`000019`); both jobs
+continued toward the 512-episode endpoint.
 
 Qualification job `34554246` / run `1a8172783b2dbd834a3332af`
 completed and passed on archived B snapshots at 0 and 128 episodes. The
