@@ -25,6 +25,10 @@ training rollouts respectively; these are not independent evaluation scores.
 The D batch recorded zero near-zero alignment signals. The budget ledger
 committed 24.398 H200-hours, including both 12-hour reservations and the
 completed qualification; actual running-job charges are not yet reconciled.
+Later, C committed 192 episodes at checkpoint `000007` and D committed 188
+at `000008`, with both original jobs still running. Their most recent
+batches had finite optimizer steps; C recorded 20/32 and D 19/28 verified
+training rollouts. These rollout counts are training telemetry, not evaluation.
 
 ## Earlier qualification launch · November 24, 2026
 
