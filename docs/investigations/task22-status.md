@@ -17,6 +17,7 @@ Both resumed jobs subsequently committed 256 attempted episodes: C checkpoint
 both scored 10/24 (at 128, C scored 9/24 and D 8/24). This reused development
 set is not held-out confirmation. Continue toward the primary
 512-episode endpoint; 256 is a prespecified fallback, not the main result.
+Both then committed 288 episodes (C `000010`, D `000012`) and continued.
 
 Qualification job `34554246` / run `1a8172783b2dbd834a3332af`
 completed and passed on archived B snapshots at 0 and 128 episodes. The
