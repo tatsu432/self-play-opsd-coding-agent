@@ -44,7 +44,7 @@ def test_doctor_uses_selected_h200_before_or_after_freeze(monkeypatch, gpu_type)
     monkeypatch.setattr(hpc, "YaleSSH", Remote)
     monkeypatch.setattr(hpc, "git", lambda *a: "")
     monkeypatch.setattr(hpc, "output", lambda value: None)
-    monkeypatch.setattr("selfplay_opsd.readiness.execution_identity", lambda _: {})
+    monkeypatch.setattr("selfplay_opsd.readiness.execution_identity", lambda _, **kwargs: {})
     hpc.doctor(alias="yale-hpc-cpsc4880", settings=Path("configs/yale.yaml"), gpu_type=gpu_type)
     selected = calls[-1][1]
     assert selected["gpu_type"] == "h200" and selected["pilot_suffix"] == "-pilot-h200"

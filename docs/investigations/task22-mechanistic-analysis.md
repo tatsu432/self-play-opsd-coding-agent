@@ -1,8 +1,7 @@
 # Task 22 mechanistic analysis
 
-The figures currently derive from the verified Task 21 checkpoints. The
-[qualification](task22-alignment-qualification.md) records same-batch C/D
-gradient measurements; the final figures will add completed C/D runs. The
+The [qualification](task22-alignment-qualification.md) records same-batch C/D
+gradient measurements. The
 [aggregate analysis script](../../scripts/analyze_task22.py)
 recomputes the table and figures from the frozen evidence.
 
@@ -30,14 +29,19 @@ episodes and made 19 and 21 optimizer steps, respectively. Their recorded
 near-zero alignment counts were 97 for C and zero for D. These are counts
 from different sampled task trajectories, not a matched estimate of the
 effect of the reward on repair accuracy. The qualification replay above
-provides the paired same-task diagnostic; held-out outcome evaluation is
-still in progress.
+provides a paired same-task diagnostic. In the paired candidate records from
+the C trajectory, the C and D gradients were near zero on 63/128 and 0/128
+candidates; in the D trajectory these counts were 70/128 and 0/128. These
+task selections follow the observed trajectories and do not demonstrate a
+causal accuracy gain. Held-out repairs were C 33/64 and D 25/64; the paired
+D-minus-C interval [−25, 0] percentage points is conditional on these runs.
 
 ## Endpoint failures
 
-On seed-2026 primary evaluation, Initial, Control, A and B had respectively
-37, 37, 32 and 31 episodes categorized as truncation out of 64. The same
-checkpoints verified 21, 22, 26 and 28 repairs. The recorded truncations
+On seed-2026 primary evaluation, 37, 37, 32, 31, 28 and 33 episodes were
+categorized as truncation out of 64 for
+Initial, Control, A, B, C and D, respectively. The same checkpoints verified
+21, 22, 26, 28, 33 and 25 repairs. The recorded truncations
 identify episodes that reached limits. The data contain no intervention
 isolating the effect of extending those limits.
 

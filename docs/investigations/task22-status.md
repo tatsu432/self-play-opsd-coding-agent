@@ -1,6 +1,6 @@
 # Task 22 execution and reproduction
 
-## Primary complete; transfer in progress · November 25, 2026
+## Completed study · November 25, 2026
 
 The existing primary jobs completed successfully and were verified and fetched:
 C `34673660` / `c3bcab0e4d4b3846c90299b2` scored 33/64, and D `34674426` /
@@ -10,13 +10,16 @@ conditional on these single training runs. Do not duplicate either evaluation.
 
 C transfer `34690978` / `c00321c48eb744c98a2e8fb4` completed successfully:
 cross-source 1/1, mutants 5/9 and harder transfer 1/8; its primary result was
-reused. D transfer `34693437` / `cb99c34dfae8e5bd65b7bf87` is pending. Its
+reused. D transfer `34693437` / `cb99c34dfae8e5bd65b7bf87` completed exit 0,
+with 1/1, 6/9 and 1/8, respectively, and likewise reused the primary records. Its
 pending wall was reduced from four hours to 90 minutes based on the matched
 C transfer's 34:09 allocation, retaining the original four-hour reservation;
 the change is recorded in `runs/task22/pending-monitor-wall-adjustments.jsonl`.
-Inspect the existing job and ledger; never submit a duplicate. Verify and fetch
-D, reconcile all charges, generate final analysis and figures, complete the
-research and README reports, run checks, then merge and push the finished work.
+All charges were reconciled at 196,387 H200-seconds (54.5519 hours), including
+the 1,822-second D transfer allocation; no account jobs were active at the
+final scheduler check. All endpoint checkpoints and receipts were verified;
+never duplicate completed runs. See [results](task22-results.md) for findings
+and the [completion record](../task_completion/22-implemented-pdb-gradient-alignment.md).
 
 ## Matched C/D running · November 24, 2026
 
