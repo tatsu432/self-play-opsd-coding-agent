@@ -862,6 +862,24 @@ def test_reviewed_task21_timeout_requires_exact_worker_shutdown(tmp_path, monkey
         {"allocation": second_job, "phase": "failed", "error_type": "ExperimentError"},
     )
 
+    replication_run, replication_job = "71d9e0d5d819cc6d06861be9", "34715487"
+    (tmp_path / f"{replication_run}-{replication_job}.out").write_text(
+        "selfplay_opsd.core.ExperimentError: [Errno 111] Connection refused\n"
+    )
+    monkeypatch.setattr(
+        remote,
+        "capture",
+        lambda _: {
+            "exit_code": 0,
+            "stdout": f"{replication_job}|TIMEOUT|end\n{replication_job}.0|COMPLETED|end\n",
+        },
+    )
+    assert remote.reviewed_task21_timeout_disconnect(
+        {"run_id": replication_run, "operation": "task21-main"},
+        replication_job,
+        {"allocation": replication_job, "phase": "failed", "error_type": "ExperimentError"},
+    )
+
 
 def test_rejected_submission_allows_only_cpu_reduction():
     remote = script("hpc_remote")

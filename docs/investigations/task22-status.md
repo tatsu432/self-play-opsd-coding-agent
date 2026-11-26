@@ -66,7 +66,11 @@ a finite update, three distinct-reward groups and zero near-zero alignments in
 that batch. D then committed `000009` at 204 episodes with a finite update,
 two distinct-reward groups and zero near-zero alignments, then `000010` at
 232 episodes with a finite update, three distinct-reward groups and zero
-near-zero alignments. Both original jobs remain active.
+near-zero alignments. C job `34715487` then timed out after 12:00:22; its
+worker step ended at the scheduler time limit, followed by a connection-refused
+error. The controller stopped without resubmitting. This exact run and job were
+reviewed against the existing timeout-disconnect checks; checkpoint `000009`
+remains the latest complete checkpoint. D's original job remains active.
 The local controller has one guarded `hpc watch --continue-stopped` process per
 run, polling every 120 seconds; inspect these processes and the remote ledger
 before any manual continuation to avoid duplicate submissions. The full local

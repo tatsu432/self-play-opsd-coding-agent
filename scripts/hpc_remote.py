@@ -514,10 +514,11 @@ def timeout_disconnect_evidence(job_id: str, health: dict) -> dict | None:
 
 
 def reviewed_task21_timeout_disconnect(payload: dict, job_id: str, health: dict) -> dict | None:
-    """Recognize the reviewed worker shutdown in the 2026 Control allocation."""
+    """Recognize individually reviewed worker shutdowns at scheduler timeout."""
     reviewed = {
         "34298915": "237fb774dc01bcce763e228c",
         "34300641": "09e87387be4df8df15ec5f17",
+        "34715487": "71d9e0d5d819cc6d06861be9",
     }
     if (
         job_id not in reviewed
