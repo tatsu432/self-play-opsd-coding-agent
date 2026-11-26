@@ -131,7 +131,8 @@ the original 12-hour reservation is retained and the adjustment recorded at
 never duplicate this job.
 C then committed `000021` at 512 episodes with a finite update, no
 distinct-reward group and four near-zero alignments in that batch. Its endpoint
-development monitor and checkpoint verification remain pending.
+development monitor completed 11/24; continuation `34818937` completed exit 0
+and checkpoint `000021` and its identity and checksums were verified.
 The local controller has one guarded `hpc watch --continue-stopped` process per
 run, polling every 120 seconds; inspect these processes and the remote ledger
 before any manual continuation to avoid duplicate submissions. The full local
