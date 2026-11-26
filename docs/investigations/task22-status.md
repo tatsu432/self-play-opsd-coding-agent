@@ -38,6 +38,8 @@ distinct-reward proposer group in that batch.
 At 64 episodes each arm had three finite optimizer steps and four total
 distinct-reward proposer groups; C recorded 11 near-zero alignment events and
 D zero. These are early training diagnostics, not performance results.
+Both fourth batches then committed with finite optimizer steps and distinct
+proposer rewards: C reached 96 episodes (`000004`) and D 88 (`000004`).
 Both workers reported missing W&B credentials and record telemetry locally;
 publish the verified aggregate after completion and report delivery accurately.
 Inspect the live scheduler and ledger, never duplicate, and continue from
