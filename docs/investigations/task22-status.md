@@ -35,6 +35,9 @@ optimizer step and two proposer groups with distinct rewards. C then reached
 were finite with distinct proposer rewards. D subsequently reached 64 at
 `000003` with another finite update, zero near-zero alignments and no
 distinct-reward proposer group in that batch.
+At 64 episodes each arm had three finite optimizer steps and four total
+distinct-reward proposer groups; C recorded 11 near-zero alignment events and
+D zero. These are early training diagnostics, not performance results.
 Both workers reported missing W&B credentials and record telemetry locally;
 publish the verified aggregate after completion and report delivery accurately.
 Inspect the live scheduler and ledger, never duplicate, and continue from
