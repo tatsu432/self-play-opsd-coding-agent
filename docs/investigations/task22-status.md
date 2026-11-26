@@ -96,6 +96,8 @@ groups and three near-zero alignments; its 384-episode monitor completed 9/24.
 D
 committed `000020` at 476 episodes with a finite update, three distinct-reward
 groups and no near-zero alignments.
+D subsequently committed `000021` at 508 episodes with a finite update, three
+distinct-reward groups and no near-zero alignments in that batch.
 The local controller has one guarded `hpc watch --continue-stopped` process per
 run, polling every 120 seconds; inspect these processes and the remote ledger
 before any manual continuation to avoid duplicate submissions. The full local
