@@ -127,7 +127,8 @@ guarded watcher verified checkpoint `000020` and submitted continuation
 `34818937` once under the same logical run. Its pending wall limit was reduced
 from 12 to three hours for the remaining 16 episodes and endpoint monitor;
 the original 12-hour reservation is retained and the adjustment recorded at
-`runs/task22/seed2027-wall-adjustments.jsonl`. Never duplicate this job.
+`runs/task22/seed2027-wall-adjustments.jsonl`. It started on `a1124u28n01`;
+never duplicate this job.
 The local controller has one guarded `hpc watch --continue-stopped` process per
 run, polling every 120 seconds; inspect these processes and the remote ledger
 before any manual continuation to avoid duplicate submissions. The full local
