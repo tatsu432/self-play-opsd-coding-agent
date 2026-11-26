@@ -65,6 +65,10 @@ a finite update, three distinct-reward groups and zero near-zero alignments in
 that batch. D then committed `000009` at 204 episodes with a finite update,
 two distinct-reward groups and zero near-zero alignments. Both original jobs
 remain active.
+The local controller has one guarded `hpc watch --continue-stopped` process per
+run, polling every 120 seconds; inspect these processes and the remote ledger
+before any manual continuation to avoid duplicate submissions. The full local
+suite passed 514 tests (22 skipped); Ruff and mypy (68 source files) passed.
 Both workers reported missing W&B credentials and record telemetry locally;
 publish the verified aggregate after completion and report delivery accurately.
 Inspect the live scheduler and ledger, never duplicate, and continue from
