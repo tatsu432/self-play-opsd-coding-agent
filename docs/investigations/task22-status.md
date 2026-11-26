@@ -71,8 +71,8 @@ worker step ended at the scheduler time limit, followed by a connection-refused
 error. The controller stopped without resubmitting. This exact run and job were
 reviewed against the existing timeout-disconnect checks; checkpoint `000009`
 remains the latest complete checkpoint. C continuation `34760145` was submitted
-once from that verified checkpoint, under the same logical run, and is pending
-H200 capacity. D's original job remains active.
+once from that verified checkpoint, under the same logical run, and started on
+`a1124u28n01`. D's original job remains active.
 D subsequently committed `000011` at 256 episodes with a finite update, two
 distinct-reward groups and zero near-zero alignments; the 256-episode
 development monitor is pending.
