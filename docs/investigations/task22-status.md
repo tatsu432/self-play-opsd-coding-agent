@@ -98,8 +98,10 @@ committed `000020` at 476 episodes with a finite update, three distinct-reward
 groups and no near-zero alignments.
 D subsequently committed `000021` at 508 episodes with a finite update, three
 distinct-reward groups and no near-zero alignments in that batch.
-D then committed `000022` at the 512-episode endpoint with a finite update;
-the endpoint development monitor and checkpoint verification remain pending.
+D then committed `000022` at the 512-episode endpoint with a finite update.
+Its reused endpoint development monitor completed 15/24; continuation job
+`34761086` completed exit 0 after 08:30:31. Endpoint checkpoint `000022`, its
+identity and checksums were verified; never duplicate the training run.
 C committed `000017` at 416 episodes with a finite update, two distinct-reward
 groups and seven near-zero alignments in that batch.
 The local controller has one guarded `hpc watch --continue-stopped` process per
