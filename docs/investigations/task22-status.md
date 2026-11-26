@@ -88,6 +88,8 @@ episodes; D `34761086` reached `000018` at 412. Both latest joint gradients
 were finite. C's 256-episode development monitor was 9/24; D's 256- and
 384-episode monitors were 13/24 and 13/24. These reused monitoring tasks are
 not held-out confirmation. Shared storage had approximately 140 GiB free.
+D then committed `000019` at 444 episodes with a finite update, three
+distinct-reward groups and zero near-zero alignments in the batch.
 The local controller has one guarded `hpc watch --continue-stopped` process per
 run, polling every 120 seconds; inspect these processes and the remote ledger
 before any manual continuation to avoid duplicate submissions. The full local
