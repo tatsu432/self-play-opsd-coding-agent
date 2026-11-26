@@ -62,7 +62,9 @@ C subsequently committed `000007` at 152 episodes, with a finite update and
 two distinct-reward groups, then `000008` at 184 with a finite update and two
 distinct-reward groups. D committed `000008` at 172 episodes with
 a finite update, three distinct-reward groups and zero near-zero alignments in
-that batch. Both original jobs remain active.
+that batch. D then committed `000009` at 204 episodes with a finite update,
+two distinct-reward groups and zero near-zero alignments. Both original jobs
+remain active.
 Both workers reported missing W&B credentials and record telemetry locally;
 publish the verified aggregate after completion and report delivery accurately.
 Inspect the live scheduler and ledger, never duplicate, and continue from
