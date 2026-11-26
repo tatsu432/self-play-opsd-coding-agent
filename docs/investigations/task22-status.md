@@ -92,7 +92,8 @@ D then committed `000019` at 444 episodes with a finite update, three
 distinct-reward groups and zero near-zero alignments in the batch.
 After another Yale reauthentication, both continuation jobs remained running.
 C committed `000016` at 384 episodes with a finite update, no distinct-reward
-groups and three near-zero alignments; its 384-episode monitor is pending. D
+groups and three near-zero alignments; its 384-episode monitor completed 9/24.
+D
 committed `000020` at 476 episodes with a finite update, three distinct-reward
 groups and no near-zero alignments.
 The local controller has one guarded `hpc watch --continue-stopped` process per
