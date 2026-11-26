@@ -108,6 +108,9 @@ Its primary 64-task evaluation was submitted once as job `34802801` / run
 submit a duplicate.
 C committed `000017` at 416 episodes with a finite update, two distinct-reward
 groups and seven near-zero alignments in that batch.
+After reauthentication, C committed `000018` at 432 episodes with a finite
+update; job `34760145` remains running. D primary job `34802801` remains
+running and had saved 57 of its 64 task records.
 The local controller has one guarded `hpc watch --continue-stopped` process per
 run, polling every 120 seconds; inspect these processes and the remote ledger
 before any manual continuation to avoid duplicate submissions. The full local
