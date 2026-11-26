@@ -63,8 +63,9 @@ two distinct-reward groups, then `000008` at 184 with a finite update and two
 distinct-reward groups. D committed `000008` at 172 episodes with
 a finite update, three distinct-reward groups and zero near-zero alignments in
 that batch. D then committed `000009` at 204 episodes with a finite update,
-two distinct-reward groups and zero near-zero alignments. Both original jobs
-remain active.
+two distinct-reward groups and zero near-zero alignments, then `000010` at
+232 episodes with a finite update, three distinct-reward groups and zero
+near-zero alignments. Both original jobs remain active.
 The local controller has one guarded `hpc watch --continue-stopped` process per
 run, polling every 120 seconds; inspect these processes and the remote ledger
 before any manual continuation to avoid duplicate submissions. The full local
