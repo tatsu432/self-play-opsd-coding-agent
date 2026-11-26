@@ -82,6 +82,12 @@ monitor reuses task records after checking their frozen identities.
 The reconciled first allocations are 43,222 H200-seconds for C, 42,878 for D,
 and 1,472 for qualification. Including both active 12-hour reservations, the
 seed-2027 ledger commits 48.325556 of its 80 H200-hours.
+After Yale reauthentication on November 26, both continuation jobs were
+confirmed running: C `34760145` reached checkpoint `000014` at 352 attempted
+episodes; D `34761086` reached `000018` at 412. Both latest joint gradients
+were finite. C's 256-episode development monitor was 9/24; D's 256- and
+384-episode monitors were 13/24 and 13/24. These reused monitoring tasks are
+not held-out confirmation. Shared storage had approximately 140 GiB free.
 The local controller has one guarded `hpc watch --continue-stopped` process per
 run, polling every 120 seconds; inspect these processes and the remote ledger
 before any manual continuation to avoid duplicate submissions. The full local
