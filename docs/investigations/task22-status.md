@@ -108,8 +108,9 @@ Its primary 64-task evaluation was submitted once as job `34802801` / run
 submit a duplicate. It completed exit 0 after 01:35:56, scoring 31/64 on the
 primary set; its identity and checkpoint checksums were verified. The matched
 transfer evaluation was submitted once as job `34812625` / run
-`e932614e9dd5e3619b695d8c`; inspect its scheduler and ledger and never submit a
-duplicate. C seed-2027 primary evaluation remains outstanding.
+`e932614e9dd5e3619b695d8c` and started on `a1124u02n01`; inspect its scheduler
+and ledger and never submit a duplicate. C seed-2027 primary evaluation remains
+outstanding.
 C committed `000017` at 416 episodes with a finite update, two distinct-reward
 groups and seven near-zero alignments in that batch.
 After reauthentication, C committed `000018` at 432 episodes with a finite
