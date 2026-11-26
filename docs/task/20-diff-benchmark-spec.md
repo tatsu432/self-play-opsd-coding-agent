@@ -445,7 +445,7 @@ Proceed with PDB as the main benchmark only if:
 - The agent cannot access hidden answers.
 - The benchmark provides more useful difficulty than the old task set.
 - Task and family grouping can prevent leakage.
-- The total projected cost permits meaningful training before December 2.
+- The total projected cost permits meaningful training and analysis before the December 12 final report.
 
 If these conditions are not met by November 22, **activate the fallback**.
 
