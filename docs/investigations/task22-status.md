@@ -70,7 +70,9 @@ near-zero alignments. C job `34715487` then timed out after 12:00:22; its
 worker step ended at the scheduler time limit, followed by a connection-refused
 error. The controller stopped without resubmitting. This exact run and job were
 reviewed against the existing timeout-disconnect checks; checkpoint `000009`
-remains the latest complete checkpoint. D's original job remains active.
+remains the latest complete checkpoint. C continuation `34760145` was submitted
+once from that verified checkpoint, under the same logical run, and is pending
+H200 capacity. D's original job remains active.
 The local controller has one guarded `hpc watch --continue-stopped` process per
 run, polling every 120 seconds; inspect these processes and the remote ledger
 before any manual continuation to avoid duplicate submissions. The full local
