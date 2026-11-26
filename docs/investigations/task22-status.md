@@ -100,6 +100,8 @@ D subsequently committed `000021` at 508 episodes with a finite update, three
 distinct-reward groups and no near-zero alignments in that batch.
 D then committed `000022` at the 512-episode endpoint with a finite update;
 the endpoint development monitor and checkpoint verification remain pending.
+C committed `000017` at 416 episodes with a finite update, two distinct-reward
+groups and seven near-zero alignments in that batch.
 The local controller has one guarded `hpc watch --continue-stopped` process per
 run, polling every 120 seconds; inspect these processes and the remote ledger
 before any manual continuation to avoid duplicate submissions. The full local
