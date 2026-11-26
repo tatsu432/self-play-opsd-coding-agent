@@ -45,7 +45,12 @@ D zero. These are early training diagnostics, not performance results.
 Both fourth batches then committed with finite optimizer steps and distinct
 proposer rewards: C reached 96 episodes (`000004`) and D 88 (`000004`).
 C subsequently reached 112 at `000005` with a finite optimizer step and one
-distinct-reward group; its 128-episode development monitor is still pending.
+distinct-reward group, then committed 128 at `000006` with a finite update;
+its 128-episode development monitor is still pending.
+D reached 116 at `000005` with a finite optimizer step, three distinct-reward
+groups and zero near-zero alignments in that batch, then 128 at `000006` with
+a finite update and one distinct-reward group. Both 128-episode development
+monitors are pending.
 Both workers reported missing W&B credentials and record telemetry locally;
 publish the verified aggregate after completion and report delivery accurately.
 Inspect the live scheduler and ledger, never duplicate, and continue from
