@@ -29,6 +29,10 @@ five near-zero alignment events. D also committed `000001` at 24 episodes,
 with finite joint gradient, one optimizer step, two distinct-reward groups and
 zero near-zero alignments. Both continue; these are training diagnostics, not
 held-out results.
+C subsequently committed `000002` at 56 episodes, with a finite second
+optimizer step and two proposer groups with distinct rewards. C then reached
+64 episodes at `000003`, and D reached 56 at `000002`; both latest updates
+were finite with distinct proposer rewards.
 Both workers reported missing W&B credentials and record telemetry locally;
 publish the verified aggregate after completion and report delivery accurately.
 Inspect the live scheduler and ledger, never duplicate, and continue from
