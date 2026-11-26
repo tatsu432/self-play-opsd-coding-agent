@@ -50,7 +50,9 @@ its 128-episode development monitor is still pending.
 D reached 116 at `000005` with a finite optimizer step, three distinct-reward
 groups and zero near-zero alignments in that batch, then 128 at `000006` with
 a finite update and one distinct-reward group. Both 128-episode development
-monitors are pending.
+monitors completed: C 5/24 and D 9/24 versus the reused 8/24 initial monitor.
+This repeatedly inspected development set is not held-out confirmation; both
+training jobs continue toward the frozen 512-episode endpoint.
 Both workers reported missing W&B credentials and record telemetry locally;
 publish the verified aggregate after completion and report delivery accurately.
 Inspect the live scheduler and ledger, never duplicate, and continue from
