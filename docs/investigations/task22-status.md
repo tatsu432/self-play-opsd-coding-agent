@@ -73,6 +73,9 @@ reviewed against the existing timeout-disconnect checks; checkpoint `000009`
 remains the latest complete checkpoint. C continuation `34760145` was submitted
 once from that verified checkpoint, under the same logical run, and is pending
 H200 capacity. D's original job remains active.
+D subsequently committed `000011` at 256 episodes with a finite update, two
+distinct-reward groups and zero near-zero alignments; the 256-episode
+development monitor is pending.
 The local controller has one guarded `hpc watch --continue-stopped` process per
 run, polling every 120 seconds; inspect these processes and the remote ledger
 before any manual continuation to avoid duplicate submissions. The full local
