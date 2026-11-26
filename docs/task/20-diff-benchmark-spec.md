@@ -1,4 +1,8 @@
-# Task 20 — Rescue the Coding-Agent Self-Play Experiment and Deliver Final Results by December 2, 2026
+# Task 20 — Rescue the Coding-Agent Self-Play Experiment
+
+> Deadline correction: December 2 is a soft five-minute presentation milestone;
+> the final report is due December 12, 2026. The dated schedule below records
+> the original Task 20 plan and is superseded by this correction.
 
 ## 0. Mission and operating instructions
 
@@ -7,7 +11,10 @@ You are Codex, acting as the lead research engineer responsible for **diagnosing
 **Repository:** https://github.com/tatsu432/self-play-opsd-coding-agent
 
 **Current date:** November 19, 2026  
-**Hard final deadline:** December 2, 2026  
+**Presentation (soft):** December 2, 2026
+
+**Final report (hard):** December 12, 2026
+
 **Primary objective:** Obtain scientifically credible, reproducible evidence on whether gated on-policy self-distillation (OPSD) improves learning in coding-agent self-play, compared with ungated OPSD and verifier-driven Dr. GRPO.
 
 This is an execution task, not merely a planning exercise.
@@ -25,7 +32,7 @@ Do not blindly follow the previous implementation's assumptions or redesign the 
 5. **Use a staged go/no-go design.** Continue only when the preceding phase provides sufficient evidence, while avoiding overly rigid criteria based on noisy, tiny samples.
 6. **Preserve scientific comparability.** Control model initialization, data exposure, hyperparameters, inference interface, evaluation and computational cost.
 7. **Avoid unnecessary engineering blockers.** Do not demand new security capabilities, infrastructure features, or numerical guarantees beyond what is necessary and supported by the existing validated setup.
-8. **Deliver by December 2.** Protect sufficient time and compute for analysis, figures and final documentation. Do not allow endless debugging to consume the deadline.
+8. **Present on December 2; report by December 12.** Present available evidence at the soft milestone and protect time for analysis, figures and final documentation before the hard deadline.
 9. **Take action.** Do not stop after writing a plan. Implement, test, execute and analyze what is feasible. If an external permission, GPU allocation or credential is genuinely unavailable, document the precise blocker and finish every independent task.
 10. **Never fabricate results, convergence, statistical significance or benchmark comparability.** Preserve negative findings honestly.
 
@@ -1120,7 +1127,8 @@ The following is the target plan, subject to actual resource availability.
 | Nov 29 | Close main training and select checkpoints using development rules |
 | Nov 29–30 | Final evaluation, confidence intervals, compute accounting and diagnostics |
 | Dec 1 | Freeze figures, research conclusions and reproducibility artifacts |
-| Dec 2 | Final report, presentation-ready figures and verified completion |
+| Dec 2 | Five-minute presentation of available findings (soft milestone) |
+| Dec 12 | Final report due (hard deadline) |
 
 Do not treat this schedule as requiring every possible method.
 
@@ -1141,7 +1149,7 @@ Do not cut:
 - Final analysis.
 - Reproducibility and documentation.
 
-Set an internal completion target earlier on December 2 than the formal submission deadline to leave room for verification and submission.
+Allow time for verification and submission ahead of the December 12 final-report deadline; the December 2 presentation may use preliminary results.
 
 ---
 
@@ -1295,7 +1303,7 @@ After each meaningful milestone, update a compact project status document showin
 - Confirmed blockers, if any.
 - Remaining GPU budget.
 - Next concrete action.
-- Whether December 2 completion remains feasible.
+- What can be presented on December 2 and what remains for the December 12 final report.
 
 Use that document as the source of truth instead of writing lengthy repeated readiness summaries.
 
@@ -1303,6 +1311,6 @@ Do not repeatedly seek approval for ordinary implementation decisions already co
 
 Only require user intervention for genuinely unavailable access, external authorization, budget approval, or a material scientific decision not covered here.
 
-**Your ultimate responsibility is not to make every experiment finish. It is to produce the strongest valid scientific answer possible by December 2, while avoiding unnecessary cost and another cycle of debugging without learning.**
+**Your ultimate responsibility is to present defensible available findings on December 2 and produce the strongest valid final report by December 12, while avoiding unnecessary cost and another cycle of debugging without learning.**
 
 Begin by examining the repository and executing Phase 1. Do not stop after producing a plan.

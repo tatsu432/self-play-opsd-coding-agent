@@ -2,6 +2,10 @@
 
 ## Seed-2027 replication in progress · November 25, 2026
 
+December 2 is a soft milestone for a five-minute presentation of available
+findings. Experiments may continue afterward; the hard final-report deadline
+is December 12, 2026.
+
 The user authorized a matched seed-2027 C/D extension at the original
 512-episode endpoint. It uses the separate study
 `repair-selfplay-2026-task22-pdb-alignment-seed2027-v1` and a new 80-H200-hour
@@ -40,6 +44,8 @@ distinct-reward proposer groups; C recorded 11 near-zero alignment events and
 D zero. These are early training diagnostics, not performance results.
 Both fourth batches then committed with finite optimizer steps and distinct
 proposer rewards: C reached 96 episodes (`000004`) and D 88 (`000004`).
+C subsequently reached 112 at `000005` with a finite optimizer step and one
+distinct-reward group; its 128-episode development monitor is still pending.
 Both workers reported missing W&B credentials and record telemetry locally;
 publish the verified aggregate after completion and report delivery accurately.
 Inspect the live scheduler and ledger, never duplicate, and continue from

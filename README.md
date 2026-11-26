@@ -9,6 +9,9 @@ proposer rewards based on task difficulty or student-gradient alignment.
 
 ## Current results
 
+The five-minute presentation on December 2 is a soft milestone; the final
+report is due December 12, 2026.
+
 The matched seed-2027 C/D replication is in progress; see
 [execution status](docs/investigations/task22-status.md).
 

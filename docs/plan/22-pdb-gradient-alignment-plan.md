@@ -25,7 +25,9 @@ reference repair gradient, and D aligns the actual weighted student gradient.
 5. If the entire matched continuation fits after primary work or an
    alignment no-go, fork all three verified seed-2026 Control/A/B checkpoints
    to 1,024 or 768 episodes, verifying LoRA, Adam, RNG, and curriculum state.
-6. Freeze results by November 30. Report paired family-cluster intervals and
+6. Prepare available findings for the December 2 five-minute presentation;
+   continue experiments as appropriate for the final report due December 12.
+   Report paired family-cluster intervals and
    checkpoint-conditioned uncertainty, alignment geometry, reward diversity,
    curriculum and failure modes, learning efficiency, and actual compute.
 
