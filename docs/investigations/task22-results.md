@@ -2,7 +2,9 @@
 
 Results are exploratory: C and D each have one training seed (2026), while the
 previously completed Control, A and B each have two. Every arm below uses the
-same frozen 64-task primary held-out set; the 2027 C/D cells were not run.
+same frozen 64-task primary held-out set; the 2027 C/D replication is in
+progress and its endpoint evaluations are not yet available. See the
+[execution status](task22-status.md) for current progress.
 
 | Arm | Seed 2026 verified / 64 | Seed 2027 verified / 64 |
 | --- | ---: | ---: |
