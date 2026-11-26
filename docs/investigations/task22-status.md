@@ -119,6 +119,9 @@ update; job `34760145` remains running. D primary job `34802801` remains
 running and had saved 57 of its 64 task records.
 C then committed `000019` at 464 episodes with a finite update, one
 distinct-reward group and seven near-zero alignments in the batch.
+C then committed `000020` at 496 episodes with a finite update, one
+distinct-reward group and 12 near-zero alignments. Job `34760145` remained
+running after reauthentication, with about 24 minutes left in its segment.
 The local controller has one guarded `hpc watch --continue-stopped` process per
 run, polling every 120 seconds; inspect these processes and the remote ledger
 before any manual continuation to avoid duplicate submissions. The full local
