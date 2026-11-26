@@ -56,6 +56,8 @@ training jobs continue toward the frozen 512-episode endpoint.
 At 128 episodes each arm had six finite optimizer steps; C/D recorded 18/0
 near-zero alignment events and 7/10 distinct-reward proposer groups. Their
 training trajectories differ, so those totals are descriptive diagnostics.
+D subsequently committed `000007` at 144 episodes, with a finite update,
+two distinct-reward groups and zero near-zero alignments in that batch.
 Both workers reported missing W&B credentials and record telemetry locally;
 publish the verified aggregate after completion and report delivery accurately.
 Inspect the live scheduler and ledger, never duplicate, and continue from
