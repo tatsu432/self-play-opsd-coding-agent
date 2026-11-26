@@ -79,6 +79,9 @@ development monitor was partially recorded when original job `34715492`
 stopped cleanly after 11:54:38 (exit 0). Guarded continuation `34761086` was
 submitted once from checkpoint `000011` and started on `a1122u11n01`. The
 monitor reuses task records after checking their frozen identities.
+The reconciled first allocations are 43,222 H200-seconds for C, 42,878 for D,
+and 1,472 for qualification. Including both active 12-hour reservations, the
+seed-2027 ledger commits 48.325556 of its 80 H200-hours.
 The local controller has one guarded `hpc watch --continue-stopped` process per
 run, polling every 120 seconds; inspect these processes and the remote ledger
 before any manual continuation to avoid duplicate submissions. The full local
