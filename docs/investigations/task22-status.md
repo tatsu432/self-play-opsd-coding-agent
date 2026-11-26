@@ -103,8 +103,9 @@ Its reused endpoint development monitor completed 15/24; continuation job
 `34761086` completed exit 0 after 08:30:31. Endpoint checkpoint `000022`, its
 identity and checksums were verified; never duplicate the training run.
 Its primary 64-task evaluation was submitted once as job `34802801` / run
-`fa48104063a65f359182870f` from checkpoint `000022`; inspect its scheduler and
-ledger before any action and do not submit a duplicate.
+`fa48104063a65f359182870f` from checkpoint `000022` and started on
+`a1122u11n01`; inspect its scheduler and ledger before any action and do not
+submit a duplicate.
 C committed `000017` at 416 episodes with a finite update, two distinct-reward
 groups and seven near-zero alignments in that batch.
 The local controller has one guarded `hpc watch --continue-stopped` process per
