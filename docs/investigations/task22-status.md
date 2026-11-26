@@ -90,6 +90,11 @@ were finite. C's 256-episode development monitor was 9/24; D's 256- and
 not held-out confirmation. Shared storage had approximately 140 GiB free.
 D then committed `000019` at 444 episodes with a finite update, three
 distinct-reward groups and zero near-zero alignments in the batch.
+After another Yale reauthentication, both continuation jobs remained running.
+C committed `000016` at 384 episodes with a finite update, no distinct-reward
+groups and three near-zero alignments; its 384-episode monitor is pending. D
+committed `000020` at 476 episodes with a finite update, three distinct-reward
+groups and no near-zero alignments.
 The local controller has one guarded `hpc watch --continue-stopped` process per
 run, polling every 120 seconds; inspect these processes and the remote ledger
 before any manual continuation to avoid duplicate submissions. The full local
