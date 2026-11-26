@@ -105,7 +105,9 @@ identity and checksums were verified; never duplicate the training run.
 Its primary 64-task evaluation was submitted once as job `34802801` / run
 `fa48104063a65f359182870f` from checkpoint `000022` and started on
 `a1122u11n01`; inspect its scheduler and ledger before any action and do not
-submit a duplicate.
+submit a duplicate. It completed exit 0 after 01:35:56, scoring 31/64 on the
+primary set; its identity and checkpoint checksums were verified. The matched
+transfer evaluation and C seed-2027 primary evaluation remain outstanding.
 C committed `000017` at 416 episodes with a finite update, two distinct-reward
 groups and seven near-zero alignments in that batch.
 After reauthentication, C committed `000018` at 432 episodes with a finite
