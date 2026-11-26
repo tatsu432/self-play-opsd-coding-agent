@@ -60,7 +60,8 @@ D subsequently committed `000007` at 144 episodes, with a finite update,
 two distinct-reward groups and zero near-zero alignments in that batch.
 C subsequently committed `000007` at 152 episodes, with a finite update and
 two distinct-reward groups, then `000008` at 184 with a finite update and two
-distinct-reward groups. D committed `000008` at 172 episodes with
+distinct-reward groups, then `000009` at 212 episodes with a finite update,
+two distinct-reward groups and one near-zero alignment. D committed `000008` at 172 episodes with
 a finite update, three distinct-reward groups and zero near-zero alignments in
 that batch. D then committed `000009` at 204 episodes with a finite update,
 two distinct-reward groups and zero near-zero alignments, then `000010` at
