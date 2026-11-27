@@ -161,3 +161,33 @@ and initially strength-calibrated ungated terms with distinct arm identities.
 Isolated semantic recovery is complete, and the frozen-model comparison is active.
 Reconstructed correct states do not measure new agent accuracy or a gating effect;
 objective training remains conditional on Phase 1.
+
+## Matched PDB study (Tasks 21–23)
+
+The Qwen3.5-4B PDB comparison uses one shared FP32 LoRA adapter (rank 32,
+alpha 64). For each generated task, the student samples four repairs. Dr. GRPO
+centers each binary reward by its four-rollout group mean without dividing by
+the reward standard deviation. It sums clipped policy-ratio terms across
+sampled tokens, divides by the fixed product of group size and the 12,288-token
+episode cap, and averages over the scored tasks. The policy ratio uses recorded
+behavior log probabilities. The OPSD gap uses detached raw teacher and frozen
+student scores at the same sampled positions. The teacher sees the verified
+repair and the student's actual interaction history. A uses unit token weights.
+B/C/D use the sigmoid of the raw gap. Both use the gap clipped to [−5, 5] and
+nominal coefficient 0.1717172.
+
+Control, A, and B reward a verified proposal with `4p(1-p)`, where `p` is
+the group's verified repair rate. C and D use the cosine with the same
+reference CE gradient in LoRA coordinates. C uses the candidate's RL gradient.
+D adds the weighted gated OPSD gradient. Task 22 maps a defined cosine through
+`(1 + cosine) / 2` and assigns **zero** when it is undefined. The earlier
+generic alignment helper returns 0.5 in that case. Alignment uses the raw
+candidate/reference directions before joint gradient clipping or AdamW
+preconditioning. Candidate groups with uniform outcome reward have zero RL
+advantages. They can still carry gated OPSD signal.
+
+Each optimization batch sums the student gradient and 0.3035281 times the
+proposer gradient, clips the combined norm at 1.0, and takes one AdamW step
+at learning rate 1e−5 with zero weight decay when the combined gradient is
+nonzero. Gradient-alignment values are first-order reference-loss proxies.
+[Task 23 results and discussion](report/task23-results-and-discussion.md)

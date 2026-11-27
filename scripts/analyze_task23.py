@@ -12,7 +12,7 @@ from analyze_task19 import allocations_before, interval, paired
 from analyze_task22 import CONTRASTS, METHODS, PRIMARY, evidence
 from scipy.stats import spearmanr
 
-from selfplay_opsd.core import read_json
+from selfplay_opsd.core import digest, keyed_seed, read_json
 from selfplay_opsd.storage import atomic_json, file_hash
 from selfplay_opsd.task21 import PdbRepository
 
@@ -259,7 +259,11 @@ def training_history(
                 "online_rate": ratio(sum(rewards), len(repairs)),
                 "rolling_rate": ratio(sum(rolling), len(rolling)),
                 "cumulative_rate": ratio(sum(episodes), n),
-                "valid_rollouts": sum(bool(ep["turns"]) for ep in repairs),
+                "valid_rollouts": sum(
+                    ep["verifier_status"] in {"ok", "student_failure"}
+                    and any(turn["ids"] for turn in ep["turns"])
+                    for ep in repairs
+                ),
                 "malformed_tool_episodes": malformed,
                 "verifier_statuses": dict(statuses),
                 "student_failures": dict(counts),
@@ -269,8 +273,18 @@ def training_history(
                 "all_successful_fraction": ratio(outcomes[4], len(groups)),
                 "proposal_attempts": prop["attempted"],
                 "proposal_valid": prop["valid"],
-                "proposal_invalid": prop["attempted"] - prop["valid"],
+                "proposal_invalid": sum(
+                    row["task"] is None and row["turn"]["result"] != "unscored_capacity"
+                    for row in props
+                ),
+                "proposal_unscored_capacity": sum(
+                    row["turn"]["result"] == "unscored_capacity" for row in props
+                ),
                 "proposal_duplicates": prop["duplicates"],
+                "duplicate_proposal_rate": ratio(prop["duplicates"], prop["attempted"]),
+                "proposal_difficulty_counts": {
+                    str(successes): count for successes, count in sorted(outcomes.items())
+                },
                 "valid_proposal_rate": ratio(prop["valid"], prop["attempted"]),
                 "unique_scored_tasks": len(ordered),
                 "cumulative_unique_tasks": len(task_set),
@@ -299,6 +313,7 @@ def training_history(
                 "gate_histogram": metrics["learning"]["gates"],
                 "joint_gradient_norm": step["joint_gradient_norm"],
                 "joint_clip": step["joint_clip"],
+                "rl_token_clip_fraction": metrics["rl"]["clip_fraction"],
                 "update_norm": step["update_norm"],
                 "proposer_tokens": generated,
                 "student_tokens": metrics["student_tokens"],
@@ -457,6 +472,169 @@ def evaluation_stats(
     }
 
 
+def read_followup(private: Path, kind: str, registry: dict, frozen: dict | None) -> dict:
+    cells = {}
+    for seed in SEEDS:
+        for method in METHODS:
+            name = f"{seed}-{method}"
+            root = private / "evaluations" / f"{kind}-{name}"
+            marker = root / "complete.json"
+            if not marker.is_file():
+                continue
+            manifest = read_json(root / "manifest.json")
+            record = read_json(marker)
+            control = registry[name]
+            identity = record["identity"]
+            if (
+                manifest["identity"] != identity
+                or manifest["identity_sha256"] != digest(identity)
+                or manifest["method"] != method
+                or manifest["seed"] != seed
+                or identity["kind"] != kind
+                or identity["checkpoint_identity"] != control["identity"]
+                or identity["checkpoint_sha256"] != control["checkpoint_sha256"]
+                or identity["snapshot"] != control["snapshot"]
+            ):
+                raise ValueError("New evaluation identity differs from the audited checkpoint")
+            budget = control["evaluation_config"]
+            if kind == "relaxed":
+                expected = {PRIMARY: set(identity["tasks"])}
+                budget = budget | {"max_turn_generated_tokens": 6144}
+            else:
+                assert frozen is not None
+                if identity["ood_sha256"] != file_hash(private / "ood-validation/complete.json"):
+                    raise ValueError("New evaluation uses another transfer freeze")
+                expected = {
+                    split: {row["task"]["task_id"] for row in rows}
+                    for split, rows in frozen["cohorts"].items()
+                    if rows
+                }
+            if identity["episode"] != budget or set(record["splits"]) != set(expected):
+                raise ValueError("New evaluation budget or split differs")
+            for split, rows in record["splits"].items():
+                if (
+                    len(rows) != len(expected[split])
+                    or {r["task_id"] for r in rows} != expected[split]
+                ):
+                    raise ValueError("New evaluation has missing or duplicated tasks")
+                for row in rows:
+                    if row["identity"] != {
+                        "task": row["task_id"],
+                        "seed": keyed_seed(seed, "evaluation", split, row["task_id"]),
+                        "evaluation": digest(identity),
+                    }:
+                        raise ValueError("New evaluation task has a different identity")
+                    if (root / split / "tasks" / f"{row['task_id']}.json").is_file() and read_json(
+                        root / split / "tasks" / f"{row['task_id']}.json"
+                    ) != row:
+                        raise ValueError(
+                            "New evaluation task file differs from its completion marker"
+                        )
+            cells[name] = record["splits"]
+    return cells
+
+
+def followup_results(private: Path, registry: dict, original: dict, families: dict) -> dict:
+    report: dict = {}
+    frozen_path = private / "ood-validation/complete.json"
+    frozen = read_json(frozen_path) if frozen_path.is_file() else None
+    ledger = private / "followup-accounting.json"
+    allocations = read_json(ledger) if ledger.is_file() else []
+    if len({entry["job"] for entry in allocations}) != len(allocations):
+        raise ValueError("Follow-up costs include a duplicate physical allocation")
+    report["allocated_h200_seconds"] = sum(row["gpu_seconds"] for row in allocations)
+    report["reconciled_jobs"] = len(allocations)
+    if frozen:
+        report["validated_ood_cohorts"] = {
+            split: {
+                "count": len(rows),
+                "composition": dict(
+                    Counter(row["oracle"]["provenance"]["bug_subtype"] for row in rows)
+                ),
+            }
+            for split, rows in frozen["cohorts"].items()
+        }
+    for kind in ("relaxed", "ood"):
+        available = read_followup(private, kind, registry, frozen)
+        report[f"{kind}_complete_cells"] = len(available)
+        if len(available) != len(registry):
+            continue
+        by_seed: dict = defaultdict(dict)
+        follows: dict = defaultdict(dict)
+        for name, splits in available.items():
+            seed, method = registry[name]["seed"], registry[name]["method"]
+            for split, rows in splits.items():
+                by_seed[seed].setdefault(method, {})[split] = (rows, None)
+                split_families = {row["parent_id"]: row["family"] for row in rows}
+                if kind == "relaxed" and any(
+                    families[parent] != family for parent, family in split_families.items()
+                ):
+                    raise ValueError("Relaxed primary families differ from the original")
+                follows[split][name] = {
+                    "verified": sum(row["success"] for row in rows),
+                    "count": len(rows),
+                    "failures": dict(Counter(row["failure"] for row in rows)),
+                    "ci95_pp": bootstrap_rate(rows, split_families),
+                    "median_tokens": median(row["tokens"] for row in rows),
+                    "median_turns": median(row["turns"] for row in rows),
+                    "mean_episode_seconds": statistics.mean(
+                        sum(row["timings"].values()) for row in rows
+                    ),
+                    "allocated_h200_seconds": sum(
+                        entry["gpu_seconds"]
+                        for entry in allocations
+                        if entry["cell"] == f"{kind}-{name}"
+                    ),
+                }
+                if kind == "relaxed":
+                    ids = {row["task_id"] for row in rows}
+                    old = [row for row in original[seed][method][split][0] if row["task_id"] in ids]
+                    prior = {row["task_id"]: row["success"] for row in old}
+                    follows[split][name] |= {
+                        "baseline_verified": sum(prior.values()),
+                        "gains": sum(row["success"] and not prior[row["task_id"]] for row in rows),
+                        "losses": sum(prior[row["task_id"]] and not row["success"] for row in rows),
+                        "paired_change": paired(rows, old, families),
+                        "baseline_truncation": sum(row["failure"] == "truncation" for row in old),
+                        "baseline_median_tokens": median(row["tokens"] for row in old),
+                        "baseline_median_turns": median(row["turns"] for row in old),
+                        "baseline_mean_episode_seconds": statistics.mean(
+                            sum(row["timings"].values()) for row in old
+                        ),
+                    }
+        comparisons = (
+            CONTRASTS
+            if kind == "relaxed"
+            else tuple(
+                (new, old)
+                for old in ("Initial", "Control", "B")
+                for new in METHODS
+                if METHODS.index(new) > METHODS.index(old)
+            )
+        )
+        sections = {}
+        for split, cells in follows.items():
+            task_families = {}
+            expected = None
+            for methods in by_seed.values():
+                for outcomes in methods.values():
+                    rows = outcomes[split][0]
+                    mapping = {row["task_id"]: (row["parent_id"], row["family"]) for row in rows}
+                    if expected is not None and expected != mapping:
+                        raise ValueError("New evaluation cohort differs across cells")
+                    expected = mapping
+                    task_families.update((row["parent_id"], row["family"]) for row in rows)
+            sections[split] = {
+                "cells": cells,
+                "contrasts": {
+                    f"{new} − {old}": paired_across_seeds(by_seed, task_families, (new, old), split)
+                    for new, old in comparisons
+                },
+            }
+        report[kind] = sections[PRIMARY] if kind == "relaxed" else sections
+    return report
+
+
 def build(args) -> tuple[dict, dict]:
     repository = PdbRepository(args.data)
     families = {
@@ -474,6 +652,8 @@ def build(args) -> tuple[dict, dict]:
             args.task22 / "seed2027-budget-final.json",
         ]
     )
+    source_file = args.private / "source-ledgers.json"
+    source_records = read_json(source_file) if source_file.is_file() else {}
     by_seed: dict = defaultdict(dict)
     results = {}
     registry = {}
@@ -568,6 +748,12 @@ def build(args) -> tuple[dict, dict]:
                 for split, (rows, root) in outcomes.items()
             },
         }
+        source_id = next(iter(train_ids), None)
+        if method == "Initial":
+            source_id = manifest[f"{seed}-Control"]["train_ids"][0]
+        source = source_records.get(source_id, {})
+        if source and source["task20_control_sha256"] != file_hash(Path(spec["config"])):
+            raise ValueError("Source controller and frozen control checksums differ")
         registry[label] = {
             **spec,
             "identity": identity,
@@ -575,7 +761,8 @@ def build(args) -> tuple[dict, dict]:
             "checkpoint": first["checkpoint"],
             "checkpoint_sha256": first["checkpoint_sha256"],
             "configuration_sha256": file_hash(Path(spec["config"])),
-            "source_commit": spec.get("source_commit"),
+            "source_commit": source.get("commit") or spec.get("source_commit"),
+            "source_ledger": source or None,
             "evaluation_config": config["episode"],
             "evaluation_receipts": receipts + baseline_receipts,
             "training": training,
@@ -631,12 +818,14 @@ def build(args) -> tuple[dict, dict]:
             "vs_initial_pp": means[method] - means["Initial"],
             "vs_control_pp": means[method] - means["Control"],
         }
+    followup = followup_results(args.private, registry, by_seed, families)
     return {
         "historical_h200_seconds": total,
         "historical_job_count": len(allocations),
         "cells": results,
         "primary": primary,
         "contrasts": contrasts,
+        "followup": followup,
     }, {
         "cells": registry,
         "historical_allocations": allocations,

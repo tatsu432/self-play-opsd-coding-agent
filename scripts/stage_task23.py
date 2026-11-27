@@ -38,7 +38,7 @@ def main() -> None:
     root = Path("runs/task23/evaluations")
     if args.kind == "ood-validation":
         cell = args.kind
-        local = Path("runs/task23/ood-validation/candidates.json")
+        local = Path("runs/task23/ood-validation/candidates.json.gz")
     else:
         cell = f"{args.kind}-{name}"
         record = history[name]

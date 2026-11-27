@@ -54,7 +54,7 @@ def submit(workspace: Path, directory: Path, prior_id: str, limit: int, minutes:
     ):
         raise ValueError("Task 23 requires an accepted completed Task 21/22 job specification")
     if directory.name == "ood-validation":
-        file = directory / "candidates.json"
+        file = directory / "candidates.json.gz"
         gpu = 0
     else:
         file = directory / "manifest.json"

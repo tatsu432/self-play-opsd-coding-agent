@@ -9,36 +9,21 @@ proposer rewards based on task difficulty or student-gradient alignment.
 
 ## Current results
 
-The five-minute presentation on December 2 is a soft milestone; the final
-report is due December 12, 2026.
+On the adapted Precise Debugging Benchmark, Qwen3.5-4B completed five
+512-episode self-play configurations in each of two seeds. Gated OPSD (B)
+verified 28/64 held-out repairs in both seeds, ahead of ungated OPSD
+(26/64 and 21/64) and verifier-only Control (22/64 and 21/64).
+The C/D gradient-alignment ordering reversed between seeds. Adding gated
+OPSD to the candidate gradient reduced paired near-zero counts from 264/512
+to 0/512. The effect on downstream repair accuracy remains uncertain.
 
-The matched seed-2027 C/D replication is complete; see
-[replication results](docs/investigations/task22-seed2027-results.md).
-
-On the Precise Debugging Benchmark (PDB), Qwen3.5-4B completed matched
-512-episode self-play runs. On 64 held-out single-bug tasks, the initial model,
-Control, ungated A and gated B verified 21/22/26/28 repairs in seed 2026;
-the gradient-alignment arms C and D verified 33/25. At seed 2027 the initial
-model, Control, A, B, C and D verified 20/21/21/28/24/31. D minus C was
-−12.5 percentage points in 2026 and +10.94 in 2027, with paired task-family
-bootstrap intervals [−25, 0] and [−3.13, 26.56], conditional on the runs.
-Paired gradient diagnostics show that
-D supplies a non-negligible candidate gradient more often than C, but they do
-not establish an accuracy benefit. The limited seeds, truncation, small transfer
-sets and 19–21 optimizer steps prevent broad generalization or convergence
-claims. Two seeds do not establish a winner; further seeds and longer training
-are needed.
-
-Task 22 used 105.375 H200-hours across both seeds, including failed allocations,
-continuations and endpoint evaluations. The earlier Task 21 study used
-217.155 H200-hours. See [Task 22 results](docs/investigations/task22-results.md),
-[mechanistic analysis](docs/investigations/task22-mechanistic-analysis.md),
-[execution and reproduction](docs/investigations/task22-status.md), and
-[Task 21 results](docs/investigations/task21-results.md).
-Earlier [Task 20](docs/investigations/task20-final-decision.md),
-[Task 19](docs/investigations/task19-results.md), and
-[interface](docs/investigations/task18-results.md) investigations document
-benchmark and numerical choices.
+The consolidated study records 322.530 historical H200-hours, including
+pilots, failures, resumes, training and evaluation. Two training seeds, a
+short optimization horizon, high truncation, and small original transfer
+cohorts limit generalization and convergence claims.
+[Results and discussion](docs/report/task23-results-and-discussion.md) ·
+[Five-minute presentation](docs/report/task23-presentation.md) ·
+[Evaluation status](docs/investigations/task23-status.md)
 
 ## Getting started
 
