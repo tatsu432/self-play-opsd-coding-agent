@@ -29,8 +29,9 @@ def main() -> None:
     parser.add_argument("--wall", type=int, required=True)
     args = parser.parse_args()
     remote = YaleSSH()
-    workspace = remote.call("context")["storage"]["project"][remote.alias]
-    workspace = f"{workspace}/selfplay-opsd-{remote.call('context')['user']}"
+    context = remote.call("context")
+    workspace = context["storage"]["project"]["project_cpsc4880"]
+    workspace = f"{workspace}/selfplay-opsd-{context['user']}"
     history = historical_manifest(Path("runs/task21"), Path("runs/task22"))
     name = f"{args.seed}-{args.method}"
     prior = history[f"{args.seed}-{TRAINING_NAMES.get(args.method, args.method)}"]["train_ids"][0]

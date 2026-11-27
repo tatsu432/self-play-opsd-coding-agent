@@ -48,7 +48,7 @@ def prepare(pdb: Path, upstream: Path, historical: Path, output: Path) -> None:
         raise ValueError("Pinned BigCodeBench fixture checksum differs")
     bcb = read_json(bcb_path)
     lcb, _ = collect_lcb(upstream, releases, False)
-    observations = read_json(upstream / "bcb_observations.json")
+    observations = read_json(upstream / "bcb-observations.json")
     known = [
         (task, cast(PdbOracle, oracle))
         for manifest in historical.glob("*/manifest.json")
