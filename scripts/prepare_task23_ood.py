@@ -49,13 +49,23 @@ def prepare(pdb: Path, upstream: Path, historical: Path, output: Path) -> None:
     bcb = read_json(bcb_path)
     lcb, _ = collect_lcb(upstream, releases, False)
     observations = read_json(upstream / "bcb-observations.json")
-    known = [
-        (task, cast(PdbOracle, oracle))
-        for manifest in historical.glob("*/manifest.json")
-        for repo in [PdbRepository(manifest.parent)]
-        for split in repo.partition_names()
-        for task, oracle in repo.tasks(split)
-    ]
+    known = []
+    for manifest in sorted(historical.glob("*/manifest.json")):
+        metadata = read_json(manifest)
+        if "bundle_sha256" in metadata:
+            repo = PdbRepository(manifest.parent)
+            for split in repo.partition_names():
+                known.extend((task, cast(PdbOracle, oracle)) for task, oracle in repo.tasks(split))
+        else:
+            payload = read_json(manifest.with_name("pdb.json"))
+            checksum = payload.pop("hash")
+            if checksum != metadata["hash"] or checksum != digest(payload):
+                raise ValueError("Historical feasibility bundle checksum differs")
+            known.extend(
+                (TaskSpec.model_validate(row["task"]), PdbOracle.model_validate(row["oracle"]))
+                for group in payload["partitions"].values()
+                for row in group
+            )
     used_parents = {task.parent_id for task, _ in known}
     releases_for_audit = {name: list(rows) for name, rows in releases.items()}
     audit_rows = releases_for_audit["PDB-Single-Full"]

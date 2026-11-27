@@ -34,7 +34,7 @@ def job_state(job: str) -> str:
 
 
 def submit(workspace: Path, directory: Path, prior_id: str, limit: int, minutes: int) -> dict:
-    if not re.fullmatch(r"[a-f0-9]{22}", prior_id):
+    if not re.fullmatch(r"[a-f0-9]{20,32}", prior_id):
         raise ValueError("Expected a verified historical controller run ID")
     if not 25 <= minutes <= 240:
         raise ValueError("Schedule a bounded Task 23 job")
