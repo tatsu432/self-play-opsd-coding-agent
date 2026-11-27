@@ -514,10 +514,11 @@ def timeout_disconnect_evidence(job_id: str, health: dict) -> dict | None:
 
 
 def reviewed_task21_timeout_disconnect(payload: dict, job_id: str, health: dict) -> dict | None:
-    """Recognize the reviewed worker shutdown in the 2026 Control allocation."""
+    """Recognize individually reviewed worker shutdowns at scheduler timeout."""
     reviewed = {
         "34298915": "237fb774dc01bcce763e228c",
         "34300641": "09e87387be4df8df15ec5f17",
+        "34715487": "71d9e0d5d819cc6d06861be9",
     }
     if (
         job_id not in reviewed
@@ -1651,6 +1652,8 @@ def budget_path(payload: dict) -> Path:
     if task19_budget(payload):
         return workspace(payload) / "state" / "task19-budget.json"
     if task22_budget(payload):
+        if payload["study_id"].endswith("pdb-alignment-seed2027-v1"):
+            return workspace(payload) / "state" / "task22-seed2027-budget.json"
         return workspace(payload) / "state" / "task22-budget.json"
     if task21_budget(payload):
         return workspace(payload) / "state" / "task21-budget.json"
@@ -1670,7 +1673,11 @@ def refreshed_budget(payload: dict) -> dict:
     limit = payload.get("readiness_budget") if staged_budget(payload) else readiness_limit(payload)
     budget = json.loads(path.read_text()) if path.exists() else {"limit": limit, "reservations": {}}
     authorization = (
-        "cpsc4880-task22-v1"
+        (
+            "cpsc4880-task22-seed2027-v1"
+            if payload["study_id"].endswith("pdb-alignment-seed2027-v1")
+            else "cpsc4880-task22-v1"
+        )
         if task22_budget(payload)
         else "cpsc4880-task21-v1"
         if task21_budget(payload)
@@ -2404,7 +2411,7 @@ def check_task22(payload: dict, control: dict) -> None:
     if (
         payload["manifests_hash"] != contract["MATCHED_DATA"]
         or not isinstance(limit, (int, float))
-        or not 0 < limit <= 95
+        or not 0 < limit <= (80 if payload["study_id"] == contract["REPLICATION"] else 95)
     ):
         raise ValueError("Task 22 requires the matched PDB bundle and bounded ledger")
     if shutil.disk_usage(resolved["base"]).free < 20 * 1024**3:
@@ -2440,7 +2447,9 @@ def check_task22(payload: dict, control: dict) -> None:
         if stage in contract["FINAL_STAGES"]:
             check_task22_evaluation(payload, {extension}, extension)
         return
-    if payload["study_id"] != contract["STUDY"] or common(control) != common(matched):
+    if payload["study_id"] not in {contract["STUDY"], contract["REPLICATION"]} or common(
+        control
+    ) != common(matched | {"seed": control["seed"]}):
         raise ValueError("Task 22 requires the original matched seed-2026 scientific settings")
     reference = contract["reference_path"](resolved["dataset"], control.get("reference_sha256", ""))
     if sha256(reference) != control["reference_sha256"]:
@@ -2469,7 +2478,7 @@ def check_task22(payload: dict, control: dict) -> None:
         not report["ready"]
         or verified["result"] != report
         or verified["identity"] != identity
-        or report["common_control"] != contract["identity_hash"](common(control))
+        or report["common_control"] != contract["identity_hash"](common(control | {"seed": 2026}))
         or identity["study"] != payload["study_id"]
         or identity["arm"] != "control"
         or identity["reference"] != control["reference_sha256"]

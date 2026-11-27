@@ -10,7 +10,7 @@ https://github.com/tatsu432/self-play-opsd-coding-agent
 Research title:
 **Demystifying the Effect of Gated On-Policy Self-Distillation on Students and Proposers in Gradient-Guided Self-Play for Coding Agents**
 
-Our presentation is on **December 2, 2026**. Today is November 24, 2026. We should aim to complete the main experiments and freeze the presentation results by November 30, leaving December 1 for presentation preparation.
+The five-minute presentation is on **December 2, 2026** and is a soft milestone: present defensible findings available at that time, even if experiments are still running. The **hard deadline is December 12, 2026**, for the final report. The original planning date was November 24, 2026.
 
 After many iterations of debugging, investigating learning-signal failures, changing datasets, improving the agent interface, and stabilizing the training pipeline, Task 21 finally produced promising results using Qwen3.5-4B, the Precise Debugging Benchmark (PDB), and shared proposer/student parameter updates.
 
@@ -882,7 +882,7 @@ The existing test set has already been examined through the completed Control/A/
 
 ## 13. Fallback and longer-training decision
 
-The priority remains C/D. However, the December 2 deadline is a hard practical constraint.
+The priority remains C/D. December 2 is a soft presentation milestone; the hard final-report deadline is December 12.
 
 ### 13.1 If C/D qualification succeeds
 
@@ -1343,9 +1343,17 @@ Use the following target schedule, adapting to actual queue conditions.
 
 ### December 2
 
-- Presentation.
+- Five-minute presentation of the best available findings; final results may still be pending.
 
-Use November 30 as the target experimental cutoff.
+### December 3–11
+
+- Continue and analyze useful experiments; prepare and review the final report.
+
+### December 12
+
+- Submit the final report (hard deadline).
+
+November 30 is a useful target for assembling preliminary presentation material, not an experimental cutoff. Continue useful experiments and analysis after the December 2 presentation when they can inform the final report due December 12.
 
 Do not launch expensive new experiments late in the schedule unless their completion and evaluation are realistically feasible.
 
@@ -1450,6 +1458,6 @@ Begin by inspecting the current repository, actual experimental artifacts, and a
 
 Preserve the existing Control/A/B results and use them as the matched baseline.
 
-Our target is a completed, defensible five-arm PDB self-play study with two seeds for Control/A/B, one matched seed for C/D, and strong mechanistic analysis before December 2.
+Present defensible available findings on December 2, including any unfinished work. Aim for a completed, well-analyzed five-arm PDB study, including the seed-2027 C/D extension, for the final report due December 12.
 
 Longer training and additional ablations are secondary objectives.

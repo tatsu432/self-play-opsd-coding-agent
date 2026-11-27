@@ -1,8 +1,9 @@
 # Task 22 PDB gradient-alignment results
 
-Results are exploratory: C and D each have one training seed (2026), while the
-previously completed Control, A and B each have two. Every arm below uses the
-same frozen 64-task primary held-out set; the 2027 C/D cells were not run.
+Results are exploratory: each arm now has two training seeds. Every arm below uses the
+same frozen 64-task primary held-out set. The completed 2027 C/D replication
+scored 24/64 and 31/64, respectively; see the
+[replication results](task22-seed2027-results.md) for the full two-seed analysis.
 
 | Arm | Seed 2026 verified / 64 | Seed 2027 verified / 64 |
 | --- | ---: | ---: |
@@ -10,8 +11,8 @@ same frozen 64-task primary held-out set; the 2027 C/D cells were not run.
 | Control | 22 | 21 |
 | A: ungated OPSD | 26 | 21 |
 | B: gated OPSD | 28 | 28 |
-| C: RL gradient alignment | 33 | — |
-| D: RL + gated OPSD alignment | 25 | — |
+| C: RL gradient alignment | 33 | 24 |
+| D: RL + gated OPSD alignment | 25 | 31 |
 
 The paired D-minus-C difference is −8/64 (−12.5 percentage points), with
 four tasks gained and 12 lost relative to C. A 95% paired task-family bootstrap

@@ -1,5 +1,165 @@
 # Task 22 execution and reproduction
 
+## Seed-2027 replication complete · November 26, 2026
+
+Both 512-episode training endpoints and all primary and transfer evaluations
+completed, with identity and checkpoint checksums verified. C/D scored 24/31
+out of 64 on the primary benchmark; their ordering reverses from seed 2026.
+The full paired analysis and limitations are in
+[seed-2027 results](task22-seed2027-results.md). The reconciled incremental
+allocation was 182,963 H200-seconds (50.823056 hours), including qualification,
+timeouts and continuations; all reservations were charged. Never duplicate the
+completed jobs. Earlier progress below is historical.
+
+December 2 is a soft milestone for a five-minute presentation of available
+findings. Experiments may continue afterward; the hard final-report deadline
+is December 12, 2026.
+
+The user authorized a matched seed-2027 C/D extension at the original
+512-episode endpoint. It uses the separate study
+`repair-selfplay-2026-task22-pdb-alignment-seed2027-v1` and a new 80-H200-hour
+incremental ledger; the completed seed-2026 95-hour ledger is unchanged. The
+new isolated qualification job `34712276` / run `dd8382ad48d0f79b469f9f38`
+was submitted once from `6aefce421e8d886855f88dc4a72b9f5f46519cc5`. Its
+pending wall was reduced from three hours to one based on the prior 1,433-second
+qualification; its three-hour reservation and the local adjustment record are
+retained. Inspect scheduler and ledger before acting, and never duplicate.
+Qualification reused the accepted worker and the same frozen Task 21 PDB
+data and archived seed-2026 B diagnostic batches. It completed exit 0 with a
+passing two-batch gate; frozen gate SHA-256 is
+`f91e521d8abcb7e38f25432bb488a590928745156e89390d4cd6a4219d1f2c0c`.
+Seed-2027 C job `34715487` / run `71d9e0d5d819cc6d06861be9` and D job
+`34715492` / run `b62da8d03c9221f029019a2f` were submitted once from
+`844af3d481b842192404e28474a1e1f7a4e0445d`, each with a 12-hour reservation.
+C started on `a1126u02n01` and its initial adapter
+`1f8ec499a25ebd6ab741410e8b5421cbf32c9ff2a2119330fb08055215fc6845`
+and reused 8/24 monitoring baseline match the completed Task 21 seed-2027
+run. D started on `a1122u11n01` and independently matched that same initial
+adapter and reused 8/24 baseline. Both jobs are running.
+C committed checkpoint `000001` at 24 attempted episodes: finite joint
+gradient, one optimizer step, one proposer group with distinct rewards, and
+five near-zero alignment events. D also committed `000001` at 24 episodes,
+with finite joint gradient, one optimizer step, two distinct-reward groups and
+zero near-zero alignments. Both continue; these are training diagnostics, not
+held-out results.
+C subsequently committed `000002` at 56 episodes, with a finite second
+optimizer step and two proposer groups with distinct rewards. C then reached
+64 episodes at `000003`, and D reached 56 at `000002`; both latest updates
+were finite with distinct proposer rewards. D subsequently reached 64 at
+`000003` with another finite update, zero near-zero alignments and no
+distinct-reward proposer group in that batch.
+At 64 episodes each arm had three finite optimizer steps and four total
+distinct-reward proposer groups; C recorded 11 near-zero alignment events and
+D zero. These are early training diagnostics, not performance results.
+Both fourth batches then committed with finite optimizer steps and distinct
+proposer rewards: C reached 96 episodes (`000004`) and D 88 (`000004`).
+C subsequently reached 112 at `000005` with a finite optimizer step and one
+distinct-reward group, then committed 128 at `000006` with a finite update;
+its 128-episode development monitor is still pending.
+D reached 116 at `000005` with a finite optimizer step, three distinct-reward
+groups and zero near-zero alignments in that batch, then 128 at `000006` with
+a finite update and one distinct-reward group. Both 128-episode development
+monitors completed: C 5/24 and D 9/24 versus the reused 8/24 initial monitor.
+This repeatedly inspected development set is not held-out confirmation; both
+training jobs continue toward the frozen 512-episode endpoint.
+At 128 episodes each arm had six finite optimizer steps; C/D recorded 18/0
+near-zero alignment events and 7/10 distinct-reward proposer groups. Their
+training trajectories differ, so those totals are descriptive diagnostics.
+D subsequently committed `000007` at 144 episodes, with a finite update,
+two distinct-reward groups and zero near-zero alignments in that batch.
+C subsequently committed `000007` at 152 episodes, with a finite update and
+two distinct-reward groups, then `000008` at 184 with a finite update and two
+distinct-reward groups, then `000009` at 212 episodes with a finite update,
+two distinct-reward groups and one near-zero alignment. D committed `000008` at 172 episodes with
+a finite update, three distinct-reward groups and zero near-zero alignments in
+that batch. D then committed `000009` at 204 episodes with a finite update,
+two distinct-reward groups and zero near-zero alignments, then `000010` at
+232 episodes with a finite update, three distinct-reward groups and zero
+near-zero alignments. C job `34715487` then timed out after 12:00:22; its
+worker step ended at the scheduler time limit, followed by a connection-refused
+error. The controller stopped without resubmitting. This exact run and job were
+reviewed against the existing timeout-disconnect checks; checkpoint `000009`
+remains the latest complete checkpoint. C continuation `34760145` was submitted
+once from that verified checkpoint, under the same logical run, and started on
+`a1124u28n01`.
+D subsequently committed `000011` at 256 episodes with a finite update, two
+distinct-reward groups and zero near-zero alignments. Its 256-episode
+development monitor was partially recorded when original job `34715492`
+stopped cleanly after 11:54:38 (exit 0). Guarded continuation `34761086` was
+submitted once from checkpoint `000011` and started on `a1122u11n01`. The
+monitor reuses task records after checking their frozen identities.
+The reconciled first allocations are 43,222 H200-seconds for C, 42,878 for D,
+and 1,472 for qualification. Including both active 12-hour reservations, the
+seed-2027 ledger commits 48.325556 of its 80 H200-hours.
+After Yale reauthentication on November 26, both continuation jobs were
+confirmed running: C `34760145` reached checkpoint `000014` at 352 attempted
+episodes; D `34761086` reached `000018` at 412. Both latest joint gradients
+were finite. C's 256-episode development monitor was 9/24; D's 256- and
+384-episode monitors were 13/24 and 13/24. These reused monitoring tasks are
+not held-out confirmation. Shared storage had approximately 140 GiB free.
+D then committed `000019` at 444 episodes with a finite update, three
+distinct-reward groups and zero near-zero alignments in the batch.
+After another Yale reauthentication, both continuation jobs remained running.
+C committed `000016` at 384 episodes with a finite update, no distinct-reward
+groups and three near-zero alignments; its 384-episode monitor completed 9/24.
+D
+committed `000020` at 476 episodes with a finite update, three distinct-reward
+groups and no near-zero alignments.
+D subsequently committed `000021` at 508 episodes with a finite update, three
+distinct-reward groups and no near-zero alignments in that batch.
+D then committed `000022` at the 512-episode endpoint with a finite update.
+Its reused endpoint development monitor completed 15/24; continuation job
+`34761086` completed exit 0 after 08:30:31. Endpoint checkpoint `000022`, its
+identity and checksums were verified; never duplicate the training run.
+Its primary 64-task evaluation was submitted once as job `34802801` / run
+`fa48104063a65f359182870f` from checkpoint `000022` and started on
+`a1122u11n01`; inspect its scheduler and ledger before any action and do not
+submit a duplicate. It completed exit 0 after 01:35:56, scoring 31/64 on the
+primary set; its identity and checkpoint checksums were verified. The matched
+transfer evaluation was submitted once as job `34812625` / run
+`e932614e9dd5e3619b695d8c` and started on `a1124u02n01`; inspect its scheduler
+and ledger and never submit a duplicate. It completed exit 0 with verified
+counts 1/1 cross-source, 7/9 mutants and 2/8 harder tasks, and reused the same
+31/64 primary outcome. C seed-2027 primary evaluation remains outstanding.
+C committed `000017` at 416 episodes with a finite update, two distinct-reward
+groups and seven near-zero alignments in that batch.
+After reauthentication, C committed `000018` at 432 episodes with a finite
+update; job `34760145` remains running. D primary job `34802801` remains
+running and had saved 57 of its 64 task records.
+C then committed `000019` at 464 episodes with a finite update, one
+distinct-reward group and seven near-zero alignments in the batch.
+C then committed `000020` at 496 episodes with a finite update, one
+distinct-reward group and 12 near-zero alignments. Job `34760145` remained
+running after reauthentication, with about 24 minutes left in its segment.
+That segment `34760145` subsequently timed out in 43,207 H200-seconds. The
+guarded watcher verified checkpoint `000020` and submitted continuation
+`34818937` once under the same logical run. Its pending wall limit was reduced
+from 12 to three hours for the remaining 16 episodes and endpoint monitor;
+the original 12-hour reservation is retained and the adjustment recorded at
+`runs/task22/seed2027-wall-adjustments.jsonl`. It started on `a1124u28n01`;
+never duplicate this job.
+C then committed `000021` at 512 episodes with a finite update, no
+distinct-reward group and four near-zero alignments in that batch. Its endpoint
+development monitor completed 11/24; continuation `34818937` completed exit 0
+and checkpoint `000021` and its identity and checksums were verified.
+The 64-task primary evaluation was submitted once as job `34826348` / run
+`e6ecea09d6ca2eba0a22fb3c` and started on `a1126u19n01`; inspect its scheduler
+and ledger and never submit a duplicate. It completed exit 0 and verified 24/64
+on the primary set. The paired D result was 31/64; paired analysis remains
+pending. C's matched transfer evaluation was submitted once as job `34834854`
+/ run `bd4fe14b63b53173822beba2` and started on `a1124u28n01`; inspect its
+scheduler and ledger and never submit a duplicate.
+The local controller has one guarded `hpc watch --continue-stopped` process per
+run, polling every 120 seconds; inspect these processes and the remote ledger
+before any manual continuation to avoid duplicate submissions. The full local
+suite passed 514 tests (22 skipped); Ruff and mypy (68 source files) passed.
+Both workers reported missing W&B credentials and record telemetry locally;
+publish the verified aggregate after completion and report delivery accurately.
+Inspect the live scheduler and ledger, never duplicate, and continue from
+verified checkpoints if needed. Both use the Task 21 seed-2027 initial
+adapter and monitoring baseline. Verify their 512-episode endpoints and
+matched evaluations, analyze both seeds, document actual resources and finish.
+
 ## Completed study · November 25, 2026
 
 The existing primary jobs completed successfully and were verified and fetched:

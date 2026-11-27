@@ -8,10 +8,13 @@ from pathlib import Path
 
 PREFIX = "repair-selfplay-2026-task22-"
 STUDY = PREFIX + "pdb-alignment-v1"
+REPLICATION = PREFIX + "pdb-alignment-seed2027-v1"
 EXTENSIONS = {PREFIX + f"pdb-extension-{n}-v1": n for n in (768, 1024)}
 B_FALLBACK = {256: 10, 384: 15}
 BASE_STUDY = "repair-selfplay-2026-task21-pdb-prompt-v2"
 INITIAL = "9ec1fcbbf0e43250c603ee9fd41bb82a8d0f1c6db88160eaeeb987b5708cb9d1"
+INITIAL_2027 = "1f8ec499a25ebd6ab741410e8b5421cbf32c9ff2a2119330fb08055215fc6845"
+BASE_SCIENCE_2027 = "f3454e8b24300acf66f32c94b567a0a36ece719df805e9162d65a7172cf0bd99"
 MATCHED_DATA = "58af9abb5c6e727312dfbc73b78364a6c8e5380a2760bbfaa7b84c5a6cfc8930"
 BASE_SCIENCE = "6a1782ad4cb3d60fe3679d00852c32964da033ff14b96ba07dd2dc07e1b3cc10"
 B_CHECKPOINTS = (0, 6, 10, 15)

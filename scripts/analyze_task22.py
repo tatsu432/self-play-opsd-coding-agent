@@ -48,14 +48,14 @@ def evidence(receipt: Path, artifacts: Path) -> tuple[dict, Path]:
     return row, root
 
 
-def load_run(spec: dict, artifacts: Path, reservations: list[dict]) -> dict:
+def load_run(spec: dict, artifacts: Path, reservations: list[dict], initial: str = INITIAL) -> dict:
     evaluation_ids = set()
     outcomes: dict[str, dict] = {}
     identities = set()
     for receipt in spec["evaluations"]:
         record, root = evidence(Path(receipt), artifacts)
         identity, exposure = record["identity"], record["episodes"]
-        if identity["data"] != MATCHED_DATA or identity["initial"] != INITIAL:
+        if identity["data"] != MATCHED_DATA or identity["initial"] != initial:
             raise ValueError("Evaluation is not from the matched PDB study")
         identities.add(identity["science"])
         evaluation_ids.add(record["run_id"])
@@ -302,7 +302,9 @@ def framework(out: Path) -> None:
     finish(fig, out, "01-framework")
 
 
-def primary_figure(out: Path, rows: dict, comparisons: dict, exposure: int) -> None:
+def primary_figure(
+    out: Path, rows: dict, comparisons: dict, exposure: int, seed: int = 2026
+) -> None:
     fig, (left, right) = plt.subplots(1, 2, figsize=(10.2, 4.1), layout="constrained")
     methods = [name for name in METHODS if PRIMARY in rows.get(name, {})]
     for i, name in enumerate(methods):
@@ -321,7 +323,7 @@ def primary_figure(out: Path, rows: dict, comparisons: dict, exposure: int) -> N
         xticklabels=methods,
         ylim=(0, 100),
         ylabel="Verified repairs (%)",
-        title=f"Seed 2026 · {exposure} attempted episodes",
+        title=f"Seed {seed} · {exposure} attempted episodes",
     )
     chosen = [(label, item[PRIMARY]) for label, item in comparisons.items() if PRIMARY in item]
     for i, (_, row) in enumerate(chosen):

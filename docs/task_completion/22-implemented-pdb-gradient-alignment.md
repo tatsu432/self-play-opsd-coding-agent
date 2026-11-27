@@ -34,3 +34,14 @@ Private datasets, task records, checksums, receipts and accounting remain in
 ignored paths. The analysis consumes verified receipts and fetched summaries;
 the execution document identifies runs and the reproducible command. Retain
 checkpoints and scientific records for future authorized experiments.
+
+## Seed-2027 extension completed
+
+The authorized C/D seed-2027 extension completed 512-episode training and
+matched primary and transfer evaluations. C/D scored 24/31 out of 64 versus
+33/25 in seed 2026. The paired D-minus-C interval in 2027 was [−3.125, 26.5625]
+percentage points, conditional on the two checkpoints. The direction reverses
+between the two seeds, so the evidence does not establish a general winner.
+The extension used 182,963 H200-seconds; all reservations were reconciled and
+endpoints verified. See [replication results](../investigations/task22-seed2027-results.md)
+and [execution status](../investigations/task22-status.md).

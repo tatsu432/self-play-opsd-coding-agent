@@ -9,19 +9,27 @@ proposer rewards based on task difficulty or student-gradient alignment.
 
 ## Current results
 
+The five-minute presentation on December 2 is a soft milestone; the final
+report is due December 12, 2026.
+
+The matched seed-2027 C/D replication is complete; see
+[replication results](docs/investigations/task22-seed2027-results.md).
+
 On the Precise Debugging Benchmark (PDB), Qwen3.5-4B completed matched
 512-episode self-play runs. On 64 held-out single-bug tasks, the initial model,
 Control, ungated A and gated B verified 21/22/26/28 repairs in seed 2026;
-the gradient-alignment arms C and D verified 33/25. Control/A/B also have a
-second training seed (21/21/28); C/D are single-seed exploratory results.
-D minus C was −12.5 percentage points, with a task-family bootstrap interval
-of [−25, 0] conditional on those runs. Paired gradient diagnostics show that
+the gradient-alignment arms C and D verified 33/25. At seed 2027 the initial
+model, Control, A, B, C and D verified 20/21/21/28/24/31. D minus C was
+−12.5 percentage points in 2026 and +10.94 in 2027, with paired task-family
+bootstrap intervals [−25, 0] and [−3.13, 26.56], conditional on the runs.
+Paired gradient diagnostics show that
 D supplies a non-negligible candidate gradient more often than C, but they do
 not establish an accuracy benefit. The limited seeds, truncation, small transfer
 sets and 19–21 optimizer steps prevent broad generalization or convergence
-claims. Further matched seeds and longer training are needed.
+claims. Two seeds do not establish a winner; further seeds and longer training
+are needed.
 
-Task 22 used 54.552 incremental H200-hours, including failed allocations,
+Task 22 used 105.375 H200-hours across both seeds, including failed allocations,
 continuations and endpoint evaluations. The earlier Task 21 study used
 217.155 H200-hours. See [Task 22 results](docs/investigations/task22-results.md),
 [mechanistic analysis](docs/investigations/task22-mechanistic-analysis.md),

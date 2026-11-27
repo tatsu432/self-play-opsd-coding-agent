@@ -20,12 +20,24 @@ from selfplay_opsd.task22 import (
 from selfplay_opsd.task22_contract import (
     INITIAL,
     MATCHED_DATA,
+    REPLICATION,
     STUDY,
     identity_hash,
     reference_path,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_replication_allows_only_its_matched_seeds():
+    matched = read_json(ROOT / "configs/task21-main.json")
+    base = matched | {"study": REPLICATION, "reference_sha256": "a" * 64}
+    assert Task22Control.model_validate(base | {"seed": 2027}).seed == 2027
+    assert Task22Control.model_validate(base | {"seed": 2026}).seed == 2026
+    with pytest.raises(ValueError):
+        Task22Control.model_validate(base | {"seed": 2028})
+    with pytest.raises(ValueError):
+        Task22Control.model_validate(base | {"study": STUDY, "seed": 2027})
 
 
 def control(**changes):

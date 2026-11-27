@@ -1,0 +1,31 @@
+study_id: repair-selfplay-2026-task22-pdb-alignment-seed2027-v1
+method: B
+seed: 2027
+iterations: 2000
+checkpoint_every: 1
+data_root: data/task22/pdb-alignment-v1
+output_root: runs
+episode:
+  edit_protocol: replace_text
+  max_generated_tokens: 12288
+  max_turn_generated_tokens: 4096
+  max_student_sequence_tokens: 20480
+  max_teacher_sequence_tokens: 24576
+  privilege_reserve: 4096
+model:
+  name: Qwen/Qwen3.5-4B
+  revision: 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
+  tokenizer_revision: 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
+  backend: hf
+  dtype: float32
+hardware:
+  profile: single_gpu_80gb
+  cpu_workers: 5
+sandbox:
+  backend: remote
+  process_policy: single_process
+  resource_backend: slurm
+  remote_url: http://127.0.0.1:8765
+logging:
+  mode: online
+  upload_checkpoints: false

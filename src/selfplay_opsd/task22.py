@@ -26,13 +26,16 @@ from selfplay_opsd.task21 import PdbRepository, Task21Control, Task21Study
 from selfplay_opsd.task22_contract import (
     B_CHECKPOINTS,
     BASE_SCIENCE,
+    BASE_SCIENCE_2027,
     BASE_STUDY,
     EVAL_SPLITS,
     EXTENSIONS,
     INITIAL,
+    INITIAL_2027,
     MATCHED_DATA,
     PRIMARY,
     QUALIFY,
+    REPLICATION,
     STUDY,
     common_control,
     reference_path,
@@ -60,15 +63,17 @@ class Task22Control(Task21Control):
             ):
                 raise ValueError("Task 22 extension requires a frozen Task 21 checkpoint lineage")
         elif (
-            self.study != STUDY
+            self.study not in {STUDY, REPLICATION}
             or self.endpoint != 512
             or self.dev_milestones != (128, 256, 384)
             or not self.reference_sha256
             or self.parent_marker_sha256
         ):
             raise ValueError("Task 22 requires the frozen matched alignment control")
-        if self.seed != 2026 or self.main_mode != "shared":
-            raise ValueError("Task 22 requires the matched shared seed-2026 study")
+        if self.main_mode != "shared" or self.seed not in (
+            {2026, 2027} if self.study == REPLICATION else {2026}
+        ):
+            raise ValueError("Task 22 requires a matched shared study seed")
         return self
 
 
@@ -140,7 +145,8 @@ class Task22Study(Task21Study):
 
     @property
     def identity(self) -> dict:
-        if self.initial != INITIAL:
+        expected = INITIAL_2027 if self.cfg.seed == 2027 else INITIAL
+        if self.initial != expected:
             raise ValueError("Task 22 initialization differs from the Task 21 matched adapter")
         out = super().identity
         if self.cfg.parent_marker_sha256:
@@ -283,7 +289,7 @@ class Task22Study(Task21Study):
             if record["identity"] != self.identity or record["snapshot"] != self.snapshot:
                 raise ValueError("Reused Task 22 baseline identity differs")
             return record
-        root = self.output.parent.parent / BASE_STUDY / "B-seed2026"
+        root = self.output.parent.parent / BASE_STUDY / f"B-seed{self.cfg.seed}"
         previous = root / "evaluation/0000/dev_monitor/summary.json"
         if not previous.is_file():
             return super().evaluate(split, should_stop)
@@ -293,7 +299,7 @@ class Task22Study(Task21Study):
         if (
             record["snapshot"] != self.snapshot
             or original["data"] != self.repository.hash
-            or original["science"] != BASE_SCIENCE
+            or original["science"] != (BASE_SCIENCE_2027 if self.cfg.seed == 2027 else BASE_SCIENCE)
             or original["initial"] != self.initial
             or original["worker"] != self.sandbox.identity()
             or record["split"] != split
