@@ -138,8 +138,8 @@ The 64-task primary evaluation was submitted once as job `34826348` / run
 and ledger and never submit a duplicate. It completed exit 0 and verified 24/64
 on the primary set. The paired D result was 31/64; paired analysis remains
 pending. C's matched transfer evaluation was submitted once as job `34834854`
-/ run `bd4fe14b63b53173822beba2`; inspect its scheduler and ledger and never
-submit a duplicate.
+/ run `bd4fe14b63b53173822beba2` and started on `a1124u28n01`; inspect its
+scheduler and ledger and never submit a duplicate.
 The local controller has one guarded `hpc watch --continue-stopped` process per
 run, polling every 120 seconds; inspect these processes and the remote ledger
 before any manual continuation to avoid duplicate submissions. The full local
