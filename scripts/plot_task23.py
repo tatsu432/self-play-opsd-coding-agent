@@ -444,6 +444,43 @@ def failure_figure(output: Path, report: dict) -> None:
     finish(fig, output, "08-failure-and-budget")
 
 
+def inference_cost_figure(output: Path, report: dict) -> None:
+    if not (sensitivity := report.get("followup", {}).get("relaxed")):
+        return
+    plt = mpl()
+    fig, axes = plt.subplots(1, 3, figsize=(10.5, 3.7), layout="constrained")
+    for ax, (key, label) in zip(
+        axes,
+        (
+            ("median_tokens", "Median generated tokens"),
+            ("median_turns", "Median interaction turns"),
+            ("mean_episode_seconds", "Mean episode seconds"),
+        ),
+        strict=True,
+    ):
+        for index, seed in enumerate(SEEDS):
+            for arm in METHODS:
+                cell = sensitivity["cells"][f"{seed}-{arm}"]
+                ax.plot(
+                    [0, 1],
+                    [cell[f"baseline_{key}"], cell[key]],
+                    marker=MARKERS[index],
+                    color=COLORS[arm],
+                    linestyle=("-", "--")[index],
+                    alpha=0.8,
+                    label=arm if index == 0 else None,
+                )
+        ax.set(
+            xticks=[0, 1],
+            xticklabels=["4,096", "6,144"],
+            xlabel="Generated tokens per turn",
+            ylabel=label,
+        )
+    axes[0].legend(frameon=False, ncols=2, fontsize=7)
+    fig.suptitle("Inference cost under both caps · solid 2026, dashed 2027")
+    finish(fig, output, "08-inference-cost")
+
+
 def csv_export(path: Path, rows: list[dict]) -> None:
     with path.open("w", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=list(rows[0]), lineterminator="\n")
@@ -542,6 +579,53 @@ def tables(output: Path, report: dict) -> None:
     )
 
 
+def followup_tables(output: Path, report: dict) -> None:
+    followup = report.get("followup", {})
+    if sensitivity := followup.get("relaxed"):
+        csv_export(
+            output / "sensitivity.csv",
+            [
+                {
+                    "configuration": name,
+                    "total": row["count"],
+                    "original_verified": row["baseline_verified"],
+                    "relaxed_verified": row["verified"],
+                    "gains": row["gains"],
+                    "losses": row["losses"],
+                    "original_truncations": row["baseline_truncation"],
+                    "relaxed_truncations": row["failures"].get("truncation", 0),
+                    "original_median_tokens": row["baseline_median_tokens"],
+                    "relaxed_median_tokens": row["median_tokens"],
+                    "original_median_turns": row["baseline_median_turns"],
+                    "relaxed_median_turns": row["median_turns"],
+                    "original_mean_seconds": row["baseline_mean_episode_seconds"],
+                    "relaxed_mean_seconds": row["mean_episode_seconds"],
+                    "conditional_ci_low": row["paired_change"]["ci95_pp"][0],
+                    "conditional_ci_high": row["paired_change"]["ci95_pp"][1],
+                    "allocated_h200_hours": row["allocated_h200_seconds"] / 3600,
+                }
+                for name, row in sensitivity["cells"].items()
+            ],
+        )
+    if ood := followup.get("ood"):
+        csv_export(
+            output / "independent-transfer.csv",
+            [
+                {
+                    "cohort": split,
+                    "configuration": name,
+                    "verified": row["verified"],
+                    "total": row["count"],
+                    "conditional_ci_low": row["ci95_pp"][0],
+                    "conditional_ci_high": row["ci95_pp"][1],
+                    "truncations": row["failures"].get("truncation", 0),
+                }
+                for split, section in ood.items()
+                for name, row in section["cells"].items()
+            ],
+        )
+
+
 def export(output: Path, report: dict) -> None:
     framework(output, matched_study=True)
     primary_figure(output, report)
@@ -551,10 +635,12 @@ def export(output: Path, report: dict) -> None:
     alignment_figure(output, report)
     strength_figure(output, report)
     failure_figure(output, report)
+    inference_cost_figure(output, report)
     primary_figure(output, report, compact=True)
     development_figure(output, report, compact=True)
     alignment_figure(output, report, compact=True)
     tables(output, report)
+    followup_tables(output, report)
 
 
 if __name__ == "__main__":

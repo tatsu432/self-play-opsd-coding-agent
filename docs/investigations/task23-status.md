@@ -39,3 +39,28 @@ These structural exclusions do not guarantee semantic disjointness.
 
 The baseline [consolidated W&B run](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/task23-final-aggregates)
 has independently verified cloud history and five verified aggregate tables.
+
+## Relaxed-cap comparison launched
+
+The B timing job completed exit 0 with eight verified task records in 1,218
+H200-seconds. The expansion reads those same eight task files in the same
+frozen namespace before generating any new records. Based on same-task timing
+and historical per-cell episode runtime, the full 64-task comparison was
+priced at approximately 33 H200-hours, with 43.8 hours of original evaluation
+wall reservations before continuation. Those forecasts are separate from actual
+charges. The scheduler currently enforces six simultaneous H200 jobs on the
+account.
+
+| Seed | Initial | Control | A | B | C | D |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 2026 | 34872118 | 34872121 | 34872127 | 34872238 | 34872130 | 34872132 |
+| 2027 | 34872134 | 34872135 | 34872136 | 34872138 | 34872139 | 34872143 |
+
+Use the local private evaluation ledgers and Slurm terminal state before any
+continuation. A complete cell's manifest and task records remain authoritative.
+With Yale SSH available, fetch completion markers and actual accounting with:
+
+```bash
+uv run --frozen python scripts/fetch_task23.py
+uv run --frozen python scripts/analyze_task23.py --output docs/figures/task23
+```

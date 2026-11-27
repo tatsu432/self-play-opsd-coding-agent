@@ -546,14 +546,16 @@ def evaluation_stats(
     }
 
 
-def read_followup(private: Path, kind: str, registry: dict, frozen: dict | None) -> dict:
+def read_followup(
+    private: Path, kind: str, registry: dict, frozen: dict | None, reconciled: set[str]
+) -> dict:
     cells = {}
     for seed in SEEDS:
         for method in METHODS:
             name = f"{seed}-{method}"
             root = private / "evaluations" / f"{kind}-{name}"
             marker = root / "complete.json"
-            if not marker.is_file():
+            if not marker.is_file() or root.name not in reconciled:
                 continue
             manifest = read_json(root / "manifest.json")
             record = read_json(marker)
@@ -616,6 +618,13 @@ def followup_results(private: Path, registry: dict, original: dict, families: di
     allocations = read_json(ledger) if ledger.is_file() else []
     if len({entry["job"] for entry in allocations}) != len(allocations):
         raise ValueError("Follow-up costs include a duplicate physical allocation")
+    reconciled = {
+        row["cell"]
+        for row in allocations
+        if row["state"] == "COMPLETED" and row["exit_code"] == "0:0"
+    }
+    if "ood-validation" not in reconciled:
+        frozen = None
     report["allocated_h200_seconds"] = sum(row["gpu_seconds"] for row in allocations)
     report["reconciled_jobs"] = len(allocations)
     if frozen:
@@ -629,7 +638,7 @@ def followup_results(private: Path, registry: dict, original: dict, families: di
             for split, rows in frozen["cohorts"].items()
         }
     for kind in ("relaxed", "ood"):
-        available = read_followup(private, kind, registry, frozen)
+        available = read_followup(private, kind, registry, frozen, reconciled)
         report[f"{kind}_complete_cells"] = len(available)
         if len(available) != len(registry):
             continue
