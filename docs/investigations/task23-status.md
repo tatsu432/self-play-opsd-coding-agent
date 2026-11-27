@@ -64,3 +64,25 @@ With Yale SSH available, fetch completion markers and actual accounting with:
 uv run --frozen python scripts/fetch_task23.py
 uv run --frozen python scripts/analyze_task23.py --output docs/figures/task23
 ```
+
+## Independent transfer freeze
+
+CPU job 34871763 completed exit 0 in 1,222 elapsed seconds and used zero GPUs.
+It accepted 17 BigCodeBench-derived source-transfer tasks and 32 independent
+LiveCodeBench-derived complexity tasks. All 49 are from distinct structural
+families. All source tasks use stable canonical observations from the pinned
+upstream tests. The compatible native PDB-Multi candidate did not qualify, so
+the 32 complexity tasks are verified two-site mutations. The original PDB-Multi
+cell stays separate.
+
+The full accepted cohort is frozen before model evaluation. The seed-2026 B
+eight-task timing job (34872707) is queued under the same isolated worker and
+original inference budget. Its task records belong to the final OOD cell.
+
+The 512-episode strength-matched A′ arm is deferred. The exact matched
+initialization replay establishes the scale difference, while a useful new
+training arm would require representative multi-snapshot calibration and
+roughly 21–28 H200-hours for one additional seed. The remaining experimental
+priority is completing the two checkpoint evaluation comparisons within the
+six-job scheduler limit. Additional training seeds and longer continuations
+also remain deferred.
