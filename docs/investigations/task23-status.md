@@ -86,3 +86,17 @@ roughly 21–28 H200-hours for one additional seed. The remaining experimental
 priority is completing the two checkpoint evaluation comparisons within the
 six-job scheduler limit. Additional training seeds and longer continuations
 also remain deferred.
+
+The OOD timing job completed exit 0 in 371 H200-seconds. Its eight tasks
+averaged 39.20 seconds of generation, tool and verifier time. The final B
+cell will reuse all eight records. The other cells were forecast using the
+older primary and harder-transfer timings, for about 23.7 H200-hours total
+and 34.0 hours of initial full-cell wall reservations. The queue briefly
+prioritized the OOD timing job ahead of pending sensitivity D/2027 using a
+25-point nice adjustment to the sensitivity job. The original priority
+was restored after the timing job started.
+
+| Seed | Initial | Control | A | B | C | D |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 2026 | 34882862 | 34882860 | 34882855 | 34882857 | 34882858 | 34882861 |
+| 2027 | 34882869 | 34882867 | 34882864 | 34882865 | 34882866 | 34882868 |
