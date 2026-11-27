@@ -135,7 +135,9 @@ development monitor completed 11/24; continuation `34818937` completed exit 0
 and checkpoint `000021` and its identity and checksums were verified.
 The 64-task primary evaluation was submitted once as job `34826348` / run
 `e6ecea09d6ca2eba0a22fb3c` and started on `a1126u19n01`; inspect its scheduler
-and ledger and never submit a duplicate.
+and ledger and never submit a duplicate. It completed exit 0 and verified 24/64
+on the primary set. The paired D result was 31/64; paired analysis remains
+pending, as does C's matched transfer evaluation.
 The local controller has one guarded `hpc watch --continue-stopped` process per
 run, polling every 120 seconds; inspect these processes and the remote ledger
 before any manual continuation to avoid duplicate submissions. The full local
