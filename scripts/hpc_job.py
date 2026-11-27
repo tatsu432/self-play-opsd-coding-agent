@@ -935,6 +935,15 @@ def task13_command_args(env: dict) -> list[str]:
             + ["--operation", operation.removeprefix("task19-"), "--arm", method]
             + (["--resume", env["SELFPLAY_RESUME"]] if env.get("SELFPLAY_RESUME") else [])
         )
+    if operation == "task21-followup":
+        return [
+            "python",
+            "/workspace/scripts/task23_experiment.py",
+            "--output",
+            env["SELFPLAY_OUTPUT"],
+            "--limit",
+            env.get("SELFPLAY_TASK22_EXPOSURE") or "0",
+        ]
     if operation.startswith(("task20-", "task21-")):
         checkpoint = env.get("SELFPLAY_TASK20_CHECKPOINT_ITERATION")
         task, stage = operation.split("-", 1)
