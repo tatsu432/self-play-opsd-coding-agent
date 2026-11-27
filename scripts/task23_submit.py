@@ -61,8 +61,9 @@ def submit(workspace: Path, directory: Path, prior_id: str, limit: int, minutes:
         gpu = 1
         info = json.loads(file.read_text())
         actual = info["identity"]["checkpoint_identity"]
+        training = json.loads((Path(source["run_dir"]) / "complete-main.json").read_text())
         if any(
-            actual[key] != source["identity"][key]
+            actual[key] != training["identity"][key]
             for key in ("science", "study", "initial", "worker", "data")
         ):
             raise ValueError("Source run and frozen checkpoint differ")
