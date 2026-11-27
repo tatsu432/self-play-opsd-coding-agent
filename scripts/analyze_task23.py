@@ -657,6 +657,12 @@ def followup_results(private: Path, registry: dict, original: dict, families: di
                     "verified": sum(row["success"] for row in rows),
                     "count": len(rows),
                     "failures": dict(Counter(row["failure"] for row in rows)),
+                    "terminations": dict(Counter(row["termination"] for row in rows)),
+                    "truncation_reasons": dict(
+                        Counter(
+                            row["termination"] for row in rows if row["failure"] == "truncation"
+                        )
+                    ),
                     "ci95_pp": bootstrap_rate(rows, split_families),
                     "median_tokens": median(row["tokens"] for row in rows),
                     "median_turns": median(row["turns"] for row in rows),

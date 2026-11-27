@@ -506,13 +506,21 @@ def failure_figure(output: Path, report: dict) -> None:
         ax = axes[i, 2]
         if sensitivity:
             cells = [sensitivity["cells"][f"{seed}-{arm}"] for arm in METHODS]
-            ax.plot(
-                METHODS, [cell["baseline_verified"] for cell in cells], "o-", label="4,096 tokens"
-            )
-            ax.plot(METHODS, [cell["verified"] for cell in cells], "^-", label="6,144 tokens")
+            for j, cell in enumerate(cells):
+                old, new = cell["baseline_verified"], cell["verified"]
+                ax.plot([j - 0.16, j + 0.16], [old, new], linewidth=1, color=".6")
+                ax.plot(
+                    j - 0.16, old, "o", color="#3d5166", label="4,096 tokens" if j == 0 else None
+                )
+                ax.plot(
+                    j + 0.16, new, "^", color="#ad523b", label="6,144 tokens" if j == 0 else None
+                )
             ax.set(
                 title=f"{seed} · Per-turn cap sensitivity",
                 ylabel=f"Verified repairs / {cells[0]['count']}",
+                xticks=range(len(METHODS)),
+                xticklabels=METHODS,
+                ylim=(15, 35),
             )
         else:
             for k, field in enumerate(("median_tokens_success", "median_tokens_failure")):

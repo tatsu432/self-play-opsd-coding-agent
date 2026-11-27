@@ -2,11 +2,12 @@
 
 This study separates two decisions. The first is how the student uses privileged
 repair guidance on its own trajectories. The second is how the proposer scores
-the tasks that the student attempts. Across the observed Qwen3.5-4B checkpoints,
-gated distillation improved held-out repairs relative to ungated distillation
-and verifier-only RL in both seeds. Incorporating the gated distillation
-gradient into the proposer score removed near-zero gradients in paired
-diagnostics. The C/D accuracy ranking reversed across seeds.
+the tasks that the student attempts. At the original inference budget, gated
+distillation improved held-out repairs relative to ungated distillation and
+verifier-only RL in both observed seeds. The advantage over verifier-only RL
+shrank substantially at the relaxed per-turn cap. Incorporating gated
+distillation into the proposer score removed near-zero gradients in paired
+diagnostics. The primary C/D accuracy ranking reversed across seeds.
 
 ## Experimental setup
 
@@ -148,6 +149,42 @@ least two observed failed public-test calls, and 89 contain at least two
 invalid or rejected calls. These indicators can overlap. Hidden-test
 verification governs every success count. These observations motivate the budget sensitivity
 comparison. [Failure categories and budget](../figures/task23/08-failure-and-budget.pdf)
+
+### Per-turn generation budget sensitivity
+
+The secondary comparison increased the advertised per-turn cap from 4,096
+to 6,144 tokens. It used all 64 original tasks for each checkpoint with the
+same task seeds, sampler, total episode and turn limits, model weights, tool
+interface, and verifier. The cap changes the budget shown to the agent and can
+change its subsequent interaction trajectory.
+
+| Method | Original 2026 / 64 | Relaxed 2026 / 64 | Original 2027 / 64 | Relaxed 2027 / 64 |
+| --- | ---: | ---: | ---: | ---: |
+| Initial | 21 | 20 | 20 | 21 |
+| Control | 22 | 24 | 21 | 26 |
+| A | 26 | 27 | 21 | 17 |
+| B | 28 | 26 | 28 | 25 |
+| C | 33 | 27 | 24 | 28 |
+| D | 25 | 29 | 31 | 30 |
+
+Across 768 matched checkpoint-task outcomes, each budget verified 300
+repairs. The relaxed cap gained 89 repairs and lost 89. Truncation failures
+increased from 404 to 414. The reasons changed from 243 to 240 per-turn token
+limits, 160 to 166 turn limits, and one to eight episode token limits.
+Mean model, tool, and verifier time rose from 132.8 to 152.8 seconds per task
+outcome, a 15.0% increase. The sensitivity study consumed 118,105
+H200-seconds (32.807 hours), including the reused timing tranche.
+
+B versus Control narrowed from +10.16 to +0.78 pp. Its relaxed-cap
+conditional interval was [−8.59, +10.16] pp, with +3.13 and −1.56 pp
+differences by seed. B versus A remained positive on average (+5.47 pp),
+with opposite seed-level signs. C versus B averaged +3.13 pp and D versus B
+averaged +6.25 pp. Under the relaxed cap, D verified two more repairs than C
+in each seed, for +3.13 pp [−6.25, +11.72]. These results show that the
+observed method contrasts depend on the budget. The aggregate counts give
+no support for increasing the per-turn cap alone as a repair-rate
+improvement. [Matched budget results](../figures/task23/sensitivity.csv) ·
+[Inference cost](../figures/task23/08-inference-cost.pdf)
 
 The study uses two seeds, short optimization horizons, small evaluation
 partitions, and shared proposer/student parameters. Generated task

@@ -15,7 +15,9 @@ verified 28/64 held-out repairs in both seeds, ahead of ungated OPSD
 (26/64 and 21/64) and verifier-only Control (22/64 and 21/64).
 The C/D gradient-alignment ordering reversed between seeds. Adding gated
 OPSD to the candidate gradient reduced paired near-zero counts from 264/512
-to 0/512. The effect on downstream repair accuracy remains uncertain.
+to 0/512. Raising the per-turn generation cap in a matched evaluation left
+aggregate repairs flat and narrowed B’s mean advantage over Control from
+10.16 to 0.78 percentage points.
 
 The consolidated study records 322.530 historical H200-hours, including
 pilots, failures, resumes, training and evaluation. Two training seeds, a

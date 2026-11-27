@@ -100,3 +100,9 @@ was restored after the timing job started.
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | 2026 | 34882862 | 34882860 | 34882855 | 34882857 | 34882858 | 34882861 |
 | 2027 | 34882869 | 34882867 | 34882864 | 34882865 | 34882866 | 34882868 |
+
+
+All 12 relaxed-cap cells completed exit 0 with the full 64 task records per
+cell. Task 23 charged 118,105 H200-seconds to the sensitivity comparison,
+including its timing tranche. The final comparisons are in the [results
+and discussion](../report/task23-results-and-discussion.md#per-turn-generation-budget-sensitivity).
