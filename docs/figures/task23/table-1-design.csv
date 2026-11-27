@@ -1,0 +1,7 @@
+method,model,proposer_reward,student_objective,attempted_episodes,student_rollouts,precision,learning_rate,nominal_opsd_scale,proposer_scale,edit_protocol,max_generated_tokens,max_observation_tokens,max_student_sequence_tokens,max_teacher_sequence_tokens,max_turn_generated_tokens,max_turns,privilege_reserve
+Initial,Qwen/Qwen3.5-4B,none,none,0,4,float32,,,,replace_text,12288,1024,20480,24576,4096,8,4096
+Control,Qwen/Qwen3.5-4B,difficulty,Dr. GRPO,512,4,float32,1e-05,,0.30352814071666645,replace_text,12288,1024,20480,24576,4096,8,4096
+A,Qwen/Qwen3.5-4B,difficulty,Dr. GRPO + ungated OPSD,512,4,float32,1e-05,0.1717172194518303,0.30352814071666645,replace_text,12288,1024,20480,24576,4096,8,4096
+B,Qwen/Qwen3.5-4B,difficulty,Dr. GRPO + gated OPSD,512,4,float32,1e-05,0.1717172194518303,0.30352814071666645,replace_text,12288,1024,20480,24576,4096,8,4096
+C,Qwen/Qwen3.5-4B,RL-reference CE cosine,Dr. GRPO + gated OPSD,512,4,float32,1e-05,0.1717172194518303,0.30352814071666645,replace_text,12288,1024,20480,24576,4096,8,4096
+D,Qwen/Qwen3.5-4B,combined-reference CE cosine,Dr. GRPO + gated OPSD,512,4,float32,1e-05,0.1717172194518303,0.30352814071666645,replace_text,12288,1024,20480,24576,4096,8,4096

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import statistics
 from collections import Counter, defaultdict, deque
 from pathlib import Path
@@ -185,6 +186,7 @@ def training_history(
         raise ValueError("Training history differs from the verified 512-episode endpoint")
     curves, batches, paired_groups, episodes = [], [], [], []
     task_hist = Counter()
+    gate_groups: dict = defaultdict(Counter)
     rolling = deque(maxlen=64)
     steps = proposer_tokens = 0
     task_set = set()
@@ -232,6 +234,31 @@ def training_history(
             if prop.get("generated_tokens", generated) != generated:
                 raise ValueError("Proposer-generated token accounting differs")
             proposer_tokens += generated
+            for group in groups:
+                successes = sum(ep["success"] for ep in group)
+                category = (
+                    "all_successful"
+                    if successes == len(group)
+                    else "mixed"
+                    if successes
+                    else "all_failed"
+                )
+                values = gate_groups[category]
+                for episode in group:
+                    for turn in episode["turns"]:
+                        teacher, student = turn["teacher_logps"], turn["frozen_student_logps"]
+                        if not teacher or not student:
+                            continue
+                        gap = np.asarray(teacher, dtype=np.float32) - np.asarray(
+                            student, dtype=np.float32
+                        )
+                        weights = 1 / (1 + np.exp(-np.clip(gap, -80, 80)))
+                        values["tokens"] += len(gap)
+                        for sign, selected in (("positive", gap > 0), ("negative", gap < 0)):
+                            size = np.count_nonzero(selected)
+                            values[f"{sign}_tokens"] += int(size)
+                            values[f"{sign}_weight_sum"] += float(weights[selected].sum())
+                        values["outside_gap_clip"] += int(np.count_nonzero(np.abs(gap) > 5))
             counts = Counter(ep["failure"] for ep in repairs)
             statuses = Counter(ep["verifier_status"] for ep in repairs)
             malformed = sum(
@@ -369,6 +396,19 @@ def training_history(
         ),
         "median_weighted_ratio": median(row["weighted_ratio"] for row in batches),
         "median_rl_opsd_cosine": median(row["rl_opsd_cosine"] for row in batches),
+        "gate_by_rollout_outcome": {
+            name: dict(values)
+            | {
+                f"mean_sigmoid_{sign}": ratio(
+                    values[f"{sign}_weight_sum"], values[f"{sign}_tokens"]
+                )
+                for sign in ("positive", "negative")
+            }
+            for name, values in gate_groups.items()
+            if values["tokens"]
+        },
+        "joint_clipped_iterations": sum(row["joint_clip"] for row in batches),
+        "median_optimizer_displacement": median(row["update_norm"] for row in batches),
     }
     return curves, batches, summary, paired_groups
 
@@ -428,6 +468,39 @@ def alignment_statistics(groups: list[list[dict]]) -> dict:
     }
 
 
+def trace_diagnostics(raw: list[dict]) -> dict:
+    totals: Counter = Counter()
+    for item in raw:
+        repair = item["repair"]
+        counts = Counter()
+        turns = repair["turns"]
+        spoken = [turn["text"] for turn in turns if turn["text"]]
+        counts["repeated_exact_turn"] = len(spoken) != len(set(spoken))
+        counts["multiple_rejected_or_invalid_calls"] = (
+            sum(turn["result"] in {"invalid", "rejected"} for turn in turns) >= 2
+        )
+        failed_public = 0
+        for turn, following in zip(turns, turns[1:], strict=False):
+            if turn["action"] != "run_tests" or turn["result"] != "accepted":
+                continue
+            observations = [row["content"] for row in following["history"] if row["role"] == "tool"]
+            if not observations:
+                continue
+            try:
+                last = json.loads(observations[-1])
+            except (ValueError, TypeError):
+                continue
+            failed_public += isinstance(last, dict) and last.get("public_passed") is False
+        counts["multiple_failed_public_runs_observed"] = failed_public >= 2
+        counts["truncated_in_thinking"] = item["metrics"]["truncated_thinking"]
+        for key, applied in counts.items():
+            if applied:
+                totals[key] += 1
+                if repair["failure"] == "truncation":
+                    totals[f"{key}_among_truncations"] += 1
+    return dict(totals)
+
+
 def evaluation_stats(
     rows: list[dict], root: Path, split: str, exposure: int, families: dict
 ) -> dict:
@@ -453,6 +526,7 @@ def evaluation_stats(
             for row in rows
         ),
         "verifier_statuses": dict(Counter(item["repair"]["verifier_status"] for item in raw)),
+        "trace_diagnostics": trace_diagnostics(raw),
         "per_episode_distributions": {
             key: quantiles(row[key] for row in rows)
             for key in (
@@ -765,6 +839,10 @@ def build(args) -> tuple[dict, dict]:
             "source_ledger": source or None,
             "evaluation_config": config["episode"],
             "evaluation_receipts": receipts + baseline_receipts,
+            "evaluation_sources": {
+                record["run_id"]: source_records.get(record["run_id"])
+                for record in receipts + baseline_receipts
+            },
             "training": training,
             "training_allocations": train_alloc,
             "evaluation_allocations": eval_alloc,
@@ -818,6 +896,8 @@ def build(args) -> tuple[dict, dict]:
             "vs_initial_pp": means[method] - means["Initial"],
             "vs_control_pp": means[method] - means["Control"],
         }
+    calibration, _ = evidence(args.task21 / "prompt-calibration-verified.json", args.artifacts)
+    calibration = calibration["result"]
     followup = followup_results(args.private, registry, by_seed, families)
     return {
         "historical_h200_seconds": total,
@@ -826,6 +906,17 @@ def build(args) -> tuple[dict, dict]:
         "primary": primary,
         "contrasts": contrasts,
         "followup": followup,
+        "initial_matched_sd_calibration": {
+            key: calibration[key]
+            for key in (
+                "tasks",
+                "rl_norm",
+                "ungated_norm",
+                "gated_norm",
+                "sd_scale",
+                "calibrated_ungated_scale",
+            )
+        },
     }, {
         "cells": registry,
         "historical_allocations": allocations,

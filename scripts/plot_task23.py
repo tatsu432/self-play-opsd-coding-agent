@@ -6,7 +6,8 @@ import csv
 import statistics
 from pathlib import Path
 
-from analyze_task22 import COLORS, METHODS, PRIMARY, finish, framework
+from analyze_task22 import COLORS, METHODS, PRIMARY, framework
+from analyze_task22 import finish as save_figure
 
 from selfplay_opsd.core import read_json
 
@@ -37,6 +38,10 @@ def mpl():
         {"font.size": 10, "axes.spines.top": False, "axes.spines.right": False, "pdf.fonttype": 42}
     )
     return plt
+
+
+def finish(fig, output: Path, name: str) -> None:
+    save_figure(fig, output, name, dpi=300)
 
 
 def primary_figure(output: Path, report: dict, compact: bool = False) -> None:
@@ -135,6 +140,9 @@ def development_figure(output: Path, report: dict, compact: bool = False) -> Non
         ("steps", "Optimizer steps"),
         ("h200_hours", "Training-job H200-hours"),
     )
+    baseline = statistics.mean(
+        report["cells"][f"{seed}-Control"]["curves"][0]["rate"] for seed in SEEDS
+    )
     if compact:
         axes_keys = axes_keys[:1]
     fig, axes = plt.subplots(
@@ -147,7 +155,11 @@ def development_figure(output: Path, report: dict, compact: bool = False) -> Non
     for ax, (key, label) in zip(axes.flat, axes_keys, strict=True):
         show_seeds = key != "episodes" or not compact
         ax.axhline(
-            31.25, color=COLORS["Initial"], linewidth=0.9, linestyle=":", label="Initial mean"
+            100 * baseline,
+            color=COLORS["Initial"],
+            linewidth=0.9,
+            linestyle=":",
+            label="Initial mean",
         )
         for arm in METHODS[1:]:
             series = [report["cells"][f"{seed}-{arm}"]["curves"] for seed in SEEDS]
@@ -315,6 +327,7 @@ def alignment_figure(output: Path, report: dict, compact: bool = False) -> None:
                     color=COLORS[arm],
                 )
         ax.axhline(0, linestyle=":", color=".55")
+        ax.margins(y=0.24)
         ax.set(
             xticks=range(4),
             xticklabels=[f"{seed}\n{arm} traj." for seed, arm, _ in sources],
@@ -398,9 +411,14 @@ def failure_figure(output: Path, report: dict) -> None:
                         width=0.7,
                     )
                     bottom = [p + q for p, q in zip(bottom, values, strict=True)]
-            ax.set(title=f"{seed} · {title}", ylabel="Episodes / 64", ylim=(0, 67))
+            ax.set(
+                title=f"{seed} · {title}",
+                ylabel="Episodes / 64",
+                ylim=(0, 88),
+                yticks=(0, 16, 32, 48, 64),
+            )
             ax.tick_params(axis="x", labelrotation=27)
-            ax.legend(frameon=False, fontsize=6.5, loc="upper right")
+            ax.legend(frameon=False, fontsize=7, loc="upper center", ncols=2)
         ax = axes[i, 2]
         if sensitivity:
             cells = [sensitivity["cells"][f"{seed}-{arm}"] for arm in METHODS]
@@ -428,7 +446,7 @@ def failure_figure(output: Path, report: dict) -> None:
 
 def csv_export(path: Path, rows: list[dict]) -> None:
     with path.open("w", newline="") as stream:
-        writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
+        writer = csv.DictWriter(stream, fieldnames=list(rows[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
@@ -448,6 +466,34 @@ def tables(output: Path, report: dict) -> None:
                 (cell["training_h200_seconds"] + cell["evaluation_h200_seconds"]) / 3600, 3
             )
         rows.append(row | primary)
+    config = read_json(Path("configs/task21-main.json"))
+    design = (
+        ("Initial", "none", "none"),
+        ("Control", "difficulty", "Dr. GRPO"),
+        ("A", "difficulty", "Dr. GRPO + ungated OPSD"),
+        ("B", "difficulty", "Dr. GRPO + gated OPSD"),
+        ("C", "RL-reference CE cosine", "Dr. GRPO + gated OPSD"),
+        ("D", "combined-reference CE cosine", "Dr. GRPO + gated OPSD"),
+    )
+    csv_export(
+        output / "table-1-design.csv",
+        [
+            {
+                "method": method,
+                "model": "Qwen/Qwen3.5-4B",
+                "proposer_reward": proposer,
+                "student_objective": student,
+                "attempted_episodes": 0 if method == "Initial" else config["endpoint"],
+                "student_rollouts": config["group_size"],
+                "precision": config["precision"],
+                "learning_rate": config["learning_rate"] if method != "Initial" else None,
+                "nominal_opsd_scale": config["sd_scale"] if method in "ABCD" else None,
+                "proposer_scale": config["proposer_scale"] if method != "Initial" else None,
+                **{k: v for k, v in config["episode"].items()},
+            }
+            for method, proposer, student in design
+        ],
+    )
     csv_export(output / "table-2-main.csv", rows)
     csv_export(
         output / "table-3-contrasts.csv",
@@ -497,7 +543,7 @@ def tables(output: Path, report: dict) -> None:
 
 
 def export(output: Path, report: dict) -> None:
-    framework(output)
+    framework(output, matched_study=True)
     primary_figure(output, report)
     transfer_figure(output, report)
     development_figure(output, report)

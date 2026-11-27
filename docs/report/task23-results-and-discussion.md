@@ -26,7 +26,7 @@ fresh executable verification. The Qwen3.5-4B proposer and student share a
 rank-32, alpha-64 FP32 LoRA adapter. The clipped AdamW update uses learning
 rate 1e−5, zero weight decay, ratio clip 0.2 and combined norm clip 1.0.
 Nominal distillation and proposer scales are 0.1717172 and 0.3035281.
-Evaluation uses the recorded cached student sampler and the original limits
+Evaluation uses the recorded cached student sampler (temperature 0.6, top-p 0.95) and the original limits
 of eight turns, 4,096 generated tokens per turn, 12,288 generated tokens per
 episode, and 20,480 student-context tokens. The teacher's context cap during
 training is 24,576. [Executed objective definitions](../methods.md#matched-pdb-study-tasks-2123)
@@ -124,8 +124,15 @@ A/B median weighted OPSD-to-RL gradient ratios are 0.674/0.177 and
 0.758/0.214. Corresponding median RL–OPSD cosines are +0.058/−0.020 and
 +0.034/−0.008. These compare different on-policy trajectories. The sigmoid
 weights both positive and negative teacher gaps and changes auxiliary
-magnitude and direction. A strength-matched ungated comparison remains the
-direct test of whether selective weighting contributes beyond attenuation.
+magnitude and direction. The six-group paired initialization calibration measured ungated and gated
+gradient norms of 0.11913 and 0.03275 on identical rollouts. That corresponds
+to an ungated coefficient of approximately 0.04720 at initialization. A
+strength-matched training comparison would test whether selective weighting
+contributes beyond attenuation. On B's archived tokens, the positive-gap
+sigmoid means ranged from 0.508 to 0.515 across seeds and rollout outcomes.
+Negative-gap means ranged from 0.473 to 0.489. A and B had zero joint-norm
+clipping events. The gate changes individual token weights, whereas the
+weighted gradient ratios measure the resulting batch-level effect.
 [Distillation diagnostics](../figures/task23/07-distillation.pdf) ·
 [Mechanistic and efficiency statistics](../figures/task23/table-4-mechanisms.csv)
 
@@ -135,8 +142,10 @@ The original evaluations include 404 truncation failures across 768
 checkpoint-task outcomes. The per-turn token cap accounts for 243, the turn cap
 for 160, and the episode cap for one. In 64 cases the model hit a limit and
 still produced a verified repair. Among truncation failures, 14 ended with
-an accepted edit and passing public tests. Hidden-test verification governs
-every success count. These observations motivate the budget sensitivity
+an accepted edit and passing public tests. Among truncation failures, 240 end during reasoning, 109 contain at
+least two observed failed public-test calls, and 89 contain at least two
+invalid or rejected calls. These indicators can overlap. Hidden-test
+verification governs every success count. These observations motivate the budget sensitivity
 comparison. [Failure categories and budget](../figures/task23/08-failure-and-budget.pdf)
 
 The study uses two seeds, short optimization horizons, small evaluation
@@ -164,7 +173,7 @@ The reconciled Tasks 21 and 22 ledgers contain 64 distinct allocations
 totaling 1,161,107 H200-seconds (322.530 hours). This includes qualification,
 pilot, failed, continued, training and evaluation allocations. Per-cell
 end-to-end totals count the allocations associated with the corresponding
-training and evaluation owners. The three repeated Initial evaluations are
+training and evaluation owners. All three Initial allocations per seed are
 included in physical cost.
 
 From the repository root with the archived Task 21/22 receipts, frozen PDB

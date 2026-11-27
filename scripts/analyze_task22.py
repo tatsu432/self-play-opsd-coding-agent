@@ -225,13 +225,13 @@ def contrasts(rows: dict, families: dict) -> dict:
     return result
 
 
-def finish(fig, out: Path, file: str) -> None:
+def finish(fig, out: Path, file: str, *, dpi: int = 220) -> None:
     for extension in ("pdf", "png"):
-        fig.savefig(out / f"{file}.{extension}", dpi=220)
+        fig.savefig(out / f"{file}.{extension}", dpi=dpi)
     plt.close(fig)
 
 
-def framework(out: Path) -> None:
+def framework(out: Path, *, matched_study: bool = False) -> None:
     from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
     from matplotlib.path import Path as ArrowPath
 
@@ -244,9 +244,16 @@ def framework(out: Path) -> None:
         "Student\nrepair agent": (0.62, 0.76),
         "Environment\nand verifier": (0.87, 0.76),
         "Verified PDB\nreference repairs": (0.13, 0.43),
-        "Alignment\nreward C / D": (0.37, 0.43),
+        ("Difficulty or\nalignment reward" if matched_study else "Alignment\nreward C / D"): (
+            0.37,
+            0.43,
+        ),
         "Privileged\nteacher context": (0.62, 0.43),
-        "Sparse Dr. GRPO\nDense gated OPSD": (0.87, 0.43),
+        (
+            "Dr. GRPO + optional\ngated / ungated OPSD"
+            if matched_study
+            else "Sparse Dr. GRPO\nDense gated OPSD"
+        ): (0.87, 0.43),
         "Shared LoRA update": (0.62, 0.12),
     }
     for label, (x, y) in nodes.items():
@@ -299,7 +306,7 @@ def framework(out: Path) -> None:
         )
     ax.text(0.685, 0.279, "Candidate gradient", fontsize=8.5, color="#775936", ha="center")
     ax.set_title("Gradient-guided self-play for Python repair", fontsize=16, loc="left", pad=12)
-    finish(fig, out, "01-framework")
+    finish(fig, out, "01-framework", dpi=300 if matched_study else 220)
 
 
 def primary_figure(
