@@ -101,10 +101,19 @@ def transfer_figure(output: Path, report: dict) -> None:
     plt = mpl()
     observed = report.get("followup", {}).get("ood", {})
     splits = list(SPLITS)[:3] + [key for key in list(SPLITS)[3:] if key in observed]
-    fig, axes = plt.subplots(
-        1, len(splits), figsize=(3.65 * len(splits), 3.9), sharey=True, layout="constrained"
+    expanded = len(splits) > 3
+    fig, grid = plt.subplots(
+        2 if expanded else 1,
+        3,
+        figsize=(10.6, 6.7 if expanded else 3.9),
+        sharey=True,
+        layout="constrained",
+        squeeze=False,
     )
-    for ax, split in zip(axes, splits, strict=True):
+    axes = list(grid.flat)
+    for unused in axes[len(splits) :]:
+        unused.set_axis_off()
+    for ax, split in zip(axes[: len(splits)], splits, strict=True):
         table = observed.get(split)
         for x, arm in enumerate(METHODS):
             rows = [
@@ -127,8 +136,11 @@ def transfer_figure(output: Path, report: dict) -> None:
         ax.set_title(f"{SPLITS[split]}\n{rows[0]['count']} shared tasks", fontsize=10.5)
         ax.set(xticks=range(6), xticklabels=METHODS, ylim=(0, 110))
         ax.tick_params(axis="x", labelrotation=32)
-    axes[0].set_ylabel("Verified pass@1 (%)")
+    for ax in axes[::3]:
+        ax.set_ylabel("Verified pass@1 (%)")
     axes[0].legend(frameon=False, ncols=2, loc="upper left")
+    if expanded:
+        fig.suptitle("Transfer repair performance by benchmark")
     finish(fig, output, "03-transfer")
 
 
@@ -255,6 +267,78 @@ def dynamics_figure(output: Path, report: dict) -> None:
         ax.set_xlabel("Attempted student episodes")
     fig.suptitle("Online learning dynamics on evolving generated tasks · solid 2026, dashed 2027")
     finish(fig, output, "05-online-dynamics")
+
+
+def proposer_figure(output: Path, report: dict) -> None:
+    plt = mpl()
+    fig, axes = plt.subplots(2, 3, figsize=(11, 6.5), layout="constrained")
+    metrics = (
+        (
+            "Invalid proposals / attempted",
+            lambda row: row["proposal_invalid"] / row["proposal_attempts"],
+        ),
+        ("Duplicate proposals / attempted", lambda row: row["duplicate_proposal_rate"]),
+        ("Proposer gradient norm", lambda row: row["proposer_gradient_norm"]),
+        ("Student verified rate on proposed tasks", lambda row: row["proposal_mean_solve_rate"]),
+        (
+            "Near-zero alignments / valid proposals",
+            lambda row: (
+                row["near_zero_alignments"] / row["proposal_valid"]
+                if row["proposal_valid"]
+                else None
+            ),
+        ),
+    )
+    for index, (ax, (name, value)) in enumerate(zip(axes.flat, metrics, strict=False)):
+        for arm in METHODS[4:] if index == 4 else METHODS[1:]:
+            for seed_idx, seed in enumerate(SEEDS):
+                rows = report["cells"][f"{seed}-{arm}"]["batches"]
+                ax.plot(
+                    [row["episode"] for row in rows],
+                    [value(row) for row in rows],
+                    linestyle=("-", "--")[seed_idx],
+                    linewidth=1,
+                    color=COLORS[arm],
+                    label=arm if seed_idx == 0 else None,
+                )
+        ax.set(title=name, xlabel="Attempted student episodes")
+        if index == 2:
+            ax.set_yscale("symlog", linthresh=0.001)
+    axes[0, 0].legend(frameon=False, ncols=3, fontsize=8)
+    ax = axes[1, 2]
+    palette = ("#934f48", "#bd7858", "#deb486", "#80a79c", "#2f6a61")
+    for i in range(5):
+        for j, arm in enumerate(METHODS[1:]):
+            series = [row for seed in SEEDS for row in report["cells"][f"{seed}-{arm}"]["batches"]]
+            for k in (0, 1):
+                rows = [
+                    row["student_group_counts"]
+                    for row in series
+                    if (row["episode"] > 256) == bool(k)
+                ]
+                totals = [sum(row[str(n)] for row in rows) for n in range(5)]
+                n = sum(totals)
+                if n:
+                    ax.bar(
+                        j + (-0.17, 0.17)[k],
+                        totals[i] / n,
+                        width=0.3,
+                        bottom=sum(totals[:i]) / n,
+                        color=palette[i],
+                        label=str(i) if j == 0 and k == 0 else None,
+                    )
+    ax.set(
+        xticks=range(5),
+        xticklabels=METHODS[1:],
+        ylim=(0, 1.18),
+        title="Student successes per 4-rollout group",
+        xlabel="First / last 256 episodes per arm",
+    )
+    ax.legend(
+        title="Successes", frameon=False, ncols=5, fontsize=7, title_fontsize=8, loc="upper center"
+    )
+    fig.suptitle("Proposer behavior · solid 2026, dashed 2027")
+    finish(fig, output, "05-proposer-behavior")
 
 
 def alignment_figure(output: Path, report: dict, compact: bool = False) -> None:
@@ -632,6 +716,7 @@ def export(output: Path, report: dict) -> None:
     transfer_figure(output, report)
     development_figure(output, report)
     dynamics_figure(output, report)
+    proposer_figure(output, report)
     alignment_figure(output, report)
     strength_figure(output, report)
     failure_figure(output, report)

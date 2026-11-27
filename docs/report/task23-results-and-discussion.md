@@ -102,7 +102,8 @@ committed attempt slots and retains raw iteration points. Proposer rewards
 appear separately for difficulty and cosine. Novelty counts use distinct
 scored task IDs. Duplicate flags can overlap proposal validity. Verifier
 statuses distinguish model failures from infrastructure failure or retries.
-[Online dynamics](../figures/task23/05-online-dynamics.pdf)
+[Online dynamics](../figures/task23/05-online-dynamics.pdf) ·
+[Proposer behavior](../figures/task23/05-proposer-behavior.pdf)
 
 | Paired diagnostic group | Candidates | C near-zero | D near-zero | D positive cosine |
 | --- | ---: | ---: | ---: | ---: |
