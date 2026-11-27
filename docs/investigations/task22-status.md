@@ -1,6 +1,15 @@
 # Task 22 execution and reproduction
 
-## Seed-2027 replication in progress · November 25, 2026
+## Seed-2027 replication complete · November 26, 2026
+
+Both 512-episode training endpoints and all primary and transfer evaluations
+completed, with identity and checkpoint checksums verified. C/D scored 24/31
+out of 64 on the primary benchmark; their ordering reverses from seed 2026.
+The full paired analysis and limitations are in
+[seed-2027 results](task22-seed2027-results.md). The reconciled incremental
+allocation was 182,963 H200-seconds (50.823056 hours), including qualification,
+timeouts and continuations; all reservations were charged. Never duplicate the
+completed jobs. Earlier progress below is historical.
 
 December 2 is a soft milestone for a five-minute presentation of available
 findings. Experiments may continue afterward; the hard final-report deadline
