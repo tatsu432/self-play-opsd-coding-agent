@@ -17,6 +17,19 @@ After completing each task, update `README.md` to concisely describe the researc
 problem, approaches, current progress and results. Link detailed evidence and
 procedures to the relevant Markdown documents; keep the README short and current.
 
+## CURRENT — Task 23 completed (2026-11-27)
+
+All 24 matched follow-up cells and 27 allocations are terminal and verified.
+Task 23 added 182,087 H200-seconds (50.580 hours). No account jobs remained.
+The relaxed per-turn cap left aggregate repairs at 300/768 and narrowed
+B–Control from +10.16 to +0.78 points. Expanded transfer used 17 source and
+32 two-bug tasks. D removed near-zero gradients on the paired candidates.
+Strength-matched A′ and further training were deferred. Keep private receipts,
+datasets and checkpoints ignored and never duplicate completed cells.
+See [results and discussion](docs/report/task23-results-and-discussion.md),
+[execution record](docs/investigations/task23-status.md), and
+[completion](docs/task_completion/23-final-research-completion.md).
+
 ## CURRENT — Task 19 completed (2026-11-19)
 
 The Qwen3.5 shared-LoRA, FP32 Dr. GRPO/OPSD study completed all five

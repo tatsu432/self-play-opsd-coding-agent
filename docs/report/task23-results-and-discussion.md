@@ -85,6 +85,46 @@ Transfer entries show verified repairs for seeds 2026 / 2027. The single
 cross-source task has no variation in correctness. The other original transfer
 sets are exploratory. [Transfer figure](../figures/task23/03-transfer.pdf)
 
+### Independent source and complexity transfer
+
+The two additional cohorts contain 49 tasks from distinct structural families.
+The source cohort contains 17 BigCodeBench-derived single-bug repairs with
+reference outputs reproduced on pinned upstream inputs. The complexity cohort
+contains 32 LiveCodeBench-derived repairs with two separately detectable
+semantic changes. Every reference solution passed the isolated verifier. The
+buggy versions and, for the two-bug cohort, each single component failed their
+intended checks. Selection used source provenance, overlap checks, and
+verifier compatibility before model evaluation. All six methods and both
+seeds used the same tasks at the original inference budget.
+
+| Method | Source 2026 / 17 | Source 2027 / 17 | Source mean | Complexity 2026 / 32 | Complexity 2027 / 32 | Complexity mean |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Initial | 12 | 13 | 73.53% | 9 | 8 | 26.56% |
+| Control | 12 | 13 | 73.53% | 14 | 10 | 37.50% |
+| A | 12 | 10 | 64.71% | 8 | 4 | 18.75% |
+| B | 13 | 14 | 79.41% | 10 | 12 | 34.38% |
+| C | 13 | 12 | 73.53% | 10 | 12 | 34.38% |
+| D | 12 | 13 | 73.53% | 12 | 9 | 32.81% |
+
+B verified one more repair than Initial and one more than Control in each
+source-transfer seed. Its two-seed difference from Control was +5.88 pp,
+with a conditional family interval of [−5.88, +17.65] pp. On the two-bug
+cohort, Control averaged the most repairs. B versus Control was −3.13 pp
+[−15.63, +7.81], with opposite signs across seeds. C and B had equal repair
+counts in each two-bug seed. D exceeded B in 2026 and fell below it in 2027.
+A repaired six fewer two-bug tasks than Control in each seed, for −18.75 pp
+[−34.38, −4.69] conditional on the trained checkpoints and benchmark.
+
+These patterns vary by distribution shift. The source cohort favors simple
+gated OPSD in these observations. The two-bug cohort gives no consistent
+advantage to gated or gradient-aligned self-play over the verifier-only
+Control. The task families are structurally screened, and semantic overlap
+remains possible. Fixture coverage, two seeds, cohort sizes, and high
+truncation on two-bug repairs constrain generalization. The independent
+transfer evaluations used 63,982 H200-seconds (17.773 hours) including the
+reused timing tranche. [Transfer figure](../figures/task23/03-transfer.pdf) ·
+[Independent transfer counts](../figures/task23/independent-transfer.csv)
+
 ## Learning dynamics and mechanism
 
 D finishes at 14/24 and 15/24 on development, the highest endpoint in each
@@ -212,7 +252,12 @@ totaling 1,161,107 H200-seconds (322.530 hours). This includes qualification,
 pilot, failed, continued, training and evaluation allocations. Per-cell
 end-to-end totals count the allocations associated with the corresponding
 training and evaluation owners. All three Initial allocations per seed are
-included in physical cost.
+included in physical cost. Task 23 added 182,087 H200-seconds (50.580 hours)
+across 27 terminal allocations. This includes two reused GPU timing tranches,
+24 full checkpoint evaluation cells, and one CPU verification job. The
+combined Tasks 21–23 total was 1,343,194 H200-seconds (373.109 hours).
+The strength-matched ablation, longer continuations, and additional
+training seeds were deferred. [Reconciled execution record](../investigations/task23-status.md)
 
 From the repository root with the archived Task 21/22 receipts, frozen PDB
 bundle and fetched HPC histories in their two original directory roots or

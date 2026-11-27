@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import tempfile
+import time
 from pathlib import Path
 
 import wandb
@@ -159,10 +160,15 @@ def main() -> None:
                 }
                 | {"statistics_sha256": checksum}
             )
-    api = wandb.Api(timeout=20)
-    published = api.run(family)
-    published_history = list(published.scan_history(keys=["statistics_sha256"]))
-    if not published_history or published_history[-1]["statistics_sha256"] != checksum:
+    for attempt in range(6):
+        api = wandb.Api(timeout=20)
+        published = api.run(family)
+        published_history = list(published.scan_history(keys=["statistics_sha256"]))
+        if published_history and published_history[-1]["statistics_sha256"] == checksum:
+            break
+        if attempt < 5:
+            time.sleep(5)
+    else:
         raise RuntimeError("W&B server did not report the published statistics digest")
     verified = {}
     with tempfile.TemporaryDirectory(prefix="task23-wandb-") as temp:

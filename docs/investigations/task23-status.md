@@ -6,8 +6,8 @@ and the [five-minute presentation](../report/task23-presentation.md).
 
 Yale access resumed via Duo. At the first live check, the project filesystem had
 138 GB available and the account had no active jobs. Task 23 uses separate
-content-addressed evaluation manifests and a locked Slurm submission ledger;
-original checkpoints and historical results remain in place. All new results
+content-addressed evaluation manifests and a locked Slurm submission ledger.
+Original checkpoints and historical results remain in place. All new results
 must match the original model, adapter, execution runtime and verifier.
 
 The budget sensitivity experiment varies the per-turn generation cap from
@@ -106,3 +106,33 @@ All 12 relaxed-cap cells completed exit 0 with the full 64 task records per
 cell. Task 23 charged 118,105 H200-seconds to the sensitivity comparison,
 including its timing tranche. The final comparisons are in the [results
 and discussion](../report/task23-results-and-discussion.md#per-turn-generation-budget-sensitivity).
+
+## Final reconciliation · November 27, 2026
+
+All 24 checkpoint evaluation cells completed with matching task coverage,
+scientific identities and exit-0 Slurm receipts. Each budget cell has 64
+verified task outcomes. Each new transfer cell has the same 17 source and
+32 complexity outcomes. Initial, Control, A, B, C and D all appear for both
+seeds in the two comparisons. The timing prefix records were reused exactly
+once in each final B cell. All 27 Task 23 allocations were terminal with
+exit 0, and the account queue was empty at reconciliation.
+
+| Work | H200-seconds | H200-hours |
+| --- | ---: | ---: |
+| Per-turn cap sensitivity | 118,105 | 32.807 |
+| Independent transfer | 63,982 | 17.773 |
+| Task 23 total | 182,087 | 50.580 |
+| Tasks 21–23 total | 1,343,194 | 373.109 |
+
+The Task 23 total includes the two timing allocations. The CPU fixture
+validator used 1,222 elapsed CPU-job seconds and zero GPU-seconds.
+Shared project storage showed 137 GB available at the final check.
+The private source ledgers, accepted fixture cohort, endpoint references,
+task receipts and scheduler accounting remain under ignored Task 23 storage.
+Never duplicate any completed logical experiment. See the [report](../report/task23-results-and-discussion.md)
+for the final results and reproduction command.
+
+The final cloud run was checked against the released statistics digest.
+All six aggregate tables were downloaded and compared by value, including
+the 36 follow-up rows. Four regenerable transport bundles were removed
+after their deployed commits were independently verified. [Final W&B aggregates](https://wandb.ai/tatsu432s/self-play-opsd-coding-agent/runs/task23-final-aggregates)

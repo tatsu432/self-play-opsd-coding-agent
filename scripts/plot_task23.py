@@ -123,7 +123,13 @@ def transfer_figure(output: Path, report: dict) -> None:
                 for seed in SEEDS
             ]
             values = [100 * row["verified"] / row["count"] for row in rows]
-            ax.bar(x, statistics.mean(values), color=COLORS[arm], width=0.65, alpha=0.25)
+            ax.bar(
+                x,
+                statistics.mean(values),
+                color=COLORS[arm],
+                width=0.65,
+                alpha=0.09 if split == "cross_source" else 0.25,
+            )
             for j, v in enumerate(values):
                 ax.scatter(
                     x + (-0.14, 0.14)[j],
@@ -133,7 +139,19 @@ def transfer_figure(output: Path, report: dict) -> None:
                     s=30,
                     label=str(SEEDS[j]) if x == 0 else None,
                 )
-        ax.set_title(f"{SPLITS[split]}\n{rows[0]['count']} shared tasks", fontsize=10.5)
+        n = rows[0]["count"]
+        ax.set_title(f"{SPLITS[split]}\n{n} shared {'task' if n == 1 else 'tasks'}", fontsize=10.5)
+        if split == "cross_source":
+            ax.text(
+                0.5,
+                0.22,
+                "All checkpoints verified the same task",
+                transform=ax.transAxes,
+                ha="center",
+                va="center",
+                color=".35",
+                fontsize=8,
+            )
         ax.set(xticks=range(6), xticklabels=METHODS, ylim=(0, 110))
         ax.tick_params(axis="x", labelrotation=32)
     for ax in axes[::3]:
