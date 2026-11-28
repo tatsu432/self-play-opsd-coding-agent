@@ -13,9 +13,13 @@ retained copies before removing originals. Monitor shared quota before launches.
 
 ## README maintenance
 
-After completing each task, update `README.md` to concisely describe the research
-problem, approaches, current progress and results. Link detailed evidence and
-procedures to the relevant Markdown documents; keep the README short and current.
+Keep the README understandable to a new reader and update it after each task.
+Explain the problem, directly relevant linked prior work, experimental setting
+and dataset sizes, methods and what their comparisons test, primary results
+with seed variability, interpretation, important transfer or sensitivity
+results and learning curves, limitations and future work, and pointers to
+reproducible evidence and key files. Use readable figures and concise tables
+where they clarify the findings.
 
 ## CURRENT — Task 23 completed (2026-11-27)
 
